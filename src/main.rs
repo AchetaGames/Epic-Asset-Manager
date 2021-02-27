@@ -275,8 +275,9 @@ impl Update for Win {
                 // TODO: Cache the asset info
                 self.model.asset_info.insert(asset.id.clone(), asset.clone());
 
+                let mut found = false;
                 for image in asset.key_images.clone() {
-                    if image.type_field.eq_ignore_ascii_case("Thumbnail") {
+                    if image.type_field.eq_ignore_ascii_case("Thumbnail") || image.type_field.eq_ignore_ascii_case("DieselGameBox") {
                         let stream = self.model.relm.stream().clone();
                         let (_channel, sender) = Channel::new(move |(id, b)| {
                             stream.emit(ProcessImage((id, b)));
@@ -296,7 +297,12 @@ impl Update for Win {
                                 Err(_) => {}
                             };
                         });
+                        found = true;
+                        break;
                     }
+                }
+                if !found {
+                    println!("{}: {:#?}", asset.title, asset.key_images)
                 }
             }
             ProcessImage((id, image)) => {
@@ -375,16 +381,16 @@ impl Widget for Win {
         let asset_flow: FlowBox = builder.get_object("asset_flow").unwrap();
 
         asset_flow.bind_model(Some(&model.asset_model.borrow().model),
-                              clone!(@weak window => @default-panic, move |asset| {
+                              move |asset| {
                                   let child = FlowBoxChild::new();
                                   let object = asset.downcast_ref::<ObjectWrapper>().unwrap();
                                   let data: AssetInfo = object.deserialize();
-                                  let image= object.image();
+                                  let image = object.image();
                                   let vbox = Box::new(Vertical, 0);
                                   let gtkimage = Image::new();
                                   let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
                                   child.set_widget_name(&data.id);
-                                  if image.len() >0 {
+                                  if image.len() > 0 {
                                       pixbuf_loader.write(&image).unwrap();
                                       pixbuf_loader.close().ok();
                                       gtkimage.set_from_pixbuf(pixbuf_loader.get_pixbuf().unwrap().scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear).as_ref());
@@ -400,9 +406,8 @@ impl Widget for Win {
                                   child.add(&vbox);
                                   vbox.show_all();
                                   child.upcast::<gtk::Widget>()
-                              }),
+                              },
         );
-
 
         let webview = WebView::new();
         webview.set_property_expand(true);

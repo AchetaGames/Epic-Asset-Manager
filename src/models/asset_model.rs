@@ -3,8 +3,10 @@ use glib::prelude::*;
 use crate::models::ObjectWrapper;
 use egs_api::api::types::AssetInfo;
 use gio::prelude::ListStoreExtManual;
-use glib::Object;
+use glib::{Object, child_watch_add};
 use std::cmp::Ordering;
+use gtk::TreeModelFilter;
+use gtk::ListStore;
 
 #[derive(Clone)]
 pub struct AssetModel {
@@ -14,7 +16,6 @@ pub struct AssetModel {
 impl AssetModel {
     pub fn new() -> Self {
         let model = gio::ListStore::new(ObjectWrapper::static_type());
-
         Self {
             model,
         }

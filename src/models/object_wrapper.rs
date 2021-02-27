@@ -70,8 +70,7 @@ mod imp {
                     self.data.replace(data);
                 }
                 subclass::Property("thumbnail", ..) => {
-                    let thumbnail = value
-                        .get()
+                    let thumbnail = value.get()
                         .expect("type conformity checked by `Object::set_property`");
                     self.thumbnail.replace(thumbnail);
                 }
