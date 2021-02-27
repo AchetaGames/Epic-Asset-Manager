@@ -1,9 +1,3 @@
-// ObjectWrapper is a GObject subclass, which we need to carry the asset info struct.
-// With this we can use gtk::ListBox bind_model() properly.
-//
-// For more details, you should look at this gtk-rs example:
-// https://github.com/gtk-rs/examples/blob/master/src/bin/listbox_model.rs
-
 use gtk::prelude::*;
 use serde::de::DeserializeOwned;
 
