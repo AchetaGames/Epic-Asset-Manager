@@ -49,6 +49,7 @@ mod tools;
 use tools::asset_info::Search;
 
 use crate::api_data::ApiData;
+use crate::tools::cache::Cache;
 
 #[macro_use]
 extern crate lazy_static;
@@ -262,6 +263,7 @@ impl Update for Win {
                     let mut asset_namespace_map: HashMap<String, Vec<String>> = HashMap::new();
                     let mut asset_map: HashMap<String, EpicAsset> = HashMap::new();
                     for asset in assets {
+                        asset.save(None);
                         match asset_namespace_map.get_mut(asset.namespace.as_str()) {
                             None => {
                                 asset_namespace_map.insert(
@@ -302,21 +304,32 @@ impl Update for Win {
                         let mut e = eg.clone();
                         let s = sender.clone();
                         pool.execute(move || {
-                            if let Some(asset) =
-                                Runtime::new().unwrap().block_on(e.get_asset_info(ass))
-                            {
-                                s.send(asset).unwrap();
-                            };
+                            match AssetInfo::load_from_cache(ass.catalog_item_id.clone()) {
+                                None => {
+                                    if let Some(asset) =
+                                        Runtime::new().unwrap().block_on(e.get_asset_info(ass))
+                                    {
+                                        asset.save(None);
+                                        if let Ok(mut asset_info) = DATA.asset_info.write() {
+                                            asset_info.insert(asset.id.clone(), asset.clone());
+                                        }
+                                        s.send(asset).unwrap();
+                                    };
+                                }
+                                Some(asset) => {
+                                    println!("Loaded AssetInfo from cache");
+                                    if let Ok(mut asset_info) = DATA.asset_info.write() {
+                                        asset_info.insert(asset.id.clone(), asset.clone());
+                                    }
+                                    s.send(asset).unwrap();
+                                }
+                            }
                         });
                     }
                 });
             }
             ProcessAssetInfo(asset) => {
                 // TODO: Cache the asset info
-                if let Ok(mut asset_info) = DATA.asset_info.write() {
-                    asset_info.insert(asset.id.clone(), asset.clone());
-                }
-
                 let mut found = false;
                 for image in asset.key_images.clone() {
                     if image.type_field.eq_ignore_ascii_case("Thumbnail")
@@ -328,13 +341,21 @@ impl Update for Win {
                         });
 
                         let id = asset.id.clone();
-                        thread::spawn(move || {
-                            if let Ok(response) = reqwest::blocking::get(&image.url) {
-                                if let Ok(b) = response.bytes() {
-                                    sender.send((id, Vec::from(b.as_ref()))).unwrap();
-                                }
-                            };
+                        thread::spawn(move || match image.load() {
+                            None => {
+                                if let Ok(response) = reqwest::blocking::get(&image.url) {
+                                    if let Ok(b) = response.bytes() {
+                                        image.save(Some(Vec::from(b.as_ref())));
+                                        sender.send((id, Vec::from(b.as_ref()))).unwrap();
+                                    }
+                                };
+                            }
+                            Some(b) => {
+                                println!("Loading image from cache");
+                                sender.send((id, b)).unwrap();
+                            }
                         });
+
                         found = true;
                         break;
                     }
