@@ -1,12 +1,9 @@
-use gio::prelude::*;
-use glib::prelude::*;
 use crate::models::ObjectWrapper;
 use egs_api::api::types::AssetInfo;
 use gio::prelude::ListStoreExtManual;
-use glib::{Object, child_watch_add};
+use gio::prelude::*;
+use glib::Object;
 use std::cmp::Ordering;
-use gtk::TreeModelFilter;
-use gtk::ListStore;
 
 #[derive(Clone)]
 pub struct AssetModel {
@@ -16,27 +13,24 @@ pub struct AssetModel {
 impl AssetModel {
     pub fn new() -> Self {
         let model = gio::ListStore::new(ObjectWrapper::static_type());
-        Self {
-            model,
-        }
+        Self { model }
     }
 
     fn sort_by_title(a: &Object, b: &Object) -> Ordering {
         match a.downcast_ref::<ObjectWrapper>() {
-            None => { std::cmp::Ordering::Less }
-            Some(first) => {
-                match b.downcast_ref::<ObjectWrapper>() {
-                    None => { std::cmp::Ordering::Greater }
-                    Some(second) => {
-                        let f: AssetInfo = first.deserialize();
-                        let s: AssetInfo = second.deserialize();
-                        f.title.to_lowercase().cmp(&s.title.to_lowercase())
-                    }
+            None => std::cmp::Ordering::Less,
+            Some(first) => match b.downcast_ref::<ObjectWrapper>() {
+                None => std::cmp::Ordering::Greater,
+                Some(second) => {
+                    let f: AssetInfo = first.deserialize();
+                    let s: AssetInfo = second.deserialize();
+                    f.title.to_lowercase().cmp(&s.title.to_lowercase())
                 }
-            }
+            },
         }
     }
 
+    #[allow(dead_code)]
     pub fn sort(&mut self) {
         self.model.sort(AssetModel::sort_by_title);
     }
@@ -48,6 +42,7 @@ impl AssetModel {
         }
     }
 
+    #[allow(dead_code)]
     pub fn remove_asset(&mut self, asset: &AssetInfo) -> std::io::Result<()> {
         self.index(asset).map(|index| self.model.remove(index));
         Ok(())
@@ -66,10 +61,13 @@ impl AssetModel {
 
     pub fn get_asset(&self, index: u32) -> AssetInfo {
         let gobject = self.model.get_object(index).unwrap();
-        let asset_object = gobject.downcast_ref::<ObjectWrapper>().expect("ObjectWrapper is of wrong type");
+        let asset_object = gobject
+            .downcast_ref::<ObjectWrapper>()
+            .expect("ObjectWrapper is of wrong type");
         asset_object.deserialize()
     }
 
+    #[allow(dead_code)]
     pub fn clear(&mut self) -> std::io::Result<()> {
         self.model.remove_all();
         Ok(())

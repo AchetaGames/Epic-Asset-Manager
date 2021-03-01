@@ -4,27 +4,26 @@ use serde::de::DeserializeOwned;
 use glib::subclass;
 use glib::subclass::prelude::*;
 use glib::translate::*;
-use hex::FromHexError;
 
 mod imp {
     use super::*;
     use std::cell::RefCell;
-    use std::io::Bytes;
 
     pub struct ObjectWrapper {
         data: RefCell<Option<String>>,
         thumbnail: RefCell<Option<String>>,
     }
 
-    static PROPERTIES: [subclass::Property; 2] = [subclass::Property("data", |name| {
-        glib::ParamSpec::string(
-            name,
-            "Data",
-            "Data",
-            None, // Default value
-            glib::ParamFlags::READWRITE,
-        )
-    }),
+    static PROPERTIES: [subclass::Property; 2] = [
+        subclass::Property("data", |name| {
+            glib::ParamSpec::string(
+                name,
+                "Data",
+                "Data",
+                None, // Default value
+                glib::ParamFlags::READWRITE,
+            )
+        }),
         subclass::Property("thumbnail", |name| {
             glib::ParamSpec::string(
                 name,
@@ -33,7 +32,8 @@ mod imp {
                 None,
                 glib::ParamFlags::READWRITE,
             )
-        })];
+        }),
+    ];
 
     impl ObjectSubclass for ObjectWrapper {
         const NAME: &'static str = "ObjectWrapper";
@@ -48,7 +48,10 @@ mod imp {
         }
 
         fn new() -> Self {
-            Self { data: RefCell::new(None), thumbnail: RefCell::new(None) }
+            Self {
+                data: RefCell::new(None),
+                thumbnail: RefCell::new(None),
+            }
         }
     }
 
@@ -64,7 +67,8 @@ mod imp {
                     self.data.replace(data);
                 }
                 subclass::Property("thumbnail", ..) => {
-                    let thumbnail = value.get()
+                    let thumbnail = value
+                        .get()
                         .expect("type conformity checked by `Object::set_property`");
                     self.thumbnail.replace(thumbnail);
                 }
@@ -94,32 +98,45 @@ glib_wrapper! {
 
 impl ObjectWrapper {
     pub fn new<O>(object: O, image: String) -> ObjectWrapper
-        where
-            O: serde::ser::Serialize,
+    where
+        O: serde::ser::Serialize,
     {
-        glib::Object::new(Self::static_type(), &[("data", &serde_json::to_string(&object).unwrap()), ("thumbnail", &Some(image))])
-            .unwrap()
-            .downcast()
-            .unwrap()
+        glib::Object::new(
+            Self::static_type(),
+            &[
+                ("data", &serde_json::to_string(&object).unwrap()),
+                ("thumbnail", &Some(image)),
+            ],
+        )
+        .unwrap()
+        .downcast()
+        .unwrap()
     }
 
     pub fn deserialize<O>(&self) -> O
-        where
-            O: DeserializeOwned,
+    where
+        O: DeserializeOwned,
     {
         let data = self.get_property("data").unwrap().get::<String>().unwrap();
         serde_json::from_str(&data.unwrap()).unwrap()
     }
 
     pub fn image(&self) -> Vec<u8> {
-        match self.get_property("thumbnail").unwrap().get::<String>().unwrap() {
-            None => { vec!() }
-            Some(img) => {
-                match hex::decode(img) {
-                    Ok(v) => { v }
-                    Err(_) => { vec!() }
-                }
+        match self
+            .get_property("thumbnail")
+            .unwrap()
+            .get::<String>()
+            .unwrap()
+        {
+            None => {
+                vec![]
             }
+            Some(img) => match hex::decode(img) {
+                Ok(v) => v,
+                Err(_) => {
+                    vec![]
+                }
+            },
         }
     }
 }
