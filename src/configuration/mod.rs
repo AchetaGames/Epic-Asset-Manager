@@ -76,12 +76,15 @@ impl Configuration {
         }
 
         match conf.egs.merge(config::File::new(
-            &conf.path.clone().unwrap(),
+            Path::new(&conf.path.clone().unwrap())
+                .join("config.json")
+                .to_str()
+                .unwrap(),
             config::FileFormat::Json,
         )) {
             Ok(_) => {}
             Err(e) => {
-                println!("Failed to load bot configuration:  {}", e);
+                println!("Failed to load configuration:  {}", e);
             }
         }
 

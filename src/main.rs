@@ -1,4 +1,5 @@
-#[macro_use]
+#![feature(is_sorted)]
+
 extern crate glib;
 
 use crate::glib::Cast;
@@ -9,31 +10,29 @@ use crate::Msg::{
     LoadDownloadManifest, Login, LoginOk, ProcessAssetInfo, ProcessAssetList,
     ProcessDownloadManifest, ProcessImage,
 };
-use egs_api::api::types::{AssetInfo, DownloadManifest, EpicAsset};
+use egs_api::api::types::{AssetInfo, DownloadManifest, EpicAsset, KeyImage};
 use egs_api::api::UserData;
 use egs_api::EpicGames;
 use gio;
-use gtk::Orientation::Vertical;
+use gtk::Orientation::{Horizontal, Vertical};
 use gtk::{
     prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, ContainerExt, EntryExt,
-    FlowBox, FlowBoxChild, FlowBoxExt, Image, ImageExt, Inhibit, Label, LabelExt, MenuButton,
-    MenuButtonExt, PopoverMenu, SearchEntry, SearchEntryExt, Stack, StackExt, WidgetExt, Window,
+    FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, Image, ImageExt, Inhibit,
+    Justification, Label, LabelExt, MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu,
+    ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator,
+    Stack, StackExt, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{str, thread};
+use std::{fmt, str, thread};
 use tokio::runtime::Runtime;
 use webkit2gtk::{LoadEvent, WebResourceExt, WebView, WebViewExt};
 
 use crate::configuration::Configuration;
-use crate::models::asset_model::AssetModel;
-use crate::models::ObjectWrapper;
 use gdk_pixbuf::PixbufLoaderExt;
-use std::cell::RefCell;
 use std::io::Write;
-use std::rc::Rc;
 use threadpool::ThreadPool;
 
 extern crate env_logger;
@@ -53,9 +52,15 @@ use crate::tools::cache::Cache;
 
 #[macro_use]
 extern crate lazy_static;
+use crate::models::row_data::RowData;
+use std::iter::FromIterator;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 lazy_static! {
     static ref DATA: ApiData = ApiData::new();
+    static ref MUTEX: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
+    static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
 }
 
 #[derive(Clone)]
@@ -63,10 +68,10 @@ struct Model {
     relm: Relm<Win>,
     epic_games: EpicGames,
     configuration: Configuration,
-    asset_model: Rc<RefCell<AssetModel>>,
+    asset_model: crate::models::asset_model::Model,
 }
 
-#[derive(Msg)]
+#[derive(Msg, Debug, Clone)]
 enum Msg {
     Quit,
     WebViewLoadFinished(LoadEvent),
@@ -75,7 +80,8 @@ enum Msg {
     LoginOk(UserData),
     ProcessAssetList(HashMap<String, Vec<String>>, HashMap<String, EpicAsset>),
     ProcessAssetInfo(AssetInfo),
-    ProcessImage((String, Vec<u8>)),
+    ProcessImage(Option<String>, Vec<u8>),
+    DownloadImage(Option<String>, KeyImage),
     #[allow(dead_code)]
     LoadDownloadManifest(String),
     ProcessDownloadManifest(String, DownloadManifest),
@@ -84,6 +90,81 @@ enum Msg {
     FilterSome(String),
     Search,
     ApplyFilter,
+    BindAssetModel,
+    PulseProgress,
+    CloseDetails,
+    NextImage,
+    PrevImage,
+}
+
+impl fmt::Display for Msg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Msg::Quit => {
+                write!(f, "Quit")
+            }
+            Msg::WebViewLoadFinished(_) => {
+                write!(f, "WebViewLoadFinished")
+            }
+            Login(_) => {
+                write!(f, "Login")
+            }
+            Msg::Relogin => {
+                write!(f, "Relogin")
+            }
+            LoginOk(_) => {
+                write!(f, "LoginOk")
+            }
+            ProcessAssetList(_, _) => {
+                write!(f, "ProcessAssetList")
+            }
+            ProcessAssetInfo(_) => {
+                write!(f, "ProcessAssetInfo")
+            }
+            ProcessImage(_, _) => {
+                write!(f, "ProcessImage")
+            }
+            LoadDownloadManifest(_) => {
+                write!(f, "LoadDownloadManifest")
+            }
+            ProcessDownloadManifest(_, _) => {
+                write!(f, "ProcessDownloadManifest")
+            }
+            Msg::ProcessAssetSelected => {
+                write!(f, "ProcessAssetSelected")
+            }
+            Msg::FilterNone => {
+                write!(f, "FilterNone")
+            }
+            Msg::FilterSome(_) => {
+                write!(f, "FilterSome")
+            }
+            Msg::Search => {
+                write!(f, "Search")
+            }
+            Msg::ApplyFilter => {
+                write!(f, "ApplyFilter")
+            }
+            Msg::BindAssetModel => {
+                write!(f, "BindAssetModel")
+            }
+            Msg::PulseProgress => {
+                write!(f, "PulseProgress")
+            }
+            Msg::CloseDetails => {
+                write!(f, "CloseDetails")
+            }
+            Msg::DownloadImage(_, _) => {
+                write!(f, "DownloadImage")
+            }
+            Msg::NextImage => {
+                write!(f, "NextImage")
+            }
+            Msg::PrevImage => {
+                write!(f, "PrevImage")
+            }
+        }
+    }
 }
 
 // Create the structure that holds the widgets used in the view.
@@ -97,6 +178,12 @@ struct Widgets {
     progress_message: Label,
     asset_flow: FlowBox,
     search: SearchEntry,
+    progress_revealer: Revealer,
+    loading_progress: ProgressBar,
+    details_revealer: Revealer,
+    details_content: Box,
+    close_details: Button,
+    image_stack: Stack,
 }
 
 struct Win {
@@ -124,13 +211,19 @@ impl Update for Win {
             relm: relm.clone(),
             epic_games: EpicGames::new(),
             configuration: Configuration::new(),
-            asset_model: Rc::new(RefCell::new(AssetModel::new())),
+            asset_model: crate::models::asset_model::Model::new(),
         }
     }
 
     fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Quit => gtk::main_quit(),
+        let start = std::time::Instant::now();
+        match event.clone() {
+            Msg::Quit => {
+                if let Ok(mut w) = RUNNING.write() {
+                    *w = false
+                }
+                gtk::main_quit()
+            }
             Msg::WebViewLoadFinished(event) => match event {
                 LoadEvent::Finished => {
                     let resource = match self.widgets.login_view.get_main_resource() {
@@ -188,6 +281,7 @@ impl Update for Win {
                 let s = sid.clone();
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
+                    let start = std::time::Instant::now();
                     if let Some(exchange_token) =
                         Runtime::new().unwrap().block_on(eg.auth_sid(s.as_str()))
                     {
@@ -198,6 +292,11 @@ impl Update for Win {
                             sender.send(Some(eg.user_details())).unwrap();
                         }
                     };
+                    println!(
+                        "{:?} - Login requests took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
                 });
             }
             Msg::Relogin => {
@@ -215,9 +314,15 @@ impl Update for Win {
 
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
+                    let start = std::time::Instant::now();
                     if Runtime::new().unwrap().block_on(eg.login()) {
                         sender.send(Some(eg.user_details())).unwrap();
                     };
+                    println!(
+                        "{:?} - Relogin requests took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
                 });
             }
             Msg::LoginOk(user_data) => {
@@ -245,7 +350,6 @@ impl Update for Win {
                         .as_str(),
                 );
                 logged_in_box.show_all();
-                // TODO: Does not show the contents of the popover
                 login_name.set_popover(Some(&logout_menu));
                 login_name.show_all();
 
@@ -259,6 +363,7 @@ impl Update for Win {
 
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
+                    let start = std::time::Instant::now();
                     let assets = Runtime::new().unwrap().block_on(eg.list_assets());
                     let mut asset_namespace_map: HashMap<String, Vec<String>> = HashMap::new();
                     let mut asset_map: HashMap<String, EpicAsset> = HashMap::new();
@@ -278,6 +383,11 @@ impl Update for Win {
                         asset_map.insert(asset.catalog_item_id.clone(), asset);
                     }
                     sender.send((asset_namespace_map, asset_map)).unwrap();
+                    println!(
+                        "{:?} - Requesting EpicAssets took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
                 });
             }
             ProcessAssetList(anm, am) => {
@@ -291,19 +401,27 @@ impl Update for Win {
                     asset_map.clear();
                     asset_map.extend(am.clone())
                 }
+                self.widgets.loading_progress.set_fraction(0.0);
+                self.widgets
+                    .loading_progress
+                    .set_pulse_step(1.0 / am.len() as f64);
+                self.widgets.progress_revealer.set_reveal_child(true);
                 let stream = self.model.relm.stream().clone();
                 let (_channel, sender) = Channel::new(move |ai| {
                     stream.emit(ProcessAssetInfo(ai));
                 });
 
                 let eg = self.model.epic_games.clone();
-                let fa = am.clone();
+                let mut fa: Vec<EpicAsset> = Vec::from_iter(am.values().cloned());
                 thread::spawn(move || {
+                    let start = std::time::Instant::now();
                     let pool = ThreadPool::new(3);
-                    for (_, ass) in fa.clone() {
+                    fa.sort_by(|a, b| a.app_name.cmp(&b.app_name));
+                    for ass in fa.clone() {
                         let mut e = eg.clone();
                         let s = sender.clone();
                         pool.execute(move || {
+                            let start = std::time::Instant::now();
                             match AssetInfo::load_from_cache(ass.catalog_item_id.clone()) {
                                 None => {
                                     if let Some(asset) =
@@ -317,16 +435,26 @@ impl Update for Win {
                                     };
                                 }
                                 Some(asset) => {
-                                    println!("Loaded AssetInfo from cache");
                                     if let Ok(mut asset_info) = DATA.asset_info.write() {
                                         asset_info.insert(asset.id.clone(), asset.clone());
                                     }
                                     s.send(asset).unwrap();
                                 }
-                            }
+                            };
+                            println!(
+                                "{:?} - Asset Info loading took {:?}",
+                                thread::current().id(),
+                                start.elapsed()
+                            );
                         });
                     }
+                    println!(
+                        "{:?} - AssetInfo processing took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
                 });
+                println!("Login took {:?}", start.elapsed());
             }
             ProcessAssetInfo(asset) => {
                 // TODO: Cache the asset info
@@ -335,48 +463,113 @@ impl Update for Win {
                     if image.type_field.eq_ignore_ascii_case("Thumbnail")
                         || image.type_field.eq_ignore_ascii_case("DieselGameBox")
                     {
-                        let stream = self.model.relm.stream().clone();
-                        let (_channel, sender) = Channel::new(move |(id, b)| {
-                            stream.emit(ProcessImage((id, b)));
-                        });
-
-                        let id = asset.id.clone();
-                        thread::spawn(move || match image.load() {
-                            None => {
-                                if let Ok(response) = reqwest::blocking::get(&image.url) {
-                                    if let Ok(b) = response.bytes() {
-                                        image.save(Some(Vec::from(b.as_ref())));
-                                        sender.send((id, Vec::from(b.as_ref()))).unwrap();
-                                    }
-                                };
-                            }
-                            Some(b) => {
-                                println!("Loading image from cache");
-                                sender.send((id, b)).unwrap();
-                            }
-                        });
+                        self.model
+                            .relm
+                            .stream()
+                            .emit(Msg::DownloadImage(Some(asset.id.clone()), image.clone()));
 
                         found = true;
                         break;
                     }
                 }
                 if !found {
-                    println!("{}: {:#?}", asset.title, asset.key_images)
+                    println!("{}: {:#?}", asset.title, asset.key_images);
+                    self.model.relm.stream().emit(Msg::PulseProgress);
                 }
             }
-            ProcessImage((id, image)) => {
-                if let Ok(asset_info) = DATA.asset_info.read() {
-                    match asset_info.get(&id) {
-                        None => {}
-                        Some(asset) => {
-                            self.model
-                                .asset_model
-                                .borrow_mut()
-                                .add_asset(asset.clone(), image);
+            Msg::DownloadImage(id, image) => {
+                let stream = self.model.relm.stream().clone();
+                let (_channel, sender) = Channel::new(move |(id, b)| {
+                    stream.emit(ProcessImage(id, b));
+                });
+
+                thread::spawn(move || {
+                    let start = std::time::Instant::now();
+                    match image.load() {
+                        None => {
+                            if let Ok(response) = reqwest::blocking::get(&image.url) {
+                                if let Ok(b) = response.bytes() {
+                                    image.save(Some(Vec::from(b.as_ref())));
+                                    match id {
+                                        None => {
+                                            sender.send((None, Vec::from(b.as_ref()))).unwrap();
+                                        }
+                                        Some(i) => {
+                                            let mut _data = MUTEX.lock().unwrap();
+                                            sender.send((Some(i), Vec::from(b.as_ref()))).unwrap();
+                                            thread::sleep(std::time::Duration::from_millis(100));
+                                        }
+                                    }
+                                }
+                            };
+                        }
+                        Some(b) => match id {
+                            None => {
+                                sender.send((None, b)).unwrap();
+                            }
+                            Some(i) => {
+                                let mut _data = MUTEX.lock().unwrap();
+                                sender.send((Some(i), b)).unwrap();
+                                thread::sleep(std::time::Duration::from_millis(100));
+                            }
+                        },
+                    }
+                    println!(
+                        "{:?} - Image loading took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
+                });
+            }
+            ProcessImage(asset_id, image) => match asset_id {
+                Some(id) => {
+                    if let Ok(asset_info) = DATA.asset_info.read() {
+                        match asset_info.get(&id) {
+                            None => {}
+                            Some(asset) => {
+                                self.model
+                                    .asset_model
+                                    .append(&RowData::new(asset.clone(), image));
+                                self.model.relm.stream().emit(Msg::PulseProgress);
+                            }
                         }
                     }
                 }
-            }
+                None => {
+                    let gtkimage = Image::new();
+                    let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+
+                    if image.len() > 0 {
+                        pixbuf_loader.write(&image).unwrap();
+                        pixbuf_loader.close().ok();
+                        let pixbuf = pixbuf_loader.get_pixbuf().unwrap();
+                        let width = pixbuf.get_width();
+                        let height = pixbuf.get_height();
+                        let width_percent = 300.0 / width as f64;
+                        let height_percent = 300.0 / height as f64;
+                        let percent = if height_percent < width_percent {
+                            height_percent
+                        } else {
+                            width_percent
+                        };
+                        let desired = (width as f64 * percent, height as f64 * percent);
+                        gtkimage.set_from_pixbuf(
+                            pixbuf_loader
+                                .get_pixbuf()
+                                .unwrap()
+                                .scale_simple(
+                                    desired.0.round() as i32,
+                                    desired.1.round() as i32,
+                                    gdk_pixbuf::InterpType::Bilinear,
+                                )
+                                .as_ref(),
+                        );
+                        gtkimage.set_property_expand(true);
+                        gtkimage.show_all();
+                        self.widgets.image_stack.add(&gtkimage)
+                    }
+                }
+            },
             LoadDownloadManifest(id) => {
                 let asset = match DATA.asset_map.read() {
                     Ok(asset_map) => match asset_map.get(id.as_str()) {
@@ -403,6 +596,7 @@ impl Update for Win {
 
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
+                    let start = std::time::Instant::now();
                     match Runtime::new()
                         .unwrap()
                         .block_on(eg.get_asset_manifest(asset))
@@ -425,6 +619,11 @@ impl Update for Win {
                             }
                         }
                     };
+                    println!(
+                        "{:?} - Download Manifest requests took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
                 });
             }
             ProcessDownloadManifest(id, dm) => {
@@ -434,7 +633,108 @@ impl Update for Win {
             }
             Msg::ProcessAssetSelected => {
                 self.widgets.asset_flow.selected_foreach(|_fbox, child| {
-                    println!("Selected {}", child.get_widget_name().to_string());
+                    if let Ok(ai) = DATA.asset_info.read() {
+                        if let Some(asset_info) = ai.get(child.get_widget_name().as_str()) {
+                            self.widgets
+                                .details_content
+                                .foreach(|el| self.widgets.details_content.remove(el));
+
+                            println!("Showing details for {}", asset_info.title);
+
+                            let vbox = Box::new(Vertical, 0);
+
+                            let name = Label::new(None);
+                            name.set_markup(&format!(
+                                "<b><u><big>{}</big></u></b>",
+                                asset_info.title
+                            ));
+                            name.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+                            name.set_line_wrap(true);
+                            name.set_halign(Align::Start);
+                            vbox.add(&name);
+                            vbox.add(&Separator::new(Horizontal));
+                            self.widgets
+                                .image_stack
+                                .foreach(|el| self.widgets.image_stack.remove(el));
+                            let image_navigation = Overlay::new();
+                            image_navigation.set_size_request(-1, 300);
+                            let back = Button::with_label("<");
+                            back.set_halign(Align::Start);
+                            back.set_opacity(0.5);
+                            connect!(self.model.relm, back, connect_clicked(_), Msg::PrevImage);
+                            let forward = Button::with_label(">");
+                            forward.set_opacity(0.5);
+                            connect!(self.model.relm, forward, connect_clicked(_), Msg::NextImage);
+                            forward.set_halign(Align::End);
+                            image_navigation.add_overlay(&self.widgets.image_stack);
+                            image_navigation.add_overlay(&back);
+                            image_navigation.add_overlay(&forward);
+                            vbox.add(&image_navigation);
+                            for image in &asset_info.key_images {
+                                if image.width < 300 || image.height < 300 {
+                                    continue;
+                                }
+                                self.model
+                                    .relm
+                                    .stream()
+                                    .emit(Msg::DownloadImage(None, image.clone()));
+                            }
+                            let table = GridBuilder::new()
+                                .column_homogeneous(true)
+                                .halign(Align::Start)
+                                .valign(Align::Start)
+                                .expand(false)
+                                .build();
+                            let developer_label = Label::new(Some("Developer:"));
+                            developer_label.set_halign(Align::Start);
+                            table.attach(&developer_label, 0, 0, 1, 1);
+                            let developer_name = Label::new(Some(&asset_info.developer));
+                            developer_name.set_halign(Align::Start);
+                            table.attach(&developer_name, 1, 0, 1, 1);
+                            if let Some(ri) = asset_info.release_info.last() {
+                                let platforms_label = Label::new(Some("Platforms:"));
+                                platforms_label.set_halign(Align::Start);
+                                table.attach(&platforms_label, 0, 1, 1, 1);
+                                let platforms = Label::new(Some(&ri.platform.join(", ")));
+                                platforms.set_halign(Align::Start);
+                                platforms.set_line_wrap(true);
+                                table.attach(&platforms, 1, 1, 1, 1);
+                                let comp_label = Label::new(Some("Compatible with:"));
+                                comp_label.set_halign(Align::Start);
+
+                                table.attach(&comp_label, 0, 2, 1, 1);
+                                if let Some(comp) = &ri.compatible_apps {
+                                    let compat =
+                                        Label::new(Some(&comp.join(", ").replace("UE_", "")));
+                                    compat.set_halign(Align::Start);
+                                    compat.set_line_wrap(true);
+                                    table.attach(&compat, 1, 2, 1, 1);
+                                }
+                            }
+                            vbox.add(&table);
+                            vbox.add(&Separator::new(Horizontal));
+                            if let Some(desc) = &asset_info.long_description {
+                                let description = Label::new(None);
+                                description.set_line_wrap(true);
+                                let markup =
+                                    html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
+                                description.set_markup(&markup);
+                                vbox.add(&description);
+                            }
+                            if let Some(desc) = &asset_info.technical_details {
+                                let description = Label::new(None);
+                                description.set_line_wrap(true);
+                                let markup =
+                                    html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
+                                description.set_markup(&markup);
+                                vbox.add(&description);
+                            }
+
+                            vbox.show_all();
+                            self.widgets.details_content.add(&vbox);
+                            self.widgets.details_revealer.set_reveal_child(true);
+                        }
+                    }
                 });
             }
             Msg::FilterNone => {
@@ -484,7 +784,129 @@ impl Update for Win {
                         }
                     })));
             }
+            Msg::BindAssetModel => {
+                self.widgets
+                    .asset_flow
+                    .bind_model(Some(&self.model.asset_model), |asset| {
+                        let start = std::time::Instant::now();
+                        let child = FlowBoxChild::new();
+                        let object = asset
+                            .downcast_ref::<crate::models::row_data::RowData>()
+                            .unwrap();
+                        let data: AssetInfo = object.deserialize();
+                        child.set_widget_name(&data.id);
+                        let image = object.image();
+                        let vbox = Box::new(Vertical, 0);
+                        let gtkimage = Image::new();
+                        gtkimage.set_tooltip_text(Some(&data.title));
+                        let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+
+                        if image.len() > 0 {
+                            pixbuf_loader.write(&image).unwrap();
+                            pixbuf_loader.close().ok();
+                            gtkimage.set_from_pixbuf(
+                                pixbuf_loader
+                                    .get_pixbuf()
+                                    .unwrap()
+                                    .scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
+                                    .as_ref(),
+                            );
+                        }
+                        vbox.set_size_request(130, 150);
+                        vbox.add(&gtkimage);
+                        let label = Label::new(Some(&data.title));
+                        label.set_property_wrap(true);
+                        label.set_property_expand(false);
+                        label.set_max_width_chars(15);
+                        label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                        label.set_tooltip_text(Some(&data.title));
+                        label.set_justify(Justification::Center);
+                        vbox.add(&label);
+                        vbox.set_property_margin(10);
+                        child.add(&vbox);
+                        vbox.show_all();
+                        println!(
+                            "{:?} - building a model widget took {:?}",
+                            thread::current().id(),
+                            start.elapsed()
+                        );
+                        child.upcast::<gtk::Widget>()
+                    });
+            }
+            Msg::PulseProgress => {
+                println!(
+                    "Current progress {}, pulsing by {}",
+                    self.widgets.loading_progress.get_fraction(),
+                    self.widgets.loading_progress.get_pulse_step()
+                );
+                self.widgets.loading_progress.set_fraction(
+                    self.widgets.loading_progress.get_fraction()
+                        + self.widgets.loading_progress.get_pulse_step(),
+                );
+                println!(
+                    "Current progress {}",
+                    self.widgets.loading_progress.get_fraction()
+                );
+                if (self.widgets.loading_progress.get_fraction() * 10000.0).round() / 10000.0 == 1.0
+                {
+                    println!("Hiding progress");
+                    self.widgets.progress_revealer.set_reveal_child(false);
+                }
+            }
+            Msg::CloseDetails => {
+                self.widgets.details_revealer.set_reveal_child(false);
+                self.widgets.asset_flow.unselect_all();
+            }
+            Msg::NextImage => {
+                let total = self.widgets.image_stack.get_children().len() as i32;
+                if total > 0 {
+                    let current = self.widgets.image_stack.get_visible_child().unwrap();
+                    let pos = self.widgets.image_stack.get_child_position(&current);
+
+                    if pos + 1 >= total {
+                        if let Some(new) = self.widgets.image_stack.get_children().get(0) {
+                            self.widgets.image_stack.set_visible_child(new);
+                        }
+                    } else {
+                        if let Some(new) = self
+                            .widgets
+                            .image_stack
+                            .get_children()
+                            .get((pos + 1) as usize)
+                        {
+                            self.widgets.image_stack.set_visible_child(new);
+                        }
+                    };
+                }
+            }
+            Msg::PrevImage => {
+                let total = self.widgets.image_stack.get_children().len() as i32;
+                if total > 0 {
+                    let current = self.widgets.image_stack.get_visible_child().unwrap();
+                    let pos = self.widgets.image_stack.get_child_position(&current);
+                    if pos - 1 < 0 {
+                        if let Some(new) = self.widgets.image_stack.get_children().last() {
+                            self.widgets.image_stack.set_visible_child(new);
+                        }
+                    } else {
+                        if let Some(new) = self
+                            .widgets
+                            .image_stack
+                            .get_children()
+                            .get((pos - 1) as usize)
+                        {
+                            self.widgets.image_stack.set_visible_child(new);
+                        }
+                    };
+                }
+            }
         }
+        println!(
+            "{:?} - {} took {:?}",
+            thread::current().id(),
+            event,
+            start.elapsed()
+        );
     }
 }
 
@@ -512,6 +934,14 @@ impl Widget for Win {
         let assets_button: Button = builder.get_object("assets_button").unwrap();
         let plugins_button: Button = builder.get_object("plugins_button").unwrap();
         let search: SearchEntry = builder.get_object("search").unwrap();
+        let progress_revealer: Revealer = builder.get_object("progress_revealer").unwrap();
+        let loading_progress: ProgressBar = builder.get_object("loading_progress").unwrap();
+        let details_revealer: Revealer = builder.get_object("details_revealer").unwrap();
+        let details_content: Box = builder.get_object("details_content").unwrap();
+        let close_details: Button = builder.get_object("close_details").unwrap();
+        let image_stack = Stack::new();
+
+        relm.stream().emit(Msg::BindAssetModel);
 
         connect!(relm, search, connect_search_changed(_), Msg::Search);
 
@@ -528,39 +958,7 @@ impl Widget for Win {
             connect_clicked(_),
             Msg::FilterSome("plugins".to_string())
         );
-
-        asset_flow.bind_model(Some(&model.asset_model.borrow().model), |asset| {
-            let child = FlowBoxChild::new();
-            let object = asset.downcast_ref::<ObjectWrapper>().unwrap();
-            let data: AssetInfo = object.deserialize();
-            let image = object.image();
-            let vbox = Box::new(Vertical, 0);
-            let gtkimage = Image::new();
-            let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-            child.set_widget_name(&data.id);
-            if image.len() > 0 {
-                pixbuf_loader.write(&image).unwrap();
-                pixbuf_loader.close().ok();
-                gtkimage.set_from_pixbuf(
-                    pixbuf_loader
-                        .get_pixbuf()
-                        .unwrap()
-                        .scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
-                        .as_ref(),
-                );
-            }
-            vbox.set_size_request(130, -1);
-            vbox.add(&gtkimage);
-            let label = Label::new(Some(&data.title));
-            label.set_property_wrap(true);
-            label.set_property_expand(false);
-            label.set_max_width_chars(15);
-            label.set_halign(Align::Center);
-            vbox.add(&label);
-            child.add(&vbox);
-            vbox.show_all();
-            child.upcast::<gtk::Widget>()
-        });
+        connect!(relm, close_details, connect_clicked(_), Msg::CloseDetails);
 
         let webview = WebView::new();
         webview.set_property_expand(true);
@@ -606,6 +1004,12 @@ impl Widget for Win {
                 progress_message,
                 asset_flow,
                 search,
+                progress_revealer,
+                loading_progress,
+                details_revealer,
+                details_content,
+                close_details,
+                image_stack,
             },
         }
     }
@@ -624,6 +1028,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
+    println!("Main thread id: {:?}", thread::current().id());
     env_logger::builder()
         .format(|buf, record| {
             writeln!(
