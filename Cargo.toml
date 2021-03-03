@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gtk = { git = "https://github.com/gtk-rs/gtk-rs.git", features = ["v3_20", "dox"] }
+gtk = { git = "https://github.com/gtk-rs/gtk-rs.git", features = ["v3_20"] }
 webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs.git" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 glib = { git = "https://github.com/gtk-rs/gtk-rs.git" }

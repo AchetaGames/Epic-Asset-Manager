@@ -1,5 +1,3 @@
-#![feature(is_sorted)]
-
 extern crate glib;
 
 use crate::glib::Cast;
