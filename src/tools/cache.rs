@@ -1,9 +1,11 @@
-use egs_api::api::types::{AssetInfo, EpicAsset, KeyImage};
 use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::path::PathBuf;
+use std::ffi::OsStr;
+use egs_api::api::types::epic_asset::EpicAsset;
+use egs_api::api::types::asset_info::{AssetInfo, KeyImage};
 
 pub(crate) trait Cache {
     fn save(&self, data: Option<Vec<u8>>);
@@ -79,8 +81,8 @@ impl Cache for KeyImage {
         match data {
             None => {}
             Some(d) => {
-                let name = self.url.split(".").collect::<Vec<&str>>();
-                cache.push(format!("{}.{}", self.md5, name.last().unwrap_or(&".png")));
+                let name = Path::new(self.url.path()).extension().and_then(OsStr::to_str);
+                cache.push(format!("{}.{}", self.md5, name.unwrap_or(&".png")));
                 match File::create(cache.as_path()) {
                     Ok(mut asset_file) => {
                         asset_file.write(&d).unwrap();
@@ -95,8 +97,8 @@ impl Cache for KeyImage {
 
     fn load(&self) -> Option<Vec<u8>> {
         let mut cache = <Self as Cache>::prepare("images".into());
-        let name = self.url.split(".").collect::<Vec<&str>>();
-        cache.push(format!("{}.{}", self.md5, name.last().unwrap_or(&".png")));
+        let name = Path::new(self.url.path()).extension().and_then(OsStr::to_str);
+        cache.push(format!("{}.{}", self.md5, name.unwrap_or(&".png")));
         match File::open(cache.as_path()) {
             Ok(mut f) => {
                 let metadata = fs::metadata(&cache.as_path()).expect("unable to read metadata");

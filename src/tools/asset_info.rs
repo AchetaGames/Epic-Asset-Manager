@@ -1,4 +1,4 @@
-use egs_api::api::types::AssetInfo;
+use egs_api::api::types::asset_info::AssetInfo;
 
 pub(crate) trait Search {
     fn matches_filter(&self, _tag: Option<String>, _search: Option<String>) -> bool {
@@ -14,10 +14,15 @@ impl Search for AssetInfo {
                 tag_found = true;
             }
             Some(f) => {
-                for category in &self.categories {
-                    if category.path.contains(&f) {
-                        tag_found = true;
-                        break;
+                match &self.categories {
+                    None => {}
+                    Some(categories) => {
+                        for category in categories {
+                            if category.path.contains(&f) {
+                                tag_found = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -28,7 +33,13 @@ impl Search for AssetInfo {
             }
             Some(f) => {
                 if tag_found {
-                    return self.title.to_lowercase().contains(&f.to_lowercase());
+                    match &self.title {
+                        None => { return true; }
+                        Some(title) => {
+                            return title.to_lowercase().contains(&f.to_lowercase());
+                        }
+                    }
+
                 } else {
                     return false;
                 }
