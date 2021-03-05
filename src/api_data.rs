@@ -1,6 +1,8 @@
-use egs_api::api::types::{AssetInfo, DownloadManifest, EpicAsset};
 use std::collections::HashMap;
 use std::sync::Arc;
+use egs_api::api::types::asset_info::AssetInfo;
+use egs_api::api::types::epic_asset::EpicAsset;
+use egs_api::api::types::download_manifest::DownloadManifest;
 
 pub struct ApiData {
     pub asset_info: Arc<std::sync::RwLock<HashMap<String, AssetInfo>>>,

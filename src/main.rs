@@ -8,7 +8,7 @@ use crate::Msg::{
     LoadDownloadManifest, Login, LoginOk, ProcessAssetInfo, ProcessAssetList,
     ProcessDownloadManifest, ProcessImage,
 };
-use egs_api::api::types::{AssetInfo, DownloadManifest, EpicAsset, KeyImage};
+
 use egs_api::api::UserData;
 use egs_api::EpicGames;
 use gio;
@@ -43,6 +43,7 @@ mod models;
 
 mod api_data;
 mod tools;
+
 use tools::asset_info::Search;
 
 use crate::api_data::ApiData;
@@ -50,7 +51,11 @@ use crate::tools::cache::Cache;
 
 #[macro_use]
 extern crate lazy_static;
+
 use crate::models::row_data::RowData;
+use egs_api::api::types::asset_info::{AssetInfo, KeyImage};
+use egs_api::api::types::download_manifest::DownloadManifest;
+use egs_api::api::types::epic_asset::EpicAsset;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -457,22 +462,24 @@ impl Update for Win {
             ProcessAssetInfo(asset) => {
                 // TODO: Cache the asset info
                 let mut found = false;
-                for image in asset.key_images.clone() {
-                    if image.type_field.eq_ignore_ascii_case("Thumbnail")
-                        || image.type_field.eq_ignore_ascii_case("DieselGameBox")
-                    {
-                        self.model
-                            .relm
-                            .stream()
-                            .emit(Msg::DownloadImage(Some(asset.id.clone()), image.clone()));
+                if let Some(images) = asset.key_images.clone() {
+                    for image in images {
+                        if image.type_field.eq_ignore_ascii_case("Thumbnail")
+                            || image.type_field.eq_ignore_ascii_case("DieselGameBox")
+                        {
+                            self.model
+                                .relm
+                                .stream()
+                                .emit(Msg::DownloadImage(Some(asset.id.clone()), image.clone()));
 
-                        found = true;
-                        break;
+                            found = true;
+                            break;
+                        }
                     }
-                }
-                if !found {
-                    println!("{}: {:#?}", asset.title, asset.key_images);
-                    self.model.relm.stream().emit(Msg::PulseProgress);
+                    if !found {
+                        println!("{:?}: {:#?}", asset.title, asset.key_images);
+                        self.model.relm.stream().emit(Msg::PulseProgress);
+                    }
                 }
             }
             Msg::DownloadImage(id, image) => {
@@ -485,7 +492,7 @@ impl Update for Win {
                     let start = std::time::Instant::now();
                     match image.load() {
                         None => {
-                            if let Ok(response) = reqwest::blocking::get(&image.url) {
+                            if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                                 if let Ok(b) = response.bytes() {
                                     image.save(Some(Vec::from(b.as_ref())));
                                     match id {
@@ -595,10 +602,13 @@ impl Update for Win {
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
                     let start = std::time::Instant::now();
-                    match Runtime::new()
-                        .unwrap()
-                        .block_on(eg.get_asset_manifest(asset))
-                    {
+                    match Runtime::new().unwrap().block_on(eg.get_asset_manifest(
+                        None,
+                        None,
+                        Some(asset.namespace),
+                        Some(asset.catalog_item_id),
+                        Some(asset.app_name),
+                    )) {
                         None => {}
                         Some(manifest) => {
                             for elem in manifest.elements {
@@ -637,19 +647,19 @@ impl Update for Win {
                                 .details_content
                                 .foreach(|el| self.widgets.details_content.remove(el));
 
-                            println!("Showing details for {}", asset_info.title);
+                            println!("Showing details for {:?}", asset_info.title);
 
                             let vbox = Box::new(Vertical, 0);
 
-                            let name = Label::new(None);
-                            name.set_markup(&format!(
-                                "<b><u><big>{}</big></u></b>",
-                                asset_info.title
-                            ));
-                            name.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-                            name.set_line_wrap(true);
-                            name.set_halign(Align::Start);
-                            vbox.add(&name);
+                            if let Some(title) = &asset_info.title {
+                                let name = Label::new(None);
+                                name.set_markup(&format!("<b><u><big>{}</big></u></b>", title));
+                                name.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+                                name.set_line_wrap(true);
+                                name.set_halign(Align::Start);
+                                vbox.add(&name);
+                            }
+
                             vbox.add(&Separator::new(Horizontal));
                             self.widgets
                                 .image_stack
@@ -668,14 +678,19 @@ impl Update for Win {
                             image_navigation.add_overlay(&back);
                             image_navigation.add_overlay(&forward);
                             vbox.add(&image_navigation);
-                            for image in &asset_info.key_images {
-                                if image.width < 300 || image.height < 300 {
-                                    continue;
+                            match &asset_info.key_images {
+                                None => {}
+                                Some(images) => {
+                                    for image in images {
+                                        if image.width < 300 || image.height < 300 {
+                                            continue;
+                                        }
+                                        self.model
+                                            .relm
+                                            .stream()
+                                            .emit(Msg::DownloadImage(None, image.clone()));
+                                    }
                                 }
-                                self.model
-                                    .relm
-                                    .stream()
-                                    .emit(Msg::DownloadImage(None, image.clone()));
                             }
                             let table = GridBuilder::new()
                                 .column_homogeneous(true)
@@ -686,28 +701,28 @@ impl Update for Win {
                             let developer_label = Label::new(Some("Developer:"));
                             developer_label.set_halign(Align::Start);
                             table.attach(&developer_label, 0, 0, 1, 1);
-                            let developer_name = Label::new(Some(&asset_info.developer));
-                            developer_name.set_halign(Align::Start);
-                            table.attach(&developer_name, 1, 0, 1, 1);
-                            if let Some(ri) = asset_info.release_info.last() {
-                                let platforms_label = Label::new(Some("Platforms:"));
-                                platforms_label.set_halign(Align::Start);
-                                table.attach(&platforms_label, 0, 1, 1, 1);
-                                let platforms = Label::new(Some(&ri.platform.join(", ")));
-                                platforms.set_halign(Align::Start);
-                                platforms.set_line_wrap(true);
-                                table.attach(&platforms, 1, 1, 1, 1);
-                                let comp_label = Label::new(Some("Compatible with:"));
-                                comp_label.set_halign(Align::Start);
+                            if let Some(dev_name) = &asset_info.developer {
+                                let developer_name = Label::new(Some(dev_name));
+                                developer_name.set_halign(Align::Start);
+                                table.attach(&developer_name, 1, 0, 1, 1);
+                            }
+                            let platforms_label = Label::new(Some("Platforms:"));
+                            platforms_label.set_halign(Align::Start);
+                            table.attach(&platforms_label, 0, 1, 1, 1);
+                            let platforms =
+                                Label::new(Some(&asset_info.get_platforms().unwrap_or_default().join(", ")));
+                            platforms.set_halign(Align::Start);
+                            platforms.set_line_wrap(true);
+                            table.attach(&platforms, 1, 1, 1, 1);
+                            let comp_label = Label::new(Some("Compatible with:"));
+                            comp_label.set_halign(Align::Start);
 
-                                table.attach(&comp_label, 0, 2, 1, 1);
-                                if let Some(comp) = &ri.compatible_apps {
-                                    let compat =
-                                        Label::new(Some(&comp.join(", ").replace("UE_", "")));
-                                    compat.set_halign(Align::Start);
-                                    compat.set_line_wrap(true);
-                                    table.attach(&compat, 1, 2, 1, 1);
-                                }
+                            table.attach(&comp_label, 0, 2, 1, 1);
+                            if let Some(comp) = &asset_info.get_compatible_apps() {
+                                let compat = Label::new(Some(&comp.join(", ").replace("UE_", "")));
+                                compat.set_halign(Align::Start);
+                                compat.set_line_wrap(true);
+                                table.attach(&compat, 1, 2, 1, 1);
                             }
                             vbox.add(&table);
                             vbox.add(&Separator::new(Horizontal));
@@ -796,7 +811,10 @@ impl Update for Win {
                         let image = object.image();
                         let vbox = Box::new(Vertical, 0);
                         let gtkimage = Image::new();
-                        gtkimage.set_tooltip_text(Some(&data.title));
+                        if let Some(title) = &data.title {
+                            gtkimage.set_tooltip_text(Some(title));
+                        }
+
                         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
 
                         if image.len() > 0 {
@@ -812,14 +830,20 @@ impl Update for Win {
                         }
                         vbox.set_size_request(130, 150);
                         vbox.add(&gtkimage);
-                        let label = Label::new(Some(&data.title));
-                        label.set_property_wrap(true);
-                        label.set_property_expand(false);
-                        label.set_max_width_chars(15);
-                        label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                        label.set_tooltip_text(Some(&data.title));
-                        label.set_justify(Justification::Center);
-                        vbox.add(&label);
+                        match &data.title {
+                            None => {}
+                            Some(title) => {
+                                let label = Label::new(Some(title));
+                                label.set_property_wrap(true);
+                                label.set_property_expand(false);
+                                label.set_max_width_chars(15);
+                                label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                                label.set_tooltip_text(Some(title));
+                                label.set_justify(Justification::Center);
+                                vbox.add(&label);
+                            }
+                        }
+
                         vbox.set_property_margin(10);
                         child.add(&vbox);
                         vbox.show_all();
