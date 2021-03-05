@@ -53,7 +53,7 @@ use crate::tools::cache::Cache;
 extern crate lazy_static;
 
 use crate::models::row_data::RowData;
-use egs_api::api::types::asset_info::{AssetInfo, KeyImage};
+use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
 use std::iter::FromIterator;
@@ -86,7 +86,7 @@ enum Msg {
     ProcessImage(Option<String>, Vec<u8>),
     DownloadImage(Option<String>, KeyImage),
     #[allow(dead_code)]
-    LoadDownloadManifest(String),
+    LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),
     ProcessAssetSelected,
     FilterNone,
@@ -127,7 +127,7 @@ impl fmt::Display for Msg {
             ProcessImage(_, _) => {
                 write!(f, "ProcessImage")
             }
-            LoadDownloadManifest(_) => {
+            LoadDownloadManifest(_, _) => {
                 write!(f, "LoadDownloadManifest")
             }
             ProcessDownloadManifest(_, _) => {
@@ -371,7 +371,7 @@ impl Update for Win {
                     let mut asset_namespace_map: HashMap<String, Vec<String>> = HashMap::new();
                     let mut asset_map: HashMap<String, EpicAsset> = HashMap::new();
                     for asset in assets {
-                        asset.save(None);
+                        asset.save(None, None);
                         match asset_namespace_map.get_mut(asset.namespace.as_str()) {
                             None => {
                                 asset_namespace_map.insert(
@@ -425,12 +425,12 @@ impl Update for Win {
                         let s = sender.clone();
                         pool.execute(move || {
                             let start = std::time::Instant::now();
-                            match AssetInfo::load_from_cache(ass.catalog_item_id.clone()) {
+                            match AssetInfo::load_from_cache(ass.catalog_item_id.clone(), None) {
                                 None => {
                                     if let Some(asset) =
                                         Runtime::new().unwrap().block_on(e.get_asset_info(ass))
                                     {
-                                        asset.save(None);
+                                        asset.save(None, None);
                                         if let Ok(mut asset_info) = DATA.asset_info.write() {
                                             asset_info.insert(asset.id.clone(), asset.clone());
                                         }
@@ -494,7 +494,7 @@ impl Update for Win {
                         None => {
                             if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                                 if let Ok(b) = response.bytes() {
-                                    image.save(Some(Vec::from(b.as_ref())));
+                                    image.save(Some(Vec::from(b.as_ref())), None);
                                     match id {
                                         None => {
                                             sender.send((None, Vec::from(b.as_ref()))).unwrap();
@@ -575,8 +575,8 @@ impl Update for Win {
                     }
                 }
             },
-            LoadDownloadManifest(id) => {
-                let asset = match DATA.asset_map.read() {
+            LoadDownloadManifest(id, release_info) => {
+                let asset = match DATA.asset_info.read() {
                     Ok(asset_map) => match asset_map.get(id.as_str()) {
                         None => {
                             return;
@@ -589,7 +589,7 @@ impl Update for Win {
                 };
 
                 if let Ok(download_manifests) = DATA.download_manifests.read() {
-                    if let Some(_) = download_manifests.get(id.as_str()) {
+                    if download_manifests.contains_key(id.as_str()) {
                         return;
                     }
                 };
@@ -606,8 +606,8 @@ impl Update for Win {
                         None,
                         None,
                         Some(asset.namespace),
-                        Some(asset.catalog_item_id),
-                        Some(asset.app_name),
+                        Some(asset.id),
+                        Some(release_info.app_id.unwrap_or_default()),
                     )) {
                         None => {}
                         Some(manifest) => {
@@ -709,8 +709,9 @@ impl Update for Win {
                             let platforms_label = Label::new(Some("Platforms:"));
                             platforms_label.set_halign(Align::Start);
                             table.attach(&platforms_label, 0, 1, 1, 1);
-                            let platforms =
-                                Label::new(Some(&asset_info.get_platforms().unwrap_or_default().join(", ")));
+                            let platforms = Label::new(Some(
+                                &asset_info.get_platforms().unwrap_or_default().join(", "),
+                            ));
                             platforms.set_halign(Align::Start);
                             platforms.set_line_wrap(true);
                             table.attach(&platforms, 1, 1, 1, 1);
