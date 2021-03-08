@@ -1,5 +1,5 @@
 use glib::subclass::prelude::*;
-use glib::{subclass, ObjectExt};
+use glib::ObjectExt;
 use serde::de::DeserializeOwned;
 
 // Implementation sub-module of the GObject
@@ -10,30 +10,18 @@ mod imp {
 
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
+    #[derive(Debug, Default)]
     pub struct RowData {
         data: RefCell<Option<String>>,
         thumbnail: RefCell<Option<String>>,
     }
 
     // Basic declaration of our type for the GObject type system
+    #[glib::object_subclass]
     impl ObjectSubclass for RowData {
         const NAME: &'static str = "RowData";
         type Type = super::RowData;
         type ParentType = glib::Object;
-        type Interfaces = ();
-        type Instance = subclass::simple::InstanceStruct<Self>;
-        type Class = subclass::simple::ClassStruct<Self>;
-
-        glib::object_subclass!();
-
-        // Called once at the very beginning of instantiation of each instance and
-        // creates the data structure that contains all our state
-        fn new() -> Self {
-            Self {
-                data: RefCell::new(None),
-                thumbnail: RefCell::new(None),
-            }
-        }
     }
 
     // The ObjectImpl trait provides the setters/getters for GObject properties.

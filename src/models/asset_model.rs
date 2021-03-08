@@ -1,34 +1,26 @@
 use crate::models::row_data::RowData;
+use egs_api::api::types::asset_info::AssetInfo;
 use gio::glib::subclass::types::ObjectSubclass;
 use gio::ListModelExt;
 use gtk::gio;
-use egs_api::api::types::asset_info::AssetInfo;
 
 mod imp {
     use super::*;
     use gio::subclass::prelude::ListModelImpl;
     use glib::subclass::prelude::*;
-    use glib::{subclass, Cast, StaticType};
+    use glib::{Cast, StaticType};
     use std::cell::RefCell;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     pub struct Model(pub RefCell<Vec<RowData>>);
 
     // Basic declaration of our type for the GObject type system
+    #[glib::object_subclass]
     impl ObjectSubclass for Model {
         const NAME: &'static str = "Model";
         type Type = super::Model;
         type ParentType = glib::Object;
         type Interfaces = (gio::ListModel,);
-        type Instance = subclass::simple::InstanceStruct<Self>;
-        type Class = subclass::simple::ClassStruct<Self>;
-
-        glib::object_subclass!();
-
-        // Called once at the very beginning of instantiation
-        fn new() -> Self {
-            Self(RefCell::new(Vec::new()))
-        }
     }
 
     impl ObjectImpl for Model {}
@@ -72,7 +64,10 @@ impl Model {
                 .binary_search_by(|probe| {
                     let f: AssetInfo = probe.deserialize::<AssetInfo>();
                     let s: AssetInfo = obj.deserialize::<AssetInfo>();
-                    f.title.unwrap_or_default().to_lowercase().cmp(&s.title.unwrap_or_default().to_lowercase())
+                    f.title
+                        .unwrap_or_default()
+                        .to_lowercase()
+                        .cmp(&s.title.unwrap_or_default().to_lowercase())
                 })
                 .unwrap_or_else(|e| e);
             data.insert(pos, obj.clone());
