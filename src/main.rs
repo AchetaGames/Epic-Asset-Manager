@@ -15,16 +15,16 @@ use gio;
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::{
     prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, ContainerExt, EntryExt,
-    FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, Image, ImageExt, Inhibit,
-    Justification, Label, LabelExt, MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu,
-    ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator,
-    Stack, StackExt, WidgetExt, Window,
+    FileChooserButton, FileChooserExt, FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt,
+    Image, ImageExt, Inhibit, Justification, Label, LabelExt, MenuButton, MenuButtonExt, Overlay,
+    OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry,
+    SearchEntryExt, Separator, Stack, StackExt, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{fmt, str, thread};
+use std::{fmt, fs, str, thread};
 use tokio::runtime::Runtime;
 use webkit2gtk::{LoadEvent, WebResourceExt, WebView, WebViewExt};
 
@@ -57,6 +57,7 @@ use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
 use std::iter::FromIterator;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -98,6 +99,7 @@ enum Msg {
     CloseDetails,
     NextImage,
     PrevImage,
+    ShowSettings(bool),
 }
 
 impl fmt::Display for Msg {
@@ -166,6 +168,9 @@ impl fmt::Display for Msg {
             Msg::PrevImage => {
                 write!(f, "PrevImage")
             }
+            Msg::ShowSettings(_) => {
+                write!(f, "ShowSettings")
+            }
         }
     }
 }
@@ -177,7 +182,7 @@ struct Widgets {
     login_view: WebView,
     login_box: Box,
     main_stack: Stack,
-    logged_in_box: Box,
+    title_right_box: Box,
     progress_message: Label,
     asset_flow: FlowBox,
     search: SearchEntry,
@@ -187,6 +192,13 @@ struct Widgets {
     details_content: Box,
     close_details: Button,
     image_stack: Stack,
+    logged_in_stack: Stack,
+    settings_widgets: Settings,
+}
+
+#[derive(Clone)]
+struct Settings {
+    directory_selectors: HashMap<String, FileChooserButton>,
 }
 
 struct Win {
@@ -335,7 +347,7 @@ impl Update for Win {
                 self.model.configuration.save();
                 self.widgets
                     .main_stack
-                    .set_visible_child_name("logged_in_box");
+                    .set_visible_child_name("logged_in_stack");
 
                 let logout_button = Button::with_label("Logout");
                 let logged_in_box = Box::new(Vertical, 0);
@@ -356,8 +368,8 @@ impl Update for Win {
                 login_name.set_popover(Some(&logout_menu));
                 login_name.show_all();
 
-                &self.widgets.logged_in_box.add(&login_name);
-                &self.widgets.logged_in_box.show_all();
+                &self.widgets.title_right_box.add(&login_name);
+                &self.widgets.title_right_box.show_all();
 
                 let stream = self.model.relm.stream().clone();
                 let (_channel, sender) = Channel::new(move |(anm, am)| {
@@ -923,6 +935,11 @@ impl Update for Win {
                     };
                 }
             }
+            Msg::ShowSettings(enabled) => {
+                self.widgets
+                    .logged_in_stack
+                    .set_visible_child_name(if enabled { "settings" } else { "main" });
+            }
         }
         println!(
             "{:?} - {} took {:?}",
@@ -949,19 +966,23 @@ impl Widget for Win {
 
         let window: Window = builder.get_object("window").unwrap();
         let main_stack: Stack = builder.get_object("main_stack").unwrap();
+        let logged_in_stack: Stack = builder.get_object("logged_in_stack").unwrap();
         let login_box: Box = builder.get_object("login_box").unwrap();
-        let logged_in_box: Box = builder.get_object("title_right_box").unwrap();
+        let title_right_box: Box = builder.get_object("title_right_box").unwrap();
         let progress_message = builder.get_object("progress_message").unwrap();
         let asset_flow: FlowBox = builder.get_object("asset_flow").unwrap();
         let all_button: Button = builder.get_object("all_button").unwrap();
         let assets_button: Button = builder.get_object("assets_button").unwrap();
         let plugins_button: Button = builder.get_object("plugins_button").unwrap();
+        let games_button: Button = builder.get_object("games_button").unwrap();
+        let settings_button: Button = builder.get_object("settings_button").unwrap();
         let search: SearchEntry = builder.get_object("search").unwrap();
         let progress_revealer: Revealer = builder.get_object("progress_revealer").unwrap();
         let loading_progress: ProgressBar = builder.get_object("loading_progress").unwrap();
         let details_revealer: Revealer = builder.get_object("details_revealer").unwrap();
         let details_content: Box = builder.get_object("details_content").unwrap();
         let close_details: Button = builder.get_object("close_details").unwrap();
+        let settings_close: Button = builder.get_object("settings_close").unwrap();
         let image_stack = Stack::new();
 
         relm.stream().emit(Msg::BindAssetModel);
@@ -969,6 +990,18 @@ impl Widget for Win {
         connect!(relm, search, connect_search_changed(_), Msg::Search);
 
         connect!(relm, all_button, connect_clicked(_), Msg::FilterNone);
+        connect!(
+            relm,
+            settings_button,
+            connect_clicked(_),
+            Msg::ShowSettings(true)
+        );
+        connect!(
+            relm,
+            settings_close,
+            connect_clicked(_),
+            Msg::ShowSettings(false)
+        );
         connect!(
             relm,
             assets_button,
@@ -980,6 +1013,12 @@ impl Widget for Win {
             plugins_button,
             connect_clicked(_),
             Msg::FilterSome("plugins".to_string())
+        );
+        connect!(
+            relm,
+            games_button,
+            connect_clicked(_),
+            Msg::FilterSome("games".to_string())
         );
         connect!(relm, close_details, connect_clicked(_), Msg::CloseDetails);
 
@@ -1014,13 +1053,83 @@ impl Widget for Win {
             Msg::ProcessAssetSelected
         );
 
+        // Settings
+        let mut directory_selectors: HashMap<String, FileChooserButton> = HashMap::new();
+
+        directory_selectors.insert(
+            "cache_directory_selector".into(),
+            builder.get_object("cache_directory_selector").unwrap(),
+        );
+        directory_selectors.insert(
+            "temp_download_directory_selector".into(),
+            builder
+                .get_object("temp_download_directory_selector")
+                .unwrap(),
+        );
+        directory_selectors.insert(
+            "ue_asset_vault_directory_selector".into(),
+            builder
+                .get_object("ue_asset_vault_directory_selector")
+                .unwrap(),
+        );
+
+        directory_selectors.insert(
+            "ue_directory_selector".into(),
+            builder.get_object("ue_directory_selector").unwrap(),
+        );
+
+        let cache_dir = match dirs::cache_dir() {
+            None => PathBuf::from("cache"),
+            Some(mut dir) => {
+                dir.push("epic_asset_manager");
+                dir
+            }
+        };
+        fs::create_dir_all(cache_dir.clone()).unwrap();
+        directory_selectors
+            .get("cache_directory_selector")
+            .unwrap()
+            .set_filename(cache_dir);
+
+        let download = match dirs::download_dir() {
+            None => PathBuf::from("Downloads"),
+            Some(mut dir) => {
+                dir.push("epic_asset_manager");
+                dir
+            }
+        };
+        fs::create_dir_all(download.clone()).unwrap();
+        directory_selectors
+            .get("temp_download_directory_selector")
+            .unwrap()
+            .set_filename(download);
+
+        let vault = match dirs::data_dir() {
+            None => PathBuf::from("Vault"),
+            Some(mut dir) => {
+                dir.push("epic_asset_manager");
+                dir.push("Vault");
+                dir
+            }
+        };
+        fs::create_dir_all(vault.clone()).unwrap();
+        directory_selectors
+            .get("ue_asset_vault_directory_selector")
+            .unwrap()
+            .set_filename(vault);
+
+        let settings_widgets = Settings {
+            directory_selectors,
+        };
+
         window.show_all();
 
         Win {
             model,
             widgets: Widgets {
+                logged_in_stack,
                 main_stack,
-                logged_in_box,
+                title_right_box,
                 login_box,
                 window,
                 login_view: webview,
@@ -1033,6 +1142,7 @@ impl Widget for Win {
                 details_content,
                 close_details,
                 image_stack,
+                settings_widgets,
             },
         }
     }
