@@ -1,6 +1,6 @@
+use crate::glib::subclass::types::ObjectSubclassExt;
 use crate::models::row_data::RowData;
 use egs_api::api::types::asset_info::AssetInfo;
-use gio::glib::subclass::types::ObjectSubclass;
 use gio::ListModelExt;
 use gtk::gio;
 
