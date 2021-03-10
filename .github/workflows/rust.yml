@@ -17,9 +17,5 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Prepare
-      run: |
-        rustup install stable-x86_64-unknown-linux-gnu
-        rustup update
     - name: Build
       run: cargo build --verbose
