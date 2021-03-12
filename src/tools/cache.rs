@@ -129,7 +129,7 @@ impl Cache for KeyImage {
                         asset_file.write(&d).unwrap();
                     }
                     Err(e) => {
-                        println!("{:?}", e);
+                        error!("{:?}", e);
                     }
                 }
             }

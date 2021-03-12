@@ -30,7 +30,6 @@ use webkit2gtk::{LoadEvent, WebResourceExt, WebView, WebViewExt};
 
 use crate::configuration::Configuration;
 use gdk_pixbuf::PixbufLoaderExt;
-use std::io::Write;
 use threadpool::ThreadPool;
 
 extern crate env_logger;
@@ -57,7 +56,6 @@ use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
 use std::iter::FromIterator;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -194,6 +192,7 @@ struct Widgets {
     image_stack: Stack,
     logged_in_stack: Stack,
     settings_widgets: Settings,
+    download_button: Button,
 }
 
 #[derive(Clone)]
@@ -247,36 +246,25 @@ impl Update for Win {
                         }
                         Some(r) => r,
                     };
-                    match resource.get_uri() {
-                        None => {}
-                        Some(uri) => {
-                            if uri.as_str() == "https://www.epicgames.com/id/api/redirect" {
-                                let stream = self.model.relm.stream().clone();
-                                let (_channel, sender) = Channel::new(move |s| match s {
-                                    None => {}
-                                    Some(sid) => {
-                                        stream.emit(Login(sid));
+                    if let Some(uri) = resource.get_uri() {
+                        if uri.as_str() == "https://www.epicgames.com/id/api/redirect" {
+                            let stream = self.model.relm.stream().clone();
+                            let (_channel, sender) = Channel::new(move |s| {
+                                if let Some(sid) = s {
+                                    stream.emit(Login(sid));
+                                }
+                            });
+                            resource.get_data(None::<&gio::Cancellable>, move |data| {
+                                if let Ok(d) = data {
+                                    if let Ok(sid_response) =
+                                        serde_json::from_slice::<LoginResponse>(&d)
+                                    {
+                                        sender.send(Some(sid_response.sid.clone())).unwrap();
                                     }
-                                });
-                                resource.get_data(
-                                    None::<&gio::Cancellable>,
-                                    move |data| match data {
-                                        Ok(d) => {
-                                            match serde_json::from_slice::<LoginResponse>(&d) {
-                                                Ok(sid_response) => {
-                                                    sender
-                                                        .send(Some(sid_response.sid.clone()))
-                                                        .unwrap();
-                                                }
-                                                Err(_) => {}
-                                            }
-                                        }
-                                        Err(_) => {}
-                                    },
-                                );
-                            } else {
-                                &self.widgets.main_stack.set_visible_child_name("login_box");
-                            }
+                                }
+                            });
+                        } else {
+                            &self.widgets.main_stack.set_visible_child_name("login_box");
                         }
                     }
                 }
@@ -286,9 +274,8 @@ impl Update for Win {
                 self.widgets.progress_message.set_label("Login in progress");
                 &self.widgets.main_stack.set_visible_child_name("progress");
                 let stream = self.model.relm.stream().clone();
-                let (_channel, sender) = Channel::new(move |ud| match ud {
-                    None => {}
-                    Some(user_data) => {
+                let (_channel, sender) = Channel::new(move |ud| {
+                    if let Some(user_data) = ud {
                         stream.emit(LoginOk(user_data));
                     }
                 });
@@ -307,7 +294,7 @@ impl Update for Win {
                             sender.send(Some(eg.user_details())).unwrap();
                         }
                     };
-                    println!(
+                    debug!(
                         "{:?} - Login requests took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -333,7 +320,7 @@ impl Update for Win {
                     if Runtime::new().unwrap().block_on(eg.login()) {
                         sender.send(Some(eg.user_details())).unwrap();
                     };
-                    println!(
+                    debug!(
                         "{:?} - Relogin requests took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -398,7 +385,7 @@ impl Update for Win {
                         asset_map.insert(asset.catalog_item_id.clone(), asset);
                     }
                     sender.send((asset_namespace_map, asset_map)).unwrap();
-                    println!(
+                    debug!(
                         "{:?} - Requesting EpicAssets took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -456,20 +443,20 @@ impl Update for Win {
                                     s.send(asset).unwrap();
                                 }
                             };
-                            println!(
+                            debug!(
                                 "{:?} - Asset Info loading took {:?}",
                                 thread::current().id(),
                                 start.elapsed()
                             );
                         });
                     }
-                    println!(
+                    debug!(
                         "{:?} - AssetInfo processing took {:?}",
                         thread::current().id(),
                         start.elapsed()
                     );
                 });
-                println!("Login took {:?}", start.elapsed());
+                debug!("Login took {:?}", start.elapsed());
             }
             ProcessAssetInfo(asset) => {
                 // TODO: Cache the asset info
@@ -489,7 +476,7 @@ impl Update for Win {
                         }
                     }
                     if !found {
-                        println!("{:?}: {:#?}", asset.title, asset.key_images);
+                        debug!("{:?}: {:#?}", asset.title, asset.key_images);
                         self.model.relm.stream().emit(Msg::PulseProgress);
                     }
                 }
@@ -531,7 +518,7 @@ impl Update for Win {
                             }
                         },
                     }
-                    println!(
+                    debug!(
                         "{:?} - Image loading took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -541,14 +528,13 @@ impl Update for Win {
             ProcessImage(asset_id, image) => match asset_id {
                 Some(id) => {
                     if let Ok(asset_info) = DATA.asset_info.read() {
-                        match asset_info.get(&id) {
-                            None => {}
-                            Some(asset) => {
-                                self.model
-                                    .asset_model
-                                    .append(&RowData::new(asset.clone(), image));
-                                self.model.relm.stream().emit(Msg::PulseProgress);
-                            }
+                        if let Some(asset) = asset_info.get(&id) {
+                            self.model.asset_model.append(&RowData::new(
+                                asset.title.clone(),
+                                asset.clone(),
+                                image,
+                            ));
+                            self.model.relm.stream().emit(Msg::PulseProgress);
                         }
                     }
                 }
@@ -614,32 +600,26 @@ impl Update for Win {
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
                     let start = std::time::Instant::now();
-                    match Runtime::new().unwrap().block_on(eg.get_asset_manifest(
+                    if let Some(manifest) = Runtime::new().unwrap().block_on(eg.get_asset_manifest(
                         None,
                         None,
                         Some(asset.namespace),
                         Some(asset.id),
                         Some(release_info.app_id.unwrap_or_default()),
                     )) {
-                        None => {}
-                        Some(manifest) => {
-                            for elem in manifest.elements {
-                                for man in elem.manifests {
-                                    match Runtime::new()
-                                        .unwrap()
-                                        .block_on(eg.get_asset_download_manifest(man.clone()))
-                                    {
-                                        Ok(d) => {
-                                            sender.send(d).unwrap();
-                                            break;
-                                        }
-                                        Err(_) => {}
-                                    };
-                                }
+                        for elem in manifest.elements {
+                            for man in elem.manifests {
+                                if let Ok(d) = Runtime::new()
+                                    .unwrap()
+                                    .block_on(eg.get_asset_download_manifest(man.clone()))
+                                {
+                                    sender.send(d).unwrap();
+                                    break;
+                                };
                             }
                         }
                     };
-                    println!(
+                    debug!(
                         "{:?} - Download Manifest requests took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -659,7 +639,7 @@ impl Update for Win {
                                 .details_content
                                 .foreach(|el| self.widgets.details_content.remove(el));
 
-                            println!("Showing details for {:?}", asset_info.title);
+                            info!("Showing details for {:?}", asset_info.title);
 
                             let vbox = Box::new(Vertical, 0);
 
@@ -690,18 +670,15 @@ impl Update for Win {
                             image_navigation.add_overlay(&back);
                             image_navigation.add_overlay(&forward);
                             vbox.add(&image_navigation);
-                            match &asset_info.key_images {
-                                None => {}
-                                Some(images) => {
-                                    for image in images {
-                                        if image.width < 300 || image.height < 300 {
-                                            continue;
-                                        }
-                                        self.model
-                                            .relm
-                                            .stream()
-                                            .emit(Msg::DownloadImage(None, image.clone()));
+                            if let Some(images) = &asset_info.key_images {
+                                for image in images {
+                                    if image.width < 300 || image.height < 300 {
+                                        continue;
                                     }
+                                    self.model
+                                        .relm
+                                        .stream()
+                                        .emit(Msg::DownloadImage(None, image.clone()));
                                 }
                             }
                             let table = GridBuilder::new()
@@ -843,24 +820,21 @@ impl Update for Win {
                         }
                         vbox.set_size_request(130, 150);
                         vbox.add(&gtkimage);
-                        match &data.title {
-                            None => {}
-                            Some(title) => {
-                                let label = Label::new(Some(title));
-                                label.set_property_wrap(true);
-                                label.set_property_expand(false);
-                                label.set_max_width_chars(15);
-                                label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                                label.set_tooltip_text(Some(title));
-                                label.set_justify(Justification::Center);
-                                vbox.add(&label);
-                            }
+                        if let Some(title) = &data.title {
+                            let label = Label::new(Some(title));
+                            label.set_property_wrap(true);
+                            label.set_property_expand(false);
+                            label.set_max_width_chars(15);
+                            label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                            label.set_tooltip_text(Some(title));
+                            label.set_justify(Justification::Center);
+                            vbox.add(&label);
                         }
 
                         vbox.set_property_margin(10);
                         child.add(&vbox);
                         vbox.show_all();
-                        println!(
+                        debug!(
                             "{:?} - building a model widget took {:?}",
                             thread::current().id(),
                             start.elapsed()
@@ -869,22 +843,13 @@ impl Update for Win {
                     });
             }
             Msg::PulseProgress => {
-                println!(
-                    "Current progress {}, pulsing by {}",
-                    self.widgets.loading_progress.get_fraction(),
-                    self.widgets.loading_progress.get_pulse_step()
-                );
                 self.widgets.loading_progress.set_fraction(
                     self.widgets.loading_progress.get_fraction()
                         + self.widgets.loading_progress.get_pulse_step(),
                 );
-                println!(
-                    "Current progress {}",
-                    self.widgets.loading_progress.get_fraction()
-                );
                 if (self.widgets.loading_progress.get_fraction() * 10000.0).round() / 10000.0 == 1.0
                 {
-                    println!("Hiding progress");
+                    debug!("Hiding progress");
                     self.widgets.progress_revealer.set_reveal_child(false);
                 }
             }
@@ -941,7 +906,7 @@ impl Update for Win {
                     .set_visible_child_name(if enabled { "settings" } else { "main" });
             }
         }
-        println!(
+        debug!(
             "{:?} - {} took {:?}",
             thread::current().id(),
             event,
@@ -960,6 +925,8 @@ impl Widget for Win {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        debug!("Main thread id: {:?}", thread::current().id());
+
         info!("Starging GTK Window");
         let glade_src = include_str!("gui.glade");
         let builder = Builder::from_string(glade_src);
@@ -983,6 +950,7 @@ impl Widget for Win {
         let details_content: Box = builder.get_object("details_content").unwrap();
         let close_details: Button = builder.get_object("close_details").unwrap();
         let settings_close: Button = builder.get_object("settings_close").unwrap();
+        let download_button: Button = builder.get_object("download_button").unwrap();
         let image_stack = Stack::new();
 
         relm.stream().emit(Msg::BindAssetModel);
@@ -1078,45 +1046,23 @@ impl Widget for Win {
             builder.get_object("ue_directory_selector").unwrap(),
         );
 
-        let cache_dir = match dirs::cache_dir() {
-            None => PathBuf::from("cache"),
-            Some(mut dir) => {
-                dir.push("epic_asset_manager");
-                dir
-            }
-        };
-        fs::create_dir_all(cache_dir.clone()).unwrap();
+        fs::create_dir_all(&model.configuration.directories.cache_directory).unwrap();
         directory_selectors
             .get("cache_directory_selector")
             .unwrap()
-            .set_filename(cache_dir);
+            .set_filename(&model.configuration.directories.cache_directory);
 
-        let download = match dirs::download_dir() {
-            None => PathBuf::from("Downloads"),
-            Some(mut dir) => {
-                dir.push("epic_asset_manager");
-                dir
-            }
-        };
-        fs::create_dir_all(download.clone()).unwrap();
+        fs::create_dir_all(&model.configuration.directories.temporary_download_directory).unwrap();
         directory_selectors
             .get("temp_download_directory_selector")
             .unwrap()
-            .set_filename(download);
+            .set_filename(&model.configuration.directories.temporary_download_directory);
 
-        let vault = match dirs::data_dir() {
-            None => PathBuf::from("Vault"),
-            Some(mut dir) => {
-                dir.push("epic_asset_manager");
-                dir.push("Vault");
-                dir
-            }
-        };
-        fs::create_dir_all(vault.clone()).unwrap();
+        fs::create_dir_all(&model.configuration.directories.unreal_vault_directory).unwrap();
         directory_selectors
             .get("ue_asset_vault_directory_selector")
             .unwrap()
-            .set_filename(vault);
+            .set_filename(&model.configuration.directories.unreal_vault_directory);
 
         let settings_widgets = Settings {
             directory_selectors,
@@ -1142,6 +1088,7 @@ impl Widget for Win {
                 details_content,
                 close_details,
                 image_stack,
+                download_button,
                 settings_widgets,
             },
         }
@@ -1161,18 +1108,5 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    println!("Main thread id: {:?}", thread::current().id());
-    env_logger::builder()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "<{}> - [{}] - {}",
-                record.target(),
-                record.level(),
-                record.args()
-            )
-        })
-        .init();
-
     Win::run(()).expect("Win::run failed");
 }
