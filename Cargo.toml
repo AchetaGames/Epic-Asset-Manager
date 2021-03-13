@@ -34,8 +34,7 @@ version = "1.0.123"
 features = ["derive"]
 
 [dependencies.egs-api]
-#git = "https://github.com/AchetaGames/egs-api-rs"
-path = "../egs-api"
+git = "https://github.com/AchetaGames/egs-api-rs"
 
 [dependencies.tokio]
 version = "1.2.0"
