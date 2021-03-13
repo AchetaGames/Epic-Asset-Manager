@@ -14,11 +14,12 @@ use egs_api::EpicGames;
 use gio;
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::{
-    prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, ContainerExt, EntryExt,
-    FileChooserButton, FileChooserExt, FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt,
-    Image, ImageExt, Inhibit, Justification, Label, LabelExt, MenuButton, MenuButtonExt, Overlay,
-    OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry,
-    SearchEntryExt, Separator, Stack, StackExt, WidgetExt, Window,
+    prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText,
+    ComboBoxTextExt, ContainerExt, EntryExt, FileChooserButton, FileChooserExt, FlowBox,
+    FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, Image, ImageExt, Inhibit, Justification, Label,
+    LabelExt, MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu, ProgressBar,
+    ProgressBarExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator, Stack, StackExt,
+    WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
@@ -55,6 +56,7 @@ use crate::models::row_data::RowData;
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
+use gtk::prelude::ComboBoxExtManual;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -65,12 +67,37 @@ lazy_static! {
     static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
 }
 
+trait Or: Sized {
+    fn or(self, other: Self) -> Self;
+}
+
+impl<'a> Or for &'a str {
+    fn or(self, other: &'a str) -> &'a str {
+        if self.is_empty() {
+            other
+        } else {
+            self
+        }
+    }
+}
+
+impl<'a> Or for &'a String {
+    fn or(self, other: &'a String) -> &'a String {
+        if self.is_empty() {
+            other
+        } else {
+            self
+        }
+    }
+}
+
 #[derive(Clone)]
 struct Model {
     relm: Relm<Win>,
     epic_games: EpicGames,
     configuration: Configuration,
     asset_model: crate::models::asset_model::Model,
+    selected_asset: Option<String>,
 }
 
 #[derive(Msg, Debug, Clone)]
@@ -98,6 +125,8 @@ enum Msg {
     NextImage,
     PrevImage,
     ShowSettings(bool),
+    ShowAssetDownload(bool),
+    DownloadVersionSelected,
 }
 
 impl fmt::Display for Msg {
@@ -169,6 +198,12 @@ impl fmt::Display for Msg {
             Msg::ShowSettings(_) => {
                 write!(f, "ShowSettings")
             }
+            Msg::ShowAssetDownload(_) => {
+                write!(f, "ShowAssetDownload")
+            }
+            Msg::DownloadVersionSelected => {
+                write!(f, "DownloadVersionSelected")
+            }
         }
     }
 }
@@ -192,12 +227,18 @@ struct Widgets {
     image_stack: Stack,
     logged_in_stack: Stack,
     settings_widgets: Settings,
+    asset_download_widgets: AssetDownloadDetails,
     download_button: Button,
 }
 
 #[derive(Clone)]
 struct Settings {
     directory_selectors: HashMap<String, FileChooserButton>,
+}
+
+#[derive(Clone)]
+struct AssetDownloadDetails {
+    asset_version_combo: ComboBoxText,
 }
 
 struct Win {
@@ -226,6 +267,7 @@ impl Update for Win {
             epic_games: EpicGames::new(),
             configuration: Configuration::new(),
             asset_model: crate::models::asset_model::Model::new(),
+            selected_asset: None,
         }
     }
 
@@ -632,7 +674,7 @@ impl Update for Win {
                 }
             }
             Msg::ProcessAssetSelected => {
-                self.widgets.asset_flow.selected_foreach(|_fbox, child| {
+                for child in self.widgets.asset_flow.get_selected_children() {
                     if let Ok(ai) = DATA.asset_info.read() {
                         if let Some(asset_info) = ai.get(child.get_widget_name().as_str()) {
                             self.widgets
@@ -640,6 +682,7 @@ impl Update for Win {
                                 .foreach(|el| self.widgets.details_content.remove(el));
 
                             info!("Showing details for {:?}", asset_info.title);
+                            self.model.selected_asset = Some(asset_info.id.clone());
 
                             let vbox = Box::new(Vertical, 0);
 
@@ -732,13 +775,16 @@ impl Update for Win {
                                 description.set_markup(&markup);
                                 vbox.add(&description);
                             }
+                            if asset_info.release_info.clone().unwrap().len() > 0 {
+                                self.widgets.download_button.set_sensitive(true);
+                            }
 
                             vbox.show_all();
                             self.widgets.details_content.add(&vbox);
                             self.widgets.details_revealer.set_reveal_child(true);
                         }
                     }
-                });
+                }
             }
             Msg::FilterNone => {
                 if let Ok(mut tag_filter) = DATA.tag_filter.write() {
@@ -854,6 +900,7 @@ impl Update for Win {
                 }
             }
             Msg::CloseDetails => {
+                self.widgets.download_button.set_sensitive(false);
                 self.widgets.details_revealer.set_reveal_child(false);
                 self.widgets.asset_flow.unselect_all();
             }
@@ -905,6 +952,83 @@ impl Update for Win {
                     .logged_in_stack
                     .set_visible_child_name(if enabled { "settings" } else { "main" });
             }
+            Msg::ShowAssetDownload(enabled) => {
+                // Cleanup
+                self.widgets
+                    .asset_download_widgets
+                    .asset_version_combo
+                    .remove_all();
+
+                if enabled {
+                    if let Some(asset_id) = &self.model.selected_asset {
+                        if let Ok(ai) = DATA.asset_info.read() {
+                            if let Some(asset_info) = ai.get(asset_id) {
+                                match asset_info.get_sorted_releases() {
+                                    None => {}
+                                    Some(releases) => {
+                                        for (id, release) in releases.iter().enumerate() {
+                                            self.widgets
+                                                .asset_download_widgets
+                                                .asset_version_combo
+                                                .append(
+                                                    Some(
+                                                        release
+                                                            .id
+                                                            .as_ref()
+                                                            .unwrap_or(&"".to_string()),
+                                                    ),
+                                                    &format!(
+                                                        "{}{}",
+                                                        release
+                                                            .version_title
+                                                            .as_ref()
+                                                            .unwrap_or(&"".to_string())
+                                                            .or(release
+                                                                .app_id
+                                                                .as_ref()
+                                                                .unwrap_or(&"".to_string())),
+                                                        if id == 0 { " (latest)" } else { "" }
+                                                    ),
+                                                )
+                                        }
+                                        self.widgets
+                                            .asset_download_widgets
+                                            .asset_version_combo
+                                            .set_active(Some(0));
+                                    }
+                                }
+                            };
+                        };
+                    };
+                };
+
+                self.widgets
+                    .logged_in_stack
+                    .set_visible_child_name(if enabled {
+                        "asset_download_details"
+                    } else {
+                        "main"
+                    });
+            }
+            Msg::DownloadVersionSelected => {
+                if let Some(id) = self
+                    .widgets
+                    .asset_download_widgets
+                    .asset_version_combo
+                    .get_active_id()
+                {
+                    if let Some(asset_id) = &self.model.selected_asset {
+                        if let Ok(ai) = DATA.asset_info.read() {
+                            if let Some(asset_info) = ai.get(asset_id) {
+                                debug!(
+                                    "Selected release: {:?}",
+                                    asset_info.get_release_id(id.to_string())
+                                );
+                            }
+                        }
+                    }
+                }
+            }
         }
         debug!(
             "{:?} - {} took {:?}",
@@ -951,6 +1075,9 @@ impl Widget for Win {
         let close_details: Button = builder.get_object("close_details").unwrap();
         let settings_close: Button = builder.get_object("settings_close").unwrap();
         let download_button: Button = builder.get_object("download_button").unwrap();
+        let asset_download_details_close: Button =
+            builder.get_object("asset_download_details_close").unwrap();
+
         let image_stack = Stack::new();
 
         relm.stream().emit(Msg::BindAssetModel);
@@ -969,6 +1096,18 @@ impl Widget for Win {
             settings_close,
             connect_clicked(_),
             Msg::ShowSettings(false)
+        );
+        connect!(
+            relm,
+            download_button,
+            connect_clicked(_),
+            Msg::ShowAssetDownload(true)
+        );
+        connect!(
+            relm,
+            asset_download_details_close,
+            connect_clicked(_),
+            Msg::ShowAssetDownload(false)
         );
         connect!(
             relm,
@@ -1068,6 +1207,17 @@ impl Widget for Win {
             directory_selectors,
         };
 
+        let asset_version_combo: ComboBoxText = builder.get_object("asset_version_combo").unwrap();
+        connect!(
+            relm,
+            asset_version_combo,
+            connect_changed(_),
+            Msg::DownloadVersionSelected
+        );
+        let asset_download_widgets = AssetDownloadDetails {
+            asset_version_combo,
+        };
+
         window.show_all();
 
         Win {
@@ -1090,6 +1240,7 @@ impl Widget for Win {
                 image_stack,
                 download_button,
                 settings_widgets,
+                asset_download_widgets,
             },
         }
     }
