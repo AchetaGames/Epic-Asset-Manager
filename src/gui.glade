@@ -964,7 +964,7 @@
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <child>
-                              <object class="GtkImage">
+                              <object class="GtkImage" id="asset_download_info_revealer_button_image">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="stock">gtk-go-up</property>

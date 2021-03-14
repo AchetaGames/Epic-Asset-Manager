@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 gtk = { git = "https://github.com/gtk-rs/gtk-rs.git", features = ["v3_20"] }
+gtk-sys = { git = "https://github.com/gtk-rs/gtk-rs.git", features = ["v3_20"] }
 webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs.git" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 glib = { git = "https://github.com/gtk-rs/gtk-rs.git" }

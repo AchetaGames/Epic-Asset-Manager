@@ -16,10 +16,10 @@ use gtk::Orientation::{Horizontal, Vertical};
 use gtk::{
     prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText,
     ComboBoxTextExt, ContainerExt, EntryExt, FileChooserButton, FileChooserExt, FlowBox,
-    FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, Image, ImageExt, Inhibit, Justification, Label,
-    LabelExt, MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu, ProgressBar,
-    ProgressBarExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator, Stack, StackExt,
-    WidgetExt, Window,
+    FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image, ImageExt, Inhibit,
+    Justification, Label, LabelExt, MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu,
+    ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator,
+    Stack, StackExt, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
@@ -53,6 +53,7 @@ use crate::tools::cache::Cache;
 extern crate lazy_static;
 
 use crate::models::row_data::RowData;
+use crate::tools::image_stock::ImageExtCust;
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
@@ -127,6 +128,7 @@ enum Msg {
     ShowSettings(bool),
     ShowAssetDownload(bool),
     DownloadVersionSelected,
+    ToggleAssetDownloadDetails,
 }
 
 impl fmt::Display for Msg {
@@ -204,6 +206,9 @@ impl fmt::Display for Msg {
             Msg::DownloadVersionSelected => {
                 write!(f, "DownloadVersionSelected")
             }
+            Msg::ToggleAssetDownloadDetails => {
+                write!(f, "ToggleAssetDownloadDetails")
+            }
         }
     }
 }
@@ -239,6 +244,10 @@ struct Settings {
 #[derive(Clone)]
 struct AssetDownloadDetails {
     asset_version_combo: ComboBoxText,
+    asset_download_info_box: Box,
+    asset_download_info_revealer_button: Button,
+    asset_download_info_revealer: Revealer,
+    asset_download_info_revealer_button_image: Image,
 }
 
 struct Win {
@@ -1020,14 +1029,119 @@ impl Update for Win {
                     if let Some(asset_id) = &self.model.selected_asset {
                         if let Ok(ai) = DATA.asset_info.read() {
                             if let Some(asset_info) = ai.get(asset_id) {
-                                debug!(
-                                    "Selected release: {:?}",
-                                    asset_info.get_release_id(id.to_string())
-                                );
+                                if !self
+                                    .widgets
+                                    .asset_download_widgets
+                                    .asset_download_info_revealer
+                                    .get_reveal_child()
+                                {
+                                    self.model
+                                        .relm
+                                        .stream()
+                                        .emit(Msg::ToggleAssetDownloadDetails)
+                                }
+                                self.widgets
+                                    .asset_download_widgets
+                                    .asset_download_info_box
+                                    .foreach(|el| {
+                                        self.widgets
+                                            .asset_download_widgets
+                                            .asset_download_info_box
+                                            .remove(el)
+                                    });
+                                let grid = GridBuilder::new()
+                                    .column_homogeneous(true)
+                                    .halign(Align::Start)
+                                    .valign(Align::Start)
+                                    .expand(false)
+                                    .build();
+                                if let Some(release) = asset_info.get_release_id(id.to_string()) {
+                                    let mut line = 0;
+                                    if let Some(compatible) = release.compatible_apps {
+                                        let versions_label =
+                                            Label::new(Some("Supported versions:"));
+                                        versions_label.set_halign(Align::Start);
+                                        grid.attach(&versions_label, 0, line, 1, 1);
+                                        let compat = Label::new(Some(
+                                            &compatible.join(", ").replace("UE_", ""),
+                                        ));
+                                        compat.set_halign(Align::Start);
+                                        compat.set_line_wrap(true);
+                                        grid.attach(&compat, 1, line, 1, 1);
+                                        line += 1;
+                                    }
+                                    if let Some(platforms) = release.platform {
+                                        let platforms_label = Label::new(Some("Platforms:"));
+                                        platforms_label.set_halign(Align::Start);
+                                        grid.attach(&platforms_label, 0, line, 1, 1);
+                                        let platforms = Label::new(Some(&platforms.join(", ")));
+                                        platforms.set_halign(Align::Start);
+                                        grid.attach(&platforms, 1, line, 1, 1);
+                                        line += 1;
+                                    }
+                                    if let Some(date) = release.date_added {
+                                        let release_date_label = Label::new(Some("Release date:"));
+                                        release_date_label.set_halign(Align::Start);
+                                        grid.attach(&release_date_label, 0, line, 1, 1);
+                                        let release_date = Label::new(Some(
+                                            &date.naive_local().format("%F").to_string(),
+                                        ));
+                                        release_date.set_halign(Align::Start);
+                                        grid.attach(&release_date, 1, line, 1, 1);
+                                        line += 1;
+                                    }
+                                    if let Some(note) = release.release_note {
+                                        if !note.is_empty() {
+                                            let release_note_label =
+                                                Label::new(Some("Release note:"));
+                                            release_note_label.set_halign(Align::Start);
+                                            grid.attach(&release_note_label, 0, line, 1, 1);
+                                            let release_note = Label::new(Some(&note));
+                                            release_note.set_halign(Align::Start);
+                                            grid.attach(&release_note, 1, line, 1, 1);
+                                            line += 1;
+                                        };
+                                    }
+
+                                    grid.show_all();
+                                    self.widgets
+                                        .asset_download_widgets
+                                        .asset_download_info_box
+                                        .add(&grid);
+                                };
                             }
                         }
                     }
                 }
+            }
+            Msg::ToggleAssetDownloadDetails => {
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_info_revealer_button_image
+                    .set_from_stock(
+                        if self
+                            .widgets
+                            .asset_download_widgets
+                            .asset_download_info_revealer
+                            .get_reveal_child()
+                        {
+                            Some("gtk-go-down")
+                        } else {
+                            Some("gtk-go-up")
+                        },
+                        IconSize::Button,
+                    );
+
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_info_revealer
+                    .set_reveal_child(
+                        !self
+                            .widgets
+                            .asset_download_widgets
+                            .asset_download_info_revealer
+                            .get_reveal_child(),
+                    )
             }
         }
         debug!(
@@ -1208,14 +1322,34 @@ impl Widget for Win {
         };
 
         let asset_version_combo: ComboBoxText = builder.get_object("asset_version_combo").unwrap();
+
+        let asset_download_info_box: Box = builder.get_object("asset_download_info_box").unwrap();
+        let asset_download_info_revealer_button: Button = builder
+            .get_object("asset_download_info_revealer_button")
+            .unwrap();
+        let asset_download_info_revealer: Revealer =
+            builder.get_object("asset_download_info_revealer").unwrap();
+        let asset_download_info_revealer_button_image: Image = builder
+            .get_object("asset_download_info_revealer_button_image")
+            .unwrap();
         connect!(
             relm,
             asset_version_combo,
             connect_changed(_),
             Msg::DownloadVersionSelected
         );
+        connect!(
+            relm,
+            asset_download_info_revealer_button,
+            connect_clicked(_),
+            Msg::ToggleAssetDownloadDetails
+        );
         let asset_download_widgets = AssetDownloadDetails {
             asset_version_combo,
+            asset_download_info_box,
+            asset_download_info_revealer_button,
+            asset_download_info_revealer_button_image,
+            asset_download_info_revealer,
         };
 
         window.show_all();
