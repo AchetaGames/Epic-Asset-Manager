@@ -29,6 +29,7 @@ lazy_static = "1.4.0"
 once_cell = "1.7.0"
 elapsed = "0.1.2"
 html2pango = "0.4.1"
+byte-unit = "4.0.10"
 
 [dependencies.serde]
 version = "1.0.123"
@@ -36,6 +37,7 @@ features = ["derive"]
 
 [dependencies.egs-api]
 git = "https://github.com/AchetaGames/egs-api-rs"
+#path = "../egs-api"
 
 [dependencies.tokio]
 version = "1.2.0"
