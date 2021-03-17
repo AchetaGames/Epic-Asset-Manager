@@ -12,6 +12,7 @@ mod imp {
     // directly from the outside.
     #[derive(Debug, Default)]
     pub struct RowData {
+        id: RefCell<Option<String>>,
         data: RefCell<Option<String>>,
         thumbnail: RefCell<Option<String>>,
     }
@@ -43,6 +44,13 @@ mod imp {
                         glib::ParamFlags::READWRITE,
                     ),
                     glib::ParamSpec::string(
+                        "id",
+                        "ID",
+                        "ID",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpec::string(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
@@ -69,6 +77,12 @@ mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.data.replace(data);
                 }
+                "id" => {
+                    let id = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.id.replace(id);
+                }
                 "thumbnail" => {
                     let thumbnail = value
                         .get()
@@ -87,6 +101,7 @@ mod imp {
         ) -> glib::Value {
             match pspec.get_name() {
                 "data" => self.data.borrow().to_value(),
+                "id" => self.id.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -103,15 +118,27 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl RowData {
-    pub fn new<O>(object: O, image: Vec<u8>) -> RowData
+    pub fn new<O>(id: Option<String>, object: O, image: Vec<u8>) -> RowData
     where
         O: serde::ser::Serialize,
     {
         glib::Object::new(&[
+            ("id", &id),
             ("data", &serde_json::to_string(&object).unwrap()),
             ("thumbnail", &Some(hex::encode(image))),
         ])
         .expect("Failed to create row data")
+    }
+
+    pub fn id(&self) -> String {
+        if let Ok(value) = self.get_property("id") {
+            if let Ok(id_opt) = value.get::<String>() {
+                if let Some(id) = id_opt {
+                    return id;
+                }
+            }
+        };
+        return "".to_string();
     }
 
     pub fn deserialize<O>(&self) -> O

@@ -1,6 +1,5 @@
 use crate::glib::subclass::types::ObjectSubclassExt;
 use crate::models::row_data::RowData;
-use egs_api::api::types::asset_info::AssetInfo;
 use gio::ListModelExt;
 use gtk::gio;
 
@@ -61,14 +60,7 @@ impl Model {
             // could call get_item / get_n_item from the signal handler to update its state
             let mut data = self_.0.borrow_mut();
             let pos = data
-                .binary_search_by(|probe| {
-                    let f: AssetInfo = probe.deserialize::<AssetInfo>();
-                    let s: AssetInfo = obj.deserialize::<AssetInfo>();
-                    f.title
-                        .unwrap_or_default()
-                        .to_lowercase()
-                        .cmp(&s.title.unwrap_or_default().to_lowercase())
-                })
+                .binary_search_by(|probe| probe.id().to_lowercase().cmp(&obj.id().to_lowercase()))
                 .unwrap_or_else(|e| e);
             data.insert(pos, obj.clone());
             pos

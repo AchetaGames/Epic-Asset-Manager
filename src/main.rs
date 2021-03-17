@@ -14,11 +14,13 @@ use egs_api::EpicGames;
 use gio;
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::{
-    prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, ContainerExt, EntryExt,
+    prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, CellLayoutExt,
+    CellRendererToggleExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt, ContainerExt, EntryExt,
     FileChooserButton, FileChooserExt, FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt,
-    Image, ImageExt, Inhibit, Justification, Label, LabelExt, MenuButton, MenuButtonExt, Overlay,
-    OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry,
-    SearchEntryExt, Separator, Stack, StackExt, WidgetExt, Window,
+    GtkListStoreExt, IconSize, Image, ImageExt, Inhibit, Justification, Label, LabelExt,
+    MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt,
+    Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator, Stack, StackExt, TreeModelExt,
+    TreeViewColumnExt, TreeViewExt, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
@@ -30,7 +32,6 @@ use webkit2gtk::{LoadEvent, WebResourceExt, WebView, WebViewExt};
 
 use crate::configuration::Configuration;
 use gdk_pixbuf::PixbufLoaderExt;
-use std::io::Write;
 use threadpool::ThreadPool;
 
 extern crate env_logger;
@@ -53,11 +54,15 @@ use crate::tools::cache::Cache;
 extern crate lazy_static;
 
 use crate::models::row_data::RowData;
+use crate::tools::image_stock::ImageExtCust;
+use byte_unit::Byte;
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
+use glib::{IsA, ToValue};
+use gtk::prelude::{ComboBoxExtManual, GtkListStoreExtManual};
 use std::iter::FromIterator;
-use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -67,12 +72,37 @@ lazy_static! {
     static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
 }
 
+trait Or: Sized {
+    fn or(self, other: Self) -> Self;
+}
+
+impl<'a> Or for &'a str {
+    fn or(self, other: &'a str) -> &'a str {
+        if self.is_empty() {
+            other
+        } else {
+            self
+        }
+    }
+}
+
+impl<'a> Or for &'a String {
+    fn or(self, other: &'a String) -> &'a String {
+        if self.is_empty() {
+            other
+        } else {
+            self
+        }
+    }
+}
+
 #[derive(Clone)]
 struct Model {
     relm: Relm<Win>,
     epic_games: EpicGames,
     configuration: Configuration,
     asset_model: crate::models::asset_model::Model,
+    selected_asset: Option<String>,
 }
 
 #[derive(Msg, Debug, Clone)]
@@ -100,6 +130,38 @@ enum Msg {
     NextImage,
     PrevImage,
     ShowSettings(bool),
+    ShowAssetDownload(bool),
+    DownloadVersionSelected,
+    ToggleAssetDownloadDetails,
+}
+
+#[derive(Debug)]
+#[repr(i32)]
+enum AssetFilesColumns {
+    Filename,
+    Size,
+    Download,
+}
+
+fn fixed_toggled<W: IsA<gtk::CellRendererToggle>>(
+    model: &gtk::ListStore,
+    _w: &W,
+    path: gtk::TreePath,
+) {
+    let iter = model.get_iter(&path).unwrap();
+    let mut fixed = model
+        .get_value(&iter, AssetFilesColumns::Download as i32)
+        .get_some::<bool>()
+        .unwrap_or_else(|err| {
+            panic!(
+                "ListStore value for {:?} at path {}: {}",
+                AssetFilesColumns::Download,
+                path,
+                err
+            )
+        });
+    fixed = !fixed;
+    model.set_value(&iter, AssetFilesColumns::Download as u32, &fixed.to_value());
 }
 
 impl fmt::Display for Msg {
@@ -171,6 +233,15 @@ impl fmt::Display for Msg {
             Msg::ShowSettings(_) => {
                 write!(f, "ShowSettings")
             }
+            Msg::ShowAssetDownload(_) => {
+                write!(f, "ShowAssetDownload")
+            }
+            Msg::DownloadVersionSelected => {
+                write!(f, "DownloadVersionSelected")
+            }
+            Msg::ToggleAssetDownloadDetails => {
+                write!(f, "ToggleAssetDownloadDetails")
+            }
         }
     }
 }
@@ -194,11 +265,24 @@ struct Widgets {
     image_stack: Stack,
     logged_in_stack: Stack,
     settings_widgets: Settings,
+    asset_download_widgets: AssetDownloadDetails,
+    download_button: Button,
 }
 
 #[derive(Clone)]
 struct Settings {
     directory_selectors: HashMap<String, FileChooserButton>,
+}
+
+#[derive(Clone)]
+struct AssetDownloadDetails {
+    asset_version_combo: ComboBoxText,
+    asset_download_info_box: Box,
+    asset_download_info_revealer_button: Button,
+    asset_download_info_revealer: Revealer,
+    asset_download_info_revealer_button_image: Image,
+    download_asset_name: Label,
+    asset_download_content: Box,
 }
 
 struct Win {
@@ -227,6 +311,7 @@ impl Update for Win {
             epic_games: EpicGames::new(),
             configuration: Configuration::new(),
             asset_model: crate::models::asset_model::Model::new(),
+            selected_asset: None,
         }
     }
 
@@ -247,36 +332,25 @@ impl Update for Win {
                         }
                         Some(r) => r,
                     };
-                    match resource.get_uri() {
-                        None => {}
-                        Some(uri) => {
-                            if uri.as_str() == "https://www.epicgames.com/id/api/redirect" {
-                                let stream = self.model.relm.stream().clone();
-                                let (_channel, sender) = Channel::new(move |s| match s {
-                                    None => {}
-                                    Some(sid) => {
-                                        stream.emit(Login(sid));
+                    if let Some(uri) = resource.get_uri() {
+                        if uri.as_str() == "https://www.epicgames.com/id/api/redirect" {
+                            let stream = self.model.relm.stream().clone();
+                            let (_channel, sender) = Channel::new(move |s| {
+                                if let Some(sid) = s {
+                                    stream.emit(Login(sid));
+                                }
+                            });
+                            resource.get_data(None::<&gio::Cancellable>, move |data| {
+                                if let Ok(d) = data {
+                                    if let Ok(sid_response) =
+                                        serde_json::from_slice::<LoginResponse>(&d)
+                                    {
+                                        sender.send(Some(sid_response.sid.clone())).unwrap();
                                     }
-                                });
-                                resource.get_data(
-                                    None::<&gio::Cancellable>,
-                                    move |data| match data {
-                                        Ok(d) => {
-                                            match serde_json::from_slice::<LoginResponse>(&d) {
-                                                Ok(sid_response) => {
-                                                    sender
-                                                        .send(Some(sid_response.sid.clone()))
-                                                        .unwrap();
-                                                }
-                                                Err(_) => {}
-                                            }
-                                        }
-                                        Err(_) => {}
-                                    },
-                                );
-                            } else {
-                                &self.widgets.main_stack.set_visible_child_name("login_box");
-                            }
+                                }
+                            });
+                        } else {
+                            &self.widgets.main_stack.set_visible_child_name("login_box");
                         }
                     }
                 }
@@ -286,9 +360,8 @@ impl Update for Win {
                 self.widgets.progress_message.set_label("Login in progress");
                 &self.widgets.main_stack.set_visible_child_name("progress");
                 let stream = self.model.relm.stream().clone();
-                let (_channel, sender) = Channel::new(move |ud| match ud {
-                    None => {}
-                    Some(user_data) => {
+                let (_channel, sender) = Channel::new(move |ud| {
+                    if let Some(user_data) = ud {
                         stream.emit(LoginOk(user_data));
                     }
                 });
@@ -307,7 +380,7 @@ impl Update for Win {
                             sender.send(Some(eg.user_details())).unwrap();
                         }
                     };
-                    println!(
+                    debug!(
                         "{:?} - Login requests took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -333,7 +406,7 @@ impl Update for Win {
                     if Runtime::new().unwrap().block_on(eg.login()) {
                         sender.send(Some(eg.user_details())).unwrap();
                     };
-                    println!(
+                    debug!(
                         "{:?} - Relogin requests took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -398,7 +471,7 @@ impl Update for Win {
                         asset_map.insert(asset.catalog_item_id.clone(), asset);
                     }
                     sender.send((asset_namespace_map, asset_map)).unwrap();
-                    println!(
+                    debug!(
                         "{:?} - Requesting EpicAssets took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -456,20 +529,20 @@ impl Update for Win {
                                     s.send(asset).unwrap();
                                 }
                             };
-                            println!(
+                            debug!(
                                 "{:?} - Asset Info loading took {:?}",
                                 thread::current().id(),
                                 start.elapsed()
                             );
                         });
                     }
-                    println!(
+                    debug!(
                         "{:?} - AssetInfo processing took {:?}",
                         thread::current().id(),
                         start.elapsed()
                     );
                 });
-                println!("Login took {:?}", start.elapsed());
+                debug!("Login took {:?}", start.elapsed());
             }
             ProcessAssetInfo(asset) => {
                 // TODO: Cache the asset info
@@ -489,7 +562,7 @@ impl Update for Win {
                         }
                     }
                     if !found {
-                        println!("{:?}: {:#?}", asset.title, asset.key_images);
+                        debug!("{:?}: {:#?}", asset.title, asset.key_images);
                         self.model.relm.stream().emit(Msg::PulseProgress);
                     }
                 }
@@ -531,7 +604,7 @@ impl Update for Win {
                             }
                         },
                     }
-                    println!(
+                    debug!(
                         "{:?} - Image loading took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -541,14 +614,13 @@ impl Update for Win {
             ProcessImage(asset_id, image) => match asset_id {
                 Some(id) => {
                     if let Ok(asset_info) = DATA.asset_info.read() {
-                        match asset_info.get(&id) {
-                            None => {}
-                            Some(asset) => {
-                                self.model
-                                    .asset_model
-                                    .append(&RowData::new(asset.clone(), image));
-                                self.model.relm.stream().emit(Msg::PulseProgress);
-                            }
+                        if let Some(asset) = asset_info.get(&id) {
+                            self.model.asset_model.append(&RowData::new(
+                                asset.title.clone(),
+                                asset.clone(),
+                                image,
+                            ));
+                            self.model.relm.stream().emit(Msg::PulseProgress);
                         }
                     }
                 }
@@ -601,45 +673,49 @@ impl Update for Win {
                 };
 
                 if let Ok(download_manifests) = DATA.download_manifests.read() {
-                    if download_manifests.contains_key(id.as_str()) {
+                    if let Some(dm) = download_manifests
+                        .get(release_info.id.clone().unwrap_or(id.clone()).as_str())
+                    {
+                        self.model
+                            .relm
+                            .stream()
+                            .emit(ProcessDownloadManifest(id.clone(), dm.clone()));
                         return;
                     }
                 };
 
                 let stream = self.model.relm.stream().clone();
-                let (_channel, sender) = Channel::new(move |dm| {
+                let ri = release_info.clone();
+                let (_channel, sender) = Channel::new(move |dm: DownloadManifest| {
+                    if let Ok(mut download_manifests) = DATA.download_manifests.write() {
+                        download_manifests.insert(ri.clone().id.unwrap_or(id.clone()), dm.clone());
+                    }
                     stream.emit(ProcessDownloadManifest(id.clone(), dm));
                 });
 
                 let mut eg = self.model.epic_games.clone();
                 thread::spawn(move || {
                     let start = std::time::Instant::now();
-                    match Runtime::new().unwrap().block_on(eg.get_asset_manifest(
+                    if let Some(manifest) = Runtime::new().unwrap().block_on(eg.get_asset_manifest(
                         None,
                         None,
                         Some(asset.namespace),
                         Some(asset.id),
                         Some(release_info.app_id.unwrap_or_default()),
                     )) {
-                        None => {}
-                        Some(manifest) => {
-                            for elem in manifest.elements {
-                                for man in elem.manifests {
-                                    match Runtime::new()
-                                        .unwrap()
-                                        .block_on(eg.get_asset_download_manifest(man.clone()))
-                                    {
-                                        Ok(d) => {
-                                            sender.send(d).unwrap();
-                                            break;
-                                        }
-                                        Err(_) => {}
-                                    };
-                                }
+                        for elem in manifest.elements {
+                            for man in elem.manifests {
+                                if let Ok(d) = Runtime::new()
+                                    .unwrap()
+                                    .block_on(eg.get_asset_download_manifest(man.clone()))
+                                {
+                                    sender.send(d).unwrap();
+                                    break;
+                                };
                             }
                         }
                     };
-                    println!(
+                    debug!(
                         "{:?} - Download Manifest requests took {:?}",
                         thread::current().id(),
                         start.elapsed()
@@ -647,19 +723,113 @@ impl Update for Win {
                 });
             }
             ProcessDownloadManifest(id, dm) => {
-                if let Ok(mut download_manifests) = DATA.download_manifests.write() {
-                    download_manifests.insert(id.clone(), dm.clone());
+                if self.model.selected_asset == Some(id) {
+                    let size_box = Box::new(Horizontal, 0);
+                    let size = dm.get_total_size();
+                    let size_label = Label::new(Some("Total Size: "));
+                    size_box.add(&size_label);
+                    size_label.set_halign(Align::Start);
+                    let size_d = Label::new(Some(
+                        &Byte::from_bytes(size)
+                            .get_appropriate_unit(false)
+                            .to_string(),
+                    ));
+                    size_d.set_halign(Align::Start);
+                    size_box.add(&size_d);
+                    self.widgets
+                        .asset_download_widgets
+                        .asset_download_info_box
+                        .add(&size_box);
+                    self.widgets
+                        .asset_download_widgets
+                        .asset_download_info_box
+                        .show_all();
+                    let files = dm.get_files();
+                    let col_types: [glib::Type; 3] =
+                        [glib::Type::STRING, glib::Type::STRING, glib::Type::BOOL];
+                    let store = gtk::ListStore::new(&col_types);
+                    for (filename, manifest) in files {
+                        let values: [(u32, &dyn ToValue); 3] = [
+                            (0, &filename),
+                            (
+                                1,
+                                &Byte::from_bytes(
+                                    manifest
+                                        .file_chunk_parts
+                                        .iter()
+                                        .map(|chunk| chunk.size)
+                                        .sum(),
+                                )
+                                .get_appropriate_unit(false)
+                                .to_string(),
+                            ),
+                            (2, &false),
+                        ];
+                        store.set(&store.append(), &values);
+                    }
+                    let model = Rc::new(store);
+                    let treeview = gtk::TreeView::with_model(&*model);
+                    treeview.set_vexpand(true);
+                    treeview.set_search_column(AssetFilesColumns::Filename as i32);
+
+                    {
+                        let renderer = gtk::CellRendererText::new();
+                        let column = gtk::TreeViewColumn::new();
+                        column.pack_start(&renderer, true);
+                        column.set_title("Filename");
+                        column.add_attribute(&renderer, "text", AssetFilesColumns::Filename as i32);
+                        column.set_sort_column_id(AssetFilesColumns::Filename as i32);
+                        treeview.append_column(&column);
+                    }
+
+                    {
+                        let renderer = gtk::CellRendererText::new();
+                        let column = gtk::TreeViewColumn::new();
+                        column.pack_start(&renderer, true);
+                        column.set_title("Size");
+                        column.add_attribute(&renderer, "text", AssetFilesColumns::Size as i32);
+                        column.set_sort_column_id(AssetFilesColumns::Size as i32);
+                        treeview.append_column(&column);
+                    }
+
+                    {
+                        let renderer = gtk::CellRendererToggle::new();
+                        let model_clone = model.clone();
+                        renderer
+                            .connect_toggled(move |w, path| fixed_toggled(&model_clone, w, path));
+                        let column = gtk::TreeViewColumn::new();
+                        column.pack_start(&renderer, true);
+                        column.set_title("Downloaded");
+                        column.add_attribute(
+                            &renderer,
+                            "active",
+                            AssetFilesColumns::Download as i32,
+                        );
+                        column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+                        column.set_fixed_width(50);
+                        treeview.append_column(&column);
+                    }
+
+                    self.widgets
+                        .asset_download_widgets
+                        .asset_download_content
+                        .add(&treeview);
+                    self.widgets
+                        .asset_download_widgets
+                        .asset_download_content
+                        .show_all();
                 }
             }
             Msg::ProcessAssetSelected => {
-                self.widgets.asset_flow.selected_foreach(|_fbox, child| {
+                for child in self.widgets.asset_flow.get_selected_children() {
                     if let Ok(ai) = DATA.asset_info.read() {
                         if let Some(asset_info) = ai.get(child.get_widget_name().as_str()) {
                             self.widgets
                                 .details_content
                                 .foreach(|el| self.widgets.details_content.remove(el));
 
-                            println!("Showing details for {:?}", asset_info.title);
+                            info!("Showing details for {:?}", asset_info.title);
+                            self.model.selected_asset = Some(asset_info.id.clone());
 
                             let vbox = Box::new(Vertical, 0);
 
@@ -690,18 +860,15 @@ impl Update for Win {
                             image_navigation.add_overlay(&back);
                             image_navigation.add_overlay(&forward);
                             vbox.add(&image_navigation);
-                            match &asset_info.key_images {
-                                None => {}
-                                Some(images) => {
-                                    for image in images {
-                                        if image.width < 300 || image.height < 300 {
-                                            continue;
-                                        }
-                                        self.model
-                                            .relm
-                                            .stream()
-                                            .emit(Msg::DownloadImage(None, image.clone()));
+                            if let Some(images) = &asset_info.key_images {
+                                for image in images {
+                                    if image.width < 300 || image.height < 300 {
+                                        continue;
                                     }
+                                    self.model
+                                        .relm
+                                        .stream()
+                                        .emit(Msg::DownloadImage(None, image.clone()));
                                 }
                             }
                             let table = GridBuilder::new()
@@ -755,13 +922,16 @@ impl Update for Win {
                                 description.set_markup(&markup);
                                 vbox.add(&description);
                             }
+                            if asset_info.release_info.clone().unwrap().len() > 0 {
+                                self.widgets.download_button.set_sensitive(true);
+                            }
 
                             vbox.show_all();
                             self.widgets.details_content.add(&vbox);
                             self.widgets.details_revealer.set_reveal_child(true);
                         }
                     }
-                });
+                }
             }
             Msg::FilterNone => {
                 if let Ok(mut tag_filter) = DATA.tag_filter.write() {
@@ -843,24 +1013,21 @@ impl Update for Win {
                         }
                         vbox.set_size_request(130, 150);
                         vbox.add(&gtkimage);
-                        match &data.title {
-                            None => {}
-                            Some(title) => {
-                                let label = Label::new(Some(title));
-                                label.set_property_wrap(true);
-                                label.set_property_expand(false);
-                                label.set_max_width_chars(15);
-                                label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                                label.set_tooltip_text(Some(title));
-                                label.set_justify(Justification::Center);
-                                vbox.add(&label);
-                            }
+                        if let Some(title) = &data.title {
+                            let label = Label::new(Some(title));
+                            label.set_property_wrap(true);
+                            label.set_property_expand(false);
+                            label.set_max_width_chars(15);
+                            label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                            label.set_tooltip_text(Some(title));
+                            label.set_justify(Justification::Center);
+                            vbox.add(&label);
                         }
 
                         vbox.set_property_margin(10);
                         child.add(&vbox);
                         vbox.show_all();
-                        println!(
+                        debug!(
                             "{:?} - building a model widget took {:?}",
                             thread::current().id(),
                             start.elapsed()
@@ -869,26 +1036,18 @@ impl Update for Win {
                     });
             }
             Msg::PulseProgress => {
-                println!(
-                    "Current progress {}, pulsing by {}",
-                    self.widgets.loading_progress.get_fraction(),
-                    self.widgets.loading_progress.get_pulse_step()
-                );
                 self.widgets.loading_progress.set_fraction(
                     self.widgets.loading_progress.get_fraction()
                         + self.widgets.loading_progress.get_pulse_step(),
                 );
-                println!(
-                    "Current progress {}",
-                    self.widgets.loading_progress.get_fraction()
-                );
                 if (self.widgets.loading_progress.get_fraction() * 10000.0).round() / 10000.0 == 1.0
                 {
-                    println!("Hiding progress");
+                    debug!("Hiding progress");
                     self.widgets.progress_revealer.set_reveal_child(false);
                 }
             }
             Msg::CloseDetails => {
+                self.widgets.download_button.set_sensitive(false);
                 self.widgets.details_revealer.set_reveal_child(false);
                 self.widgets.asset_flow.unselect_all();
             }
@@ -940,8 +1099,203 @@ impl Update for Win {
                     .logged_in_stack
                     .set_visible_child_name(if enabled { "settings" } else { "main" });
             }
+            Msg::ShowAssetDownload(enabled) => {
+                // Cleanup
+                self.widgets
+                    .asset_download_widgets
+                    .asset_version_combo
+                    .remove_all();
+
+                if enabled {
+                    if let Some(asset_id) = &self.model.selected_asset {
+                        if let Ok(ai) = DATA.asset_info.read() {
+                            if let Some(asset_info) = ai.get(asset_id) {
+                                self.widgets
+                                    .asset_download_widgets
+                                    .download_asset_name
+                                    .set_markup(&format!(
+                                        "<b><u><big>{}</big></u></b>",
+                                        asset_info.title.clone().unwrap_or("Nothing".to_string())
+                                    ));
+                                if let Some(releases) = asset_info.get_sorted_releases() {
+                                    for (id, release) in releases.iter().enumerate() {
+                                        self.widgets
+                                            .asset_download_widgets
+                                            .asset_version_combo
+                                            .append(
+                                                Some(
+                                                    release.id.as_ref().unwrap_or(&"".to_string()),
+                                                ),
+                                                &format!(
+                                                    "{}{}",
+                                                    release
+                                                        .version_title
+                                                        .as_ref()
+                                                        .unwrap_or(&"".to_string())
+                                                        .or(release
+                                                            .app_id
+                                                            .as_ref()
+                                                            .unwrap_or(&"".to_string())),
+                                                    if id == 0 { " (latest)" } else { "" }
+                                                ),
+                                            )
+                                    }
+                                    self.widgets
+                                        .asset_download_widgets
+                                        .asset_version_combo
+                                        .set_active(Some(0));
+                                }
+                            };
+                        };
+                    };
+                };
+
+                self.widgets
+                    .logged_in_stack
+                    .set_visible_child_name(if enabled {
+                        "asset_download_details"
+                    } else {
+                        "main"
+                    });
+            }
+            Msg::DownloadVersionSelected => {
+                if let Some(id) = self
+                    .widgets
+                    .asset_download_widgets
+                    .asset_version_combo
+                    .get_active_id()
+                {
+                    if let Some(asset_id) = &self.model.selected_asset {
+                        if let Ok(ai) = DATA.asset_info.read() {
+                            if let Some(asset_info) = ai.get(asset_id) {
+                                if !self
+                                    .widgets
+                                    .asset_download_widgets
+                                    .asset_download_info_revealer
+                                    .get_reveal_child()
+                                {
+                                    self.model
+                                        .relm
+                                        .stream()
+                                        .emit(Msg::ToggleAssetDownloadDetails)
+                                }
+                                self.widgets
+                                    .asset_download_widgets
+                                    .asset_download_info_box
+                                    .foreach(|el| {
+                                        self.widgets
+                                            .asset_download_widgets
+                                            .asset_download_info_box
+                                            .remove(el)
+                                    });
+                                self.widgets
+                                    .asset_download_widgets
+                                    .asset_download_content
+                                    .foreach(|el| {
+                                        self.widgets
+                                            .asset_download_widgets
+                                            .asset_download_content
+                                            .remove(el)
+                                    });
+                                let grid = GridBuilder::new()
+                                    .column_homogeneous(true)
+                                    .halign(Align::Start)
+                                    .valign(Align::Start)
+                                    .expand(false)
+                                    .build();
+                                if let Some(release) = asset_info.get_release_id(id.to_string()) {
+                                    let mut line = 0;
+                                    if let Some(ref compatible) = release.compatible_apps {
+                                        let versions_label =
+                                            Label::new(Some("Supported versions:"));
+                                        versions_label.set_halign(Align::Start);
+                                        grid.attach(&versions_label, 0, line, 1, 1);
+                                        let compat = Label::new(Some(
+                                            &compatible.join(", ").replace("UE_", ""),
+                                        ));
+                                        compat.set_halign(Align::Start);
+                                        compat.set_line_wrap(true);
+                                        grid.attach(&compat, 1, line, 1, 1);
+                                        line += 1;
+                                    }
+                                    if let Some(ref platforms) = release.platform {
+                                        let platforms_label = Label::new(Some("Platforms:"));
+                                        platforms_label.set_halign(Align::Start);
+                                        grid.attach(&platforms_label, 0, line, 1, 1);
+                                        let platforms = Label::new(Some(&platforms.join(", ")));
+                                        platforms.set_halign(Align::Start);
+                                        grid.attach(&platforms, 1, line, 1, 1);
+                                        line += 1;
+                                    }
+                                    if let Some(ref date) = release.date_added {
+                                        let release_date_label = Label::new(Some("Release date:"));
+                                        release_date_label.set_halign(Align::Start);
+                                        grid.attach(&release_date_label, 0, line, 1, 1);
+                                        let release_date = Label::new(Some(
+                                            &date.naive_local().format("%F").to_string(),
+                                        ));
+                                        release_date.set_halign(Align::Start);
+                                        grid.attach(&release_date, 1, line, 1, 1);
+                                        line += 1;
+                                    }
+                                    if let Some(ref note) = release.release_note {
+                                        if !note.is_empty() {
+                                            let release_note_label =
+                                                Label::new(Some("Release note:"));
+                                            release_note_label.set_halign(Align::Start);
+                                            grid.attach(&release_note_label, 0, line, 1, 1);
+                                            let release_note = Label::new(Some(&note));
+                                            release_note.set_halign(Align::Start);
+                                            grid.attach(&release_note, 1, line, 1, 1);
+                                        };
+                                    }
+
+                                    grid.show_all();
+                                    self.widgets
+                                        .asset_download_widgets
+                                        .asset_download_info_box
+                                        .add(&grid);
+                                    self.model.relm.stream().emit(Msg::LoadDownloadManifest(
+                                        asset_info.id.clone(),
+                                        release,
+                                    ));
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            Msg::ToggleAssetDownloadDetails => {
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_info_revealer_button_image
+                    .set_from_stock(
+                        if self
+                            .widgets
+                            .asset_download_widgets
+                            .asset_download_info_revealer
+                            .get_reveal_child()
+                        {
+                            Some("gtk-go-down")
+                        } else {
+                            Some("gtk-go-up")
+                        },
+                        IconSize::Button,
+                    );
+
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_info_revealer
+                    .set_reveal_child(
+                        !self
+                            .widgets
+                            .asset_download_widgets
+                            .asset_download_info_revealer
+                            .get_reveal_child(),
+                    )
+            }
         }
-        println!(
+        debug!(
             "{:?} - {} took {:?}",
             thread::current().id(),
             event,
@@ -960,6 +1314,8 @@ impl Widget for Win {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        debug!("Main thread id: {:?}", thread::current().id());
+
         info!("Starging GTK Window");
         let glade_src = include_str!("gui.glade");
         let builder = Builder::from_string(glade_src);
@@ -983,6 +1339,10 @@ impl Widget for Win {
         let details_content: Box = builder.get_object("details_content").unwrap();
         let close_details: Button = builder.get_object("close_details").unwrap();
         let settings_close: Button = builder.get_object("settings_close").unwrap();
+        let download_button: Button = builder.get_object("download_button").unwrap();
+        let asset_download_details_close: Button =
+            builder.get_object("asset_download_details_close").unwrap();
+
         let image_stack = Stack::new();
 
         relm.stream().emit(Msg::BindAssetModel);
@@ -1001,6 +1361,18 @@ impl Widget for Win {
             settings_close,
             connect_clicked(_),
             Msg::ShowSettings(false)
+        );
+        connect!(
+            relm,
+            download_button,
+            connect_clicked(_),
+            Msg::ShowAssetDownload(true)
+        );
+        connect!(
+            relm,
+            asset_download_details_close,
+            connect_clicked(_),
+            Msg::ShowAssetDownload(false)
         );
         connect!(
             relm,
@@ -1078,48 +1450,61 @@ impl Widget for Win {
             builder.get_object("ue_directory_selector").unwrap(),
         );
 
-        let cache_dir = match dirs::cache_dir() {
-            None => PathBuf::from("cache"),
-            Some(mut dir) => {
-                dir.push("epic_asset_manager");
-                dir
-            }
-        };
-        fs::create_dir_all(cache_dir.clone()).unwrap();
+        fs::create_dir_all(&model.configuration.directories.cache_directory).unwrap();
         directory_selectors
             .get("cache_directory_selector")
             .unwrap()
-            .set_filename(cache_dir);
+            .set_filename(&model.configuration.directories.cache_directory);
 
-        let download = match dirs::download_dir() {
-            None => PathBuf::from("Downloads"),
-            Some(mut dir) => {
-                dir.push("epic_asset_manager");
-                dir
-            }
-        };
-        fs::create_dir_all(download.clone()).unwrap();
+        fs::create_dir_all(&model.configuration.directories.temporary_download_directory).unwrap();
         directory_selectors
             .get("temp_download_directory_selector")
             .unwrap()
-            .set_filename(download);
+            .set_filename(&model.configuration.directories.temporary_download_directory);
 
-        let vault = match dirs::data_dir() {
-            None => PathBuf::from("Vault"),
-            Some(mut dir) => {
-                dir.push("epic_asset_manager");
-                dir.push("Vault");
-                dir
-            }
-        };
-        fs::create_dir_all(vault.clone()).unwrap();
+        fs::create_dir_all(&model.configuration.directories.unreal_vault_directory).unwrap();
         directory_selectors
             .get("ue_asset_vault_directory_selector")
             .unwrap()
-            .set_filename(vault);
+            .set_filename(&model.configuration.directories.unreal_vault_directory);
 
         let settings_widgets = Settings {
             directory_selectors,
+        };
+
+        let asset_version_combo: ComboBoxText = builder.get_object("asset_version_combo").unwrap();
+
+        let asset_download_info_box: Box = builder.get_object("asset_download_info_box").unwrap();
+        let asset_download_content: Box = builder.get_object("asset_download_content").unwrap();
+        let download_asset_name: Label = builder.get_object("download_asset_name").unwrap();
+        let asset_download_info_revealer_button: Button = builder
+            .get_object("asset_download_info_revealer_button")
+            .unwrap();
+        let asset_download_info_revealer: Revealer =
+            builder.get_object("asset_download_info_revealer").unwrap();
+        let asset_download_info_revealer_button_image: Image = builder
+            .get_object("asset_download_info_revealer_button_image")
+            .unwrap();
+        connect!(
+            relm,
+            asset_version_combo,
+            connect_changed(_),
+            Msg::DownloadVersionSelected
+        );
+        connect!(
+            relm,
+            asset_download_info_revealer_button,
+            connect_clicked(_),
+            Msg::ToggleAssetDownloadDetails
+        );
+        let asset_download_widgets = AssetDownloadDetails {
+            asset_download_content,
+            download_asset_name,
+            asset_version_combo,
+            asset_download_info_box,
+            asset_download_info_revealer_button,
+            asset_download_info_revealer_button_image,
+            asset_download_info_revealer,
         };
 
         window.show_all();
@@ -1142,7 +1527,9 @@ impl Widget for Win {
                 details_content,
                 close_details,
                 image_stack,
+                download_button,
                 settings_widgets,
+                asset_download_widgets,
             },
         }
     }
@@ -1161,18 +1548,5 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    println!("Main thread id: {:?}", thread::current().id());
-    env_logger::builder()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "<{}> - [{}] - {}",
-                record.target(),
-                record.level(),
-                record.args()
-            )
-        })
-        .init();
-
     Win::run(()).expect("Win::run failed");
 }
