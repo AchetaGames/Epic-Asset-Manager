@@ -19,7 +19,7 @@ use gtk::{
     FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image, ImageExt, Inhibit,
     Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt, Overlay,
     OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry,
-    SearchEntryExt, Separator, Stack, StackExt, WidgetExt, Window,
+    SearchEntryExt, Separator, Stack, StackExt, ToggleButtonExt, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
@@ -100,6 +100,7 @@ struct Model {
     configuration: Configuration,
     asset_model: crate::models::asset_model::Model,
     selected_asset: Option<String>,
+    selected_files: HashMap<String, HashMap<String, Vec<String>>>,
 }
 
 #[derive(Msg, Debug, Clone)]
@@ -130,6 +131,7 @@ enum Msg {
     ShowAssetDownload(bool),
     DownloadVersionSelected,
     ToggleAssetDownloadDetails,
+    SelectForDownload(String, String, String),
 }
 
 impl fmt::Display for Msg {
@@ -210,6 +212,9 @@ impl fmt::Display for Msg {
             Msg::ToggleAssetDownloadDetails => {
                 write!(f, "ToggleAssetDownloadDetails")
             }
+            Msg::SelectForDownload(_, _, _) => {
+                write!(f, "SelectForDownload")
+            }
         }
     }
 }
@@ -280,6 +285,7 @@ impl Update for Win {
             configuration: Configuration::new(),
             asset_model: crate::models::asset_model::Model::new(),
             selected_asset: None,
+            selected_files: HashMap::new(),
         }
     }
 
@@ -691,7 +697,7 @@ impl Update for Win {
                 });
             }
             ProcessDownloadManifest(id, dm) => {
-                if self.model.selected_asset == Some(id) {
+                if self.model.selected_asset == Some(id.clone()) {
                     let size_box = Box::new(Horizontal, 0);
                     let size = dm.get_total_size();
                     let size_label = Label::new(Some("Total Size: "));
@@ -717,11 +723,32 @@ impl Update for Win {
                     let list = ListBox::new();
                     for (file, manifest) in files {
                         let row = ListBoxRow::new();
-                        row.set_widget_name(&file);
+                        row.set_widget_name(&file.clone());
                         let hbox = Box::new(Horizontal, 5);
                         let chbox = CheckButton::new();
+
+                        let asset_id = id.clone();
+                        let app_name = dm.app_name_string.clone();
+                        let filename = file.clone();
+                        chbox.set_active(match self.model.selected_files.get(&asset_id) {
+                            None => false,
+                            Some(map) => match map.get(&app_name) {
+                                None => false,
+                                Some(files) => files.contains(&filename),
+                            },
+                        });
+                        connect!(
+                            self.model.relm,
+                            chbox,
+                            connect_toggled(_),
+                            Msg::SelectForDownload(
+                                asset_id.clone(),
+                                app_name.clone(),
+                                filename.clone()
+                            )
+                        );
                         hbox.add(&chbox);
-                        let filename = Label::new(Some(&file));
+                        let filename = Label::new(Some(&file.clone()));
                         filename.set_halign(Align::Fill);
                         filename.set_hexpand(true);
                         filename.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
@@ -1247,6 +1274,36 @@ impl Update for Win {
                             .asset_download_info_revealer
                             .get_reveal_child(),
                     )
+            }
+            Msg::SelectForDownload(asset_id, app_name, filename) => {
+                match self.model.selected_files.get_mut(&asset_id) {
+                    None => {
+                        self.model.selected_files.insert(
+                            asset_id,
+                            HashMap::from_iter(
+                                [(app_name, vec![filename])]
+                                    .iter()
+                                    .cloned()
+                                    .collect::<HashMap<String, Vec<String>>>(),
+                            ),
+                        );
+                    }
+                    Some(map) => match map.get_mut(&app_name) {
+                        None => {
+                            map.insert(app_name, vec![filename]);
+                        }
+                        Some(files) => {
+                            match files.iter().position(|r| r.eq(&filename)) {
+                                None => {
+                                    files.push(filename);
+                                }
+                                Some(i) => {
+                                    files.remove(i);
+                                }
+                            };
+                        }
+                    },
+                };
             }
         }
         debug!(
