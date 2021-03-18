@@ -14,13 +14,12 @@ use egs_api::EpicGames;
 use gio;
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::{
-    prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, CellLayoutExt,
-    CellRendererToggleExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt, ContainerExt, EntryExt,
-    FileChooserButton, FileChooserExt, FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt,
-    GtkListStoreExt, IconSize, Image, ImageExt, Inhibit, Justification, Label, LabelExt,
-    MenuButton, MenuButtonExt, Overlay, OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt,
-    Revealer, RevealerExt, SearchEntry, SearchEntryExt, Separator, Stack, StackExt, TreeModelExt,
-    TreeViewColumnExt, TreeViewExt, WidgetExt, Window,
+    prelude::BuilderExtManual, Align, Box, Builder, Button, ButtonExt, CheckButton, ComboBoxExt,
+    ComboBoxText, ComboBoxTextExt, ContainerExt, EntryExt, FileChooserButton, FileChooserExt,
+    FlowBox, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image, ImageExt, Inhibit,
+    Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt, Overlay,
+    OverlayExt, PopoverMenu, ProgressBar, ProgressBarExt, Revealer, RevealerExt, SearchEntry,
+    SearchEntryExt, Separator, Stack, StackExt, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Update, Widget, WidgetTest};
 use relm_derive::Msg;
@@ -59,10 +58,8 @@ use byte_unit::Byte;
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
-use glib::{IsA, ToValue};
-use gtk::prelude::{ComboBoxExtManual, GtkListStoreExtManual};
+use gtk::prelude::ComboBoxExtManual;
 use std::iter::FromIterator;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -133,35 +130,6 @@ enum Msg {
     ShowAssetDownload(bool),
     DownloadVersionSelected,
     ToggleAssetDownloadDetails,
-}
-
-#[derive(Debug)]
-#[repr(i32)]
-enum AssetFilesColumns {
-    Filename,
-    Size,
-    Download,
-}
-
-fn fixed_toggled<W: IsA<gtk::CellRendererToggle>>(
-    model: &gtk::ListStore,
-    _w: &W,
-    path: gtk::TreePath,
-) {
-    let iter = model.get_iter(&path).unwrap();
-    let mut fixed = model
-        .get_value(&iter, AssetFilesColumns::Download as i32)
-        .get_some::<bool>()
-        .unwrap_or_else(|err| {
-            panic!(
-                "ListStore value for {:?} at path {}: {}",
-                AssetFilesColumns::Download,
-                path,
-                err
-            )
-        });
-    fixed = !fixed;
-    model.set_value(&iter, AssetFilesColumns::Download as u32, &fixed.to_value());
 }
 
 impl fmt::Display for Msg {
@@ -745,75 +713,49 @@ impl Update for Win {
                         .asset_download_info_box
                         .show_all();
                     let files = dm.get_files();
-                    let col_types: [glib::Type; 3] =
-                        [glib::Type::STRING, glib::Type::STRING, glib::Type::BOOL];
-                    let store = gtk::ListStore::new(&col_types);
-                    for (filename, manifest) in files {
-                        let values: [(u32, &dyn ToValue); 3] = [
-                            (0, &filename),
-                            (
-                                1,
-                                &Byte::from_bytes(
-                                    manifest
-                                        .file_chunk_parts
-                                        .iter()
-                                        .map(|chunk| chunk.size)
-                                        .sum(),
-                                )
-                                .get_appropriate_unit(false)
-                                .to_string(),
-                            ),
-                            (2, &false),
-                        ];
-                        store.set(&store.append(), &values);
-                    }
-                    let model = Rc::new(store);
-                    let treeview = gtk::TreeView::with_model(&*model);
-                    treeview.set_vexpand(true);
-                    treeview.set_search_column(AssetFilesColumns::Filename as i32);
 
-                    {
-                        let renderer = gtk::CellRendererText::new();
-                        let column = gtk::TreeViewColumn::new();
-                        column.pack_start(&renderer, true);
-                        column.set_title("Filename");
-                        column.add_attribute(&renderer, "text", AssetFilesColumns::Filename as i32);
-                        column.set_sort_column_id(AssetFilesColumns::Filename as i32);
-                        treeview.append_column(&column);
-                    }
+                    let list = ListBox::new();
+                    for (file, manifest) in files {
+                        let row = ListBoxRow::new();
+                        row.set_widget_name(&file);
+                        let hbox = Box::new(Horizontal, 5);
+                        let chbox = CheckButton::new();
+                        hbox.add(&chbox);
+                        let filename = Label::new(Some(&file));
+                        filename.set_halign(Align::Fill);
+                        filename.set_hexpand(true);
+                        filename.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+                        filename.set_xalign(0.0);
+                        hbox.add(&filename);
+                        let size_label = Label::new(Some(
+                            &Byte::from_bytes(
+                                manifest
+                                    .file_chunk_parts
+                                    .iter()
+                                    .map(|chunk| chunk.size)
+                                    .sum(),
+                            )
+                            .get_appropriate_unit(false)
+                            .to_string(),
+                        ));
+                        size_label.set_size_request(50, -1);
+                        size_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                        size_label.set_xalign(1.0);
 
-                    {
-                        let renderer = gtk::CellRendererText::new();
-                        let column = gtk::TreeViewColumn::new();
-                        column.pack_start(&renderer, true);
-                        column.set_title("Size");
-                        column.add_attribute(&renderer, "text", AssetFilesColumns::Size as i32);
-                        column.set_sort_column_id(AssetFilesColumns::Size as i32);
-                        treeview.append_column(&column);
-                    }
+                        hbox.add(&size_label);
 
-                    {
-                        let renderer = gtk::CellRendererToggle::new();
-                        let model_clone = model.clone();
-                        renderer
-                            .connect_toggled(move |w, path| fixed_toggled(&model_clone, w, path));
-                        let column = gtk::TreeViewColumn::new();
-                        column.pack_start(&renderer, true);
-                        column.set_title("Downloaded");
-                        column.add_attribute(
-                            &renderer,
-                            "active",
-                            AssetFilesColumns::Download as i32,
-                        );
-                        column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-                        column.set_fixed_width(50);
-                        treeview.append_column(&column);
+                        row.add(&hbox);
+                        list.add(&row);
                     }
-
+                    let scrolled_window =
+                        gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+                    scrolled_window.add(&list);
+                    scrolled_window.set_vexpand(true);
+                    scrolled_window.set_hexpand(true);
                     self.widgets
                         .asset_download_widgets
                         .asset_download_content
-                        .add(&treeview);
+                        .add(&scrolled_window);
                     self.widgets
                         .asset_download_widgets
                         .asset_download_content
@@ -883,6 +825,7 @@ impl Update for Win {
                             if let Some(dev_name) = &asset_info.developer {
                                 let developer_name = Label::new(Some(dev_name));
                                 developer_name.set_halign(Align::Start);
+                                developer_name.set_xalign(0.0);
                                 table.attach(&developer_name, 1, 0, 1, 1);
                             }
                             let platforms_label = Label::new(Some("Platforms:"));
@@ -892,6 +835,7 @@ impl Update for Win {
                                 &asset_info.get_platforms().unwrap_or_default().join(", "),
                             ));
                             platforms.set_halign(Align::Start);
+                            platforms.set_xalign(0.0);
                             platforms.set_line_wrap(true);
                             table.attach(&platforms, 1, 1, 1, 1);
                             let comp_label = Label::new(Some("Compatible with:"));
@@ -902,6 +846,7 @@ impl Update for Win {
                                 let compat = Label::new(Some(&comp.join(", ").replace("UE_", "")));
                                 compat.set_halign(Align::Start);
                                 compat.set_line_wrap(true);
+                                compat.set_xalign(0.0);
                                 table.attach(&compat, 1, 2, 1, 1);
                             }
                             vbox.add(&table);
@@ -912,6 +857,7 @@ impl Update for Win {
                                 let markup =
                                     html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
                                 description.set_markup(&markup);
+                                description.set_xalign(0.0);
                                 vbox.add(&description);
                             }
                             if let Some(desc) = &asset_info.technical_details {
@@ -920,6 +866,7 @@ impl Update for Win {
                                 let markup =
                                     html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
                                 description.set_markup(&markup);
+                                description.set_xalign(0.0);
                                 vbox.add(&description);
                             }
                             if asset_info.release_info.clone().unwrap().len() > 0 {
@@ -1168,6 +1115,7 @@ impl Update for Win {
                     if let Some(asset_id) = &self.model.selected_asset {
                         if let Ok(ai) = DATA.asset_info.read() {
                             if let Some(asset_info) = ai.get(asset_id) {
+                                // Show Download details if loading new manifest
                                 if !self
                                     .widgets
                                     .asset_download_widgets
@@ -1179,6 +1127,7 @@ impl Update for Win {
                                         .stream()
                                         .emit(Msg::ToggleAssetDownloadDetails)
                                 }
+                                // Clear download info
                                 self.widgets
                                     .asset_download_widgets
                                     .asset_download_info_box
@@ -1188,6 +1137,7 @@ impl Update for Win {
                                             .asset_download_info_box
                                             .remove(el)
                                     });
+                                // Clear Download Content
                                 self.widgets
                                     .asset_download_widgets
                                     .asset_download_content
@@ -1215,6 +1165,7 @@ impl Update for Win {
                                         ));
                                         compat.set_halign(Align::Start);
                                         compat.set_line_wrap(true);
+                                        compat.set_xalign(0.0);
                                         grid.attach(&compat, 1, line, 1, 1);
                                         line += 1;
                                     }
@@ -1224,6 +1175,8 @@ impl Update for Win {
                                         grid.attach(&platforms_label, 0, line, 1, 1);
                                         let platforms = Label::new(Some(&platforms.join(", ")));
                                         platforms.set_halign(Align::Start);
+                                        platforms.set_xalign(0.0);
+                                        platforms.set_line_wrap(true);
                                         grid.attach(&platforms, 1, line, 1, 1);
                                         line += 1;
                                     }
@@ -1235,6 +1188,7 @@ impl Update for Win {
                                             &date.naive_local().format("%F").to_string(),
                                         ));
                                         release_date.set_halign(Align::Start);
+                                        release_date.set_xalign(0.0);
                                         grid.attach(&release_date, 1, line, 1, 1);
                                         line += 1;
                                     }
