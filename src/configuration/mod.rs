@@ -176,7 +176,11 @@ impl Save for DirectoryConfiguration {
             .unwrap()
             .into(),
             temporary_download_directory: match dirs::download_dir() {
-                None => PathBuf::from("Downloads"),
+                None => {
+                    let mut p = PathBuf::from("Downloads");
+                    p.push("epic_asset_manager");
+                    p
+                }
                 Some(mut dir) => {
                     dir.push("epic_asset_manager");
                     dir
