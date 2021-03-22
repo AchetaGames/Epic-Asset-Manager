@@ -21,6 +21,8 @@ use gtk::{
 };
 use relm::{connect, Channel, Relm, Update};
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{Read, Write};
 use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::{fs, thread};
@@ -561,7 +563,7 @@ impl Update for Win {
                         .download_all
                         .set_sensitive(true);
                     let i = id.clone();
-                    let di = dm.app_id.clone();
+                    let di = dm.app_name_string.clone();
                     connect!(
                         self.model.relm,
                         self.widgets.asset_download_widgets.download_selected,
@@ -1167,45 +1169,92 @@ impl Update for Win {
                     if let Some(dm) =
                         download_manifests.get(rel.id.clone().unwrap_or(asset_id.clone()).as_str())
                     {
-                        if all {
-                            let mut chunks: HashSet<String> = HashSet::new();
-                            let mut path = PathBuf::from(
-                                self.model
-                                    .configuration
-                                    .directories
-                                    .temporary_download_directory
-                                    .clone(),
-                            );
-                            path.push(asset.id.clone());
-                            path.push(release.clone());
-                            let path = path.clone();
-                            fs::create_dir_all(path.clone()).unwrap();
-                            for (_filename, manifest) in dm.get_files() {
-                                for chunk in manifest.file_chunk_parts {
-                                    if !chunks.contains(&chunk.guid) {
-                                        let link = chunk.link.unwrap();
-                                        let p = path.clone();
-                                        let g = chunk.guid.clone();
-                                        self.model.download_pool.execute(move || {
-                                            println!(
-                                                "Downloading chunk {} from {} to {:?}",
-                                                g,
-                                                link.to_string(),
-                                                p
-                                            );
-                                        });
-
-                                        chunks.insert(chunk.guid.clone());
-                                    }
+                        let mut chunks: HashSet<String> = HashSet::new();
+                        let mut path = PathBuf::from(
+                            self.model
+                                .configuration
+                                .directories
+                                .temporary_download_directory
+                                .clone(),
+                        );
+                        path.push(asset.id.clone());
+                        path.push(release.clone());
+                        let path = path.clone();
+                        fs::create_dir_all(path.clone()).unwrap();
+                        let files = if !all {
+                            if let Some(map) = self.model.selected_files.get(&asset.id) {
+                                if let Some(files) = map.get(&release) {
+                                    Some(files)
+                                } else {
+                                    None
                                 }
+                            } else {
+                                None
                             }
                         } else {
+                            None
+                        };
+                        for (filename, manifest) in dm.get_files() {
+                            if let Some(file_list) = files {
+                                if !file_list.contains(&filename) {
+                                    continue;
+                                }
+                            }
+                            for chunk in manifest.file_chunk_parts {
+                                if !chunks.contains(&chunk.guid) {
+                                    let link = chunk.link.unwrap();
+                                    let mut p = path.clone();
+                                    let g = chunk.guid.clone();
+                                    p.push(format!("{}.chunk", g));
+                                    let sender = self
+                                        .widgets
+                                        .asset_download_widgets
+                                        .download_progress_sender
+                                        .clone();
+                                    self.model.download_pool.execute(move || {
+                                        println!(
+                                            "Downloading chunk {} from {} to {:?}",
+                                            g,
+                                            link.to_string(),
+                                            p
+                                        );
+                                        let mut client = reqwest::blocking::get(link).unwrap();
+                                        let mut buffer: [u8; 1024] = [0; 1024];
+                                        let mut downloaded: u128 = 0;
+                                        let mut file = File::create(p).unwrap();
+                                        loop {
+                                            match client.read(&mut buffer) {
+                                                Ok(size) => {
+                                                    if size > 0 {
+                                                        downloaded += size as u128;
+                                                        file.write(&buffer[0..size]).unwrap();
+                                                        sender
+                                                            .send((g.clone(), downloaded.clone()))
+                                                            .unwrap();
+                                                    } else {
+                                                        break;
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    error!("Download error: {:?}", e);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    chunks.insert(chunk.guid.clone());
+                                }
+                            }
                         }
+
                         return;
                     }
                 };
             }
-            crate::ui::messages::Msg::DownloadProgressReport(guid, progress) => {}
+            crate::ui::messages::Msg::DownloadProgressReport(guid, progress) => {
+                println!("Got progress report from {}, current: {}", guid, progress);
+            }
         }
         debug!(
             "{:?} - {} took {:?}",
