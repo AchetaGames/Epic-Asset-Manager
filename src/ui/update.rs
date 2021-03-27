@@ -1,9 +1,10 @@
-use crate::configuration::Configuration;
-use crate::models::row_data::RowData;
-use crate::tools::asset_info::Search;
-use crate::tools::cache::Cache;
-use crate::tools::image_stock::ImageExtCust;
-use crate::{LoginResponse, Model, Or, Win};
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{Read, Write};
+use std::iter::FromIterator;
+use std::path::PathBuf;
+use std::{fs, thread};
+
 use byte_unit::Byte;
 use egs_api::api::types::asset_info::AssetInfo;
 use egs_api::api::types::download_manifest::DownloadManifest;
@@ -20,15 +21,18 @@ use gtk::{
     WidgetExt,
 };
 use relm::{connect, Channel, Relm, Update};
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::{Read, Write};
-use std::iter::FromIterator;
-use std::path::PathBuf;
-use std::{fs, thread};
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 use webkit2gtk::{LoadEvent, WebResourceExt, WebViewExt};
+
+use crate::configuration::Configuration;
+use crate::download::DownloadedFile;
+use crate::models::row_data::RowData;
+use crate::tools::asset_info::Search;
+use crate::tools::cache::Cache;
+use crate::tools::image_stock::ImageExtCust;
+use crate::tools::or::Or;
+use crate::{LoginResponse, Model, Win};
 
 impl Update for Win {
     // Specify the model used for this widget.
@@ -47,6 +51,9 @@ impl Update for Win {
             selected_asset: None,
             selected_files: HashMap::new(),
             download_pool: ThreadPool::new(5),
+            file_pool: ThreadPool::new(5),
+            downloaded_chunks: HashMap::new(),
+            downloaded_files: HashMap::new(),
         }
     }
 
@@ -1200,7 +1207,32 @@ impl Update for Win {
                                     continue;
                                 }
                             }
+                            let downloaded = DownloadedFile {
+                                asset: asset.id.clone(),
+                                release: release.clone(),
+                                name: filename.clone(),
+                                chunks: manifest.file_chunk_parts.clone(),
+                                finished_chunks: vec![],
+                            };
+                            let full_filename = format!(
+                                "{}/{}/{}",
+                                asset.id.clone(),
+                                release.clone(),
+                                filename.clone()
+                            );
+                            self.model
+                                .downloaded_files
+                                .insert(full_filename.clone(), downloaded);
                             for chunk in manifest.file_chunk_parts {
+                                match self.model.downloaded_chunks.get_mut(&chunk.guid) {
+                                    None => {
+                                        self.model.downloaded_chunks.insert(
+                                            chunk.guid.clone(),
+                                            vec![full_filename.clone()],
+                                        );
+                                    }
+                                    Some(files) => files.push(full_filename.clone()),
+                                }
                                 if !chunks.contains(&chunk.guid) {
                                     let link = chunk.link.unwrap();
                                     let mut p = path.clone();
@@ -1229,7 +1261,7 @@ impl Update for Win {
                                                         downloaded += size as u128;
                                                         file.write(&buffer[0..size]).unwrap();
                                                         sender
-                                                            .send((g.clone(), downloaded.clone()))
+                                                            .send((g.clone(), size as u128, false))
                                                             .unwrap();
                                                     } else {
                                                         break;
@@ -1241,6 +1273,7 @@ impl Update for Win {
                                                 }
                                             }
                                         }
+                                        sender.send((g.clone(), downloaded.clone(), true)).unwrap();
                                     });
 
                                     chunks.insert(chunk.guid.clone());
@@ -1252,8 +1285,84 @@ impl Update for Win {
                     }
                 };
             }
-            crate::ui::messages::Msg::DownloadProgressReport(guid, progress) => {
-                println!("Got progress report from {}, current: {}", guid, progress);
+            crate::ui::messages::Msg::DownloadProgressReport(guid, progress, finished) => {
+                if finished {
+                    debug!("Finished downloading {}", guid);
+                    if let Some(files) = self.model.downloaded_chunks.get(&guid) {
+                        for file in files {
+                            debug!("Affected files: {}", file);
+                            if let Some(f) = self.model.downloaded_files.get_mut(file) {
+                                for chunk in &f.chunks {
+                                    if chunk.guid == guid {
+                                        f.finished_chunks.push(chunk.clone());
+                                        break;
+                                    }
+                                }
+                                if f.finished_chunks.len() == f.chunks.len() {
+                                    debug!("File finished {}", f.name);
+                                    let finished = f.clone();
+                                    let mut path = PathBuf::from(
+                                        self.model
+                                            .configuration
+                                            .directories
+                                            .unreal_vault_directory
+                                            .clone(),
+                                    );
+                                    let mut temp_path = PathBuf::from(
+                                        self.model
+                                            .configuration
+                                            .directories
+                                            .temporary_download_directory
+                                            .clone(),
+                                    );
+                                    temp_path.push(finished.asset.clone());
+                                    temp_path.push(finished.release.clone());
+                                    self.model.file_pool.execute(move || {
+                                        path.push(finished.asset);
+                                        path.push(finished.release);
+                                        path.push(finished.name);
+                                        fs::create_dir_all(path.parent().unwrap().clone()).unwrap();
+                                        match fs::OpenOptions::new().append(true).create(true).open(path.clone())
+                                        {
+                                            Ok(mut target) => {
+                                                for chunk in finished.chunks {
+                                                    let mut t = temp_path.clone();
+                                                    t.push(format!("{}.chunk", chunk.guid));
+                                                    match File::open(t) {
+                                                        Ok(mut f) => {
+                                                            let metadata =  f.metadata().expect("Unable to read metadata");
+                                                            let mut buffer =
+                                                                vec![0 as u8; metadata.len() as usize];
+                                                            f.read(&mut buffer).expect("Read failed");
+                                                            let ch =
+                                                                egs_api::api::types::chunk::Chunk::from_vec(
+                                                                    buffer,
+                                                                ).unwrap();
+                                                            if (ch.uncompressed_size.unwrap_or(ch.data.len() as u32) as u128) < chunk.offset+ chunk.size {
+                                                               println!("Chunk is not big enough");
+                                                                break;
+                                                            };
+                                                            target.write(&ch.data[chunk.offset as usize..(chunk.offset+ chunk.size) as usize]).unwrap();
+                                                        }
+                                                        Err(e) => {
+                                                            println!("Error opening the chunk file: {:?}", e)
+                                                        }
+                                                    }
+                                                    println!("chunk: {:?}", chunk);
+                                                }
+                                            }
+                                            Err(e) => {
+                                                println!("Error opening the target file: {:?}", e)
+                                            }
+                                        }
+                                    })
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    debug!("Got progress report from {}, current: {}", guid, progress);
+                }
             }
         }
         debug!(

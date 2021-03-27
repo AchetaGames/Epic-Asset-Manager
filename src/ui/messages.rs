@@ -37,7 +37,7 @@ pub enum Msg {
     ToggleAssetDownloadDetails,
     SelectForDownload(String, String, String),
     DownloadAssets(bool, String, String),
-    DownloadProgressReport(String, u128),
+    DownloadProgressReport(String, u128, bool),
 }
 
 impl fmt::Display for Msg {
@@ -124,7 +124,7 @@ impl fmt::Display for Msg {
             Msg::DownloadAssets(_, _, _) => {
                 write!(f, "DownloadAssets")
             }
-            Msg::DownloadProgressReport(_, _) => {
+            Msg::DownloadProgressReport(_, _, _) => {
                 write!(f, "DownloadProgressReport")
             }
         }
