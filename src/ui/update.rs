@@ -568,32 +568,40 @@ impl Update for Win {
                     self.widgets
                         .asset_download_widgets
                         .download_all
+                        .as_ref()
+                        .unwrap()
+                        .set_sensitive(true);
+                    self.widgets
+                        .asset_download_widgets
+                        .download_selected
+                        .as_ref()
+                        .unwrap()
                         .set_sensitive(true);
                     let i = id.clone();
                     let di = dm.app_name_string.clone();
                     connect!(
                         self.model.relm,
-                        self.widgets.asset_download_widgets.download_selected,
+                        self.widgets
+                            .asset_download_widgets
+                            .download_selected
+                            .as_ref()
+                            .unwrap(),
                         connect_clicked(_),
                         crate::ui::messages::Msg::DownloadAssets(false, i.clone(), di.clone())
                     );
-                    self.widgets
-                        .asset_download_widgets
-                        .download_all
-                        .set_sensitive(true);
                     let i = id.clone();
                     let di = dm.app_name_string.clone();
                     connect!(
                         self.model.relm,
-                        self.widgets.asset_download_widgets.download_all,
+                        self.widgets
+                            .asset_download_widgets
+                            .download_all
+                            .as_ref()
+                            .unwrap(),
                         connect_clicked(_),
                         crate::ui::messages::Msg::DownloadAssets(true, i.clone(), di.clone())
                     );
                     // TODO only enable this when something is selected
-                    self.widgets
-                        .asset_download_widgets
-                        .download_selected
-                        .set_sensitive(true);
                     self.widgets
                         .asset_download_widgets
                         .asset_download_content
@@ -955,15 +963,53 @@ impl Update for Win {
                         };
                     };
                 };
+
+                // Remove all download buttons
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_actions_box
+                    .foreach(|el| self.widgets.details_content.remove(el));
+
+                self.widgets.asset_download_widgets.download_all =
+                    Some(Button::with_label("Download All"));
+                self.widgets.asset_download_widgets.download_selected =
+                    Some(Button::with_label("Download Selected"));
                 self.widgets
                     .asset_download_widgets
                     .download_all
+                    .as_ref()
+                    .unwrap()
                     .set_sensitive(false);
                 self.widgets
                     .asset_download_widgets
                     .download_selected
+                    .as_ref()
+                    .unwrap()
                     .set_sensitive(false);
-
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_actions_box
+                    .add(
+                        self.widgets
+                            .asset_download_widgets
+                            .download_selected
+                            .as_ref()
+                            .unwrap(),
+                    );
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_actions_box
+                    .add(
+                        self.widgets
+                            .asset_download_widgets
+                            .download_all
+                            .as_ref()
+                            .unwrap(),
+                    );
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_actions_box
+                    .show_all();
                 self.widgets
                     .logged_in_stack
                     .set_visible_child_name(if enabled {

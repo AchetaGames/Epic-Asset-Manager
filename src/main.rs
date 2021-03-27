@@ -90,9 +90,10 @@ struct AssetDownloadDetails {
     asset_download_info_revealer_button_image: Image,
     download_asset_name: Label,
     asset_download_content: Box,
-    download_selected: Button,
-    download_all: Button,
+    download_selected: Option<Button>,
+    download_all: Option<Button>,
     download_progress_sender: Sender<(String, u128, bool)>,
+    asset_download_actions_box: Box,
 }
 
 struct Win {
@@ -294,6 +295,7 @@ impl Widget for Win {
 
         let asset_download_info_box: Box = builder.get_object("asset_download_info_box").unwrap();
         let asset_download_content: Box = builder.get_object("asset_download_content").unwrap();
+        let asset_download_actions_box: Box = builder.get_object("download_actions").unwrap();
         let download_asset_name: Label = builder.get_object("download_asset_name").unwrap();
         let asset_download_info_revealer_button: Button = builder
             .get_object("asset_download_info_revealer_button")
@@ -303,8 +305,6 @@ impl Widget for Win {
         let asset_download_info_revealer_button_image: Image = builder
             .get_object("asset_download_info_revealer_button_image")
             .unwrap();
-        let download_selected: Button = builder.get_object("download_selected").unwrap();
-        let download_all = builder.get_object("download_all").unwrap();
         let stream = relm.stream().clone();
         let (_channel, download_progress_sender) =
             Channel::new(move |(chunk, progress, finished)| {
@@ -327,15 +327,16 @@ impl Widget for Win {
         );
         let asset_download_widgets = AssetDownloadDetails {
             asset_download_content,
+            download_selected: None,
             download_asset_name,
             asset_version_combo,
             asset_download_info_box,
             asset_download_info_revealer_button,
             asset_download_info_revealer_button_image,
             asset_download_info_revealer,
-            download_selected,
-            download_all,
+            asset_download_actions_box,
             download_progress_sender,
+            download_all: None,
         };
 
         window.show_all();
