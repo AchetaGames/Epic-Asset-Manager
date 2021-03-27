@@ -1,6 +1,15 @@
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate lazy_static;
+extern crate env_logger;
 extern crate glib;
-
 extern crate webkit2gtk;
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::{fs, str, thread};
 
 use egs_api::EpicGames;
 use gtk::{
@@ -10,62 +19,24 @@ use gtk::{
 };
 use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::{fs, str, thread};
+use threadpool::ThreadPool;
 use webkit2gtk::{WebView, WebViewExt};
 
+use crate::api_data::ApiData;
 use crate::configuration::Configuration;
-use threadpool::ThreadPool;
-
-extern crate env_logger;
-
-#[macro_use]
-extern crate log;
-
-mod configuration;
-mod models;
+use crate::download::DownloadedFile;
 
 mod api_data;
+mod configuration;
+mod download;
+mod models;
 mod tools;
-
-use crate::api_data::ApiData;
-
-#[macro_use]
-extern crate lazy_static;
-
-use std::sync::Arc;
-use std::sync::Mutex;
-
 mod ui;
 
 lazy_static! {
     static ref DATA: ApiData = ApiData::new();
     static ref MUTEX: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
     static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
-}
-
-trait Or: Sized {
-    fn or(self, other: Self) -> Self;
-}
-
-impl<'a> Or for &'a str {
-    fn or(self, other: &'a str) -> &'a str {
-        if self.is_empty() {
-            other
-        } else {
-            self
-        }
-    }
-}
-
-impl<'a> Or for &'a String {
-    fn or(self, other: &'a String) -> &'a String {
-        if self.is_empty() {
-            other
-        } else {
-            self
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -77,6 +48,9 @@ struct Model {
     selected_asset: Option<String>,
     selected_files: HashMap<String, HashMap<String, Vec<String>>>,
     download_pool: ThreadPool,
+    file_pool: ThreadPool,
+    downloaded_chunks: HashMap<String, Vec<String>>,
+    downloaded_files: HashMap<String, DownloadedFile>,
 }
 
 // Create the structure that holds the widgets used in the view.
@@ -118,7 +92,7 @@ struct AssetDownloadDetails {
     asset_download_content: Box,
     download_selected: Button,
     download_all: Button,
-    download_progress_sender: Sender<(String, u128)>,
+    download_progress_sender: Sender<(String, u128, bool)>,
 }
 
 struct Win {
@@ -332,9 +306,12 @@ impl Widget for Win {
         let download_selected: Button = builder.get_object("download_selected").unwrap();
         let download_all = builder.get_object("download_all").unwrap();
         let stream = relm.stream().clone();
-        let (_channel, download_progress_sender) = Channel::new(move |(chunk, progress)| {
-            stream.emit(ui::messages::Msg::DownloadProgressReport(chunk, progress));
-        });
+        let (_channel, download_progress_sender) =
+            Channel::new(move |(chunk, progress, finished)| {
+                stream.emit(ui::messages::Msg::DownloadProgressReport(
+                    chunk, progress, finished,
+                ));
+            });
 
         connect!(
             relm,
