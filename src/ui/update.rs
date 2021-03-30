@@ -14,11 +14,11 @@ use gdk_pixbuf::PixbufLoaderExt;
 use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
-    Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    EntryExt, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image, ImageExt,
-    Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt, Overlay,
-    OverlayExt, PopoverMenu, ProgressBarExt, RevealerExt, Separator, StackExt, ToggleButtonExt,
-    WidgetExt,
+    Align, AspectFrame, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt,
+    ContainerExt, EntryExt, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image,
+    ImageExt, Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt,
+    Overlay, OverlayExt, PopoverMenu, ProgressBarExt, RevealerExt, Separator, StackExt,
+    ToggleButtonExt, WidgetExt,
 };
 use relm::{connect, Channel, Relm, Update};
 use threadpool::ThreadPool;
@@ -385,7 +385,13 @@ impl Update for Win {
                         let pixbuf = pixbuf_loader.get_pixbuf().unwrap();
                         let width = pixbuf.get_width();
                         let height = pixbuf.get_height();
-                        let width_percent = 300.0 / width as f64;
+
+                        let max_height = self.widgets.details_revealer.get_allocated_height();
+                        let width_percent = if max_height < 300 {
+                            300.0
+                        } else {
+                            max_height as f64
+                        } / width as f64;
                         let height_percent = 300.0 / height as f64;
                         let percent = if height_percent < width_percent {
                             height_percent
@@ -654,9 +660,13 @@ impl Update for Win {
                                 crate::ui::messages::Msg::NextImage
                             );
                             forward.set_halign(Align::End);
-                            image_navigation.add_overlay(&self.widgets.image_stack);
+                            let aspect = AspectFrame::new(None, 0.5, 0.5, 2.0, true);
+                            aspect.set_size_request(-1, 300);
+                            aspect.add(&self.widgets.image_stack);
+                            image_navigation.add_overlay(&aspect);
                             image_navigation.add_overlay(&back);
                             image_navigation.add_overlay(&forward);
+                            image_navigation.set_valign(Align::Center);
                             vbox.add(&image_navigation);
                             if let Some(images) = &asset_info.key_images {
                                 for image in images {
@@ -671,6 +681,10 @@ impl Update for Win {
                                     );
                                 }
                             }
+                            let details_box = Box::new(gtk::Orientation::Vertical, 0);
+                            details_box.set_vexpand(true);
+                            details_box.set_valign(Align::Start);
+                            vbox.add(&details_box);
                             let table = GridBuilder::new()
                                 .column_homogeneous(true)
                                 .halign(Align::Start)
@@ -707,8 +721,8 @@ impl Update for Win {
                                 compat.set_xalign(0.0);
                                 table.attach(&compat, 1, 2, 1, 1);
                             }
-                            vbox.add(&table);
-                            vbox.add(&Separator::new(gtk::Orientation::Horizontal));
+                            details_box.add(&table);
+                            details_box.add(&Separator::new(gtk::Orientation::Horizontal));
                             if let Some(desc) = &asset_info.long_description {
                                 let description = Label::new(None);
                                 description.set_line_wrap(true);
@@ -716,7 +730,7 @@ impl Update for Win {
                                     html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
                                 description.set_markup(&markup);
                                 description.set_xalign(0.0);
-                                vbox.add(&description);
+                                details_box.add(&description);
                             }
                             if let Some(desc) = &asset_info.technical_details {
                                 let description = Label::new(None);
@@ -725,15 +739,18 @@ impl Update for Win {
                                     html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
                                 description.set_markup(&markup);
                                 description.set_xalign(0.0);
-                                vbox.add(&description);
+                                details_box.add(&description);
                             }
                             if asset_info.release_info.clone().unwrap().len() > 0 {
                                 self.widgets.download_button.set_sensitive(true);
                             }
 
-                            vbox.show_all();
                             self.widgets.details_content.add(&vbox);
-                            self.widgets.details_revealer.set_reveal_child(true);
+                            self.widgets.details_content.show_all();
+
+                            if !self.widgets.details_revealer.get_reveal_child() {
+                                self.widgets.details_revealer.set_reveal_child(true);
+                            }
                         }
                     }
                 }
@@ -863,6 +880,9 @@ impl Update for Win {
             crate::ui::messages::Msg::CloseDetails => {
                 self.widgets.download_button.set_sensitive(false);
                 self.widgets.details_revealer.set_reveal_child(false);
+                self.widgets
+                    .details_content
+                    .foreach(|el| self.widgets.details_content.remove(el));
                 self.widgets.asset_flow.unselect_all();
             }
             crate::ui::messages::Msg::NextImage => {
