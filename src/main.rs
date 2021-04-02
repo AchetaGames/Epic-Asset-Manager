@@ -14,8 +14,9 @@ use std::{fs, str, thread};
 use egs_api::EpicGames;
 use gtk::{
     prelude::BuilderExtManual, Box, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText,
-    ContainerExt, FileChooserButton, FileChooserExt, FlowBox, FlowBoxExt, GtkWindowExt, Image,
-    Inhibit, Label, ProgressBar, Revealer, SearchEntry, SearchEntryExt, Stack, WidgetExt, Window,
+    ContainerExt, FileChooserButton, FileChooserButtonExt, FileChooserExt, FlowBox, FlowBoxExt,
+    GtkWindowExt, Image, Inhibit, Label, ProgressBar, Revealer, SearchEntry, SearchEntryExt, Stack,
+    WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
 use serde::{Deserialize, Serialize};
@@ -253,27 +254,53 @@ impl Widget for Win {
         // Settings
         let mut directory_selectors: HashMap<String, FileChooserButton> = HashMap::new();
 
-        directory_selectors.insert(
-            "cache_directory_selector".into(),
-            builder.get_object("cache_directory_selector").unwrap(),
+        let cache: FileChooserButton = builder.get_object("cache_directory_selector").unwrap();
+        connect!(
+            relm,
+            cache,
+            connect_file_set(_),
+            crate::ui::messages::Msg::ConfigurationDirectorySelectionChanged(
+                "cache_directory_selector".to_string()
+            )
         );
-        directory_selectors.insert(
-            "temp_download_directory_selector".into(),
-            builder
-                .get_object("temp_download_directory_selector")
-                .unwrap(),
-        );
-        directory_selectors.insert(
-            "ue_asset_vault_directory_selector".into(),
-            builder
-                .get_object("ue_asset_vault_directory_selector")
-                .unwrap(),
-        );
+        directory_selectors.insert("cache_directory_selector".into(), cache);
 
-        directory_selectors.insert(
-            "ue_directory_selector".into(),
-            builder.get_object("ue_directory_selector").unwrap(),
+        let temp: FileChooserButton = builder
+            .get_object("temp_download_directory_selector")
+            .unwrap();
+        connect!(
+            relm,
+            temp,
+            connect_file_set(_),
+            crate::ui::messages::Msg::ConfigurationDirectorySelectionChanged(
+                "temp_download_directory_selector".to_string()
+            )
         );
+        directory_selectors.insert("temp_download_directory_selector".into(), temp);
+
+        let vault: FileChooserButton = builder
+            .get_object("ue_asset_vault_directory_selector")
+            .unwrap();
+        connect!(
+            relm,
+            vault,
+            connect_file_set(_),
+            crate::ui::messages::Msg::ConfigurationDirectorySelectionChanged(
+                "ue_asset_vault_directory_selector".to_string()
+            )
+        );
+        directory_selectors.insert("ue_asset_vault_directory_selector".into(), vault);
+
+        let ue_dir: FileChooserButton = builder.get_object("ue_directory_selector").unwrap();
+        connect!(
+            relm,
+            ue_dir,
+            connect_file_set(_),
+            crate::ui::messages::Msg::ConfigurationDirectorySelectionChanged(
+                "ue_directory_selector".to_string()
+            )
+        );
+        directory_selectors.insert("ue_directory_selector".into(), ue_dir);
 
         fs::create_dir_all(&model.configuration.directories.cache_directory).unwrap();
         directory_selectors

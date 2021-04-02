@@ -125,13 +125,13 @@ pub(crate) struct DirectoryConfiguration {
 
 pub(crate) trait Save {
     fn save(&self, _path: Option<String>) {
-        unimplemented!()
+        todo!()
     }
     fn load(_path: Option<String>) -> Option<Self>
     where
         Self: Sized,
     {
-        unimplemented!()
+        todo!()
     }
 }
 
@@ -154,13 +154,21 @@ impl Save for DirectoryConfiguration {
     }
 
     fn load(path: Option<String>) -> Option<Self> {
-        if let Ok(user_file) =
-            File::open(Path::new(&path.clone().unwrap()).join("directories.json"))
-        {
-            let reader = BufReader::new(user_file);
-            if let Ok(ud) = serde_json::from_reader(reader) {
-                return Some(ud);
-            };
+        match File::open(Path::new(&path.clone().unwrap()).join("directories.json")) {
+            Ok(user_file) => {
+                let reader = BufReader::new(user_file);
+                match serde_json::from_reader(reader) {
+                    Ok(ud) => {
+                        return Some(ud);
+                    }
+                    Err(e) => {
+                        error!("Unable to parse directories configuration: {:?}", e)
+                    }
+                };
+            }
+            Err(..) => {
+                warn!("Unable to load directories configuration")
+            }
         }
         // Config file does not exist, creating new one
         Some(DirectoryConfiguration {
@@ -199,7 +207,10 @@ impl Save for DirectoryConfiguration {
             .into(),
             unreal_engine_directories: vec![],
             unreal_projects_directories: match dirs::document_dir() {
-                Some(dir) => vec![dir.as_path().to_str().unwrap().to_string()],
+                Some(mut dir) => {
+                    dir.push("Unreal Projects");
+                    vec![dir.as_path().to_str().unwrap().to_string()]
+                }
                 None => {
                     vec![]
                 }

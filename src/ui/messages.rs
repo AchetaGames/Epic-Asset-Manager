@@ -40,6 +40,7 @@ pub enum Msg {
     DownloadAssets(bool, String, String),
     DownloadProgressReport(String, u128, bool),
     ExtractionFinished(String, PathBuf),
+    ConfigurationDirectorySelectionChanged(String),
 }
 
 impl fmt::Display for Msg {
@@ -131,6 +132,9 @@ impl fmt::Display for Msg {
             }
             Msg::ExtractionFinished(_, _) => {
                 write!(f, "ExtractionFinished")
+            }
+            Msg::ConfigurationDirectorySelectionChanged(_) => {
+                write!(f, "ConfigurationDirectorySelectionChanged")
             }
         }
     }

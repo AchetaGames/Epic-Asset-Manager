@@ -11,14 +11,15 @@ use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::EpicGames;
 use gdk_pixbuf::PixbufLoaderExt;
+use gio::FileExt;
 use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, AspectFrame, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt,
-    ContainerExt, EntryExt, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image,
-    ImageExt, Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt,
-    Overlay, OverlayExt, PopoverMenu, ProgressBarExt, RevealerExt, Separator, StackExt,
-    ToggleButtonExt, WidgetExt,
+    ContainerExt, EntryExt, FileChooserExt, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt,
+    IconSize, Image, ImageExt, Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton,
+    MenuButtonExt, Overlay, OverlayExt, PopoverMenu, ProgressBarExt, RevealerExt, Separator,
+    StackExt, ToggleButtonExt, WidgetExt,
 };
 use relm::{connect, Channel, Relm, Update};
 use threadpool::ThreadPool;
@@ -1460,7 +1461,42 @@ impl Update for Win {
                         fs::remove_dir(p.parent().unwrap().clone());
                     };
                 }
-                self.model.downloaded_chunks.retain(|k, v| !v.is_empty());
+                self.model.downloaded_chunks.retain(|_, v| !v.is_empty());
+            }
+            Msg::ConfigurationDirectorySelectionChanged(selector) => {
+                debug!("Selection changed on {}", selector);
+                if let Some(file) = self
+                    .widgets
+                    .settings_widgets
+                    .directory_selectors
+                    .get(&selector)
+                    .unwrap()
+                    .get_file()
+                {
+                    if let Some(path) = file.get_path() {
+                        match selector.as_str() {
+                            "ue_asset_vault_directory_selector" => {
+                                self.model.configuration.directories.unreal_vault_directory =
+                                    path.as_path().display().to_string();
+                                self.model.configuration.save();
+                            }
+                            "cache_directory_selector" => {
+                                self.model.configuration.directories.cache_directory =
+                                    path.as_path().display().to_string();
+                                self.model.configuration.save();
+                            }
+                            "temp_download_directory_selector" => {
+                                self.model
+                                    .configuration
+                                    .directories
+                                    .temporary_download_directory =
+                                    path.as_path().display().to_string();
+                                self.model.configuration.save();
+                            }
+                            _ => {}
+                        }
+                    }
+                }
             }
         }
         debug!(

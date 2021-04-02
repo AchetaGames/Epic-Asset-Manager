@@ -657,7 +657,7 @@
                                     <property name="can-focus">False</property>
                                     <property name="action">select-folder</property>
                                     <property name="local-only">False</property>
-                                    <property name="title" translatable="yes">Unreal Engine Directory</property>
+                                    <property name="title" translatable="yes">Cache Directory</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -700,7 +700,7 @@
                                     <property name="can-focus">False</property>
                                     <property name="action">select-folder</property>
                                     <property name="local-only">False</property>
-                                    <property name="title" translatable="yes">Unreal Engine Directory</property>
+                                    <property name="title" translatable="yes">Temporary Download Directory</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -719,7 +719,7 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkBox" id="Asset Vault Directory">
+                              <object class="GtkBox" id="Vault Directory">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="border-width">10</property>
@@ -729,7 +729,7 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Unreal Asset Vault Directory</property>
+                                    <property name="label" translatable="yes">Vault Directory</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -743,7 +743,7 @@
                                     <property name="can-focus">False</property>
                                     <property name="action">select-folder</property>
                                     <property name="local-only">False</property>
-                                    <property name="title" translatable="yes">Unreal Engine Directory</property>
+                                    <property name="title" translatable="yes">Vault Directory</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
