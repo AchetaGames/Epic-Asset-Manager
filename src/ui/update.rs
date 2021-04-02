@@ -32,6 +32,7 @@ use crate::tools::asset_info::Search;
 use crate::tools::cache::Cache;
 use crate::tools::image_stock::ImageExtCust;
 use crate::tools::or::Or;
+use crate::ui::messages::Msg;
 use crate::{LoginResponse, Model, Win};
 
 impl Update for Win {
@@ -1247,11 +1248,11 @@ impl Update for Win {
                             self.model
                                 .configuration
                                 .directories
-                                .temporary_download_directory
+                                .unreal_vault_directory
                                 .clone(),
                         );
-                        path.push(asset.id.clone());
                         path.push(release.clone());
+                        path.push("temp");
                         let path = path.clone();
                         fs::create_dir_all(path.clone()).unwrap();
                         let files = if !all {
@@ -1310,7 +1311,7 @@ impl Update for Win {
                                         .download_progress_sender
                                         .clone();
                                     self.model.download_pool.execute(move || {
-                                        println!(
+                                        debug!(
                                             "Downloading chunk {} from {} to {:?}",
                                             g,
                                             link.to_string(),
@@ -1354,6 +1355,7 @@ impl Update for Win {
             crate::ui::messages::Msg::DownloadProgressReport(guid, progress, finished) => {
                 if finished {
                     debug!("Finished downloading {}", guid);
+                    let mut finished_files: Vec<String> = Vec::new();
                     if let Some(files) = self.model.downloaded_chunks.get(&guid) {
                         for file in files {
                             debug!("Affected files: {}", file);
@@ -1366,6 +1368,7 @@ impl Update for Win {
                                 }
                                 if f.finished_chunks.len() == f.chunks.len() {
                                     debug!("File finished {}", f.name);
+                                    finished_files.push(file.clone());
                                     let finished = f.clone();
                                     let mut path = PathBuf::from(
                                         self.model
@@ -1374,18 +1377,21 @@ impl Update for Win {
                                             .unreal_vault_directory
                                             .clone(),
                                     );
-                                    let mut temp_path = PathBuf::from(
-                                        self.model
-                                            .configuration
-                                            .directories
-                                            .temporary_download_directory
-                                            .clone(),
-                                    );
-                                    temp_path.push(finished.asset.clone());
-                                    temp_path.push(finished.release.clone());
+                                    path.push(finished.release.clone());
+                                    let stream = self.model.relm.stream().clone();
+                                    let msg_path = path.clone();
+                                    let (_channel, sender) = Channel::new(move |f| {
+                                        stream.emit(crate::ui::messages::Msg::ExtractionFinished(
+                                            f,
+                                            msg_path.clone(),
+                                        ))
+                                    });
+                                    let mut temp_path = path.clone();
+                                    temp_path.push("temp");
+                                    path.push("data");
+
+                                    let chunk_file = file.clone();
                                     self.model.file_pool.execute(move || {
-                                        path.push(finished.asset);
-                                        path.push(finished.release);
                                         path.push(finished.name);
                                         fs::create_dir_all(path.parent().unwrap().clone()).unwrap();
                                         match fs::OpenOptions::new().append(true).create(true).open(path.clone())
@@ -1405,30 +1411,49 @@ impl Update for Win {
                                                                     buffer,
                                                                 ).unwrap();
                                                             if (ch.uncompressed_size.unwrap_or(ch.data.len() as u32) as u128) < chunk.offset+ chunk.size {
-                                                               println!("Chunk is not big enough");
+                                                               error!("Chunk is not big enough");
                                                                 break;
                                                             };
                                                             target.write(&ch.data[chunk.offset as usize..(chunk.offset+ chunk.size) as usize]).unwrap();
                                                         }
                                                         Err(e) => {
-                                                            println!("Error opening the chunk file: {:?}", e)
+                                                            error!("Error opening the chunk file: {:?}", e)
                                                         }
                                                     }
-                                                    println!("chunk: {:?}", chunk);
+                                                    debug!("chunk: {:?}", chunk);
                                                 }
+                                                sender.send(chunk_file);
                                             }
                                             Err(e) => {
-                                                println!("Error opening the target file: {:?}", e)
+                                                error!("Error opening the target file: {:?}", e)
                                             }
                                         }
                                     })
                                 }
                             }
+                            self.model
+                                .downloaded_files
+                                .retain(|k, _| !finished_files.contains(k))
                         }
                     }
                 } else {
                     debug!("Got progress report from {}, current: {}", guid, progress);
                 }
+            }
+            Msg::ExtractionFinished(file, mut path) => {
+                info!("File finished {}", file);
+                for (chunk, files) in self.model.downloaded_chunks.iter_mut() {
+                    files.retain(|x| !x.eq(&file));
+                    if files.is_empty() {
+                        println!("Removing chunk");
+                        path.push("temp");
+                        path.push(format!("{}.chunk", chunk));
+                        fs::remove_file(path.clone());
+                        fs::remove_dir(path.parent().unwrap().clone());
+                    };
+                }
+                self.model.downloaded_chunks.retain(|k, v| !v.is_empty());
+                println!("{:?}", self.model.downloaded_chunks);
             }
         }
         debug!(

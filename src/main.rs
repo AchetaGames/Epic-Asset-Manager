@@ -258,12 +258,6 @@ impl Widget for Win {
             builder.get_object("cache_directory_selector").unwrap(),
         );
         directory_selectors.insert(
-            "temp_download_directory_selector".into(),
-            builder
-                .get_object("temp_download_directory_selector")
-                .unwrap(),
-        );
-        directory_selectors.insert(
             "ue_asset_vault_directory_selector".into(),
             builder
                 .get_object("ue_asset_vault_directory_selector")
@@ -280,12 +274,6 @@ impl Widget for Win {
             .get("cache_directory_selector")
             .unwrap()
             .set_filename(&model.configuration.directories.cache_directory);
-
-        fs::create_dir_all(&model.configuration.directories.temporary_download_directory).unwrap();
-        directory_selectors
-            .get("temp_download_directory_selector")
-            .unwrap()
-            .set_filename(&model.configuration.directories.temporary_download_directory);
 
         fs::create_dir_all(&model.configuration.directories.unreal_vault_directory).unwrap();
         directory_selectors

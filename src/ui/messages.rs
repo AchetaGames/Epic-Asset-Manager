@@ -5,6 +5,7 @@ use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
 use relm_derive::Msg;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use webkit2gtk::LoadEvent;
 
 #[derive(Msg, Debug, Clone)]
@@ -38,6 +39,7 @@ pub enum Msg {
     SelectForDownload(String, String, String),
     DownloadAssets(bool, String, String),
     DownloadProgressReport(String, u128, bool),
+    ExtractionFinished(String, PathBuf),
 }
 
 impl fmt::Display for Msg {
@@ -126,6 +128,9 @@ impl fmt::Display for Msg {
             }
             Msg::DownloadProgressReport(_, _, _) => {
                 write!(f, "DownloadProgressReport")
+            }
+            Msg::ExtractionFinished(_, _) => {
+                write!(f, "ExtractionFinished")
             }
         }
     }
