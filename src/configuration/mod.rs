@@ -117,6 +117,7 @@ impl Configuration {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct DirectoryConfiguration {
     pub cache_directory: String,
+    pub temporary_download_directory: String,
     pub unreal_vault_directory: String,
     pub unreal_engine_directories: Vec<String>,
     pub unreal_projects_directories: Vec<String>,
@@ -167,6 +168,17 @@ impl Save for DirectoryConfiguration {
                 None => PathBuf::from("cache"),
                 Some(mut dir) => {
                     dir.push("epic_asset_manager");
+                    dir
+                }
+            }
+            .as_path()
+            .to_str()
+            .unwrap()
+            .into(),
+            temporary_download_directory: match dirs::document_dir() {
+                None => PathBuf::from("Vault"),
+                Some(mut dir) => {
+                    dir.push("EpicVault");
                     dir
                 }
             }

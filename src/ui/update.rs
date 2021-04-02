@@ -1215,7 +1215,7 @@ impl Update for Win {
                 };
             }
             crate::ui::messages::Msg::DownloadAssets(all, asset_id, release) => {
-                println!(
+                info!(
                     "Starting download for {} release {}",
                     asset_id.clone(),
                     release.clone()
@@ -1378,15 +1378,22 @@ impl Update for Win {
                                             .clone(),
                                     );
                                     path.push(finished.release.clone());
+                                    let mut temp_path = PathBuf::from(
+                                        self.model
+                                            .configuration
+                                            .directories
+                                            .temporary_download_directory
+                                            .clone(),
+                                    );
+                                    temp_path.push(finished.release.clone());
                                     let stream = self.model.relm.stream().clone();
-                                    let msg_path = path.clone();
+                                    let msg_path = temp_path.clone();
                                     let (_channel, sender) = Channel::new(move |f| {
                                         stream.emit(crate::ui::messages::Msg::ExtractionFinished(
                                             f,
                                             msg_path.clone(),
                                         ))
                                     });
-                                    let mut temp_path = path.clone();
                                     temp_path.push("temp");
                                     path.push("data");
 
@@ -1440,20 +1447,20 @@ impl Update for Win {
                     debug!("Got progress report from {}, current: {}", guid, progress);
                 }
             }
-            Msg::ExtractionFinished(file, mut path) => {
+            Msg::ExtractionFinished(file, path) => {
                 info!("File finished {}", file);
                 for (chunk, files) in self.model.downloaded_chunks.iter_mut() {
+                    let mut p = path.clone();
                     files.retain(|x| !x.eq(&file));
                     if files.is_empty() {
-                        println!("Removing chunk");
-                        path.push("temp");
-                        path.push(format!("{}.chunk", chunk));
-                        fs::remove_file(path.clone());
-                        fs::remove_dir(path.parent().unwrap().clone());
+                        p.push("temp");
+                        p.push(format!("{}.chunk", chunk));
+                        debug!("Removing chunk {}", p.as_path().to_str().unwrap());
+                        fs::remove_file(p.clone());
+                        fs::remove_dir(p.parent().unwrap().clone());
                     };
                 }
                 self.model.downloaded_chunks.retain(|k, v| !v.is_empty());
-                println!("{:?}", self.model.downloaded_chunks);
             }
         }
         debug!(
