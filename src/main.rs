@@ -14,8 +14,8 @@ use std::{fs, str, thread};
 use egs_api::EpicGames;
 use gtk::{
     prelude::BuilderExtManual, Box, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText,
-    ContainerExt, FileChooserButton, FileChooserExt, FlowBox, FlowBoxExt, Image, Inhibit, Label,
-    ProgressBar, Revealer, SearchEntry, SearchEntryExt, Stack, WidgetExt, Window,
+    ContainerExt, FileChooserButton, FileChooserExt, FlowBox, FlowBoxExt, GtkWindowExt, Image,
+    Inhibit, Label, ProgressBar, Revealer, SearchEntry, SearchEntryExt, Stack, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
 use serde::{Deserialize, Serialize};
@@ -74,6 +74,12 @@ struct Widgets {
     settings_widgets: Settings,
     asset_download_widgets: AssetDownloadDetails,
     download_button: Button,
+}
+
+impl Widgets {
+    fn get_window_size(&self) -> (i32, i32) {
+        self.window.get_size()
+    }
 }
 
 #[derive(Clone)]
@@ -252,12 +258,6 @@ impl Widget for Win {
             builder.get_object("cache_directory_selector").unwrap(),
         );
         directory_selectors.insert(
-            "temp_download_directory_selector".into(),
-            builder
-                .get_object("temp_download_directory_selector")
-                .unwrap(),
-        );
-        directory_selectors.insert(
             "ue_asset_vault_directory_selector".into(),
             builder
                 .get_object("ue_asset_vault_directory_selector")
@@ -274,12 +274,6 @@ impl Widget for Win {
             .get("cache_directory_selector")
             .unwrap()
             .set_filename(&model.configuration.directories.cache_directory);
-
-        fs::create_dir_all(&model.configuration.directories.temporary_download_directory).unwrap();
-        directory_selectors
-            .get("temp_download_directory_selector")
-            .unwrap()
-            .set_filename(&model.configuration.directories.temporary_download_directory);
 
         fs::create_dir_all(&model.configuration.directories.unreal_vault_directory).unwrap();
         directory_selectors

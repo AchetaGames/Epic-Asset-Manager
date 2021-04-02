@@ -14,11 +14,11 @@ use gdk_pixbuf::PixbufLoaderExt;
 use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
-    Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    EntryExt, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image, ImageExt,
-    Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt, Overlay,
-    OverlayExt, PopoverMenu, ProgressBarExt, RevealerExt, Separator, StackExt, ToggleButtonExt,
-    WidgetExt,
+    Align, AspectFrame, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt,
+    ContainerExt, EntryExt, FlowBoxChild, FlowBoxExt, GridBuilder, GridExt, IconSize, Image,
+    ImageExt, Justification, Label, LabelExt, ListBox, ListBoxRow, MenuButton, MenuButtonExt,
+    Overlay, OverlayExt, PopoverMenu, ProgressBarExt, RevealerExt, Separator, StackExt,
+    ToggleButtonExt, WidgetExt,
 };
 use relm::{connect, Channel, Relm, Update};
 use threadpool::ThreadPool;
@@ -32,6 +32,7 @@ use crate::tools::asset_info::Search;
 use crate::tools::cache::Cache;
 use crate::tools::image_stock::ImageExtCust;
 use crate::tools::or::Or;
+use crate::ui::messages::Msg;
 use crate::{LoginResponse, Model, Win};
 
 impl Update for Win {
@@ -385,7 +386,13 @@ impl Update for Win {
                         let pixbuf = pixbuf_loader.get_pixbuf().unwrap();
                         let width = pixbuf.get_width();
                         let height = pixbuf.get_height();
-                        let width_percent = 300.0 / width as f64;
+
+                        let max_height = self.widgets.details_revealer.get_allocated_height();
+                        let width_percent = if max_height < 300 {
+                            300.0
+                        } else {
+                            max_height as f64
+                        } / width as f64;
                         let height_percent = 300.0 / height as f64;
                         let percent = if height_percent < width_percent {
                             height_percent
@@ -654,9 +661,13 @@ impl Update for Win {
                                 crate::ui::messages::Msg::NextImage
                             );
                             forward.set_halign(Align::End);
-                            image_navigation.add_overlay(&self.widgets.image_stack);
+                            let aspect = AspectFrame::new(None, 0.5, 0.5, 2.0, true);
+                            aspect.set_size_request(-1, 300);
+                            aspect.add(&self.widgets.image_stack);
+                            image_navigation.add_overlay(&aspect);
                             image_navigation.add_overlay(&back);
                             image_navigation.add_overlay(&forward);
+                            image_navigation.set_valign(Align::Center);
                             vbox.add(&image_navigation);
                             if let Some(images) = &asset_info.key_images {
                                 for image in images {
@@ -671,6 +682,10 @@ impl Update for Win {
                                     );
                                 }
                             }
+                            let details_box = Box::new(gtk::Orientation::Vertical, 0);
+                            details_box.set_vexpand(true);
+                            details_box.set_valign(Align::Start);
+                            vbox.add(&details_box);
                             let table = GridBuilder::new()
                                 .column_homogeneous(true)
                                 .halign(Align::Start)
@@ -707,8 +722,8 @@ impl Update for Win {
                                 compat.set_xalign(0.0);
                                 table.attach(&compat, 1, 2, 1, 1);
                             }
-                            vbox.add(&table);
-                            vbox.add(&Separator::new(gtk::Orientation::Horizontal));
+                            details_box.add(&table);
+                            details_box.add(&Separator::new(gtk::Orientation::Horizontal));
                             if let Some(desc) = &asset_info.long_description {
                                 let description = Label::new(None);
                                 description.set_line_wrap(true);
@@ -716,7 +731,7 @@ impl Update for Win {
                                     html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
                                 description.set_markup(&markup);
                                 description.set_xalign(0.0);
-                                vbox.add(&description);
+                                details_box.add(&description);
                             }
                             if let Some(desc) = &asset_info.technical_details {
                                 let description = Label::new(None);
@@ -725,15 +740,18 @@ impl Update for Win {
                                     html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
                                 description.set_markup(&markup);
                                 description.set_xalign(0.0);
-                                vbox.add(&description);
+                                details_box.add(&description);
                             }
                             if asset_info.release_info.clone().unwrap().len() > 0 {
                                 self.widgets.download_button.set_sensitive(true);
                             }
 
-                            vbox.show_all();
                             self.widgets.details_content.add(&vbox);
-                            self.widgets.details_revealer.set_reveal_child(true);
+                            self.widgets.details_content.show_all();
+
+                            if !self.widgets.details_revealer.get_reveal_child() {
+                                self.widgets.details_revealer.set_reveal_child(true);
+                            }
                         }
                     }
                 }
@@ -863,6 +881,9 @@ impl Update for Win {
             crate::ui::messages::Msg::CloseDetails => {
                 self.widgets.download_button.set_sensitive(false);
                 self.widgets.details_revealer.set_reveal_child(false);
+                self.widgets
+                    .details_content
+                    .foreach(|el| self.widgets.details_content.remove(el));
                 self.widgets.asset_flow.unselect_all();
             }
             crate::ui::messages::Msg::NextImage => {
@@ -1227,11 +1248,11 @@ impl Update for Win {
                             self.model
                                 .configuration
                                 .directories
-                                .temporary_download_directory
+                                .unreal_vault_directory
                                 .clone(),
                         );
-                        path.push(asset.id.clone());
                         path.push(release.clone());
+                        path.push("temp");
                         let path = path.clone();
                         fs::create_dir_all(path.clone()).unwrap();
                         let files = if !all {
@@ -1290,7 +1311,7 @@ impl Update for Win {
                                         .download_progress_sender
                                         .clone();
                                     self.model.download_pool.execute(move || {
-                                        println!(
+                                        debug!(
                                             "Downloading chunk {} from {} to {:?}",
                                             g,
                                             link.to_string(),
@@ -1334,6 +1355,7 @@ impl Update for Win {
             crate::ui::messages::Msg::DownloadProgressReport(guid, progress, finished) => {
                 if finished {
                     debug!("Finished downloading {}", guid);
+                    let mut finished_files: Vec<String> = Vec::new();
                     if let Some(files) = self.model.downloaded_chunks.get(&guid) {
                         for file in files {
                             debug!("Affected files: {}", file);
@@ -1346,6 +1368,7 @@ impl Update for Win {
                                 }
                                 if f.finished_chunks.len() == f.chunks.len() {
                                     debug!("File finished {}", f.name);
+                                    finished_files.push(file.clone());
                                     let finished = f.clone();
                                     let mut path = PathBuf::from(
                                         self.model
@@ -1354,18 +1377,21 @@ impl Update for Win {
                                             .unreal_vault_directory
                                             .clone(),
                                     );
-                                    let mut temp_path = PathBuf::from(
-                                        self.model
-                                            .configuration
-                                            .directories
-                                            .temporary_download_directory
-                                            .clone(),
-                                    );
-                                    temp_path.push(finished.asset.clone());
-                                    temp_path.push(finished.release.clone());
+                                    path.push(finished.release.clone());
+                                    let stream = self.model.relm.stream().clone();
+                                    let msg_path = path.clone();
+                                    let (_channel, sender) = Channel::new(move |f| {
+                                        stream.emit(crate::ui::messages::Msg::ExtractionFinished(
+                                            f,
+                                            msg_path.clone(),
+                                        ))
+                                    });
+                                    let mut temp_path = path.clone();
+                                    temp_path.push("temp");
+                                    path.push("data");
+
+                                    let chunk_file = file.clone();
                                     self.model.file_pool.execute(move || {
-                                        path.push(finished.asset);
-                                        path.push(finished.release);
                                         path.push(finished.name);
                                         fs::create_dir_all(path.parent().unwrap().clone()).unwrap();
                                         match fs::OpenOptions::new().append(true).create(true).open(path.clone())
@@ -1385,30 +1411,49 @@ impl Update for Win {
                                                                     buffer,
                                                                 ).unwrap();
                                                             if (ch.uncompressed_size.unwrap_or(ch.data.len() as u32) as u128) < chunk.offset+ chunk.size {
-                                                               println!("Chunk is not big enough");
+                                                               error!("Chunk is not big enough");
                                                                 break;
                                                             };
                                                             target.write(&ch.data[chunk.offset as usize..(chunk.offset+ chunk.size) as usize]).unwrap();
                                                         }
                                                         Err(e) => {
-                                                            println!("Error opening the chunk file: {:?}", e)
+                                                            error!("Error opening the chunk file: {:?}", e)
                                                         }
                                                     }
-                                                    println!("chunk: {:?}", chunk);
+                                                    debug!("chunk: {:?}", chunk);
                                                 }
+                                                sender.send(chunk_file);
                                             }
                                             Err(e) => {
-                                                println!("Error opening the target file: {:?}", e)
+                                                error!("Error opening the target file: {:?}", e)
                                             }
                                         }
                                     })
                                 }
                             }
+                            self.model
+                                .downloaded_files
+                                .retain(|k, _| !finished_files.contains(k))
                         }
                     }
                 } else {
                     debug!("Got progress report from {}, current: {}", guid, progress);
                 }
+            }
+            Msg::ExtractionFinished(file, mut path) => {
+                info!("File finished {}", file);
+                for (chunk, files) in self.model.downloaded_chunks.iter_mut() {
+                    files.retain(|x| !x.eq(&file));
+                    if files.is_empty() {
+                        println!("Removing chunk");
+                        path.push("temp");
+                        path.push(format!("{}.chunk", chunk));
+                        fs::remove_file(path.clone());
+                        fs::remove_dir(path.parent().unwrap().clone());
+                    };
+                }
+                self.model.downloaded_chunks.retain(|k, v| !v.is_empty());
+                println!("{:?}", self.model.downloaded_chunks);
             }
         }
         debug!(
