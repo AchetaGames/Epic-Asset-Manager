@@ -78,6 +78,7 @@ struct Widgets {
 }
 
 impl Widgets {
+    #[allow(dead_code)]
     fn get_window_size(&self) -> (i32, i32) {
         self.window.get_size()
     }

@@ -990,7 +990,12 @@ impl Update for Win {
                 self.widgets
                     .asset_download_widgets
                     .asset_download_actions_box
-                    .foreach(|el| self.widgets.details_content.remove(el));
+                    .foreach(|el| {
+                        self.widgets
+                            .asset_download_widgets
+                            .asset_download_actions_box
+                            .remove(el)
+                    });
 
                 self.widgets.asset_download_widgets.download_all =
                     Some(Button::with_label("Download All"));
@@ -1254,8 +1259,6 @@ impl Update for Win {
                         );
                         path.push(release.clone());
                         path.push("temp");
-                        let path = path.clone();
-                        fs::create_dir_all(path.clone()).unwrap();
                         let files = if !all {
                             if let Some(map) = self.model.selected_files.get(&asset.id) {
                                 if let Some(files) = map.get(&release) {
@@ -1269,6 +1272,44 @@ impl Update for Win {
                         } else {
                             None
                         };
+                        // Save download manifest
+                        let manifest = dm.clone();
+                        let mut target = PathBuf::from(
+                            self.model
+                                .configuration
+                                .directories
+                                .unreal_vault_directory
+                                .clone(),
+                        );
+                        target.push(release.clone());
+                        self.model.download_pool.execute(move || {
+                            fs::create_dir_all(target.clone())
+                                .expect("Unable to create target directory");
+                            match File::create(target.as_path().join("manifest.json")) {
+                                Ok(mut json_manifest_file) => {
+                                    json_manifest_file
+                                        .write(
+                                            serde_json::to_string(&manifest)
+                                                .unwrap()
+                                                .as_bytes()
+                                                .as_ref(),
+                                        )
+                                        .unwrap();
+                                }
+                                Err(e) => {
+                                    error!("Unable to save Manifest: {:?}", e)
+                                }
+                            }
+                            match File::create(target.as_path().join("manifest")) {
+                                Ok(mut manifest_file) => {
+                                    manifest_file.write(&manifest.to_vec()).unwrap();
+                                }
+                                Err(e) => {
+                                    error!("Unable to save binary Manifest: {:?}", e)
+                                }
+                            }
+                        });
+
                         for (filename, manifest) in dm.get_files() {
                             if let Some(file_list) = files {
                                 if !file_list.contains(&filename) {
@@ -1318,6 +1359,7 @@ impl Update for Win {
                                             link.to_string(),
                                             p
                                         );
+                                        fs::create_dir_all(p.parent().unwrap().clone()).unwrap();
                                         let mut client = reqwest::blocking::get(link).unwrap();
                                         let mut buffer: [u8; 1024] = [0; 1024];
                                         let mut downloaded: u128 = 0;
@@ -1430,7 +1472,7 @@ impl Update for Win {
                                                     }
                                                     debug!("chunk: {:?}", chunk);
                                                 }
-                                                sender.send(chunk_file);
+                                                sender.send(chunk_file).unwrap();
                                             }
                                             Err(e) => {
                                                 error!("Error opening the target file: {:?}", e)
@@ -1457,8 +1499,10 @@ impl Update for Win {
                         p.push("temp");
                         p.push(format!("{}.chunk", chunk));
                         debug!("Removing chunk {}", p.as_path().to_str().unwrap());
-                        fs::remove_file(p.clone());
-                        fs::remove_dir(p.parent().unwrap().clone());
+                        fs::remove_file(p.clone()).expect("Unable to remove chunk file");
+                        if let Err(e) = fs::remove_dir(p.parent().unwrap().clone()) {
+                            debug!("Unable to remove the temp directory(yet): {}", e)
+                        };
                     };
                 }
                 self.model.downloaded_chunks.retain(|_, v| !v.is_empty());
