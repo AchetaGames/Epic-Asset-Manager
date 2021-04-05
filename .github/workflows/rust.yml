@@ -3,8 +3,12 @@ name: Rust
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
   pull_request:
     types: [assigned, opened, synchronize, reopened]
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
 
 env:
