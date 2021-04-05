@@ -11,4 +11,4 @@ A frontend to Assets purchased on Epic Games Store
 ![Screenshot from 2021-03-10 17-23-19](https://user-images.githubusercontent.com/252905/110662850-30f80380-81c6-11eb-8a3e-c5af9c2f2559.png)
 
 ## Action video 
-[![Youtube Video](https://img.youtube.com/vi/LiVCnebhiNQ/maxresdefault.jpg)](https://youtu.be/LiVCnebhiNQ)
+[![Youtube Video](https://img.youtube.com/vi/mF0RGK5LglE/maxresdefault.jpg)](https://youtu.be/mF0RGK5LglE)
