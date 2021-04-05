@@ -1444,7 +1444,7 @@ impl Update for Win {
                                     self.model.file_pool.execute(move || {
                                         path.push(finished.name);
                                         fs::create_dir_all(path.parent().unwrap().clone()).unwrap();
-                                        match fs::OpenOptions::new().append(true).create(true).open(path.clone())
+                                        match File::create(path.clone())
                                         {
                                             Ok(mut target) => {
                                                 for chunk in finished.chunks {
