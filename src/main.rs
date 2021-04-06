@@ -49,6 +49,8 @@ struct Model {
     selected_asset: Option<String>,
     selected_files: HashMap<String, HashMap<String, Vec<String>>>,
     download_pool: ThreadPool,
+    thumbnail_pool: ThreadPool,
+    image_pool: ThreadPool,
     file_pool: ThreadPool,
     downloaded_chunks: HashMap<String, Vec<String>>,
     downloaded_files: HashMap<String, DownloadedFile>,
@@ -233,7 +235,7 @@ impl Widget for Win {
 
         match model.configuration.user_data {
             None => {
-                webview.load_uri("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect");
+                relm.stream().emit(ui::messages::Msg::ShowLogin);
             }
             Some(_) => {
                 relm.stream().emit(ui::messages::Msg::Relogin);
