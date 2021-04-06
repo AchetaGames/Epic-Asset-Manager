@@ -573,6 +573,7 @@ impl Update for Win {
                         .asset_download_widgets
                         .asset_download_content
                         .add(&scrolled_window);
+                    self.recreate_download_buttons();
                     self.widgets
                         .asset_download_widgets
                         .download_all
@@ -986,57 +987,8 @@ impl Update for Win {
                     };
                 };
 
-                // Remove all download buttons
-                self.widgets
-                    .asset_download_widgets
-                    .asset_download_actions_box
-                    .foreach(|el| {
-                        self.widgets
-                            .asset_download_widgets
-                            .asset_download_actions_box
-                            .remove(el)
-                    });
+                self.recreate_download_buttons();
 
-                self.widgets.asset_download_widgets.download_all =
-                    Some(Button::with_label("Download All"));
-                self.widgets.asset_download_widgets.download_selected =
-                    Some(Button::with_label("Download Selected"));
-                self.widgets
-                    .asset_download_widgets
-                    .download_all
-                    .as_ref()
-                    .unwrap()
-                    .set_sensitive(false);
-                self.widgets
-                    .asset_download_widgets
-                    .download_selected
-                    .as_ref()
-                    .unwrap()
-                    .set_sensitive(false);
-                self.widgets
-                    .asset_download_widgets
-                    .asset_download_actions_box
-                    .add(
-                        self.widgets
-                            .asset_download_widgets
-                            .download_selected
-                            .as_ref()
-                            .unwrap(),
-                    );
-                self.widgets
-                    .asset_download_widgets
-                    .asset_download_actions_box
-                    .add(
-                        self.widgets
-                            .asset_download_widgets
-                            .download_all
-                            .as_ref()
-                            .unwrap(),
-                    );
-                self.widgets
-                    .asset_download_widgets
-                    .asset_download_actions_box
-                    .show_all();
                 self.widgets
                     .logged_in_stack
                     .set_visible_child_name(if enabled {
@@ -1499,7 +1451,9 @@ impl Update for Win {
                         p.push("temp");
                         p.push(format!("{}.chunk", chunk));
                         debug!("Removing chunk {}", p.as_path().to_str().unwrap());
-                        fs::remove_file(p.clone()).expect("Unable to remove chunk file");
+                        if let Err(e) = fs::remove_file(p.clone()) {
+                            error!("Unable to remove chunk file: {}", e);
+                        };
                         if let Err(e) = fs::remove_dir(p.parent().unwrap().clone()) {
                             debug!("Unable to remove the temp directory(yet): {}", e)
                         };
@@ -1549,5 +1503,60 @@ impl Update for Win {
             event,
             start.elapsed()
         );
+    }
+}
+
+impl Win {
+    fn recreate_download_buttons(&mut self) {
+        // Remove all download buttons
+        self.widgets
+            .asset_download_widgets
+            .asset_download_actions_box
+            .foreach(|el| {
+                self.widgets
+                    .asset_download_widgets
+                    .asset_download_actions_box
+                    .remove(el)
+            });
+
+        self.widgets.asset_download_widgets.download_all = Some(Button::with_label("Download All"));
+        self.widgets.asset_download_widgets.download_selected =
+            Some(Button::with_label("Download Selected"));
+        self.widgets
+            .asset_download_widgets
+            .download_all
+            .as_ref()
+            .unwrap()
+            .set_sensitive(false);
+        self.widgets
+            .asset_download_widgets
+            .download_selected
+            .as_ref()
+            .unwrap()
+            .set_sensitive(false);
+        self.widgets
+            .asset_download_widgets
+            .asset_download_actions_box
+            .add(
+                self.widgets
+                    .asset_download_widgets
+                    .download_selected
+                    .as_ref()
+                    .unwrap(),
+            );
+        self.widgets
+            .asset_download_widgets
+            .asset_download_actions_box
+            .add(
+                self.widgets
+                    .asset_download_widgets
+                    .download_all
+                    .as_ref()
+                    .unwrap(),
+            );
+        self.widgets
+            .asset_download_widgets
+            .asset_download_actions_box
+            .show_all();
     }
 }
