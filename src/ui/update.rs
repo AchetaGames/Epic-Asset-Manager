@@ -378,7 +378,6 @@ impl Update for Win {
                                 Some(i) => {
                                     let mut _data = crate::MUTEX.lock().unwrap();
                                     sender.send((Some(i), b)).unwrap();
-                                    thread::sleep(std::time::Duration::from_millis(100));
                                 }
                             },
                         }
