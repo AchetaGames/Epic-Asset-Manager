@@ -108,6 +108,9 @@ impl Update for Win {
             }
             Msg::Logout => self.logout(),
             Msg::ShowLogin => self.show_login(),
+            Msg::DownloadFileValidated(asset_id, release, filename, manifest) => {
+                self.download_file_validated(asset_id, release, filename, manifest)
+            }
         }
         debug!(
             "{:?} - {} took {:?}",
