@@ -1,3 +1,6 @@
+pub(crate) mod chunks;
+pub(crate) mod images;
+
 use egs_api::api::types::download_manifest::FileChunkPart;
 
 #[derive(Default, Debug, Clone)]
