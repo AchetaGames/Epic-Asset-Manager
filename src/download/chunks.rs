@@ -116,6 +116,7 @@ impl Chunks for Win {
                                 fs::create_dir_all(path.parent().unwrap().clone()).unwrap();
                                 match File::create(path.clone()) {
                                     Ok(mut target) => {
+                                        let mut hasher = Sha1::new();
                                         for chunk in finished.chunks {
                                             let mut t = temp_path.clone();
                                             t.push(format!("{}.chunk", chunk.guid));
@@ -140,6 +141,10 @@ impl Chunks for Win {
                                                         error!("Chunk is not big enough");
                                                         break;
                                                     };
+                                                    hasher.update(
+                                                        &ch.data[chunk.offset as usize
+                                                            ..(chunk.offset + chunk.size) as usize],
+                                                    );
                                                     target
                                                         .write(
                                                             &ch.data[chunk.offset as usize
@@ -154,6 +159,14 @@ impl Chunks for Win {
                                             }
                                             debug!("chunk: {:?}", chunk);
                                         }
+                                        let hash = hasher.finalize();
+                                        if !finished.hash.eq(&hash
+                                            .iter()
+                                            .map(|b| format!("{:02x}", b))
+                                            .collect::<String>())
+                                        {
+                                            error!("Failed to validate hash on: {:?}", path);
+                                        };
                                         sender.send(chunk_file).unwrap();
                                     }
                                     Err(e) => {
@@ -364,6 +377,7 @@ impl Chunks for Win {
             release: release.clone(),
             name: filename.clone(),
             chunks: manifest.file_chunk_parts.clone(),
+            hash: manifest.file_hash,
             finished_chunks: vec![],
         };
         let full_filename = format!(
