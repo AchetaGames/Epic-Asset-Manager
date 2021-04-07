@@ -24,10 +24,8 @@ pub enum Msg {
     LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),
     ProcessAssetSelected,
-    FilterNone,
-    FilterSome(String),
-    Search,
-    ApplyFilter,
+    FilterAssets(Option<String>),
+    SearchAssets,
     BindAssetModel,
     PulseProgress,
     CloseDetails,
@@ -80,17 +78,11 @@ impl fmt::Display for Msg {
             Msg::ProcessAssetSelected => {
                 write!(f, "ProcessAssetSelected")
             }
-            Msg::FilterNone => {
-                write!(f, "FilterNone")
-            }
-            Msg::FilterSome(_) => {
+            Msg::FilterAssets(_) => {
                 write!(f, "FilterSome")
             }
-            Msg::Search => {
+            Msg::SearchAssets => {
                 write!(f, "Search")
-            }
-            Msg::ApplyFilter => {
-                write!(f, "ApplyFilter")
             }
             Msg::BindAssetModel => {
                 write!(f, "BindAssetModel")

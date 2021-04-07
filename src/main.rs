@@ -165,14 +165,14 @@ impl Widget for Win {
             relm,
             search,
             connect_search_changed(_),
-            ui::messages::Msg::Search
+            ui::messages::Msg::SearchAssets
         );
 
         connect!(
             relm,
             all_button,
             connect_clicked(_),
-            ui::messages::Msg::FilterNone
+            ui::messages::Msg::FilterAssets(None)
         );
         connect!(
             relm,
@@ -202,19 +202,19 @@ impl Widget for Win {
             relm,
             assets_button,
             connect_clicked(_),
-            ui::messages::Msg::FilterSome("assets".to_string())
+            ui::messages::Msg::FilterAssets(Some("assets".to_string()))
         );
         connect!(
             relm,
             plugins_button,
             connect_clicked(_),
-            ui::messages::Msg::FilterSome("plugins".to_string())
+            ui::messages::Msg::FilterAssets(Some("plugins".to_string()))
         );
         connect!(
             relm,
             games_button,
             connect_clicked(_),
-            ui::messages::Msg::FilterSome("games".to_string())
+            ui::messages::Msg::FilterAssets(Some("games".to_string()))
         );
         connect!(
             relm,
