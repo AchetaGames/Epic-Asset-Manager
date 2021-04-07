@@ -13,13 +13,14 @@ pub enum Msg {
     Quit,
     WebViewLoadFinished(LoadEvent),
     Login(String),
+    Logout,
+    ShowLogin,
     Relogin,
     LoginOk(UserData),
     ProcessAssetList(HashMap<String, Vec<String>>, HashMap<String, EpicAsset>),
     ProcessAssetInfo(AssetInfo),
     ProcessImage(Option<String>, Vec<u8>),
     DownloadImage(Option<String>, KeyImage),
-    #[allow(dead_code)]
     LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),
     ProcessAssetSelected,
@@ -135,6 +136,12 @@ impl fmt::Display for Msg {
             }
             Msg::ConfigurationDirectorySelectionChanged(_) => {
                 write!(f, "ConfigurationDirectorySelectionChanged")
+            }
+            Msg::Logout => {
+                write!(f, "Logout")
+            }
+            Msg::ShowLogin => {
+                write!(f, "ShowLogin")
             }
         }
     }

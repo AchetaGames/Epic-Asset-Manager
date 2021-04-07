@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::iter::FromIterator;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, thread};
 
 use byte_unit::Byte;
@@ -27,6 +27,7 @@ use tokio::runtime::Runtime;
 use webkit2gtk::{LoadEvent, WebResourceExt, WebViewExt};
 
 use crate::configuration::Configuration;
+use crate::configuration::Save;
 use crate::download::DownloadedFile;
 use crate::models::row_data::RowData;
 use crate::tools::asset_info::Search;
@@ -52,8 +53,10 @@ impl Update for Win {
             asset_model: crate::models::asset_model::Model::new(),
             selected_asset: None,
             selected_files: HashMap::new(),
-            download_pool: ThreadPool::new(5),
-            file_pool: ThreadPool::new(5),
+            download_pool: ThreadPool::with_name("Download Pool".to_string(), 5),
+            thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
+            image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
+            file_pool: ThreadPool::with_name("File Pool".to_string(), 5),
             downloaded_chunks: HashMap::new(),
             downloaded_files: HashMap::new(),
         }
@@ -167,6 +170,12 @@ impl Update for Win {
                     .set_visible_child_name("logged_in_stack");
 
                 let logout_button = Button::with_label("Logout");
+                connect!(
+                    self.model.relm,
+                    logout_button,
+                    connect_clicked(_),
+                    crate::ui::messages::Msg::Logout
+                );
                 let logged_in_box = Box::new(gtk::Orientation::Vertical, 0);
                 logged_in_box.add(&logout_button);
                 let login_name = MenuButton::new();
@@ -245,39 +254,50 @@ impl Update for Win {
 
                 let eg = self.model.epic_games.clone();
                 let mut fa: Vec<EpicAsset> = Vec::from_iter(am.values().cloned());
+                let user_data =
+                    Path::new(&self.model.configuration.path.clone().unwrap()).join("user.json");
                 thread::spawn(move || {
                     let start = std::time::Instant::now();
                     let pool = ThreadPool::new(3);
                     fa.sort_by(|a, b| a.app_name.cmp(&b.app_name));
                     for ass in fa.clone() {
+                        if !user_data.exists() {
+                            break;
+                        }
                         let mut e = eg.clone();
                         let s = sender.clone();
+                        let ud = user_data.clone();
                         pool.execute(move || {
-                            let start = std::time::Instant::now();
-                            match AssetInfo::load_from_cache(ass.catalog_item_id.clone(), None) {
-                                None => {
-                                    if let Some(asset) =
-                                        Runtime::new().unwrap().block_on(e.get_asset_info(ass))
-                                    {
-                                        asset.save(None, None);
+                            if ud.exists() {
+                                let start = std::time::Instant::now();
+                                match AssetInfo::load_from_cache(ass.catalog_item_id.clone(), None)
+                                {
+                                    None => {
+                                        if let Some(asset) =
+                                            Runtime::new().unwrap().block_on(e.get_asset_info(ass))
+                                        {
+                                            asset.save(None, None);
+                                            if let Ok(mut asset_info) =
+                                                crate::DATA.asset_info.write()
+                                            {
+                                                asset_info.insert(asset.id.clone(), asset.clone());
+                                            }
+                                            s.send(asset).unwrap();
+                                        };
+                                    }
+                                    Some(asset) => {
                                         if let Ok(mut asset_info) = crate::DATA.asset_info.write() {
                                             asset_info.insert(asset.id.clone(), asset.clone());
                                         }
                                         s.send(asset).unwrap();
-                                    };
-                                }
-                                Some(asset) => {
-                                    if let Ok(mut asset_info) = crate::DATA.asset_info.write() {
-                                        asset_info.insert(asset.id.clone(), asset.clone());
                                     }
-                                    s.send(asset).unwrap();
-                                }
-                            };
-                            debug!(
-                                "{:?} - Asset Info loading took {:?}",
-                                thread::current().id(),
-                                start.elapsed()
-                            );
+                                };
+                                debug!(
+                                    "{:?} - Asset Info loading took {:?}",
+                                    thread::current().id(),
+                                    start.elapsed()
+                                );
+                            }
                         });
                     }
                     debug!(
@@ -323,42 +343,50 @@ impl Update for Win {
                     stream.emit(crate::ui::messages::Msg::ProcessImage(id, b));
                 });
 
-                thread::spawn(move || {
-                    let start = std::time::Instant::now();
-                    match image.load() {
-                        None => {
-                            if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
-                                if let Ok(b) = response.bytes() {
-                                    image.save(Some(Vec::from(b.as_ref())), None);
-                                    match id {
-                                        None => {
-                                            sender.send((None, Vec::from(b.as_ref()))).unwrap();
-                                        }
-                                        Some(i) => {
-                                            let mut _data = crate::MUTEX.lock().unwrap();
-                                            sender.send((Some(i), Vec::from(b.as_ref()))).unwrap();
-                                            thread::sleep(std::time::Duration::from_millis(100));
+                let user_data =
+                    Path::new(&self.model.configuration.path.clone().unwrap()).join("user.json");
+                match id {
+                    None => &self.model.image_pool,
+                    Some(_) => &self.model.thumbnail_pool,
+                }
+                .execute(move || {
+                    if user_data.exists() {
+                        let start = std::time::Instant::now();
+                        match image.load() {
+                            None => {
+                                if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
+                                    if let Ok(b) = response.bytes() {
+                                        image.save(Some(Vec::from(b.as_ref())), None);
+                                        match id {
+                                            None => {
+                                                sender.send((None, Vec::from(b.as_ref()))).unwrap();
+                                            }
+                                            Some(i) => {
+                                                let mut _data = crate::MUTEX.lock().unwrap();
+                                                sender
+                                                    .send((Some(i), Vec::from(b.as_ref())))
+                                                    .unwrap();
+                                            }
                                         }
                                     }
+                                };
+                            }
+                            Some(b) => match id {
+                                None => {
+                                    sender.send((None, b)).unwrap();
                                 }
-                            };
+                                Some(i) => {
+                                    let mut _data = crate::MUTEX.lock().unwrap();
+                                    sender.send((Some(i), b)).unwrap();
+                                }
+                            },
                         }
-                        Some(b) => match id {
-                            None => {
-                                sender.send((None, b)).unwrap();
-                            }
-                            Some(i) => {
-                                let mut _data = crate::MUTEX.lock().unwrap();
-                                sender.send((Some(i), b)).unwrap();
-                                thread::sleep(std::time::Duration::from_millis(100));
-                            }
-                        },
+                        debug!(
+                            "{:?} - Image loading took {:?}",
+                            thread::current().id(),
+                            start.elapsed()
+                        );
                     }
-                    debug!(
-                        "{:?} - Image loading took {:?}",
-                        thread::current().id(),
-                        start.elapsed()
-                    );
                 });
             }
             crate::ui::messages::Msg::ProcessImage(asset_id, image) => match asset_id {
@@ -1495,6 +1523,37 @@ impl Update for Win {
                         }
                     }
                 }
+            }
+            Msg::Logout => {
+                self.widgets
+                    .title_right_box
+                    .foreach(|el| self.widgets.details_content.remove(el));
+                let stream = self.model.relm.stream().clone();
+                let (_channel, sender) = Channel::new(move |_| {
+                    stream.emit(crate::ui::messages::Msg::ShowLogin);
+                });
+
+                let mut eg = self.model.epic_games.clone();
+                thread::spawn(move || {
+                    let start = std::time::Instant::now();
+                    Runtime::new().unwrap().block_on(eg.logout());
+                    sender.send(true).unwrap();
+                    debug!(
+                        "{:?} - Logout requests took {:?}",
+                        thread::current().id(),
+                        start.elapsed()
+                    );
+                });
+            }
+            Msg::ShowLogin => {
+                self.widgets
+                    .title_right_box
+                    .foreach(|el| self.widgets.title_right_box.remove(el));
+                if let Some(ud) = &self.model.configuration.user_data {
+                    ud.remove(self.model.configuration.path.clone());
+                }
+
+                self.widgets.login_view.load_uri("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect");
             }
         }
         debug!(

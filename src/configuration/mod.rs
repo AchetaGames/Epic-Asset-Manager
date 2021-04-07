@@ -124,6 +124,9 @@ pub(crate) struct DirectoryConfiguration {
 }
 
 pub(crate) trait Save {
+    fn remove(&self, _path: Option<String>) {
+        todo!()
+    }
     fn save(&self, _path: Option<String>) {
         todo!()
     }
@@ -236,6 +239,18 @@ impl Save for UserData {
             }
         }
     }
+
+    fn remove(&self, path: Option<String>) {
+        match fs::remove_file(Path::new(&path.clone().unwrap()).join("user.json")) {
+            Ok(_) => {
+                info!("User Data Removed")
+            }
+            Err(e) => {
+                warn!("Unable to remove User Data: {}", e)
+            }
+        }
+    }
+
     fn load(path: Option<String>) -> Option<Self> {
         match File::open(Path::new(&path.clone().unwrap()).join("user.json")) {
             Ok(user_file) => {

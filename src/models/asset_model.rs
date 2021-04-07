@@ -62,6 +62,11 @@ impl Model {
             let pos = data
                 .binary_search_by(|probe| probe.id().to_lowercase().cmp(&obj.id().to_lowercase()))
                 .unwrap_or_else(|e| e);
+            if let Some(d) = data.get(pos) {
+                if d.id() == obj.id() {
+                    return;
+                }
+            };
             data.insert(pos, obj.clone());
             pos
         };
