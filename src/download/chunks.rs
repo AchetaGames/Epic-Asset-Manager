@@ -1,12 +1,15 @@
 use crate::download::DownloadedFile;
 use crate::Win;
-use relm::Channel;
-use std::collections::{HashMap, HashSet};
-use std::fs;
+use egs_api::api::types::download_manifest::FileManifestList;
+use relm::{Channel, Sender};
+use reqwest::Url;
+use sha1::{Digest, Sha1};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::iter::FromIterator;
 use std::path::PathBuf;
+use std::{fs, thread};
 
 pub(crate) trait Chunks {
     fn chunk_extraction_finished(&mut self, _file: String, _path: PathBuf) {
@@ -21,12 +24,23 @@ pub(crate) trait Chunks {
         unimplemented!()
     }
 
+    fn download_file_validated(
+        &mut self,
+        _asset_id: String,
+        _release: String,
+        _filename: String,
+        _manifest: FileManifestList,
+    ) {
+        unimplemented!()
+    }
+
     fn select_file_for_download(
         &mut self,
         _asset_id: String,
         _app_name: String,
         _filename: String,
     ) {
+        unimplemented!()
     }
 }
 
@@ -102,6 +116,7 @@ impl Chunks for Win {
                                 fs::create_dir_all(path.parent().unwrap().clone()).unwrap();
                                 match File::create(path.clone()) {
                                     Ok(mut target) => {
+                                        let mut hasher = Sha1::new();
                                         for chunk in finished.chunks {
                                             let mut t = temp_path.clone();
                                             t.push(format!("{}.chunk", chunk.guid));
@@ -126,6 +141,10 @@ impl Chunks for Win {
                                                         error!("Chunk is not big enough");
                                                         break;
                                                     };
+                                                    hasher.update(
+                                                        &ch.data[chunk.offset as usize
+                                                            ..(chunk.offset + chunk.size) as usize],
+                                                    );
                                                     target
                                                         .write(
                                                             &ch.data[chunk.offset as usize
@@ -140,6 +159,14 @@ impl Chunks for Win {
                                             }
                                             debug!("chunk: {:?}", chunk);
                                         }
+                                        let hash = hasher.finalize();
+                                        if !finished.hash.eq(&hash
+                                            .iter()
+                                            .map(|b| format!("{:02x}", b))
+                                            .collect::<String>())
+                                        {
+                                            error!("Failed to validate hash on: {:?}", path);
+                                        };
                                         sender.send(chunk_file).unwrap();
                                     }
                                     Err(e) => {
@@ -188,16 +215,6 @@ impl Chunks for Win {
             if let Some(dm) =
                 download_manifests.get(rel.id.clone().unwrap_or(asset_id.clone()).as_str())
             {
-                let mut chunks: HashSet<String> = HashSet::new();
-                let mut path = PathBuf::from(
-                    self.model
-                        .configuration
-                        .directories
-                        .unreal_vault_directory
-                        .clone(),
-                );
-                path.push(release.clone());
-                path.push("temp");
                 let files = if !all {
                     if let Some(map) = self.model.selected_files.get(&asset.id) {
                         if let Some(files) = map.get(&release) {
@@ -221,9 +238,12 @@ impl Chunks for Win {
                         .clone(),
                 );
                 target.push(release.clone());
+
+                // Save manifest files
+                let t = target.clone();
                 self.model.download_pool.execute(move || {
-                    fs::create_dir_all(target.clone()).expect("Unable to create target directory");
-                    match File::create(target.as_path().join("manifest.json")) {
+                    fs::create_dir_all(t.clone()).expect("Unable to create target directory");
+                    match File::create(t.as_path().join("manifest.json")) {
                         Ok(mut json_manifest_file) => {
                             json_manifest_file
                                 .write(
@@ -238,7 +258,7 @@ impl Chunks for Win {
                             error!("Unable to save Manifest: {:?}", e)
                         }
                     }
-                    match File::create(target.as_path().join("manifest")) {
+                    match File::create(t.as_path().join("manifest")) {
                         Ok(mut manifest_file) => {
                             manifest_file.write(&manifest.to_vec()).unwrap();
                         }
@@ -251,83 +271,55 @@ impl Chunks for Win {
                 for (filename, manifest) in dm.get_files() {
                     if let Some(file_list) = files {
                         if !file_list.contains(&filename) {
-                            continue;
+                            return;
                         }
                     }
-                    let downloaded = DownloadedFile {
-                        asset: asset.id.clone(),
-                        release: release.clone(),
-                        name: filename.clone(),
-                        chunks: manifest.file_chunk_parts.clone(),
-                        finished_chunks: vec![],
-                    };
-                    let full_filename = format!(
-                        "{}/{}/{}",
-                        asset.id.clone(),
-                        release.clone(),
-                        filename.clone()
-                    );
-                    self.model
-                        .downloaded_files
-                        .insert(full_filename.clone(), downloaded);
-                    for chunk in manifest.file_chunk_parts {
-                        match self.model.downloaded_chunks.get_mut(&chunk.guid) {
-                            None => {
-                                self.model
-                                    .downloaded_chunks
-                                    .insert(chunk.guid.clone(), vec![full_filename.clone()]);
-                            }
-                            Some(files) => files.push(full_filename.clone()),
-                        }
-                        if !chunks.contains(&chunk.guid) {
-                            let link = chunk.link.unwrap();
-                            let mut p = path.clone();
-                            let g = chunk.guid.clone();
-                            p.push(format!("{}.chunk", g));
-                            let sender = self
-                                .widgets
-                                .asset_download_widgets
-                                .download_progress_sender
-                                .clone();
-                            self.model.download_pool.execute(move || {
-                                debug!(
-                                    "Downloading chunk {} from {} to {:?}",
-                                    g,
-                                    link.to_string(),
-                                    p
-                                );
-                                fs::create_dir_all(p.parent().unwrap().clone()).unwrap();
-                                let mut client = reqwest::blocking::get(link).unwrap();
-                                let mut buffer: [u8; 1024] = [0; 1024];
-                                let mut downloaded: u128 = 0;
-                                let mut file = File::create(p).unwrap();
-                                loop {
-                                    match client.read(&mut buffer) {
-                                        Ok(size) => {
-                                            if size > 0 {
-                                                downloaded += size as u128;
-                                                file.write(&buffer[0..size]).unwrap();
-                                                sender
-                                                    .send((g.clone(), size as u128, false))
-                                                    .unwrap();
-                                            } else {
-                                                break;
-                                            }
-                                        }
-                                        Err(e) => {
-                                            error!("Download error: {:?}", e);
+                    let stream = self.model.relm.stream().clone();
+                    let a_id = asset.id.clone();
+                    let r_id = release.clone();
+                    let f_name = filename.clone();
+                    let (_channel, sender) = Channel::new(move |m| {
+                        stream.emit(crate::ui::messages::Msg::DownloadFileValidated(
+                            a_id.clone(),
+                            r_id.clone(),
+                            f_name.clone(),
+                            m,
+                        ))
+                    });
+
+                    let m = manifest.clone();
+                    let full_path = target.clone().as_path().join("data").join(filename);
+                    thread::spawn(move || match File::open(full_path.clone()) {
+                        Ok(mut f) => {
+                            let mut buffer: [u8; 1024] = [0; 1024];
+                            let mut hasher = Sha1::new();
+                            loop {
+                                match f.read(&mut buffer) {
+                                    Ok(size) => {
+                                        if size > 0 {
+                                            hasher.update(&buffer[..size]);
+                                        } else {
                                             break;
                                         }
                                     }
+                                    Err(_) => {}
                                 }
-                                sender.send((g.clone(), downloaded.clone(), true)).unwrap();
-                            });
-
-                            chunks.insert(chunk.guid.clone());
+                            }
+                            let hash = hasher.finalize();
+                            if !m.file_hash.eq(&hash
+                                .iter()
+                                .map(|b| format!("{:02x}", b))
+                                .collect::<String>())
+                            {
+                                warn!("Hashes do not match, downloading again: {:?}", full_path);
+                                sender.send(m).unwrap();
+                            };
                         }
-                    }
+                        Err(_) => {
+                            sender.send(m).unwrap();
+                        }
+                    });
                 }
-                return;
             }
         };
     }
@@ -361,5 +353,97 @@ impl Chunks for Win {
                 }
             },
         };
+    }
+
+    fn download_file_validated(
+        &mut self,
+        asset_id: String,
+        release: String,
+        filename: String,
+        manifest: FileManifestList,
+    ) {
+        let mut path = PathBuf::from(
+            self.model
+                .configuration
+                .directories
+                .unreal_vault_directory
+                .clone(),
+        );
+
+        path.push(release.clone());
+        path.push("temp");
+        let downloaded = DownloadedFile {
+            asset: asset_id.clone(),
+            release: release.clone(),
+            name: filename.clone(),
+            chunks: manifest.file_chunk_parts.clone(),
+            hash: manifest.file_hash,
+            finished_chunks: vec![],
+        };
+        let full_filename = format!(
+            "{}/{}/{}",
+            asset_id.clone(),
+            release.clone(),
+            filename.clone()
+        );
+        self.model
+            .downloaded_files
+            .insert(full_filename.clone(), downloaded);
+        for chunk in manifest.file_chunk_parts {
+            match self.model.downloaded_chunks.get_mut(&chunk.guid) {
+                None => {
+                    self.model
+                        .downloaded_chunks
+                        .insert(chunk.guid.clone(), vec![full_filename.clone()]);
+                    let link = chunk.link.unwrap();
+                    let mut p = path.clone();
+                    let g = chunk.guid.clone();
+                    p.push(format!("{}.chunk", g));
+                    let sender = self
+                        .widgets
+                        .asset_download_widgets
+                        .download_progress_sender
+                        .clone();
+                    self.model.download_pool.execute(move || {
+                        Win::perform_download(link, p, g, sender);
+                    });
+                }
+                Some(files) => files.push(full_filename.clone()),
+            }
+        }
+    }
+}
+
+impl Win {
+    fn perform_download(link: Url, p: PathBuf, g: String, sender: Sender<(String, u128, bool)>) {
+        debug!(
+            "Downloading chunk {} from {} to {:?}",
+            g,
+            link.to_string(),
+            p
+        );
+        fs::create_dir_all(p.parent().unwrap().clone()).unwrap();
+        let mut client = reqwest::blocking::get(link).unwrap();
+        let mut buffer: [u8; 1024] = [0; 1024];
+        let mut downloaded: u128 = 0;
+        let mut file = File::create(p).unwrap();
+        loop {
+            match client.read(&mut buffer) {
+                Ok(size) => {
+                    if size > 0 {
+                        downloaded += size as u128;
+                        file.write(&buffer[0..size]).unwrap();
+                        sender.send((g.clone(), size as u128, false)).unwrap();
+                    } else {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    error!("Download error: {:?}", e);
+                    break;
+                }
+            }
+        }
+        sender.send((g.clone(), downloaded.clone(), true)).unwrap();
     }
 }

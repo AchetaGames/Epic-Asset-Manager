@@ -1,6 +1,6 @@
 use core::fmt;
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
-use egs_api::api::types::download_manifest::DownloadManifest;
+use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
 use relm_derive::Msg;
@@ -37,6 +37,7 @@ pub enum Msg {
     ToggleAssetDownloadDetails,
     SelectForDownload(String, String, String),
     DownloadAssets(bool, String, String),
+    DownloadFileValidated(String, String, String, FileManifestList),
     DownloadProgressReport(String, u128, bool),
     ExtractionFinished(String, PathBuf),
     ConfigurationDirectorySelectionChanged(String),
@@ -134,6 +135,9 @@ impl fmt::Display for Msg {
             }
             Msg::ShowLogin => {
                 write!(f, "ShowLogin")
+            }
+            Msg::DownloadFileValidated(_, _, _, _) => {
+                write!(f, "DownloadFileValidated")
             }
         }
     }

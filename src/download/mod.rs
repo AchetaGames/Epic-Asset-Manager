@@ -10,4 +10,5 @@ pub(crate) struct DownloadedFile {
     pub(crate) name: String,
     pub(crate) chunks: Vec<FileChunkPart>,
     pub(crate) finished_chunks: Vec<FileChunkPart>,
+    hash: String,
 }
