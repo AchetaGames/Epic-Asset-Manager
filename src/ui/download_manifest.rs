@@ -4,13 +4,16 @@ use crate::Win;
 use byte_unit::Byte;
 use egs_api::api::types::asset_info::ReleaseInfo;
 use egs_api::api::types::download_manifest::DownloadManifest;
+use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    GridBuilder, GridExt, IconSize, Label, LabelExt, ListBox, ListBoxRow, RevealerExt, StackExt,
-    ToggleButtonExt, WidgetExt,
+    Expander, ExpanderExt, GridBuilder, GridExt, IconSize, Label, LabelExt, ListBox, ListBoxRow,
+    RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
+use slab_tree::{NodeRef, TreeBuilder};
+use std::path::PathBuf;
 use std::thread;
 use tokio::runtime::Runtime;
 
@@ -134,9 +137,56 @@ impl DownloadManifests for Win {
                 .asset_download_info_box
                 .show_all();
             let files = dm.get_files();
-
             let list = ListBox::new();
-            for (file, manifest) in files {
+            let mut target = PathBuf::from(
+                self.model
+                    .configuration
+                    .directories
+                    .unreal_vault_directory
+                    .clone(),
+            );
+            target.push(dm.app_name_string.clone());
+            target.push("data");
+            println!("{:?}", target);
+            let mut file_list = files.keys().cloned().collect::<Vec<String>>();
+            file_list.sort();
+            let mut tree = TreeBuilder::new()
+                .with_root(dm.app_name_string.clone())
+                .build();
+
+            for file in file_list.clone() {
+                let mut node_id = tree.root_id().expect("root doesn't exist?");
+                let path = PathBuf::from(file);
+                'outer: for el in path.components() {
+                    let mut node = tree.get_mut(node_id).unwrap();
+                    if let Some(s) = el.as_os_str().to_str() {
+                        let comp = s.to_string();
+                        let n = node.as_ref();
+
+                        for child in n.children() {
+                            if comp.eq(child.data()) {
+                                node_id = child.node_id();
+                                continue 'outer;
+                            }
+                        }
+
+                        let child = node.append(comp.clone());
+                        node_id = child.node_id();
+                    }
+                }
+            }
+
+            let scrolled_window =
+                gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+            let tr = tree.root();
+            scrolled_window.add(&self.build_tree(id.clone(), tr.unwrap()));
+            for file in file_list {
+                let manifest = match files.get(file.as_str()) {
+                    None => {
+                        continue;
+                    }
+                    Some(m) => m,
+                };
                 let row = ListBoxRow::new();
                 row.set_widget_name(&file.clone());
                 let hbox = Box::new(gtk::Orientation::Horizontal, 5);
@@ -145,12 +195,17 @@ impl DownloadManifests for Win {
                 let asset_id = id.clone();
                 let app_name = dm.app_name_string.clone();
                 let filename = file.clone();
-                chbox.set_active(match self.model.selected_files.get(&asset_id) {
-                    None => false,
-                    Some(map) => match map.get(&app_name) {
+
+                chbox.set_active(if target.clone().as_path().join(file.clone()).exists() {
+                    true
+                } else {
+                    match self.model.selected_files.get(asset_id.as_str()) {
                         None => false,
-                        Some(files) => files.contains(&filename),
-                    },
+                        Some(map) => match map.get(app_name.as_str()) {
+                            None => false,
+                            Some(files) => files.contains(&filename),
+                        },
+                    }
                 });
                 connect!(
                     self.model.relm,
@@ -189,8 +244,7 @@ impl DownloadManifests for Win {
                 row.add(&hbox);
                 list.add(&row);
             }
-            let scrolled_window =
-                gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+
             scrolled_window.add(&list);
             scrolled_window.set_vexpand(true);
             scrolled_window.set_hexpand(true);
@@ -498,5 +552,72 @@ impl Win {
             .asset_download_widgets
             .asset_download_actions_box
             .show_all();
+    }
+
+    fn build_tree(&mut self, asset_id: String, parent: NodeRef<String>) -> Widget {
+        let mut path = parent
+            .ancestors()
+            .enumerate()
+            .map(|m| m.1.data().clone())
+            .collect::<Vec<String>>();
+        path.reverse();
+        path.push(parent.data().clone());
+        let mut target = PathBuf::from(
+            self.model
+                .configuration
+                .directories
+                .unreal_vault_directory
+                .clone(),
+        );
+
+        println!("{:?}", path);
+        let mut p = path.clone();
+        let mut app_name: String = String::new();
+        if p.len() > 0 {
+            if let Some(app) = p.get(0) {
+                app_name = app.clone();
+                target.push(app_name.clone());
+            };
+            p.remove(0);
+        };
+        let filename = p.join("/");
+
+        target.push("data");
+        let chbox = CheckButton::new();
+        chbox.set_valign(Align::Start);
+        let hbox = Box::new(gtk::Orientation::Horizontal, 0);
+        hbox.add(&chbox);
+        hbox.set_hexpand(true);
+        if parent.first_child().is_some() {
+            let expander = Expander::new(Some(parent.data()));
+            expander.set_label_fill(true);
+            let vbox = Box::new(gtk::Orientation::Vertical, 0);
+            for child in parent.children() {
+                vbox.add(&self.build_tree(asset_id.clone(), child));
+            }
+            vbox.set_margin_start(20);
+            expander.add(&vbox);
+            hbox.add(&expander);
+            hbox.upcast::<gtk::Widget>()
+        } else {
+            let label = Label::new(Some(parent.data()));
+            label.set_halign(Align::Start);
+            println!("{:?}", target);
+            chbox.set_active(
+                if target.clone().as_path().join(filename.clone()).exists() {
+                    true
+                } else {
+                    match self.model.selected_files.get(asset_id.as_str()) {
+                        None => false,
+                        Some(map) => match map.get(app_name.as_str()) {
+                            None => false,
+                            Some(files) => files.contains(&filename),
+                        },
+                    }
+                },
+            );
+            hbox.add(&label);
+            hbox.upcast::<gtk::Widget>()
+        }
     }
 }
