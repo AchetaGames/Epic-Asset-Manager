@@ -179,7 +179,8 @@ impl DownloadManifests for Win {
             let scrolled_window =
                 gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
             let tr = tree.root();
-            scrolled_window.add(&self.build_tree(id.clone(), tr.unwrap()));
+            let (asset_tree, _) = self.build_tree(id.clone(), tr.unwrap());
+            scrolled_window.add(&asset_tree);
             for file in file_list {
                 let manifest = match files.get(file.as_str()) {
                     None => {
@@ -554,7 +555,7 @@ impl Win {
             .show_all();
     }
 
-    fn build_tree(&mut self, asset_id: String, parent: NodeRef<String>) -> Widget {
+    fn build_tree(&mut self, asset_id: String, parent: NodeRef<String>) -> (Widget, bool) {
         let mut path = parent
             .ancestors()
             .enumerate()
@@ -592,13 +593,18 @@ impl Win {
             let expander = Expander::new(Some(parent.data()));
             expander.set_label_fill(true);
             let vbox = Box::new(gtk::Orientation::Vertical, 0);
+            let mut should_check = true;
             for child in parent.children() {
-                vbox.add(&self.build_tree(asset_id.clone(), child));
+                let (widget, checked) = self.build_tree(asset_id.clone(), child);
+                if !checked {
+                    should_check = false;
+                }
+                vbox.add(&widget);
             }
+            chbox.set_active(should_check);
             vbox.set_margin_start(20);
             expander.add(&vbox);
             hbox.add(&expander);
-            hbox.upcast::<gtk::Widget>()
         } else {
             let label = Label::new(Some(parent.data()));
             label.set_halign(Align::Start);
@@ -617,7 +623,7 @@ impl Win {
                 },
             );
             hbox.add(&label);
-            hbox.upcast::<gtk::Widget>()
         }
+        (hbox.upcast::<gtk::Widget>(), chbox.get_active())
     }
 }
