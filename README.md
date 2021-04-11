@@ -20,6 +20,7 @@ Use the [AUR package](https://aur.archlinux.org/packages/eam-git)
 rustup install stable
 rustup default stable
 ```
+ - Install dependencies: **gtk3 libsoup webkit2gtk**
  - Clone the repository
 ```
 git clone git@github.com:AchetaGames/Epic-Asset-Manager.git
