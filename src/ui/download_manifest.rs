@@ -12,7 +12,7 @@ use gtk::{
     RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
-use slab_tree::{NodeRef, TreeBuilder};
+use slab_tree::{NodeId, NodeRef, TreeBuilder};
 use std::path::PathBuf;
 use std::thread;
 use tokio::runtime::Runtime;
@@ -147,7 +147,6 @@ impl DownloadManifests for Win {
             );
             target.push(dm.app_name_string.clone());
             target.push("data");
-            println!("{:?}", target);
             let mut file_list = files.keys().cloned().collect::<Vec<String>>();
             file_list.sort();
             let mut tree = TreeBuilder::new()
@@ -179,7 +178,14 @@ impl DownloadManifests for Win {
             let scrolled_window =
                 gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
             let tr = tree.root();
-            let (asset_tree, _) = self.build_tree(id.clone(), tr.unwrap());
+            self.model.download_manifest_tree = TreeBuilder::new().with_root((None)).build();
+            self.model.download_manifest_handlers.clear();
+            self.model.download_manifest_file_details.clear();
+            let (asset_tree, _) = self.build_tree(
+                id.clone(),
+                tr.unwrap(),
+                self.model.download_manifest_tree.root_id().unwrap(),
+            );
             scrolled_window.add(&asset_tree);
             for file in file_list {
                 let manifest = match files.get(file.as_str()) {
@@ -208,16 +214,6 @@ impl DownloadManifests for Win {
                         },
                     }
                 });
-                connect!(
-                    self.model.relm,
-                    chbox,
-                    connect_toggled(_),
-                    crate::ui::messages::Msg::SelectForDownload(
-                        asset_id.clone(),
-                        app_name.clone(),
-                        filename.clone()
-                    )
-                );
                 hbox.add(&chbox);
                 let filename = Label::new(Some(&file.clone()));
                 filename.set_halign(Align::Fill);
@@ -555,60 +551,88 @@ impl Win {
             .show_all();
     }
 
-    fn build_tree(&mut self, asset_id: String, parent: NodeRef<String>) -> (Widget, bool) {
-        let mut path = parent
-            .ancestors()
-            .enumerate()
-            .map(|m| m.1.data().clone())
-            .collect::<Vec<String>>();
-        path.reverse();
-        path.push(parent.data().clone());
-        let mut target = PathBuf::from(
-            self.model
-                .configuration
-                .directories
-                .unreal_vault_directory
-                .clone(),
-        );
+    fn build_tree(
+        &mut self,
+        asset_id: String,
+        parent: NodeRef<String>,
+        checkbox_parent: NodeId,
+    ) -> (Widget, bool) {
+        let mut parent_check = self
+            .model
+            .download_manifest_tree
+            .get_mut(checkbox_parent)
+            .unwrap();
 
-        println!("{:?}", path);
-        let mut p = path.clone();
-        let mut app_name: String = String::new();
-        if p.len() > 0 {
-            if let Some(app) = p.get(0) {
-                app_name = app.clone();
-                target.push(app_name.clone());
-            };
-            p.remove(0);
-        };
-        let filename = p.join("/");
-
-        target.push("data");
         let chbox = CheckButton::new();
+        let chbox_id = parent_check.append(Some(chbox.clone())).node_id();
         chbox.set_valign(Align::Start);
         let hbox = Box::new(gtk::Orientation::Horizontal, 0);
         hbox.add(&chbox);
         hbox.set_hexpand(true);
         if parent.first_child().is_some() {
+            // Dealing with non file path segment
             let expander = Expander::new(Some(parent.data()));
             expander.set_label_fill(true);
             let vbox = Box::new(gtk::Orientation::Vertical, 0);
             let mut should_check = true;
             for child in parent.children() {
-                let (widget, checked) = self.build_tree(asset_id.clone(), child);
+                let (widget, checked) = self.build_tree(asset_id.clone(), child, chbox_id);
                 if !checked {
                     should_check = false;
                 }
                 vbox.add(&widget);
             }
             chbox.set_active(should_check);
+
+            let stream = (self.model.relm).stream().clone();
+            let handler = chbox.connect_toggled(move |_| {
+                let msg: Option<_> = ::relm::IntoOption::into_option(
+                    (crate::ui::messages::Msg::SelectForDownload(
+                        asset_id.clone(),
+                        None,
+                        None,
+                        chbox_id.clone(),
+                    )),
+                );
+                if let Some(msg) = msg {
+                    stream.emit(msg);
+                }
+            });
+            self.model
+                .download_manifest_handlers
+                .insert(chbox_id.clone(), handler);
             vbox.set_margin_start(20);
             expander.add(&vbox);
             hbox.add(&expander);
         } else {
+            let mut path = parent
+                .ancestors()
+                .enumerate()
+                .map(|m| m.1.data().clone())
+                .collect::<Vec<String>>();
+            path.reverse();
+            path.push(parent.data().clone());
+            let mut target = PathBuf::from(
+                self.model
+                    .configuration
+                    .directories
+                    .unreal_vault_directory
+                    .clone(),
+            );
+
+            let mut p = path.clone();
+            let mut app_name: String = String::new();
+            if p.len() > 0 {
+                if let Some(app) = p.get(0) {
+                    app_name = app.clone();
+                    target.push(app_name.clone());
+                };
+                p.remove(0);
+            };
+            let filename = p.join("/");
+            target.push("data");
             let label = Label::new(Some(parent.data()));
             label.set_halign(Align::Start);
-            println!("{:?}", target);
             chbox.set_active(
                 if target.clone().as_path().join(filename.clone()).exists() {
                     true
@@ -622,6 +646,28 @@ impl Win {
                     }
                 },
             );
+            self.model.download_manifest_file_details.insert(
+                chbox_id.clone(),
+                (asset_id.clone(), app_name.clone(), filename.clone()),
+            );
+            let stream = (self.model.relm).stream().clone();
+            let handler = chbox.connect_toggled(move |_| {
+                let msg: Option<_> = ::relm::IntoOption::into_option(
+                    (crate::ui::messages::Msg::SelectForDownload(
+                        asset_id.clone(),
+                        Some(app_name.clone()),
+                        Some(filename.clone()),
+                        chbox_id.clone(),
+                    )),
+                );
+                if let Some(msg) = msg {
+                    stream.emit(msg);
+                }
+            });
+            self.model
+                .download_manifest_handlers
+                .insert(chbox_id.clone(), handler);
+
             hbox.add(&label);
         }
         (hbox.upcast::<gtk::Widget>(), chbox.get_active())

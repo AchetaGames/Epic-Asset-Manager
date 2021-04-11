@@ -13,10 +13,10 @@ use std::{fs, str, thread};
 
 use egs_api::EpicGames;
 use gtk::{
-    prelude::BuilderExtManual, Box, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText,
-    ContainerExt, FileChooserButton, FileChooserButtonExt, FileChooserExt, FlowBox, FlowBoxExt,
-    GtkWindowExt, Image, Inhibit, Label, ProgressBar, Revealer, SearchEntry, SearchEntryExt, Stack,
-    WidgetExt, Window,
+    prelude::BuilderExtManual, Box, Builder, Button, ButtonExt, CheckButton, ComboBoxExt,
+    ComboBoxText, ContainerExt, FileChooserButton, FileChooserButtonExt, FileChooserExt, FlowBox,
+    FlowBoxExt, GtkWindowExt, Image, Inhibit, Label, ProgressBar, Revealer, SearchEntry,
+    SearchEntryExt, Stack, WidgetExt, Window,
 };
 use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,8 @@ use webkit2gtk::{WebView, WebViewExt};
 use crate::api_data::ApiData;
 use crate::configuration::Configuration;
 use crate::download::DownloadedFile;
+use glib::SignalHandlerId;
+use slab_tree::{NodeId, Tree};
 
 mod api_data;
 mod configuration;
@@ -40,7 +42,6 @@ lazy_static! {
     static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
 }
 
-#[derive(Clone)]
 struct Model {
     relm: Relm<Win>,
     epic_games: EpicGames,
@@ -54,6 +55,9 @@ struct Model {
     file_pool: ThreadPool,
     downloaded_chunks: HashMap<String, Vec<String>>,
     downloaded_files: HashMap<String, DownloadedFile>,
+    download_manifest_tree: Tree<(Option<CheckButton>)>,
+    download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
+    download_manifest_file_details: HashMap<NodeId, (String, String, String)>,
 }
 
 // Create the structure that holds the widgets used in the view.
