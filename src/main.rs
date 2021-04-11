@@ -55,7 +55,7 @@ struct Model {
     file_pool: ThreadPool,
     downloaded_chunks: HashMap<String, Vec<String>>,
     downloaded_files: HashMap<String, DownloadedFile>,
-    download_manifest_tree: Tree<(Option<CheckButton>)>,
+    download_manifest_tree: Tree<Option<CheckButton>>,
     download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
     download_manifest_file_details: HashMap<NodeId, (String, String, String)>,
 }

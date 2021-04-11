@@ -3,13 +3,13 @@ use crate::tools::or::Or;
 use crate::Win;
 use byte_unit::Byte;
 use egs_api::api::types::asset_info::ReleaseInfo;
-use egs_api::api::types::download_manifest::{DownloadManifest, FileChunkPart, FileManifestList};
+use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    Expander, ExpanderExt, GridBuilder, GridExt, IconSize, Label, LabelExt, ListBox, ListBoxRow,
-    Overlay, OverlayExt, RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
+    Expander, GridBuilder, GridExt, IconSize, Label, LabelExt, RevealerExt, StackExt,
+    ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
 use slab_tree::{NodeId, NodeRef, TreeBuilder};
@@ -138,7 +138,6 @@ impl DownloadManifests for Win {
                 .asset_download_info_box
                 .show_all();
             let files = dm.get_files();
-            let list = ListBox::new();
             let mut target = PathBuf::from(
                 self.model
                     .configuration
@@ -179,7 +178,7 @@ impl DownloadManifests for Win {
             let scrolled_window =
                 gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
             let tr = tree.root();
-            self.model.download_manifest_tree = TreeBuilder::new().with_root((None)).build();
+            self.model.download_manifest_tree = TreeBuilder::new().with_root(None).build();
             self.model.download_manifest_handlers.clear();
             self.model.download_manifest_file_details.clear();
             let (asset_tree, _, _) = self.build_tree(
@@ -552,14 +551,13 @@ impl Win {
 
             let stream = (self.model.relm).stream().clone();
             let handler = chbox.connect_toggled(move |_| {
-                let msg: Option<_> = ::relm::IntoOption::into_option(
-                    (crate::ui::messages::Msg::SelectForDownload(
+                let msg: Option<_> =
+                    ::relm::IntoOption::into_option(crate::ui::messages::Msg::SelectForDownload(
                         asset_id.clone(),
                         None,
                         None,
                         chbox_id.clone(),
-                    )),
-                );
+                    ));
                 if let Some(msg) = msg {
                     stream.emit(msg);
                 }
@@ -639,14 +637,13 @@ impl Win {
             );
             let stream = (self.model.relm).stream().clone();
             let handler = chbox.connect_toggled(move |_| {
-                let msg: Option<_> = ::relm::IntoOption::into_option(
-                    (crate::ui::messages::Msg::SelectForDownload(
+                let msg: Option<_> =
+                    ::relm::IntoOption::into_option(crate::ui::messages::Msg::SelectForDownload(
                         asset_id.clone(),
                         Some(app_name.clone()),
                         Some(filename.clone()),
                         chbox_id.clone(),
-                    )),
-                );
+                    ));
                 if let Some(msg) = msg {
                     stream.emit(msg);
                 }
