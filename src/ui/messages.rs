@@ -4,6 +4,7 @@ use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList}
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
 use relm_derive::Msg;
+use slab_tree::NodeId;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use webkit2gtk::LoadEvent;
@@ -35,7 +36,7 @@ pub enum Msg {
     ShowAssetDownload(bool),
     DownloadVersionSelected,
     ToggleAssetDownloadDetails,
-    SelectForDownload(String, String, String),
+    SelectForDownload(String, Option<String>, Option<String>, NodeId),
     DownloadAssets(bool, String, String),
     DownloadFileValidated(String, String, String, FileManifestList),
     DownloadProgressReport(String, u128, bool),
@@ -115,7 +116,7 @@ impl fmt::Display for Msg {
             Msg::ToggleAssetDownloadDetails => {
                 write!(f, "ToggleAssetDownloadDetails")
             }
-            Msg::SelectForDownload(_, _, _) => {
+            Msg::SelectForDownload(_, _, _, _) => {
                 write!(f, "SelectForDownload")
             }
             Msg::DownloadAssets(_, _, _) => {

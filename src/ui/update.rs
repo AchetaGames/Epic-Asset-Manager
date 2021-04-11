@@ -14,6 +14,7 @@ use crate::ui::epic_assets::EpicAssets;
 use crate::ui::images::Images;
 use crate::ui::messages::Msg;
 use crate::{Model, Win};
+use slab_tree::TreeBuilder;
 
 impl Update for Win {
     // Specify the model used for this widget.
@@ -37,6 +38,9 @@ impl Update for Win {
             file_pool: ThreadPool::with_name("File Pool".to_string(), 5),
             downloaded_chunks: HashMap::new(),
             downloaded_files: HashMap::new(),
+            download_manifest_tree: TreeBuilder::new().with_root((None)).build(),
+            download_manifest_handlers: HashMap::new(),
+            download_manifest_file_details: HashMap::new(),
         }
     }
 
@@ -91,8 +95,8 @@ impl Update for Win {
             Msg::ShowAssetDownload(enabled) => self.show_asset_download(enabled),
             Msg::DownloadVersionSelected => self.download_version_selected(),
             Msg::ToggleAssetDownloadDetails => self.toggle_download_details(),
-            Msg::SelectForDownload(asset_id, app_name, filename) => {
-                self.select_file_for_download(asset_id, app_name, filename)
+            Msg::SelectForDownload(asset_id, app_name, filename, chbox_id) => {
+                self.select_file_for_download(asset_id, app_name, filename, chbox_id)
             }
             Msg::DownloadAssets(all, asset_id, release) => {
                 self.chunk_init_download(all, asset_id, release)

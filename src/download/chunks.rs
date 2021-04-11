@@ -1,9 +1,12 @@
 use crate::download::DownloadedFile;
 use crate::Win;
 use egs_api::api::types::download_manifest::FileManifestList;
+use glib::ObjectExt;
+use gtk::{CheckButton, ToggleButtonExt};
 use relm::{Channel, Sender};
 use reqwest::Url;
 use sha1::{Digest, Sha1};
+use slab_tree::{NodeId, NodeMut, NodeRef, Tree, TreeBuilder};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -37,8 +40,9 @@ pub(crate) trait Chunks {
     fn select_file_for_download(
         &mut self,
         _asset_id: String,
-        _app_name: String,
-        _filename: String,
+        _app_name: Option<String>,
+        _filename: Option<String>,
+        _chbox_id: NodeId,
     ) {
         unimplemented!()
     }
@@ -216,6 +220,7 @@ impl Chunks for Win {
                 download_manifests.get(rel.id.clone().unwrap_or(asset_id.clone()).as_str())
             {
                 let files = if !all {
+                    debug!("Not downloading all");
                     if let Some(map) = self.model.selected_files.get(&asset.id) {
                         if let Some(files) = map.get(&release) {
                             Some(files)
@@ -269,11 +274,13 @@ impl Chunks for Win {
                 });
 
                 for (filename, manifest) in dm.get_files() {
+                    debug!("Checking download {}", filename);
                     if let Some(file_list) = files {
                         if !file_list.contains(&filename) {
-                            return;
+                            continue;
                         }
                     }
+                    info!("Starting download of {}", filename);
                     let stream = self.model.relm.stream().clone();
                     let a_id = asset.id.clone();
                     let r_id = release.clone();
@@ -324,35 +331,52 @@ impl Chunks for Win {
         };
     }
 
-    fn select_file_for_download(&mut self, asset_id: String, app_name: String, filename: String) {
-        match self.model.selected_files.get_mut(&asset_id) {
+    fn select_file_for_download(
+        &mut self,
+        asset_id: String,
+        app_name: Option<String>,
+        filename: Option<String>,
+        chbox_id: NodeId,
+    ) {
+        let mut ch = true;
+        match app_name {
+            // We received checked from a non file node
             None => {
-                self.model.selected_files.insert(
-                    asset_id,
-                    HashMap::from_iter(
-                        [(app_name, vec![filename])]
-                            .iter()
-                            .cloned()
-                            .collect::<HashMap<String, Vec<String>>>(),
-                    ),
-                );
-            }
-            Some(map) => match map.get_mut(&app_name) {
-                None => {
-                    map.insert(app_name, vec![filename]);
-                }
-                Some(files) => {
-                    match files.iter().position(|r| r.eq(&filename)) {
-                        None => {
-                            files.push(filename);
-                        }
-                        Some(i) => {
-                            files.remove(i);
-                        }
+                let mut changed_children: Vec<(String, String, String)> = Vec::new();
+                if let Some(chbox) = self.model.download_manifest_tree.get(chbox_id) {
+                    ch = match chbox.data() {
+                        Some(c) => c.clone().get_active(),
+                        _ => false,
                     };
+                    self.change_children_state(chbox, ch, &mut changed_children);
                 }
-            },
+                for (a_id, app_name, filename) in changed_children {
+                    self.toggle_file_for_download(
+                        a_id.clone(),
+                        app_name.clone(),
+                        filename.clone(),
+                        Some(ch),
+                    );
+                }
+            }
+            Some(a_name) => {
+                if let Some(f_name) = filename {
+                    ch = self.toggle_file_for_download(asset_id, a_name, f_name, None);
+                }
+            }
         };
+        if ch {
+            self.check_parents(chbox_id);
+        } else {
+            let mut bool_tree: Tree<(bool, Option<NodeId>)> =
+                TreeBuilder::new().with_root((false, None)).build();
+            build_bool_tree(
+                self.model.download_manifest_tree.root().unwrap(),
+                bool_tree.root_mut().unwrap(),
+                chbox_id,
+            );
+            self.uncheck_boxes(bool_tree.root().unwrap(), chbox_id, false)
+        }
     }
 
     fn download_file_validated(
@@ -445,5 +469,210 @@ impl Win {
             }
         }
         sender.send((g.clone(), downloaded.clone(), true)).unwrap();
+    }
+
+    fn check_parents(&self, nid: NodeId) {
+        if let Some(chbox) = self.model.download_manifest_tree.get(nid) {
+            if let Some(parent) = chbox.parent() {
+                let mut all_checked = true;
+
+                for child in parent.children() {
+                    if let Some(ch) = child.data() {
+                        if !ch.clone().get_active() {
+                            all_checked = false;
+                            break;
+                        }
+                    }
+                }
+                if all_checked {
+                    if let Some(p) = parent.data() {
+                        if let Some(handler) =
+                            self.model.download_manifest_handlers.get(&parent.node_id())
+                        {
+                            let parent_chbox = p.clone();
+                            parent_chbox.block_signal(handler);
+                            parent_chbox.clone().set_active(all_checked);
+                            parent_chbox.unblock_signal(handler);
+                        }
+                    }
+                }
+                self.check_parents(parent.node_id());
+            }
+        }
+    }
+
+    fn change_children_state(
+        &self,
+        parent: NodeRef<Option<CheckButton>>,
+        new_state: bool,
+        filechanges: &mut Vec<(String, String, String)>,
+    ) {
+        for child in parent.children() {
+            if let Some(child_chbox) = child.data() {
+                if let Some(handler) = self.model.download_manifest_handlers.get(&child.node_id()) {
+                    child_chbox.block_signal(handler);
+                    child_chbox.clone().set_active(new_state);
+                    child_chbox.unblock_signal(handler);
+                    if child.first_child().is_none() {
+                        // dealing with file handle it
+                        if let Some((asset_id, app_name, filename)) = self
+                            .model
+                            .download_manifest_file_details
+                            .get(&child.node_id())
+                        {
+                            filechanges.push((
+                                asset_id.clone(),
+                                app_name.clone(),
+                                filename.clone(),
+                            ));
+                        }
+                    }
+                }
+            }
+            self.change_children_state(child, new_state, filechanges);
+        }
+    }
+
+    fn uncheck_boxes(
+        &mut self,
+        parent_bool: NodeRef<(bool, Option<NodeId>)>,
+        affected: NodeId,
+        found: bool,
+    ) {
+        for child in parent_bool.children() {
+            let mut f = found;
+            if let Some(nid) = child.data().1 {
+                if nid == affected {
+                    f = true
+                };
+                if let Some(ch) = self.model.download_manifest_tree.get(nid) {
+                    if let Some(chbox) = ch.data() {
+                        let checkbox = chbox.clone();
+
+                        if let Some(handler) = self.model.download_manifest_handlers.get(&nid) {
+                            checkbox.block_signal(handler);
+                            checkbox.set_active(child.data().0);
+                            checkbox.unblock_signal(handler);
+                            if f {
+                                if ch.first_child().is_none() {
+                                    let mut changed_children: Vec<(String, String, String)> =
+                                        Vec::new();
+                                    if let Some((asset_id, app_name, filename)) =
+                                        self.model.download_manifest_file_details.get(&nid)
+                                    {
+                                        changed_children.push((
+                                            asset_id.clone(),
+                                            app_name.clone(),
+                                            filename.clone(),
+                                        ));
+                                    }
+                                    for (a_id, app_name, filename) in changed_children {
+                                        self.toggle_file_for_download(
+                                            a_id.clone(),
+                                            app_name.clone(),
+                                            filename.clone(),
+                                            Some(false),
+                                        );
+                                    }
+                                }
+                            }
+                        };
+                    }
+                }
+            }
+            self.uncheck_boxes(child, affected, f);
+        }
+    }
+}
+
+fn build_bool_tree(
+    parent_master: NodeRef<Option<(CheckButton)>>,
+    mut parent_bool: NodeMut<(bool, Option<NodeId>)>,
+    affected_node: NodeId,
+) {
+    for child in parent_master.children() {
+        if child.node_id() == affected_node {
+            parent_bool.append((false, Some(child.node_id())));
+        } else {
+            let new = parent_bool.append((all_children_checked(&child), Some(child.node_id())));
+            build_bool_tree(child, new, affected_node);
+        };
+    }
+}
+
+fn all_children_checked(parent_master: &NodeRef<Option<(CheckButton)>>) -> bool {
+    if parent_master.first_child().is_none() {
+        if let Some(chbox) = parent_master.data() {
+            return chbox.clone().get_active();
+        }
+        false
+    } else {
+        let mut all_checked = true;
+        for child in parent_master.children() {
+            if !all_children_checked(&child) {
+                all_checked = false;
+            }
+        }
+        all_checked
+    }
+}
+
+impl Win {
+    fn toggle_file_for_download(
+        &mut self,
+        asset_id: String,
+        a_name: String,
+        f_name: String,
+        forced_state: Option<bool>,
+    ) -> bool {
+        let f_state = forced_state.unwrap_or(true);
+        let res = match self.model.selected_files.get_mut(&asset_id) {
+            None => {
+                if (forced_state.is_some() && f_state) || forced_state.is_none() {
+                    self.model.selected_files.insert(
+                        asset_id,
+                        HashMap::from_iter(
+                            [(a_name, vec![f_name])]
+                                .iter()
+                                .cloned()
+                                .collect::<HashMap<String, Vec<String>>>(),
+                        ),
+                    );
+                    true
+                } else {
+                    false
+                }
+            }
+            Some(map) => match map.get_mut(&a_name) {
+                None => {
+                    if (forced_state.is_some() && f_state) || forced_state.is_none() {
+                        map.insert(a_name, vec![f_name]);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                Some(files) => match files.iter().position(|r| r.eq(&f_name)) {
+                    None => {
+                        if (forced_state.is_some() && f_state) || forced_state.is_none() {
+                            files.push(f_name);
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    Some(i) => {
+                        if (forced_state.is_some() && !f_state) || forced_state.is_none() {
+                            files.remove(i);
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                },
+            },
+        };
+        println!("{:?}", self.model.selected_files);
+        res
     }
 }
