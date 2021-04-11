@@ -3,16 +3,17 @@ use crate::tools::or::Or;
 use crate::Win;
 use byte_unit::Byte;
 use egs_api::api::types::asset_info::ReleaseInfo;
-use egs_api::api::types::download_manifest::DownloadManifest;
+use egs_api::api::types::download_manifest::{DownloadManifest, FileChunkPart, FileManifestList};
 use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
     Expander, ExpanderExt, GridBuilder, GridExt, IconSize, Label, LabelExt, ListBox, ListBoxRow,
-    RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
+    Overlay, OverlayExt, RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
 use slab_tree::{NodeId, NodeRef, TreeBuilder};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread;
 use tokio::runtime::Runtime;
@@ -118,7 +119,7 @@ impl DownloadManifests for Win {
         if self.model.selected_asset == Some(id.clone()) {
             let size_box = Box::new(gtk::Orientation::Horizontal, 0);
             let size = dm.get_total_size();
-            let size_label = Label::new(Some("Total Size: "));
+            let size_label = Label::new(Some("Total Download Size: "));
             size_box.add(&size_label);
             size_label.set_halign(Align::Start);
             let size_d = Label::new(Some(
@@ -181,68 +182,13 @@ impl DownloadManifests for Win {
             self.model.download_manifest_tree = TreeBuilder::new().with_root((None)).build();
             self.model.download_manifest_handlers.clear();
             self.model.download_manifest_file_details.clear();
-            let (asset_tree, _) = self.build_tree(
+            let (asset_tree, _, _) = self.build_tree(
                 id.clone(),
                 tr.unwrap(),
                 self.model.download_manifest_tree.root_id().unwrap(),
+                &files,
             );
             scrolled_window.add(&asset_tree);
-            for file in file_list {
-                let manifest = match files.get(file.as_str()) {
-                    None => {
-                        continue;
-                    }
-                    Some(m) => m,
-                };
-                let row = ListBoxRow::new();
-                row.set_widget_name(&file.clone());
-                let hbox = Box::new(gtk::Orientation::Horizontal, 5);
-                let chbox = CheckButton::new();
-
-                let asset_id = id.clone();
-                let app_name = dm.app_name_string.clone();
-                let filename = file.clone();
-
-                chbox.set_active(if target.clone().as_path().join(file.clone()).exists() {
-                    true
-                } else {
-                    match self.model.selected_files.get(asset_id.as_str()) {
-                        None => false,
-                        Some(map) => match map.get(app_name.as_str()) {
-                            None => false,
-                            Some(files) => files.contains(&filename),
-                        },
-                    }
-                });
-                hbox.add(&chbox);
-                let filename = Label::new(Some(&file.clone()));
-                filename.set_halign(Align::Fill);
-                filename.set_hexpand(true);
-                filename.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-                filename.set_xalign(0.0);
-                hbox.add(&filename);
-                let size_label = Label::new(Some(
-                    &Byte::from_bytes(
-                        manifest
-                            .file_chunk_parts
-                            .iter()
-                            .map(|chunk| chunk.size)
-                            .sum(),
-                    )
-                    .get_appropriate_unit(false)
-                    .to_string(),
-                ));
-                size_label.set_size_request(50, -1);
-                size_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                size_label.set_xalign(1.0);
-
-                hbox.add(&size_label);
-
-                row.add(&hbox);
-                list.add(&row);
-            }
-
-            scrolled_window.add(&list);
             scrolled_window.set_vexpand(true);
             scrolled_window.set_hexpand(true);
             self.widgets
@@ -556,7 +502,8 @@ impl Win {
         asset_id: String,
         parent: NodeRef<String>,
         checkbox_parent: NodeId,
-    ) -> (Widget, bool) {
+        all_files: &HashMap<String, FileManifestList>,
+    ) -> (Widget, bool, u128) {
         let mut parent_check = self
             .model
             .download_manifest_tree
@@ -569,19 +516,38 @@ impl Win {
         let hbox = Box::new(gtk::Orientation::Horizontal, 0);
         hbox.add(&chbox);
         hbox.set_hexpand(true);
+        let mut size = 0u128;
         if parent.first_child().is_some() {
             // Dealing with non file path segment
+            let overlay = Box::new(gtk::Orientation::Horizontal, 0);
+            overlay.set_hexpand(true);
             let expander = Expander::new(Some(parent.data()));
-            expander.set_label_fill(true);
             let vbox = Box::new(gtk::Orientation::Vertical, 0);
+            vbox.set_margin_start(20);
+            expander.add(&vbox);
             let mut should_check = true;
             for child in parent.children() {
-                let (widget, checked) = self.build_tree(asset_id.clone(), child, chbox_id);
+                let (widget, checked, s) =
+                    self.build_tree(asset_id.clone(), child, chbox_id, all_files);
+                size += s;
                 if !checked {
                     should_check = false;
                 }
                 vbox.add(&widget);
             }
+            let size_label = Label::new(Some(
+                &Byte::from_bytes(size)
+                    .get_appropriate_unit(false)
+                    .to_string(),
+            ));
+            size_label.set_size_request(50, -1);
+            size_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            size_label.set_xalign(1.0);
+            size_label.set_valign(Align::Start);
+            size_label.set_halign(Align::End);
+            overlay.add(&expander);
+            overlay.add(&size_label);
+            hbox.add(&overlay);
             chbox.set_active(should_check);
 
             let stream = (self.model.relm).stream().clone();
@@ -601,15 +567,14 @@ impl Win {
             self.model
                 .download_manifest_handlers
                 .insert(chbox_id.clone(), handler);
-            vbox.set_margin_start(20);
-            expander.add(&vbox);
-            hbox.add(&expander);
         } else {
+            // Get full path
             let mut path = parent
                 .ancestors()
                 .enumerate()
                 .map(|m| m.1.data().clone())
                 .collect::<Vec<String>>();
+            // Reverse it because ancestors are in reverse order than we need it
             path.reverse();
             path.push(parent.data().clone());
             let mut target = PathBuf::from(
@@ -631,8 +596,30 @@ impl Win {
             };
             let filename = p.join("/");
             target.push("data");
+            size = match all_files.get(&filename) {
+                None => 0,
+                Some(manifest) => manifest
+                    .file_chunk_parts
+                    .iter()
+                    .map(|part| part.size)
+                    .sum::<u128>(),
+            };
             let label = Label::new(Some(parent.data()));
-            label.set_halign(Align::Start);
+            label.set_halign(Align::Fill);
+            label.set_hexpand(true);
+            label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+            label.set_xalign(0.0);
+            hbox.add(&label);
+            let size_label = Label::new(Some(
+                &Byte::from_bytes(size)
+                    .get_appropriate_unit(false)
+                    .to_string(),
+            ));
+            size_label.set_size_request(50, -1);
+            size_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            size_label.set_xalign(1.0);
+            hbox.add(&size_label);
+
             chbox.set_active(
                 if target.clone().as_path().join(filename.clone()).exists() {
                     true
@@ -667,9 +654,7 @@ impl Win {
             self.model
                 .download_manifest_handlers
                 .insert(chbox_id.clone(), handler);
-
-            hbox.add(&label);
         }
-        (hbox.upcast::<gtk::Widget>(), chbox.get_active())
+        (hbox.upcast::<gtk::Widget>(), chbox.get_active(), size)
     }
 }

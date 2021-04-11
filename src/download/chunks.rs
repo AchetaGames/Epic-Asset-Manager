@@ -489,7 +489,7 @@ impl Win {
                         if let Some(handler) =
                             self.model.download_manifest_handlers.get(&parent.node_id())
                         {
-                            let mut parent_chbox = p.clone();
+                            let parent_chbox = p.clone();
                             parent_chbox.block_signal(handler);
                             parent_chbox.clone().set_active(all_checked);
                             parent_chbox.unblock_signal(handler);
