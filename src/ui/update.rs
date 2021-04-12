@@ -38,7 +38,7 @@ impl Update for Win {
             file_pool: ThreadPool::with_name("File Pool".to_string(), 5),
             downloaded_chunks: HashMap::new(),
             downloaded_files: HashMap::new(),
-            download_manifest_tree: TreeBuilder::new().with_root((None)).build(),
+            download_manifest_tree: TreeBuilder::new().with_root(None).build(),
             download_manifest_handlers: HashMap::new(),
             download_manifest_file_details: HashMap::new(),
         }

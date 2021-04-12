@@ -586,7 +586,7 @@ impl Win {
 }
 
 fn build_bool_tree(
-    parent_master: NodeRef<Option<(CheckButton)>>,
+    parent_master: NodeRef<Option<CheckButton>>,
     mut parent_bool: NodeMut<(bool, Option<NodeId>)>,
     affected_node: NodeId,
 ) {
@@ -600,7 +600,7 @@ fn build_bool_tree(
     }
 }
 
-fn all_children_checked(parent_master: &NodeRef<Option<(CheckButton)>>) -> bool {
+fn all_children_checked(parent_master: &NodeRef<Option<CheckButton>>) -> bool {
     if parent_master.first_child().is_none() {
         if let Some(chbox) = parent_master.data() {
             return chbox.clone().get_active();
