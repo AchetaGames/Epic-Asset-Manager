@@ -1,5 +1,5 @@
 use egs_api::EpicGames;
-use gtk::{ProgressBarExt, RevealerExt, StackExt};
+use gtk::{ProgressBarExt, RevealerExt, StackExt, WidgetExt};
 use relm::{Relm, Update};
 use std::collections::HashMap;
 use std::thread;
@@ -99,6 +99,18 @@ impl Update for Win {
                 self.select_file_for_download(asset_id, app_name, filename, chbox_id)
             }
             Msg::DownloadAssets(all, asset_id, release) => {
+                self.widgets
+                    .asset_download_widgets
+                    .download_all
+                    .as_ref()
+                    .unwrap()
+                    .set_sensitive(false);
+                self.widgets
+                    .asset_download_widgets
+                    .download_selected
+                    .as_ref()
+                    .unwrap()
+                    .set_sensitive(false);
                 self.chunk_init_download(all, asset_id, release)
             }
             Msg::DownloadProgressReport(guid, progress, finished) => {
