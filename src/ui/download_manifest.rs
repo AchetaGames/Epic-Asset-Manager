@@ -8,8 +8,8 @@ use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    Expander, GridBuilder, GridExt, IconSize, Label, LabelExt, RevealerExt, StackExt,
-    ToggleButtonExt, Widget, WidgetExt,
+    Expander, GridBuilder, GridExt, IconSize, Label, LabelExt, Overlay, OverlayExt, RevealerExt,
+    StackExt, ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
 use slab_tree::{NodeId, NodeRef, TreeBuilder};
@@ -187,6 +187,7 @@ impl DownloadManifests for Win {
                 self.model.download_manifest_tree.root_id().unwrap(),
                 &files,
             );
+
             scrolled_window.add(&asset_tree);
             scrolled_window.set_vexpand(true);
             scrolled_window.set_hexpand(true);
@@ -518,7 +519,7 @@ impl Win {
         let mut size = 0u128;
         if parent.first_child().is_some() {
             // Dealing with non file path segment
-            let overlay = Box::new(gtk::Orientation::Horizontal, 0);
+            let overlay = Overlay::new();
             overlay.set_hexpand(true);
             let expander = Expander::new(Some(parent.data()));
             let vbox = Box::new(gtk::Orientation::Vertical, 0);
@@ -544,8 +545,8 @@ impl Win {
             size_label.set_xalign(1.0);
             size_label.set_valign(Align::Start);
             size_label.set_halign(Align::End);
+            overlay.add_overlay(&size_label);
             overlay.add(&expander);
-            overlay.add(&size_label);
             hbox.add(&overlay);
             chbox.set_active(should_check);
 
