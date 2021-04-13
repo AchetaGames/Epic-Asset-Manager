@@ -67,7 +67,7 @@ impl Assets for Win {
                     pixbuf_loader.close().ok();
                     gtkimage.set_from_pixbuf(
                         pixbuf_loader
-                            .get_pixbuf()
+                            .pixbuf()
                             .unwrap()
                             .scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
                             .as_ref(),
@@ -77,8 +77,8 @@ impl Assets for Win {
                 vbox.add(&gtkimage);
                 if let Some(title) = &data.title {
                     let label = Label::new(Some(title));
-                    label.set_property_wrap(true);
-                    label.set_property_expand(false);
+                    label.set_wrap(true);
+                    label.set_expand(false);
                     label.set_max_width_chars(15);
                     label.set_ellipsize(gtk::pango::EllipsizeMode::End);
                     label.set_tooltip_text(Some(title));
@@ -86,7 +86,7 @@ impl Assets for Win {
                     vbox.add(&label);
                 }
 
-                vbox.set_property_margin(10);
+                vbox.set_margin(10);
                 child.add(&vbox);
                 vbox.show_all();
                 debug!(
@@ -99,9 +99,9 @@ impl Assets for Win {
     }
 
     fn show_asset_details(&mut self) {
-        for child in self.widgets.asset_flow.get_selected_children() {
+        for child in self.widgets.asset_flow.selected_children() {
             if let Ok(ai) = crate::DATA.asset_info.read() {
-                if let Some(asset_info) = ai.get(child.get_widget_name().as_str()) {
+                if let Some(asset_info) = ai.get(child.widget_name().as_str()) {
                     self.widgets
                         .details_content
                         .foreach(|el| self.widgets.details_content.remove(el));
@@ -228,7 +228,7 @@ impl Assets for Win {
                     self.widgets.details_content.add(&vbox);
                     self.widgets.details_content.show_all();
 
-                    if !self.widgets.details_revealer.get_reveal_child() {
+                    if !self.widgets.details_revealer.reveals_child() {
                         self.widgets.details_revealer.set_reveal_child(true);
                     }
                 }
@@ -249,7 +249,7 @@ impl Assets for Win {
         self.widgets
             .asset_flow
             .set_filter_func(Some(std::boxed::Box::new(|child| -> bool {
-                let id = child.get_widget_name().to_string();
+                let id = child.widget_name().to_string();
                 match crate::DATA.asset_info.read() {
                     Ok(asset_info) => match asset_info.get(&id) {
                         Some(ai) => {
@@ -271,7 +271,7 @@ impl Assets for Win {
     }
 
     fn search_assets(&mut self) {
-        let search = self.widgets.search.get_text().to_string();
+        let search = self.widgets.search.text().to_string();
         if let Ok(mut search_filter) = crate::DATA.search_filter.write() {
             if search.is_empty() {
                 *search_filter = None;
