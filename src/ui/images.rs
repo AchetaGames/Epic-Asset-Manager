@@ -42,11 +42,11 @@ impl Images for Win {
                 if image.len() > 0 {
                     pixbuf_loader.write(&image).unwrap();
                     pixbuf_loader.close().ok();
-                    let pixbuf = pixbuf_loader.get_pixbuf().unwrap();
-                    let width = pixbuf.get_width();
-                    let height = pixbuf.get_height();
+                    let pixbuf = pixbuf_loader.pixbuf().unwrap();
+                    let width = pixbuf.width();
+                    let height = pixbuf.height();
 
-                    let max_height = self.widgets.details_revealer.get_allocated_height();
+                    let max_height = self.widgets.details_revealer.allocated_height();
                     let width_percent = if max_height < 300 {
                         300.0
                     } else {
@@ -61,7 +61,7 @@ impl Images for Win {
                     let desired = (width as f64 * percent, height as f64 * percent);
                     gtkimage.set_from_pixbuf(
                         pixbuf_loader
-                            .get_pixbuf()
+                            .pixbuf()
                             .unwrap()
                             .scale_simple(
                                 desired.0.round() as i32,
@@ -70,7 +70,7 @@ impl Images for Win {
                             )
                             .as_ref(),
                     );
-                    gtkimage.set_property_expand(true);
+                    gtkimage.set_expand(true);
                     gtkimage.show_all();
                     self.widgets.image_stack.add(&gtkimage)
                 }
@@ -79,22 +79,17 @@ impl Images for Win {
     }
 
     fn next_image(&self) {
-        let total = self.widgets.image_stack.get_children().len() as i32;
+        let total = self.widgets.image_stack.children().len() as i32;
         if total > 0 {
-            let current = self.widgets.image_stack.get_visible_child().unwrap();
+            let current = self.widgets.image_stack.visible_child().unwrap();
             let pos = self.widgets.image_stack.get_child_position(&current);
 
             if pos + 1 >= total {
-                if let Some(new) = self.widgets.image_stack.get_children().get(0) {
+                if let Some(new) = self.widgets.image_stack.children().get(0) {
                     self.widgets.image_stack.set_visible_child(new);
                 }
             } else {
-                if let Some(new) = self
-                    .widgets
-                    .image_stack
-                    .get_children()
-                    .get((pos + 1) as usize)
-                {
+                if let Some(new) = self.widgets.image_stack.children().get((pos + 1) as usize) {
                     self.widgets.image_stack.set_visible_child(new);
                 }
             };
@@ -102,21 +97,16 @@ impl Images for Win {
     }
 
     fn prev_image(&self) {
-        let total = self.widgets.image_stack.get_children().len() as i32;
+        let total = self.widgets.image_stack.children().len() as i32;
         if total > 0 {
-            let current = self.widgets.image_stack.get_visible_child().unwrap();
+            let current = self.widgets.image_stack.visible_child().unwrap();
             let pos = self.widgets.image_stack.get_child_position(&current);
             if pos - 1 < 0 {
-                if let Some(new) = self.widgets.image_stack.get_children().last() {
+                if let Some(new) = self.widgets.image_stack.children().last() {
                     self.widgets.image_stack.set_visible_child(new);
                 }
             } else {
-                if let Some(new) = self
-                    .widgets
-                    .image_stack
-                    .get_children()
-                    .get((pos - 1) as usize)
-                {
+                if let Some(new) = self.widgets.image_stack.children().get((pos - 1) as usize) {
                     self.widgets.image_stack.set_visible_child(new);
                 }
             };

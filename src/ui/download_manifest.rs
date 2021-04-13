@@ -304,7 +304,7 @@ impl DownloadManifests for Win {
             .widgets
             .asset_download_widgets
             .asset_version_combo
-            .get_active_id()
+            .active_id()
         {
             if let Some(asset_id) = &self.model.selected_asset {
                 if let Ok(ai) = crate::DATA.asset_info.read() {
@@ -314,7 +314,7 @@ impl DownloadManifests for Win {
                             .widgets
                             .asset_download_widgets
                             .asset_download_info_revealer
-                            .get_reveal_child()
+                            .reveals_child()
                         {
                             self.model
                                 .relm
@@ -421,7 +421,7 @@ impl DownloadManifests for Win {
                     .widgets
                     .asset_download_widgets
                     .asset_download_info_revealer
-                    .get_reveal_child()
+                    .reveals_child()
                 {
                     Some("gtk-go-down")
                 } else {
@@ -438,7 +438,7 @@ impl DownloadManifests for Win {
                     .widgets
                     .asset_download_widgets
                     .asset_download_info_revealer
-                    .get_reveal_child(),
+                    .reveals_child(),
             )
     }
 }
@@ -653,6 +653,6 @@ impl Win {
                 .download_manifest_handlers
                 .insert(chbox_id.clone(), handler);
         }
-        (hbox.upcast::<gtk::Widget>(), chbox.get_active(), size)
+        (hbox.upcast::<gtk::Widget>(), chbox.is_active(), size)
     }
 }

@@ -345,7 +345,7 @@ impl Chunks for Win {
                 let mut changed_children: Vec<(String, String, String)> = Vec::new();
                 if let Some(chbox) = self.model.download_manifest_tree.get(chbox_id) {
                     ch = match chbox.data() {
-                        Some(c) => c.clone().get_active(),
+                        Some(c) => c.clone().is_active(),
                         _ => false,
                     };
                     self.change_children_state(chbox, ch, &mut changed_children);
@@ -478,7 +478,7 @@ impl Win {
 
                 for child in parent.children() {
                     if let Some(ch) = child.data() {
-                        if !ch.clone().get_active() {
+                        if !ch.clone().is_active() {
                             all_checked = false;
                             break;
                         }
@@ -603,7 +603,7 @@ fn build_bool_tree(
 fn all_children_checked(parent_master: &NodeRef<Option<CheckButton>>) -> bool {
     if parent_master.first_child().is_none() {
         if let Some(chbox) = parent_master.data() {
-            return chbox.clone().get_active();
+            return chbox.clone().is_active();
         }
         false
     } else {

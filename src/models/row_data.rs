@@ -36,21 +36,21 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::string(
+                    glib::ParamSpec::new_string(
                         "data",
                         "Data",
                         "Data",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::string(
+                    glib::ParamSpec::new_string(
                         "id",
                         "ID",
                         "ID",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::string(
+                    glib::ParamSpec::new_string(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
@@ -70,7 +70,7 @@ mod imp {
             value: &glib::Value,
             pspec: &glib::ParamSpec,
         ) {
-            match pspec.get_name() {
+            match pspec.name() {
                 "data" => {
                     let data = value
                         .get()
@@ -99,7 +99,7 @@ mod imp {
             _id: usize,
             pspec: &glib::ParamSpec,
         ) -> glib::Value {
-            match pspec.get_name() {
+            match pspec.name() {
                 "data" => self.data.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),

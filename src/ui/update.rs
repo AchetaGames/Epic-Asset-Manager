@@ -75,10 +75,10 @@ impl Update for Win {
             Msg::BindAssetModel => self.bind_asset_model(),
             Msg::PulseProgress => {
                 self.widgets.loading_progress.set_fraction(
-                    self.widgets.loading_progress.get_fraction()
-                        + self.widgets.loading_progress.get_pulse_step(),
+                    self.widgets.loading_progress.fraction()
+                        + self.widgets.loading_progress.pulse_step(),
                 );
-                if (self.widgets.loading_progress.get_fraction() * 10000.0).round() / 10000.0 == 1.0
+                if (self.widgets.loading_progress.fraction() * 10000.0).round() / 10000.0 == 1.0
                 {
                     debug!("Hiding progress");
                     self.widgets.progress_revealer.set_reveal_child(false);

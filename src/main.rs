@@ -86,7 +86,7 @@ struct Widgets {
 impl Widgets {
     #[allow(dead_code)]
     fn get_window_size(&self) -> (i32, i32) {
-        self.window.get_size()
+        self.window.size()
     }
 }
 
@@ -228,7 +228,7 @@ impl Widget for Win {
         );
 
         let webview = WebView::new();
-        webview.set_property_expand(true);
+        webview.set_expand(true);
         connect!(
             relm,
             webview,

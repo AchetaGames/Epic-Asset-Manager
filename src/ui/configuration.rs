@@ -17,9 +17,9 @@ impl Configuration for Win {
             .directory_selectors
             .get(&selector)
             .unwrap()
-            .get_file()
+            .file()
         {
-            if let Some(path) = file.get_path() {
+            if let Some(path) = file.path() {
                 match selector.as_str() {
                     "ue_asset_vault_directory_selector" => {
                         self.model.configuration.directories.unreal_vault_directory =
