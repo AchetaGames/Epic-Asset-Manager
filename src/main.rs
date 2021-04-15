@@ -103,6 +103,7 @@ struct AssetDownloadDetails {
     asset_download_info_revealer: Revealer,
     asset_download_info_revealer_button_image: Image,
     download_asset_name: Label,
+    selected_files_size: Label,
     asset_download_content: Box,
     download_selected: Option<Button>,
     download_all: Option<Button>,
@@ -377,6 +378,7 @@ impl Widget for Win {
             asset_download_actions_box,
             download_progress_sender,
             download_all: None,
+            selected_files_size: Label::new(None),
         };
 
         window.show_all();
