@@ -1,4 +1,3 @@
-use crate::tools::image_stock::ImageExtCust;
 use crate::tools::or::Or;
 use crate::Win;
 use byte_unit::Byte;
@@ -8,8 +7,8 @@ use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    Expander, GridBuilder, GridExt, IconSize, Label, LabelExt, Overlay, OverlayExt, RevealerExt,
-    StackExt, ToggleButtonExt, Widget, WidgetExt,
+    Expander, GridBuilder, GridExt, IconSize, ImageExt, Label, LabelExt, Overlay, OverlayExt,
+    RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
 use slab_tree::{NodeId, NodeRef, TreeBuilder};
@@ -411,7 +410,7 @@ impl DownloadManifests for Win {
         self.widgets
             .asset_download_widgets
             .asset_download_info_revealer_button_image
-            .set_from_stock(
+            .set_from_icon_name(
                 if self
                     .widgets
                     .asset_download_widgets
