@@ -60,7 +60,7 @@ impl EpicAssets for Win {
                         match AssetInfo::load_from_cache(ass.catalog_item_id.clone(), None) {
                             None => {
                                 if let Some(asset) =
-                                    Runtime::new().unwrap().block_on(e.get_asset_info(ass))
+                                    Runtime::new().unwrap().block_on(e.asset_info(ass))
                                 {
                                     asset.save(None, None);
                                     if let Ok(mut asset_info) = crate::DATA.asset_info.write() {

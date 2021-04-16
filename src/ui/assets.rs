@@ -186,7 +186,7 @@ impl Assets for Win {
                     platforms_label.set_halign(Align::Start);
                     table.attach(&platforms_label, 0, 1, 1, 1);
                     let platforms = Label::new(Some(
-                        &asset_info.get_platforms().unwrap_or_default().join(", "),
+                        &asset_info.platforms().unwrap_or_default().join(", "),
                     ));
                     platforms.set_halign(Align::Start);
                     platforms.set_xalign(0.0);
@@ -196,7 +196,7 @@ impl Assets for Win {
                     comp_label.set_halign(Align::Start);
 
                     table.attach(&comp_label, 0, 2, 1, 1);
-                    if let Some(comp) = &asset_info.get_compatible_apps() {
+                    if let Some(comp) = &asset_info.compatible_apps() {
                         let compat = Label::new(Some(&comp.join(", ").replace("UE_", "")));
                         compat.set_halign(Align::Start);
                         compat.set_line_wrap(true);
