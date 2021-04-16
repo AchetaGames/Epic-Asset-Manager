@@ -208,7 +208,7 @@ impl Chunks for Win {
             }
         };
 
-        let rel = match asset.get_release_name(&release) {
+        let rel = match asset.release_name(&release) {
             None => {
                 return;
             }
@@ -273,7 +273,7 @@ impl Chunks for Win {
                     }
                 });
 
-                for (filename, manifest) in dm.get_files() {
+                for (filename, manifest) in dm.files() {
                     debug!("Checking download {}", filename);
                     if let Some(file_list) = files {
                         if !file_list.contains(&filename) {

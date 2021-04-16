@@ -88,24 +88,19 @@ impl DownloadManifests for Win {
         let mut eg = self.model.epic_games.clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
-            if let Some(manifest) = Runtime::new().unwrap().block_on(eg.get_asset_manifest(
+            if let Some(manifest) = Runtime::new().unwrap().block_on(eg.asset_manifest(
                 None,
                 None,
                 Some(asset.namespace),
                 Some(asset.id),
                 Some(release_info.app_id.unwrap_or_default()),
             )) {
-                for elem in manifest.elements {
-                    for man in elem.manifests {
-                        if let Ok(d) = Runtime::new()
-                            .unwrap()
-                            .block_on(eg.get_asset_download_manifest(man.clone()))
-                        {
-                            sender.send(d).unwrap();
-                            break;
-                        };
-                    }
-                }
+                if let Ok(d) = Runtime::new()
+                    .unwrap()
+                    .block_on(eg.asset_download_manifest(manifest))
+                {
+                    sender.send(d).unwrap();
+                };
             };
             debug!(
                 "{:?} - Download Manifest requests took {:?}",
@@ -118,7 +113,7 @@ impl DownloadManifests for Win {
     fn process_download_manifest(&mut self, id: String, dm: DownloadManifest) {
         if self.model.selected_asset == Some(id.clone()) {
             let size_box = Box::new(gtk::Orientation::Horizontal, 0);
-            let size = dm.get_total_size();
+            let size = dm.total_size();
             let size_label = Label::new(Some("Total Download Size: "));
             size_box.add(&size_label);
             size_label.set_halign(Align::Start);
@@ -137,7 +132,7 @@ impl DownloadManifests for Win {
                 .asset_download_widgets
                 .asset_download_info_box
                 .show_all();
-            let files = dm.get_files();
+            let files = dm.files();
             let mut target = PathBuf::from(
                 self.model
                     .configuration
@@ -258,7 +253,7 @@ impl DownloadManifests for Win {
                                 "<b><u><big>{}</big></u></b>",
                                 asset_info.title.clone().unwrap_or("Nothing".to_string())
                             ));
-                        if let Some(releases) = asset_info.get_sorted_releases() {
+                        if let Some(releases) = asset_info.sorted_releases() {
                             for (id, release) in releases.iter().enumerate() {
                                 self.widgets
                                     .asset_download_widgets
@@ -347,7 +342,7 @@ impl DownloadManifests for Win {
                             .valign(Align::Start)
                             .expand(false)
                             .build();
-                        if let Some(release) = asset_info.get_release_id(&id.to_string()) {
+                        if let Some(release) = asset_info.release_info(&id.to_string()) {
                             let mut line = 0;
                             if let Some(ref compatible) = release.compatible_apps {
                                 let versions_label = Label::new(Some("Supported versions:"));
