@@ -1,4 +1,3 @@
-use crate::tools::image_stock::ImageExtCust;
 use crate::tools::or::Or;
 use crate::Win;
 use byte_unit::Byte;
@@ -8,8 +7,8 @@ use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
 use gtk::{
     Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    Expander, GridBuilder, GridExt, IconSize, Label, LabelExt, Overlay, OverlayExt, RevealerExt,
-    StackExt, ToggleButtonExt, Widget, WidgetExt,
+    Expander, GridBuilder, GridExt, IconSize, ImageExt, Label, LabelExt, Overlay, OverlayExt,
+    RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
 };
 use relm::{connect, Channel};
 use slab_tree::{NodeId, NodeRef, TreeBuilder};
@@ -128,6 +127,23 @@ impl DownloadManifests for Win {
                 .asset_download_widgets
                 .asset_download_info_box
                 .add(&size_box);
+            let size_box = Box::new(gtk::Orientation::Horizontal, 0);
+            let size_label = Label::new(Some("Selected files Size: "));
+            size_box.add(&size_label);
+            size_label.set_halign(Align::Start);
+            self.widgets
+                .asset_download_widgets
+                .selected_files_size
+                .set_text("0");
+            self.widgets
+                .asset_download_widgets
+                .selected_files_size
+                .set_halign(Align::Start);
+            size_box.add(&self.widgets.asset_download_widgets.selected_files_size);
+            self.widgets
+                .asset_download_widgets
+                .asset_download_info_box
+                .add(&size_box);
             self.widgets
                 .asset_download_widgets
                 .asset_download_info_box
@@ -182,6 +198,15 @@ impl DownloadManifests for Win {
                 self.model.download_manifest_tree.root_id().unwrap(),
                 &files,
             );
+
+            self.widgets
+                .asset_download_widgets
+                .selected_files_size
+                .set_text(
+                    &Byte::from_bytes(self.model.selected_files_size)
+                        .get_appropriate_unit(false)
+                        .to_string(),
+                );
 
             scrolled_window.add(&asset_tree);
             scrolled_window.set_vexpand(true);
@@ -390,6 +415,7 @@ impl DownloadManifests for Win {
                             }
 
                             grid.show_all();
+                            self.model.selected_files_size = 0;
                             self.widgets
                                 .asset_download_widgets
                                 .asset_download_info_box
@@ -411,7 +437,7 @@ impl DownloadManifests for Win {
         self.widgets
             .asset_download_widgets
             .asset_download_info_revealer_button_image
-            .set_from_stock(
+            .set_from_icon_name(
                 if self
                     .widgets
                     .asset_download_widgets
@@ -546,6 +572,7 @@ impl Win {
             chbox.set_active(should_check);
 
             let stream = (self.model.relm).stream().clone();
+            let size_c = size.clone();
             let handler = chbox.connect_toggled(move |_| {
                 let msg: Option<_> =
                     ::relm::IntoOption::into_option(crate::ui::messages::Msg::SelectForDownload(
@@ -553,6 +580,7 @@ impl Win {
                         None,
                         None,
                         chbox_id.clone(),
+                        size_c,
                     ));
                 if let Some(msg) = msg {
                     stream.emit(msg);
@@ -616,22 +644,39 @@ impl Win {
 
             chbox.set_active(
                 if target.clone().as_path().join(filename.clone()).exists() {
+                    self.toggle_file_for_download(
+                        asset_id.clone(),
+                        app_name.clone(),
+                        filename.clone(),
+                        Some(true),
+                        size.clone(),
+                    );
                     true
                 } else {
-                    match self.model.selected_files.get(asset_id.as_str()) {
+                    let checked = match self.model.selected_files.get(asset_id.as_str()) {
                         None => false,
                         Some(map) => match map.get(app_name.as_str()) {
                             None => false,
                             Some(files) => files.contains(&filename),
                         },
+                    };
+                    if checked {
+                        self.model.selected_files_size += size;
                     }
+                    checked
                 },
             );
             self.model.download_manifest_file_details.insert(
                 chbox_id.clone(),
-                (asset_id.clone(), app_name.clone(), filename.clone()),
+                (
+                    asset_id.clone(),
+                    app_name.clone(),
+                    filename.clone(),
+                    size.clone(),
+                ),
             );
             let stream = (self.model.relm).stream().clone();
+            let size_c = size.clone();
             let handler = chbox.connect_toggled(move |_| {
                 let msg: Option<_> =
                     ::relm::IntoOption::into_option(crate::ui::messages::Msg::SelectForDownload(
@@ -639,6 +684,7 @@ impl Win {
                         Some(app_name.clone()),
                         Some(filename.clone()),
                         chbox_id.clone(),
+                        size_c,
                     ));
                 if let Some(msg) = msg {
                     stream.emit(msg);

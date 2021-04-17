@@ -41,6 +41,7 @@ impl Update for Win {
             download_manifest_tree: TreeBuilder::new().with_root(None).build(),
             download_manifest_handlers: HashMap::new(),
             download_manifest_file_details: HashMap::new(),
+            selected_files_size: 0
         }
     }
 
@@ -95,8 +96,8 @@ impl Update for Win {
             Msg::ShowAssetDownload(enabled) => self.show_asset_download(enabled),
             Msg::DownloadVersionSelected => self.download_version_selected(),
             Msg::ToggleAssetDownloadDetails => self.toggle_download_details(),
-            Msg::SelectForDownload(asset_id, app_name, filename, chbox_id) => {
-                self.select_file_for_download(asset_id, app_name, filename, chbox_id)
+            Msg::SelectForDownload(asset_id, app_name, filename, chbox_id, size) => {
+                self.select_file_for_download(asset_id, app_name, filename, chbox_id, size)
             }
             Msg::DownloadAssets(all, asset_id, release) => {
                 self.widgets

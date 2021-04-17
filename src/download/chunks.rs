@@ -1,8 +1,9 @@
 use crate::download::DownloadedFile;
 use crate::Win;
+use byte_unit::Byte;
 use egs_api::api::types::download_manifest::FileManifestList;
 use glib::ObjectExt;
-use gtk::{CheckButton, ToggleButtonExt};
+use gtk::{CheckButton, LabelExt, ToggleButtonExt};
 use relm::{Channel, Sender};
 use reqwest::Url;
 use sha1::{Digest, Sha1};
@@ -43,6 +44,7 @@ pub(crate) trait Chunks {
         _app_name: Option<String>,
         _filename: Option<String>,
         _chbox_id: NodeId,
+        _size: u128,
     ) {
         unimplemented!()
     }
@@ -337,12 +339,13 @@ impl Chunks for Win {
         app_name: Option<String>,
         filename: Option<String>,
         chbox_id: NodeId,
+        size: u128,
     ) {
         let mut ch = true;
         match app_name {
             // We received checked from a non file node
             None => {
-                let mut changed_children: Vec<(String, String, String)> = Vec::new();
+                let mut changed_children: Vec<(String, String, String, u128)> = Vec::new();
                 if let Some(chbox) = self.model.download_manifest_tree.get(chbox_id) {
                     ch = match chbox.data() {
                         Some(c) => c.clone().is_active(),
@@ -350,18 +353,20 @@ impl Chunks for Win {
                     };
                     self.change_children_state(chbox, ch, &mut changed_children);
                 }
-                for (a_id, app_name, filename) in changed_children {
+                for (a_id, app_name, filename, size) in changed_children {
                     self.toggle_file_for_download(
                         a_id.clone(),
                         app_name.clone(),
                         filename.clone(),
                         Some(ch),
+                        size,
                     );
                 }
             }
             Some(a_name) => {
+                // Selected files
                 if let Some(f_name) = filename {
-                    ch = self.toggle_file_for_download(asset_id, a_name, f_name, None);
+                    ch = self.toggle_file_for_download(asset_id, a_name, f_name, None, size);
                 }
             }
         };
@@ -377,6 +382,14 @@ impl Chunks for Win {
             );
             self.uncheck_boxes(bool_tree.root().unwrap(), chbox_id, false)
         }
+        self.widgets
+            .asset_download_widgets
+            .selected_files_size
+            .set_text(
+                &Byte::from_bytes(self.model.selected_files_size)
+                    .get_appropriate_unit(false)
+                    .to_string(),
+            )
     }
 
     fn download_file_validated(
@@ -505,7 +518,7 @@ impl Win {
         &self,
         parent: NodeRef<Option<CheckButton>>,
         new_state: bool,
-        filechanges: &mut Vec<(String, String, String)>,
+        filechanges: &mut Vec<(String, String, String, u128)>,
     ) {
         for child in parent.children() {
             if let Some(child_chbox) = child.data() {
@@ -515,7 +528,7 @@ impl Win {
                     child_chbox.unblock_signal(handler);
                     if child.first_child().is_none() {
                         // dealing with file handle it
-                        if let Some((asset_id, app_name, filename)) = self
+                        if let Some((asset_id, app_name, filename, size)) = self
                             .model
                             .download_manifest_file_details
                             .get(&child.node_id())
@@ -524,6 +537,7 @@ impl Win {
                                 asset_id.clone(),
                                 app_name.clone(),
                                 filename.clone(),
+                                size.clone(),
                             ));
                         }
                     }
@@ -555,23 +569,25 @@ impl Win {
                             checkbox.unblock_signal(handler);
                             if f {
                                 if ch.first_child().is_none() {
-                                    let mut changed_children: Vec<(String, String, String)> =
+                                    let mut changed_children: Vec<(String, String, String, u128)> =
                                         Vec::new();
-                                    if let Some((asset_id, app_name, filename)) =
+                                    if let Some((asset_id, app_name, filename, size)) =
                                         self.model.download_manifest_file_details.get(&nid)
                                     {
                                         changed_children.push((
                                             asset_id.clone(),
                                             app_name.clone(),
                                             filename.clone(),
+                                            size.clone(),
                                         ));
                                     }
-                                    for (a_id, app_name, filename) in changed_children {
+                                    for (a_id, app_name, filename, size) in changed_children {
                                         self.toggle_file_for_download(
                                             a_id.clone(),
                                             app_name.clone(),
                                             filename.clone(),
                                             Some(false),
+                                            size,
                                         );
                                     }
                                 }
@@ -618,12 +634,13 @@ fn all_children_checked(parent_master: &NodeRef<Option<CheckButton>>) -> bool {
 }
 
 impl Win {
-    fn toggle_file_for_download(
+    pub(crate) fn toggle_file_for_download(
         &mut self,
         asset_id: String,
         a_name: String,
         f_name: String,
         forced_state: Option<bool>,
+        size: u128,
     ) -> bool {
         let f_state = forced_state.unwrap_or(true);
         let res = match self.model.selected_files.get_mut(&asset_id) {
@@ -638,6 +655,7 @@ impl Win {
                                 .collect::<HashMap<String, Vec<String>>>(),
                         ),
                     );
+                    self.model.selected_files_size += size;
                     true
                 } else {
                     false
@@ -647,6 +665,7 @@ impl Win {
                 None => {
                     if (forced_state.is_some() && f_state) || forced_state.is_none() {
                         map.insert(a_name, vec![f_name]);
+                        self.model.selected_files_size += size;
                         true
                     } else {
                         false
@@ -656,6 +675,7 @@ impl Win {
                     None => {
                         if (forced_state.is_some() && f_state) || forced_state.is_none() {
                             files.push(f_name);
+                            self.model.selected_files_size += size;
                             true
                         } else {
                             false
@@ -664,6 +684,11 @@ impl Win {
                     Some(i) => {
                         if (forced_state.is_some() && !f_state) || forced_state.is_none() {
                             files.remove(i);
+                            self.model.selected_files_size =
+                                match self.model.selected_files_size.checked_sub(size) {
+                                    None => 0,
+                                    Some(v) => v,
+                                };
                             false
                         } else {
                             true
@@ -672,7 +697,6 @@ impl Win {
                 },
             },
         };
-        println!("{:?}", self.model.selected_files);
         res
     }
 }

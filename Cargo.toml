@@ -1,6 +1,6 @@
 [package]
 name = "epic_asset_manager"
-version = "1.0.8"
+version = "1.0.9"
 authors = ["Milan Stastny <milan@stastnej.ch>"]
 edition = "2018"
 
@@ -38,7 +38,7 @@ version = "1.0.123"
 features = ["derive"]
 
 [dependencies.egs-api]
-version = "0.3.0"
+version = "0.3"
 #git = "https://github.com/AchetaGames/egs-api-rs"
 #path = "../egs-api-rs"
 
