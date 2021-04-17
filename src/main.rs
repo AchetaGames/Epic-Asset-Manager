@@ -57,7 +57,8 @@ struct Model {
     downloaded_files: HashMap<String, DownloadedFile>,
     download_manifest_tree: Tree<Option<CheckButton>>,
     download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
-    download_manifest_file_details: HashMap<NodeId, (String, String, String)>,
+    download_manifest_file_details: HashMap<NodeId, (String, String, String, u128)>,
+    selected_files_size: u128,
 }
 
 // Create the structure that holds the widgets used in the view.

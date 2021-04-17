@@ -36,7 +36,7 @@ pub enum Msg {
     ShowAssetDownload(bool),
     DownloadVersionSelected,
     ToggleAssetDownloadDetails,
-    SelectForDownload(String, Option<String>, Option<String>, NodeId),
+    SelectForDownload(String, Option<String>, Option<String>, NodeId, u128),
     DownloadAssets(bool, String, String),
     DownloadFileValidated(String, String, String, FileManifestList),
     DownloadProgressReport(String, u128, bool),
@@ -116,7 +116,7 @@ impl fmt::Display for Msg {
             Msg::ToggleAssetDownloadDetails => {
                 write!(f, "ToggleAssetDownloadDetails")
             }
-            Msg::SelectForDownload(_, _, _, _) => {
+            Msg::SelectForDownload(_, _, _, _, _) => {
                 write!(f, "SelectForDownload")
             }
             Msg::DownloadAssets(_, _, _) => {
