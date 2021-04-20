@@ -23,7 +23,7 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v2
-      - uses: bilelmoussaoui/flatpak-github-actions@v3
+      - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v3
         with:
           bundle: epic_asset_manager.flatpak
           manifest-path: build-aux/io.github.achetagames.epic_asset_manager.Devel.json
