@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Terminal=false
+Exec=epic_asset_manager
+Name=Epic Asset Manager
+Comment=Epic Asset Manager used to manage assets from Epic Games Store
+Icon=input-gaming
+Categories=System;
+StartupWMClass=epic_asset_manager
+TryExec=epic_asset_manager

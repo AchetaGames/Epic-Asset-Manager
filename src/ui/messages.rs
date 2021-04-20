@@ -42,6 +42,8 @@ pub enum Msg {
     DownloadProgressReport(String, u128, bool),
     ExtractionFinished(String, PathBuf),
     ConfigurationDirectorySelectionChanged(String),
+    ConfigurationAddUnrealEngineDir(String),
+    ConfigurationRemoveUnrealEngineDir(String, String),
 }
 
 impl fmt::Display for Msg {
@@ -139,6 +141,12 @@ impl fmt::Display for Msg {
             }
             Msg::DownloadFileValidated(_, _, _, _) => {
                 write!(f, "DownloadFileValidated")
+            }
+            Msg::ConfigurationAddUnrealEngineDir(_) => {
+                write!(f, "ConfigurationAddUnrealEngineDir")
+            }
+            Msg::ConfigurationRemoveUnrealEngineDir(_, _) => {
+                write!(f, "ConfigurationRemoveUnrealEngineDir")
             }
         }
     }

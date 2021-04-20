@@ -94,6 +94,8 @@ impl Widgets {
 #[derive(Clone)]
 struct Settings {
     directory_selectors: HashMap<String, FileChooserButton>,
+    unreal_engine_directories_box: Box,
+    unreal_engine_project_directories_box: Box,
 }
 
 #[derive(Clone)]
@@ -301,15 +303,11 @@ impl Widget for Win {
         directory_selectors.insert("ue_asset_vault_directory_selector".into(), vault);
 
         let ue_dir: FileChooserButton = builder.get_object("ue_directory_selector").unwrap();
-        connect!(
-            relm,
-            ue_dir,
-            connect_file_set(_),
-            crate::ui::messages::Msg::ConfigurationDirectorySelectionChanged(
-                "ue_directory_selector".to_string()
-            )
-        );
         directory_selectors.insert("ue_directory_selector".into(), ue_dir);
+
+        let ue_proj_dir: FileChooserButton =
+            builder.get_object("ue_project_directory_selector").unwrap();
+        directory_selectors.insert("ue_project_directory_selector".into(), ue_proj_dir);
 
         fs::create_dir_all(&model.configuration.directories.cache_directory).unwrap();
         directory_selectors
@@ -329,8 +327,35 @@ impl Widget for Win {
             .unwrap()
             .set_filename(&model.configuration.directories.unreal_vault_directory);
 
+        let unreal_engine_directories_box: Box =
+            builder.get_object("unreal_engine_directories_box").unwrap();
+
+        let add_unreal_directory: Button = builder.get_object("add_unreal_directory").unwrap();
+        connect!(
+            relm,
+            add_unreal_directory,
+            connect_clicked(_),
+            ui::messages::Msg::ConfigurationAddUnrealEngineDir("ue_directory_selector".to_string())
+        );
+
+        let unreal_engine_project_directories_box: Box = builder
+            .get_object("unreal_engine_project_directories_box")
+            .unwrap();
+
+        let add_unreal_project_directory: Button =
+            builder.get_object("add_unreal_project_directory").unwrap();
+        connect!(
+            relm,
+            add_unreal_project_directory,
+            connect_clicked(_),
+            ui::messages::Msg::ConfigurationAddUnrealEngineDir(
+                "ue_project_directory_selector".to_string()
+            )
+        );
         let settings_widgets = Settings {
             directory_selectors,
+            unreal_engine_directories_box,
+            unreal_engine_project_directories_box,
         };
 
         let asset_version_combo: ComboBoxText = builder.get_object("asset_version_combo").unwrap();
