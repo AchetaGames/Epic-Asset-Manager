@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Epic Asset Manager
-Comment=A GTK + Rust application boilerplate template
+Comment=Epic Asset Manager used to manage assets from Epic Games Store
 Type=Application
 Exec=epic_asset_manager
 Terminal=false

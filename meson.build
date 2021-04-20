@@ -47,12 +47,12 @@ if get_option('profile') == 'development'
   else
     version_suffix = '-@0@'.format(vcs_tag)
   endif
+  application_id = '@0@.@1@'.format(base_id, profile)
 else
   profile = ''
   version_suffix = ''
+  application_id = '@0@'.format(base_id)
 endif
-
-application_id = '@0@.@1@'.format(base_id, profile)
 
 meson.add_dist_script(
   'build-aux/dist-vendor.sh',
