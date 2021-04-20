@@ -15,7 +15,8 @@ glib = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 gio = { git = "https://github.com/gtk-rs/gtk-rs.git", features = ["v2_46"] }
 serde_json = "1.0.62"
 pango = { git = "https://github.com/gtk-rs/gtk-rs.git" }
-relm = { git = "https://github.com/AchetaGames/relm.git", branch = "git"}
+relm = { git = "https://github.com/AchetaGames/relm.git", branch = "git" }
+gettext-rs = { version = "0.6", features = ["gettext-system"] }
 relm-derive = "^0.21.0"
 threadpool = "1.8.1"
 dirs = "3.0.1"

@@ -7,9 +7,11 @@ extern crate glib;
 extern crate webkit2gtk;
 
 use crate::api_data::ApiData;
+use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, RESOURCES_FILE};
 use crate::configuration::Configuration;
 use crate::download::DownloadedFile;
 use egs_api::EpicGames;
+use gettextrs::*;
 use gio::prelude::*;
 use gio::ApplicationExt;
 use glib::SignalHandlerId;
@@ -30,6 +32,8 @@ use threadpool::ThreadPool;
 use webkit2gtk::{WebView, WebViewExt};
 
 mod api_data;
+#[rustfmt::skip]
+mod config;
 mod configuration;
 mod download;
 mod models;
@@ -140,8 +144,7 @@ impl Widget for Win {
         debug!("Main thread id: {:?}", thread::current().id());
 
         info!("Starging GTK Window");
-        let glade_src = include_str!("gui.glade");
-        let builder = Builder::from_string(glade_src);
+        let builder = Builder::from_resource("/io/github/achetagames/epic_asset_manager/window.ui");
 
         let window: ApplicationWindow = builder.get_object("window").unwrap();
         window.set_application(Some(&model.application));
@@ -450,6 +453,17 @@ impl WidgetTest for Win {
 }
 
 fn main() {
+    // Prepare i18n
+    setlocale(LocaleCategory::LcAll, "");
+    bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
+    textdomain(GETTEXT_PACKAGE);
+
+    glib::set_application_name("Epic Asset Manager");
+    glib::set_prgname(Some("epic_asset_manager"));
+
+    let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
+    gio::resources_register(&res);
+
     let uiapp = gtk::Application::new(
         Some("io.github.achetagames.epic_asset_manager"),
         gio::ApplicationFlags::FLAGS_NONE,
