@@ -464,10 +464,7 @@ fn main() {
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
     gio::resources_register(&res);
 
-    let uiapp = gtk::Application::new(
-        Some("io.github.achetagames.epic_asset_manager"),
-        gio::ApplicationFlags::FLAGS_NONE,
-    );
+    let uiapp = gtk::Application::new(Some(config::APP_ID), gio::ApplicationFlags::FLAGS_NONE);
     uiapp.connect_activate(|app| {
         Win::run(app.clone()).expect("Win::run failed");
     });
