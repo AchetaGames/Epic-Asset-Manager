@@ -6,28 +6,28 @@ extern crate env_logger;
 extern crate glib;
 extern crate webkit2gtk;
 
+use crate::api_data::ApiData;
+use crate::configuration::Configuration;
+use crate::download::DownloadedFile;
+use egs_api::EpicGames;
+use gio::prelude::*;
+use gio::ApplicationExt;
+use glib::SignalHandlerId;
+use gtk::{
+    prelude::BuilderExtManual, Application, ApplicationWindow, Box, Builder, Button, ButtonExt,
+    CheckButton, ComboBoxExt, ComboBoxText, ContainerExt, FileChooserButton, FileChooserButtonExt,
+    FileChooserExt, FlowBox, FlowBoxExt, GtkWindowExt, Image, Inhibit, Label, ProgressBar,
+    Revealer, SearchEntry, SearchEntryExt, Stack, WidgetExt,
+};
+use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
+use serde::{Deserialize, Serialize};
+use slab_tree::{NodeId, Tree};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::{fs, str, thread};
-
-use egs_api::EpicGames;
-use gtk::{
-    prelude::BuilderExtManual, Box, Builder, Button, ButtonExt, CheckButton, ComboBoxExt,
-    ComboBoxText, ContainerExt, FileChooserButton, FileChooserButtonExt, FileChooserExt, FlowBox,
-    FlowBoxExt, GtkWindowExt, Image, Inhibit, Label, ProgressBar, Revealer, SearchEntry,
-    SearchEntryExt, Stack, WidgetExt, Window,
-};
-use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
-use serde::{Deserialize, Serialize};
 use threadpool::ThreadPool;
 use webkit2gtk::{WebView, WebViewExt};
-
-use crate::api_data::ApiData;
-use crate::configuration::Configuration;
-use crate::download::DownloadedFile;
-use glib::SignalHandlerId;
-use slab_tree::{NodeId, Tree};
 
 mod api_data;
 mod configuration;
@@ -59,12 +59,13 @@ struct Model {
     download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
     download_manifest_file_details: HashMap<NodeId, (String, String, String, u128)>,
     selected_files_size: u128,
+    application: Application,
 }
 
 // Create the structure that holds the widgets used in the view.
 #[derive(Clone)]
 struct Widgets {
-    window: Window,
+    window: ApplicationWindow,
     login_view: WebView,
     login_box: Box,
     main_stack: Stack,
@@ -128,7 +129,7 @@ pub struct LoginResponse {
 
 impl Widget for Win {
     // Specify the type of the root widget.
-    type Root = Window;
+    type Root = ApplicationWindow;
 
     // Return the root widget.
     fn root(&self) -> Self::Root {
@@ -142,7 +143,8 @@ impl Widget for Win {
         let glade_src = include_str!("gui.glade");
         let builder = Builder::from_string(glade_src);
 
-        let window: Window = builder.get_object("window").unwrap();
+        let window: ApplicationWindow = builder.get_object("window").unwrap();
+        window.set_application(Some(&model.application));
         let main_stack: Stack = builder.get_object("main_stack").unwrap();
         let logged_in_stack: Stack = builder.get_object("logged_in_stack").unwrap();
         let login_box: Box = builder.get_object("login_box").unwrap();
@@ -448,5 +450,12 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).expect("Win::run failed");
+    let uiapp = gtk::Application::new(
+        Some("io.github.achetagames.epic_asset_manager"),
+        gio::ApplicationFlags::FLAGS_NONE,
+    );
+    uiapp.connect_activate(|app| {
+        Win::run(app.clone()).expect("Win::run failed");
+    });
+    uiapp.run();
 }

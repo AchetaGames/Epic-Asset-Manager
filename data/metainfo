@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.achetagames.epic_asset_manager</id>
+
+  <name>Epic Asset Manager</name>
+  <summary>Epic Asset Manager used to manage assets from Epic Games Store</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <description>
+    <p>
+      Epic Asset Manager used to manage assets from Epic Games Store
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.achetagames.epic_asset_manager.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://user-images.githubusercontent.com/252905/113527240-2bbb8800-95bd-11eb-8580-60711816fd21.png</image>
+    </screenshot>
+  </screenshots>
+</component>

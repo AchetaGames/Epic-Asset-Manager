@@ -1,5 +1,5 @@
 use egs_api::EpicGames;
-use gtk::{ProgressBarExt, RevealerExt, StackExt, WidgetExt};
+use gtk::{Application, ProgressBarExt, RevealerExt, StackExt, WidgetExt};
 use relm::{Relm, Update};
 use std::collections::HashMap;
 use std::thread;
@@ -20,11 +20,11 @@ impl Update for Win {
     // Specify the model used for this widget.
     type Model = Model;
     // Specify the model parameter used to init the model.
-    type ModelParam = ();
+    type ModelParam = Application;
     // Specify the type of the messages sent to the update function.
     type Msg = Msg;
 
-    fn model(relm: &Relm<Self>, _: ()) -> Model {
+    fn model(relm: &Relm<Self>, app: Application) -> Model {
         Model {
             relm: relm.clone(),
             epic_games: EpicGames::new(),
@@ -42,6 +42,7 @@ impl Update for Win {
             download_manifest_handlers: HashMap::new(),
             download_manifest_file_details: HashMap::new(),
             selected_files_size: 0,
+            application: app,
         }
     }
 
