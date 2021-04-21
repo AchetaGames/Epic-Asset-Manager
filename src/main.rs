@@ -468,7 +468,7 @@ fn main() {
         gtk::Application::new(Some(config::APP_ID), gio::ApplicationFlags::FLAGS_NONE);
     let win = Rc::new(RefCell::new(None));
 
-    application.connect_startup(move |application| {
+    application.connect_activate(move |application| {
         let mut w = win.borrow_mut();
         *w = Some(relm::init::<Win>(application.clone()));
     });
