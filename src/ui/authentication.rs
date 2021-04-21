@@ -82,11 +82,14 @@ impl Authorization for Win {
     }
 
     fn relogin(&mut self) {
+        println!("Starting relogin");
         self.widgets.progress_message.set_label("Resuming session");
+        println!("Changed the message");
         self.model
             .epic_games
             .set_user_details(self.model.configuration.user_data.clone().unwrap());
         &self.widgets.main_stack.set_visible_child_name("progress");
+        println!("Shown progress");
         let stream = self.model.relm.stream().clone();
         let (_channel, sender) = Channel::new(move |ud| {
             if let Some(user_data) = ud {
@@ -177,13 +180,13 @@ impl Authorization for Win {
     fn web_view_manage(&self, event: LoadEvent) {
         match event {
             LoadEvent::Finished => {
-                let resource = match self.widgets.login_view.get_main_resource() {
+                let resource = match self.widgets.login_view.main_resource() {
                     None => {
                         return;
                     }
                     Some(r) => r,
                 };
-                if let Some(uri) = resource.get_uri() {
+                if let Some(uri) = resource.uri() {
                     if uri.as_str() == "https://www.epicgames.com/id/api/redirect" {
                         let stream = self.model.relm.stream().clone();
                         let (_channel, sender) = Channel::new(move |s| {

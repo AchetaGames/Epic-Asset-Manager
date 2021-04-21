@@ -15,15 +15,17 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  flatpak:
+    name: "Flatpak"
+    runs-on: ubuntu-20.04
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-40
+      options: --privileged
     steps:
-    - uses: actions/checkout@v2
-    - name: Prepare
-      run: |
-        sudo apt-get install -y libgtk-3-dev libsoup2.4-dev libwebkit2gtk-4.0-dev
-        cargo update
-    - name: Build
-      run: cargo build --verbose
+      - uses: actions/checkout@v2
+      - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v3
+        with:
+          bundle: epic_asset_manager.flatpak
+          manifest-path: build-aux/io.github.achetagames.epic_asset_manager.Devel.json
+          run-tests: true
+          cache-key: flatpak-builder-${{ github.sha }}

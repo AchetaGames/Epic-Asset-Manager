@@ -1,5 +1,5 @@
 use egs_api::EpicGames;
-use gtk::{ProgressBarExt, RevealerExt, StackExt, WidgetExt};
+use gtk::{Application, ProgressBarExt, RevealerExt, StackExt, WidgetExt};
 use relm::{Relm, Update};
 use std::collections::HashMap;
 use std::thread;
@@ -20,11 +20,11 @@ impl Update for Win {
     // Specify the model used for this widget.
     type Model = Model;
     // Specify the model parameter used to init the model.
-    type ModelParam = ();
+    type ModelParam = Application;
     // Specify the type of the messages sent to the update function.
     type Msg = Msg;
 
-    fn model(relm: &Relm<Self>, _: ()) -> Model {
+    fn model(relm: &Relm<Self>, app: Application) -> Model {
         Model {
             relm: relm.clone(),
             epic_games: EpicGames::new(),
@@ -41,7 +41,8 @@ impl Update for Win {
             download_manifest_tree: TreeBuilder::new().with_root(None).build(),
             download_manifest_handlers: HashMap::new(),
             download_manifest_file_details: HashMap::new(),
-            selected_files_size: 0
+            selected_files_size: 0,
+            application: app,
         }
     }
 
@@ -79,8 +80,7 @@ impl Update for Win {
                     self.widgets.loading_progress.fraction()
                         + self.widgets.loading_progress.pulse_step(),
                 );
-                if (self.widgets.loading_progress.fraction() * 10000.0).round() / 10000.0 == 1.0
-                {
+                if (self.widgets.loading_progress.fraction() * 10000.0).round() / 10000.0 == 1.0 {
                     debug!("Hiding progress");
                     self.widgets.progress_revealer.set_reveal_child(false);
                 }
@@ -89,6 +89,9 @@ impl Update for Win {
             Msg::NextImage => self.next_image(),
             Msg::PrevImage => self.prev_image(),
             Msg::ShowSettings(enabled) => {
+                crate::ui::configuration::Configuration::create_missing_unreal_directory_widgets(
+                    self,
+                );
                 self.widgets
                     .logged_in_stack
                     .set_visible_child_name(if enabled { "settings" } else { "main" });
@@ -127,6 +130,14 @@ impl Update for Win {
             Msg::ShowLogin => self.show_login(),
             Msg::DownloadFileValidated(asset_id, release, filename, manifest) => {
                 self.download_file_validated(asset_id, release, filename, manifest)
+            }
+            Msg::ConfigurationAddUnrealEngineDir(selector) => {
+                crate::ui::configuration::Configuration::add_unreal_directory(self, &selector)
+            }
+            Msg::ConfigurationRemoveUnrealEngineDir(path, selector) => {
+                crate::ui::configuration::Configuration::remove_unreal_directory(
+                    self, path, &selector,
+                )
             }
         }
         debug!(
