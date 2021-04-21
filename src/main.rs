@@ -24,7 +24,9 @@ use gtk::{
 use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
 use serde::{Deserialize, Serialize};
 use slab_tree::{NodeId, Tree};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::{fs, str, thread};
@@ -146,29 +148,29 @@ impl Widget for Win {
         info!("Starging GTK Window");
         let builder = Builder::from_resource("/io/github/achetagames/epic_asset_manager/window.ui");
 
-        let window: ApplicationWindow = builder.get_object("window").unwrap();
+        let window: ApplicationWindow = builder.object("window").unwrap();
         window.set_application(Some(&model.application));
-        let main_stack: Stack = builder.get_object("main_stack").unwrap();
-        let logged_in_stack: Stack = builder.get_object("logged_in_stack").unwrap();
-        let login_box: Box = builder.get_object("login_box").unwrap();
-        let title_right_box: Box = builder.get_object("title_right_box").unwrap();
-        let progress_message = builder.get_object("progress_message").unwrap();
-        let asset_flow: FlowBox = builder.get_object("asset_flow").unwrap();
-        let all_button: Button = builder.get_object("all_button").unwrap();
-        let assets_button: Button = builder.get_object("assets_button").unwrap();
-        let plugins_button: Button = builder.get_object("plugins_button").unwrap();
-        let games_button: Button = builder.get_object("games_button").unwrap();
-        let settings_button: Button = builder.get_object("settings_button").unwrap();
-        let search: SearchEntry = builder.get_object("search").unwrap();
-        let progress_revealer: Revealer = builder.get_object("progress_revealer").unwrap();
-        let loading_progress: ProgressBar = builder.get_object("loading_progress").unwrap();
-        let details_revealer: Revealer = builder.get_object("details_revealer").unwrap();
-        let details_content: Box = builder.get_object("details_content").unwrap();
-        let close_details: Button = builder.get_object("close_details").unwrap();
-        let settings_close: Button = builder.get_object("settings_close").unwrap();
-        let download_button: Button = builder.get_object("download_button").unwrap();
+        let main_stack: Stack = builder.object("main_stack").unwrap();
+        let logged_in_stack: Stack = builder.object("logged_in_stack").unwrap();
+        let login_box: Box = builder.object("login_box").unwrap();
+        let title_right_box: Box = builder.object("title_right_box").unwrap();
+        let progress_message = builder.object("progress_message").unwrap();
+        let asset_flow: FlowBox = builder.object("asset_flow").unwrap();
+        let all_button: Button = builder.object("all_button").unwrap();
+        let assets_button: Button = builder.object("assets_button").unwrap();
+        let plugins_button: Button = builder.object("plugins_button").unwrap();
+        let games_button: Button = builder.object("games_button").unwrap();
+        let settings_button: Button = builder.object("settings_button").unwrap();
+        let search: SearchEntry = builder.object("search").unwrap();
+        let progress_revealer: Revealer = builder.object("progress_revealer").unwrap();
+        let loading_progress: ProgressBar = builder.object("loading_progress").unwrap();
+        let details_revealer: Revealer = builder.object("details_revealer").unwrap();
+        let details_content: Box = builder.object("details_content").unwrap();
+        let close_details: Button = builder.object("close_details").unwrap();
+        let settings_close: Button = builder.object("settings_close").unwrap();
+        let download_button: Button = builder.object("download_button").unwrap();
         let asset_download_details_close: Button =
-            builder.get_object("asset_download_details_close").unwrap();
+            builder.object("asset_download_details_close").unwrap();
 
         let image_stack = Stack::new();
 
@@ -248,9 +250,11 @@ impl Widget for Win {
 
         match model.configuration.user_data {
             None => {
+                println!("Need to login");
                 relm.stream().emit(ui::messages::Msg::ShowLogin);
             }
             Some(_) => {
+                println!("Resuming login");
                 relm.stream().emit(ui::messages::Msg::Relogin);
             }
         }
@@ -270,7 +274,7 @@ impl Widget for Win {
         // Settings
         let mut directory_selectors: HashMap<String, FileChooserButton> = HashMap::new();
 
-        let cache: FileChooserButton = builder.get_object("cache_directory_selector").unwrap();
+        let cache: FileChooserButton = builder.object("cache_directory_selector").unwrap();
         connect!(
             relm,
             cache,
@@ -281,9 +285,7 @@ impl Widget for Win {
         );
         directory_selectors.insert("cache_directory_selector".into(), cache);
 
-        let temp: FileChooserButton = builder
-            .get_object("temp_download_directory_selector")
-            .unwrap();
+        let temp: FileChooserButton = builder.object("temp_download_directory_selector").unwrap();
         connect!(
             relm,
             temp,
@@ -294,9 +296,7 @@ impl Widget for Win {
         );
         directory_selectors.insert("temp_download_directory_selector".into(), temp);
 
-        let vault: FileChooserButton = builder
-            .get_object("ue_asset_vault_directory_selector")
-            .unwrap();
+        let vault: FileChooserButton = builder.object("ue_asset_vault_directory_selector").unwrap();
         connect!(
             relm,
             vault,
@@ -307,11 +307,11 @@ impl Widget for Win {
         );
         directory_selectors.insert("ue_asset_vault_directory_selector".into(), vault);
 
-        let ue_dir: FileChooserButton = builder.get_object("ue_directory_selector").unwrap();
+        let ue_dir: FileChooserButton = builder.object("ue_directory_selector").unwrap();
         directory_selectors.insert("ue_directory_selector".into(), ue_dir);
 
         let ue_proj_dir: FileChooserButton =
-            builder.get_object("ue_project_directory_selector").unwrap();
+            builder.object("ue_project_directory_selector").unwrap();
         directory_selectors.insert("ue_project_directory_selector".into(), ue_proj_dir);
 
         fs::create_dir_all(&model.configuration.directories.cache_directory).unwrap();
@@ -333,9 +333,9 @@ impl Widget for Win {
             .set_filename(&model.configuration.directories.unreal_vault_directory);
 
         let unreal_engine_directories_box: Box =
-            builder.get_object("unreal_engine_directories_box").unwrap();
+            builder.object("unreal_engine_directories_box").unwrap();
 
-        let add_unreal_directory: Button = builder.get_object("add_unreal_directory").unwrap();
+        let add_unreal_directory: Button = builder.object("add_unreal_directory").unwrap();
         connect!(
             relm,
             add_unreal_directory,
@@ -344,11 +344,11 @@ impl Widget for Win {
         );
 
         let unreal_engine_project_directories_box: Box = builder
-            .get_object("unreal_engine_project_directories_box")
+            .object("unreal_engine_project_directories_box")
             .unwrap();
 
         let add_unreal_project_directory: Button =
-            builder.get_object("add_unreal_project_directory").unwrap();
+            builder.object("add_unreal_project_directory").unwrap();
         connect!(
             relm,
             add_unreal_project_directory,
@@ -363,19 +363,19 @@ impl Widget for Win {
             unreal_engine_project_directories_box,
         };
 
-        let asset_version_combo: ComboBoxText = builder.get_object("asset_version_combo").unwrap();
+        let asset_version_combo: ComboBoxText = builder.object("asset_version_combo").unwrap();
 
-        let asset_download_info_box: Box = builder.get_object("asset_download_info_box").unwrap();
-        let asset_download_content: Box = builder.get_object("asset_download_content").unwrap();
-        let asset_download_actions_box: Box = builder.get_object("download_actions").unwrap();
-        let download_asset_name: Label = builder.get_object("download_asset_name").unwrap();
+        let asset_download_info_box: Box = builder.object("asset_download_info_box").unwrap();
+        let asset_download_content: Box = builder.object("asset_download_content").unwrap();
+        let asset_download_actions_box: Box = builder.object("download_actions").unwrap();
+        let download_asset_name: Label = builder.object("download_asset_name").unwrap();
         let asset_download_info_revealer_button: Button = builder
-            .get_object("asset_download_info_revealer_button")
+            .object("asset_download_info_revealer_button")
             .unwrap();
         let asset_download_info_revealer: Revealer =
-            builder.get_object("asset_download_info_revealer").unwrap();
+            builder.object("asset_download_info_revealer").unwrap();
         let asset_download_info_revealer_button_image: Image = builder
-            .get_object("asset_download_info_revealer_button_image")
+            .object("asset_download_info_revealer_button_image")
             .unwrap();
         let stream = relm.stream().clone();
         let (_channel, download_progress_sender) =
@@ -455,8 +455,8 @@ impl WidgetTest for Win {
 fn main() {
     // Prepare i18n
     setlocale(LocaleCategory::LcAll, "");
-    bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
-    textdomain(GETTEXT_PACKAGE);
+    bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).unwrap();
+    textdomain(GETTEXT_PACKAGE).unwrap();
 
     glib::set_application_name("Epic Asset Manager");
     glib::set_prgname(Some("epic_asset_manager"));
@@ -464,9 +464,14 @@ fn main() {
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
     gio::resources_register(&res);
 
-    let uiapp = gtk::Application::new(Some(config::APP_ID), gio::ApplicationFlags::FLAGS_NONE);
-    uiapp.connect_activate(|app| {
-        Win::run(app.clone()).expect("Win::run failed");
+    let application =
+        gtk::Application::new(Some(config::APP_ID), gio::ApplicationFlags::FLAGS_NONE);
+    let win = Rc::new(RefCell::new(None));
+
+    application.connect_startup(move |application| {
+        let mut w = win.borrow_mut();
+        *w = Some(relm::init::<Win>(application.clone()));
     });
-    uiapp.run();
+
+    application.run();
 }

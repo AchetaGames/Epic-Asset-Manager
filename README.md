@@ -13,29 +13,39 @@ A frontend to Assets purchased on Epic Games Store
 ## Install
 ### Arch Linux
 Use the [AUR package](https://aur.archlinux.org/packages/eam-git)
+
+### Build flatpak
+```bash
+meson _build --prefix=/usr --reconfigure;
+
+```
 ### Build from source
  - Install rust using [rustup](https://rustup.rs/)
  - Install the stable toolchain
-```
+```bash
 rustup install stable
 rustup default stable
 ```
  - Install dependencies: **gtk3 libsoup webkit2gtk**
  - Clone the repository
-```
+```bash
 git clone git@github.com:AchetaGames/Epic-Asset-Manager.git
 ```
  - Move into the repository
-```
+```bash
 cd Epic-Asset-Manager
 ```
+ - Configure the project
+```bash
+meson _build --prefix=/usr
+```
  - Build the project (the resulting binary is in target/release/epic_asset_manager)
+```bash
+ninja -C _build
 ```
-cargo build --release
-```
- - Or run the project
-```
-cargo run --release
+ - Or install the project
+```bash
+ninja -C _build install
 ```
 
 ## Action video 

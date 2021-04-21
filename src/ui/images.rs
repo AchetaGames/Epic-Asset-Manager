@@ -82,7 +82,7 @@ impl Images for Win {
         let total = self.widgets.image_stack.children().len() as i32;
         if total > 0 {
             let current = self.widgets.image_stack.visible_child().unwrap();
-            let pos = self.widgets.image_stack.get_child_position(&current);
+            let pos = self.widgets.image_stack.child_position(&current);
 
             if pos + 1 >= total {
                 if let Some(new) = self.widgets.image_stack.children().get(0) {
@@ -100,7 +100,7 @@ impl Images for Win {
         let total = self.widgets.image_stack.children().len() as i32;
         if total > 0 {
             let current = self.widgets.image_stack.visible_child().unwrap();
-            let pos = self.widgets.image_stack.get_child_position(&current);
+            let pos = self.widgets.image_stack.child_position(&current);
             if pos - 1 < 0 {
                 if let Some(new) = self.widgets.image_stack.children().last() {
                     self.widgets.image_stack.set_visible_child(new);

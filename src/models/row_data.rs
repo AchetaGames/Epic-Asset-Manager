@@ -93,12 +93,7 @@ mod imp {
             }
         }
 
-        fn get_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            pspec: &glib::ParamSpec,
-        ) -> glib::Value {
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "data" => self.data.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
@@ -131,7 +126,7 @@ impl RowData {
     }
 
     pub fn id(&self) -> String {
-        if let Ok(value) = self.get_property("id") {
+        if let Ok(value) = self.property("id") {
             if let Ok(id_opt) = value.get::<String>() {
                 if let Some(id) = id_opt {
                     return id;
@@ -145,17 +140,12 @@ impl RowData {
     where
         O: DeserializeOwned,
     {
-        let data = self.get_property("data").unwrap().get::<String>().unwrap();
+        let data = self.property("data").unwrap().get::<String>().unwrap();
         serde_json::from_str(&data.unwrap()).unwrap()
     }
 
     pub fn image(&self) -> Vec<u8> {
-        match self
-            .get_property("thumbnail")
-            .unwrap()
-            .get::<String>()
-            .unwrap()
-        {
+        match self.property("thumbnail").unwrap().get::<String>().unwrap() {
             None => {
                 vec![]
             }
