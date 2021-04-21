@@ -28,7 +28,7 @@ sed -i "/<releases>/a\ \ \ \ <release version=\"$next\" date=\"$(date +%F)\">\n\
 line=$(grep -n "<p><\!\-\- release:$next --></p>" data/"$id".metainfo.xml.in.in | cut -d : -f 1)
 sed -i "s|<p><\!\-\- release:$next --></p>|<p></p>|" data/"$id".metainfo.xml.in.in
 
-${EDITOR:=nano} +"$line"$( [ "$EDITOR" == "nano" ] && echo ",18" ) data/"$id".metainfo.xml.in.in
+${EDITOR:=nano} +"$line""$( [ "$EDITOR" == "nano" ] && echo ",18" )" data/"$id".metainfo.xml.in.in
 
 ninja -C _build test
 
