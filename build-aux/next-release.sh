@@ -22,16 +22,13 @@ case $1 in
     ;;
 esac
 
-ls
-exit
-
 sed -i "s/version: '$current'/version: '$next'/" meson.build
 sed -i "s/version = \"$current\"/version = \"$next\"/" Cargo.toml
 sed -i "/<releases>/a\ \ \ \ <release version=\"$next\" date=\"$(date +%F)\">\n\ \ \ \ \ \ \ <description>\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ <p><\!\-\- release:$next --></p>\n\ \ \ \ \ \ \ </description>\n\ \ \ \ </release>" data/"$id".metainfo.xml.in.in
 line=$(grep -n "<p><\!\-\- release:$next --></p>" data/"$id".metainfo.xml.in.in | cut -d : -f 1)
-sed -i "s|<p><\!\-\- release:$next --></p>|<p></p>" data/"$id".metainfo.xml.in.in
+sed -i "s|<p><\!\-\- release:$next --></p>|<p></p>|" data/"$id".metainfo.xml.in.in
 
-${EDITOR:=nano} +line data/"$id".xml.in.in
+${EDITOR:=nano} +"$line"$( [ "$EDITOR" == "nano" ] && echo ",18" ) data/"$id".metainfo.xml.in.in
 
 ninja -C _build test
 
