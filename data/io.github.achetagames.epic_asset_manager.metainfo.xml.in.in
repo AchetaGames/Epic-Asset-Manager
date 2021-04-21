@@ -19,10 +19,28 @@
   <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
   <content_rating type="oars-1.0" />
   <releases>
-    <release version="1.0.10" date="2021-04-20" >
-        <description>
-            <p>Added configuration for Unreal Engine directories and projects</p>
-        </description>
+    <release version="1.0.10" date="2021-04-21">
+       <description>
+              <p>Added configuration for Unreal Engine directories and projects</p>
+              <ul>
+                  <li>Quote</li>
+                  <li>Fix up the script</li>
+                  <li>Add release script and bump version</li>
+                  <li>Fix build and run</li>
+                  <li>Update the build environment</li>
+                  <li>Update manifest and add po</li>
+                  <li>Fix dependency version</li>
+                  <li>Fix dependency version</li>
+                  <li>Add dependencies and build</li>
+                  <li>Switch to meson build system</li>
+                  <li>Remove the Version from desktop</li>
+                  <li>Ditch AppImage and create metainfo and update the application</li>
+                  <li>remove cairo add glib</li>
+                  <li>Add cair2-dev</li>
+                  <li>Add brsvg dependency</li>
+                  <li>Add settings for engine and project directories, try building appimage</li>
+</ul>
+       </description>
     </release>
   </releases>
   <kudos>

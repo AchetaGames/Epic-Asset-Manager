@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -u
+
 current=$(grep -Po "version: '\K([0-9]*\.[0-9]*.[0-9]+)(?=')" meson.build)
 id=$(grep -Po "base_id\s+=\s+'\K(.*)(?=')" meson.build)
 major=$(cut -d '.' -f1 <<< "$current")
@@ -24,9 +27,10 @@ esac
 
 sed -i "s/version: '$current'/version: '$next'/" meson.build
 sed -i "s/version = \"$current\"/version = \"$next\"/" Cargo.toml
+commits=$(git log "$(git describe --tags --abbrev=0)"..HEAD --oneline | cut -d" " -f2- | awk '{print "                  <li>" $0 "</li>" }' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g')
 sed -i "/<releases>/a\ \ \ \ <release version=\"$next\" date=\"$(date +%F)\">\n\ \ \ \ \ \ \ <description>\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ <p><\!\-\- release:$next --></p>\n\ \ \ \ \ \ \ </description>\n\ \ \ \ </release>" data/"$id".metainfo.xml.in.in
 line=$(grep -n "<p><\!\-\- release:$next --></p>" data/"$id".metainfo.xml.in.in | cut -d : -f 1)
-sed -i "s|<p><\!\-\- release:$next --></p>|<p></p>|" data/"$id".metainfo.xml.in.in
+sed -i "s|<p><\!\-\- release:$next --></p>|<p></p>\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ <ul>\n${commits}\n</ul>|" data/"$id".metainfo.xml.in.in
 
 ${EDITOR:=nano} +"$line""$( [ "$EDITOR" == "nano" ] && echo ",18" )" data/"$id".metainfo.xml.in.in
 
@@ -35,4 +39,4 @@ ninja -C _build test
 git commit -av
 git tag v"$next"
 
-ninja -C _build release
+ninja -C _build
