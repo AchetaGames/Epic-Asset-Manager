@@ -7,11 +7,11 @@
   <name>Epic Asset Manager</name>
   <summary>Epic Asset Manager used to manage assets from Epic Games Store</summary>
   <description>
-    <p>A boilerplate template for GTK + Rust. It uses Meson as a build system and has flatpak support by default.</p>
+    <p>An native GTK application to access Assets owned through Epic Games Store including Games and Unreal Engine assets.</p>
   </description>
   <screenshots>
     <screenshot type="default">
-      <image>https://github.com/AchetaGames/Epic-Asset-Manager/raw/master/data/resources/screenshots/screenshot1.png</image>
+      <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/screenshot1.png</image>
       <caption>Main Window</caption>
     </screenshot>
   </screenshots>
