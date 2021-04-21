@@ -40,3 +40,5 @@ git commit -av
 git tag v"$next"
 
 ninja -C _build
+
+git push origin v"$next"
