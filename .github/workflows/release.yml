@@ -1,11 +1,10 @@
 name: Rust
 
 on:
-  pull_request:
-    types: [assigned, opened, synchronize, reopened]
+  push:
+    branches: [ main ]
     paths-ignore:
       - '**.md'
-  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -22,6 +21,6 @@ jobs:
       - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v3
         with:
           bundle: epic_asset_manager.flatpak
-          manifest-path: build-aux/io.github.achetagames.epic_asset_manager.Devel.json
+          manifest-path: build-aux/io.github.achetagames.epic_asset_manager.json
           run-tests: true
           cache-key: flatpak-builder-${{ github.sha }}
