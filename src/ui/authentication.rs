@@ -42,7 +42,7 @@ impl Authorization for Win {
         self.widgets
             .title_right_box
             .foreach(|el| self.widgets.title_right_box.remove(el));
-        self.widgets.main_stack.set_visible_child_name("login_box");
+        self.widgets.main_stack.set_visible_child_name("progress");
         if let Some(ud) = &self.model.configuration.user_data {
             ud.remove(self.model.configuration.path.clone());
         }
