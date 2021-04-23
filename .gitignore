@@ -75,3 +75,6 @@ fabric.properties
 
 # meson config
 src/config.rs
+
+#fenv
+.fenv

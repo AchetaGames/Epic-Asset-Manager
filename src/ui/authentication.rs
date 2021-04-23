@@ -1,22 +1,18 @@
 use crate::configuration::Save;
 use crate::tools::cache::Cache;
-use crate::{LoginResponse, Win};
+use crate::Win;
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
 use gtk::{
-    Box, Button, ButtonExt, ContainerExt, LabelExt, MenuButton, MenuButtonExt, PopoverMenu,
-    StackExt, WidgetExt,
+    Box, Button, ButtonExt, ContainerExt, EntryExt, LabelExt, MenuButton, MenuButtonExt,
+    PopoverMenu, StackExt, WidgetExt,
 };
 use relm::{connect, Channel};
 use std::collections::HashMap;
 use std::thread;
 use tokio::runtime::Runtime;
-use webkit2gtk::{LoadEvent, WebResourceExt, WebViewExt};
 
 pub(crate) trait Authorization {
-    fn web_view_manage(&self, _event: LoadEvent) {
-        unimplemented!()
-    }
     fn show_login(&self) {
         unimplemented!()
     }
@@ -42,12 +38,16 @@ impl Authorization for Win {
         self.widgets
             .title_right_box
             .foreach(|el| self.widgets.title_right_box.remove(el));
-        self.widgets.main_stack.set_visible_child_name("progress");
+        self.widgets.login_widgets.login_entry.set_text("");
+        self.widgets.login_widgets.password_entry.set_text("");
+        self.widgets.main_stack.set_visible_child_name("sid_box");
         if let Some(ud) = &self.model.configuration.user_data {
             ud.remove(self.model.configuration.path.clone());
-        }
-
-        self.widgets.login_view.load_uri("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect");
+        };
+        self.model
+            .relm
+            .stream()
+            .emit(crate::ui::messages::Msg::AlternateLogin);
     }
 
     fn login(&self, sid: String) {
@@ -175,41 +175,6 @@ impl Authorization for Win {
                 start.elapsed()
             );
         });
-    }
-
-    fn web_view_manage(&self, event: LoadEvent) {
-        match event {
-            LoadEvent::Finished => {
-                let resource = match self.widgets.login_view.main_resource() {
-                    None => {
-                        return;
-                    }
-                    Some(r) => r,
-                };
-                if let Some(uri) = resource.uri() {
-                    if uri.as_str() == "https://www.epicgames.com/id/api/redirect" {
-                        let stream = self.model.relm.stream().clone();
-                        let (_channel, sender) = Channel::new(move |s| {
-                            if let Some(sid) = s {
-                                stream.emit(crate::ui::messages::Msg::Login(sid));
-                            }
-                        });
-                        resource.get_data(None::<&gio::Cancellable>, move |data| {
-                            if let Ok(d) = data {
-                                if let Ok(sid_response) =
-                                    serde_json::from_slice::<LoginResponse>(&d)
-                                {
-                                    sender.send(Some(sid_response.sid.clone())).unwrap();
-                                }
-                            }
-                        });
-                    } else {
-                        &self.widgets.main_stack.set_visible_child_name("login_box");
-                    }
-                }
-            }
-            _ => {}
-        }
     }
 }
 

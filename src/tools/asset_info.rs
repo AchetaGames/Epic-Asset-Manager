@@ -13,19 +13,17 @@ impl Search for AssetInfo {
             None => {
                 tag_found = true;
             }
-            Some(f) => {
-                match &self.categories {
-                    None => {}
-                    Some(categories) => {
-                        for category in categories {
-                            if category.path.contains(&f) {
-                                tag_found = true;
-                                break;
-                            }
+            Some(f) => match &self.categories {
+                None => {}
+                Some(categories) => {
+                    for category in categories {
+                        if category.path.contains(&f) {
+                            tag_found = true;
+                            break;
                         }
                     }
                 }
-            }
+            },
         }
         match search {
             None => {
@@ -34,12 +32,13 @@ impl Search for AssetInfo {
             Some(f) => {
                 if tag_found {
                     match &self.title {
-                        None => { return true; }
+                        None => {
+                            return true;
+                        }
                         Some(title) => {
                             return title.to_lowercase().contains(&f.to_lowercase());
                         }
                     }
-
                 } else {
                     return false;
                 }
