@@ -4,10 +4,9 @@ extern crate log;
 extern crate lazy_static;
 extern crate env_logger;
 extern crate glib;
-extern crate webkit2gtk;
 
 use crate::api_data::ApiData;
-use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, RESOURCES_FILE};
+use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use crate::configuration::Configuration;
 use crate::download::DownloadedFile;
 use egs_api::EpicGames;
@@ -17,7 +16,7 @@ use gio::ApplicationExt;
 use glib::SignalHandlerId;
 use gtk::{
     prelude::BuilderExtManual, Application, ApplicationWindow, Box, Builder, Button, ButtonExt,
-    CheckButton, ComboBoxExt, ComboBoxText, ContainerExt, FileChooserButton, FileChooserButtonExt,
+    CheckButton, ComboBoxExt, ComboBoxText, Entry, FileChooserButton, FileChooserButtonExt,
     FileChooserExt, FlowBox, FlowBoxExt, GtkWindowExt, Image, Inhibit, Label, ProgressBar,
     Revealer, SearchEntry, SearchEntryExt, Stack, WidgetExt,
 };
@@ -31,7 +30,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::{fs, str, thread};
 use threadpool::ThreadPool;
-use webkit2gtk::{WebView, WebViewExt};
 
 mod api_data;
 #[rustfmt::skip]
@@ -72,7 +70,6 @@ struct Model {
 #[derive(Clone)]
 struct Widgets {
     window: ApplicationWindow,
-    login_view: WebView,
     login_box: Box,
     main_stack: Stack,
     title_right_box: Box,
@@ -88,6 +85,7 @@ struct Widgets {
     logged_in_stack: Stack,
     settings_widgets: Settings,
     asset_download_widgets: AssetDownloadDetails,
+    login_widgets: Login,
     download_button: Button,
 }
 
@@ -103,6 +101,13 @@ struct Settings {
     directory_selectors: HashMap<String, FileChooserButton>,
     unreal_engine_directories_box: Box,
     unreal_engine_project_directories_box: Box,
+}
+
+#[derive(Clone)]
+struct Login {
+    login_entry: Entry,
+    password_entry: Entry,
+    sid_entry: Entry,
 }
 
 #[derive(Clone)]
@@ -178,6 +183,12 @@ impl Widget for Win {
 
         connect!(
             relm,
+            model.application,
+            connect_open(_, f, s),
+            ui::messages::Msg::Open(f.into(), s.to_string())
+        );
+        connect!(
+            relm,
             search,
             connect_search_changed(_),
             ui::messages::Msg::SearchAssets
@@ -238,23 +249,55 @@ impl Widget for Win {
             ui::messages::Msg::CloseDetails
         );
 
-        let webview = WebView::new();
-        webview.set_expand(true);
+        let login_entry: Entry = builder.object("username").unwrap();
+        let password_entry: Entry = builder.object("password").unwrap();
+        let sid_entry: Entry = builder.object("sid_entry").unwrap();
+        let login_button: Button = builder.object("login_button").unwrap();
+        let alternate_login: Button = builder.object("alternate_login").unwrap();
+        let sid_browser_button: Button = builder.object("sid_browser_button").unwrap();
+        let sid_login: Button = builder.object("sid_login").unwrap();
+        let sid_cancel: Button = builder.object("sid_cancel").unwrap();
         connect!(
             relm,
-            webview,
-            connect_load_changed(_, a),
-            ui::messages::Msg::WebViewLoadFinished(a)
+            login_button,
+            connect_clicked(_),
+            ui::messages::Msg::PasswordLogin
         );
-        login_box.add(&webview);
+        connect!(
+            relm,
+            sid_cancel,
+            connect_clicked(_),
+            ui::messages::Msg::ShowLogin
+        );
+        connect!(
+            relm,
+            sid_login,
+            connect_clicked(_),
+            ui::messages::Msg::SidLogin
+        );
+        connect!(
+            relm,
+            sid_browser_button,
+            connect_clicked(_),
+            ui::messages::Msg::OpenBrowserSid
+        );
+        connect!(
+            relm,
+            alternate_login,
+            connect_clicked(_),
+            ui::messages::Msg::AlternateLogin
+        );
 
+        let login_widgets = Login {
+            login_entry,
+            password_entry,
+            sid_entry,
+        };
         match model.configuration.user_data {
             None => {
-                println!("Need to login");
                 relm.stream().emit(ui::messages::Msg::ShowLogin);
             }
             Some(_) => {
-                println!("Resuming login");
                 relm.stream().emit(ui::messages::Msg::Relogin);
             }
         }
@@ -422,7 +465,6 @@ impl Widget for Win {
                 title_right_box,
                 login_box,
                 window,
-                login_view: webview,
                 progress_message,
                 asset_flow,
                 search,
@@ -435,6 +477,7 @@ impl Widget for Win {
                 download_button,
                 settings_widgets,
                 asset_download_widgets,
+                login_widgets,
             },
         }
     }
@@ -462,16 +505,20 @@ fn main() {
     glib::set_prgname(Some("epic_asset_manager"));
 
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
+
     gio::resources_register(&res);
 
     let application =
         gtk::Application::new(Some(config::APP_ID), gio::ApplicationFlags::FLAGS_NONE);
     let win = Rc::new(RefCell::new(None));
 
-    application.connect_activate(move |application| {
+    application.connect_startup(move |application| {
         let mut w = win.borrow_mut();
         *w = Some(relm::init::<Win>(application.clone()));
     });
+    debug!("{}", PKGDATADIR);
+    debug!("{}", PROFILE);
+    debug!("{}", VERSION);
 
     application.run();
 }

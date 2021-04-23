@@ -7,12 +7,15 @@ use relm_derive::Msg;
 use slab_tree::NodeId;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use webkit2gtk::LoadEvent;
 
 #[derive(Msg, Debug, Clone)]
 pub enum Msg {
+    Open(Vec<gio::File>, String),
     Quit,
-    WebViewLoadFinished(LoadEvent),
+    PasswordLogin,
+    AlternateLogin,
+    SidLogin,
+    OpenBrowserSid,
     Login(String),
     Logout,
     ShowLogin,
@@ -51,9 +54,6 @@ impl fmt::Display for Msg {
         match *self {
             Msg::Quit => {
                 write!(f, "Quit")
-            }
-            Msg::WebViewLoadFinished(_) => {
-                write!(f, "WebViewLoadFinished")
             }
             Msg::Login(_) => {
                 write!(f, "Login")
@@ -147,6 +147,21 @@ impl fmt::Display for Msg {
             }
             Msg::ConfigurationRemoveUnrealEngineDir(_, _) => {
                 write!(f, "ConfigurationRemoveUnrealEngineDir")
+            }
+            Msg::PasswordLogin => {
+                write!(f, "PasswordLogin")
+            }
+            Msg::AlternateLogin => {
+                write!(f, "AlternateLogin")
+            }
+            Msg::OpenBrowserSid => {
+                write!(f, "OpenBrowserSid")
+            }
+            Msg::SidLogin => {
+                write!(f, "SidLogin")
+            }
+            Msg::Open(_, _) => {
+                write!(f, "Open")
             }
         }
     }

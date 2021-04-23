@@ -185,9 +185,8 @@ impl Assets for Win {
                     let platforms_label = Label::new(Some("Platforms:"));
                     platforms_label.set_halign(Align::Start);
                     table.attach(&platforms_label, 0, 1, 1, 1);
-                    let platforms = Label::new(Some(
-                        &asset_info.platforms().unwrap_or_default().join(", "),
-                    ));
+                    let platforms =
+                        Label::new(Some(&asset_info.platforms().unwrap_or_default().join(", ")));
                     platforms.set_halign(Align::Start);
                     platforms.set_xalign(0.0);
                     platforms.set_line_wrap(true);

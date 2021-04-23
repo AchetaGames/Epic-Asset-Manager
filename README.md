@@ -26,7 +26,7 @@ meson _build --prefix=/usr --reconfigure;
 rustup install stable
 rustup default stable
 ```
- - Install dependencies: **gtk3 libsoup webkit2gtk**
+ - Install dependencies: **gtk3 libsoup**
  - Clone the repository
 ```bash
 git clone git@github.com:AchetaGames/Epic-Asset-Manager.git
@@ -37,15 +37,15 @@ cd Epic-Asset-Manager
 ```
  - Configure the project
 ```bash
-meson _build --prefix=/usr
+meson _build
 ```
  - Build the project (the resulting binary is in target/release/epic_asset_manager)
 ```bash
-ninja -C _build
+meson compile -C _build
 ```
  - Or install the project
 ```bash
-ninja -C _build install
+meson install -C _build
 ```
 
 ## Action video 

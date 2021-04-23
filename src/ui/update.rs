@@ -1,5 +1,5 @@
 use egs_api::EpicGames;
-use gtk::{Application, ProgressBarExt, RevealerExt, StackExt, WidgetExt};
+use gtk::{Application, EntryExt, ProgressBarExt, RevealerExt, StackExt, WidgetExt};
 use relm::{Relm, Update};
 use std::collections::HashMap;
 use std::thread;
@@ -55,7 +55,6 @@ impl Update for Win {
                 }
                 gtk::main_quit()
             }
-            Msg::WebViewLoadFinished(event) => self.web_view_manage(event),
             Msg::Login(sid) => self.login(sid),
             Msg::Relogin => self.relogin(),
             Msg::LoginOk(user_data) => self.login_ok(user_data),
@@ -138,6 +137,23 @@ impl Update for Win {
                 crate::ui::configuration::Configuration::remove_unreal_directory(
                     self, path, &selector,
                 )
+            }
+            Msg::PasswordLogin => {}
+            Msg::AlternateLogin => {
+                self.widgets.login_widgets.sid_entry.set_text("");
+                self.widgets.main_stack.set_visible_child_name("sid_box");},
+            Msg::OpenBrowserSid => {
+                if let Err(_) = gio::AppInfo::launch_default_for_uri("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect", None::<&gio::AppLaunchContext>) {
+                    error!("Please go to https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect")
+                }
+            }
+            Msg::SidLogin => {
+                let sid=self.widgets.login_widgets.sid_entry.text().to_string();
+                self.model.relm.stream().emit(crate::ui::messages::Msg::Login(sid));
+            }
+            Msg::Open(f, s) => {
+                println!("{:?}", f);
+                println!("{}", s);
             }
         }
         debug!(
