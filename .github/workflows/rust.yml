@@ -5,6 +5,7 @@ on:
     types: [assigned, opened, synchronize, reopened]
     paths-ignore:
       - '**.md'
+      - '**.svg'
   workflow_dispatch:
 
 env:

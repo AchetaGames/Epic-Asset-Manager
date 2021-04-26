@@ -1330,21 +1330,4 @@
       </g>
     </g>
   </g>
-  <g
-     id="surface10672"
-     transform="translate(-0.07747579,1.1085998)">
-    <path
-       style="fill:none;stroke:#619ee8;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1"
-       d="M 0,289 H 128"
-       transform="translate(0,-172)"
-       id="path158" />
-    <use
-       xlink:href="#surface10752"
-       mask="url(#mask4-7)"
-       id="use160"
-       x="0"
-       y="0"
-       width="100%"
-       height="100%" />
-  </g>
 </svg>
