@@ -128,9 +128,7 @@ impl RowData {
     pub fn id(&self) -> String {
         if let Ok(value) = self.property("id") {
             if let Ok(id_opt) = value.get::<String>() {
-                if let Some(id) = id_opt {
-                    return id;
-                }
+                return id_opt;
             }
         };
         return "".to_string();
@@ -141,20 +139,25 @@ impl RowData {
         O: DeserializeOwned,
     {
         let data = self.property("data").unwrap().get::<String>().unwrap();
-        serde_json::from_str(&data.unwrap()).unwrap()
+        serde_json::from_str(&data).unwrap()
     }
 
     pub fn image(&self) -> Vec<u8> {
-        match self.property("thumbnail").unwrap().get::<String>().unwrap() {
-            None => {
-                vec![]
-            }
-            Some(img) => match hex::decode(img) {
-                Ok(v) => v,
+        match self.property("thumbnail") {
+            Ok(i) => match i.get::<String>() {
+                Ok(img) => match hex::decode(img) {
+                    Ok(v) => v,
+                    Err(_) => {
+                        vec![]
+                    }
+                },
                 Err(_) => {
                     vec![]
                 }
             },
+            Err(_) => {
+                vec![]
+            }
         }
     }
 }
