@@ -12,15 +12,17 @@ use crate::download::DownloadedFile;
 use egs_api::EpicGames;
 use gettextrs::*;
 use gio::prelude::*;
-use gio::ApplicationExt;
 use glib::SignalHandlerId;
-use gtk::{
-    prelude::BuilderExtManual, Application, ApplicationWindow, Box, Builder, Button, ButtonExt,
-    CheckButton, ComboBoxExt, ComboBoxText, Entry, FileChooserButton, FileChooserButtonExt,
-    FileChooserExt, FlowBox, FlowBoxExt, GtkWindowExt, Image, Inhibit, Label, ProgressBar,
-    Revealer, SearchEntry, SearchEntryExt, Stack, WidgetExt,
+use gtk::prelude::{
+    BuilderExtManual, ButtonExt, ComboBoxExt, FileChooserButtonExt, FileChooserExt, FlowBoxExt,
+    SearchEntryExt, WidgetExt,
 };
-use relm::{connect, Channel, Relm, Sender, Widget, WidgetTest};
+use gtk::traits::GtkWindowExt;
+use gtk::{
+    Application, ApplicationWindow, Box, Builder, Button, CheckButton, ComboBoxText, Entry,
+    FileChooserButton, FlowBox, Image, Inhibit, Label, ProgressBar, Revealer, SearchEntry, Stack,
+};
+use relm::{connect, Channel, Relm, Sender, Widget};
 use serde::{Deserialize, Serialize};
 use slab_tree::{NodeId, Tree};
 use std::cell::RefCell;
@@ -480,18 +482,6 @@ impl Widget for Win {
                 login_widgets,
             },
         }
-    }
-}
-
-impl WidgetTest for Win {
-    type Streams = ();
-
-    fn get_streams(&self) -> Self::Streams {}
-
-    type Widgets = Widgets;
-
-    fn get_widgets(&self) -> Self::Widgets {
-        self.widgets.clone()
     }
 }
 

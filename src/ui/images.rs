@@ -1,7 +1,8 @@
 use crate::models::row_data::RowData;
 use crate::Win;
-use gdk_pixbuf::PixbufLoaderExt;
-use gtk::{ContainerExt, Image, ImageExt, StackExt, WidgetExt};
+use gdk_pixbuf::traits::PixbufLoaderExt;
+use gtk::traits::{ContainerExt, ImageExt, StackExt, WidgetExt};
+use gtk::Image;
 
 pub(crate) trait Images {
     fn process_image(&self, _asset_id: Option<String>, _image: Vec<u8>) {

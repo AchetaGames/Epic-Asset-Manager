@@ -1,5 +1,4 @@
 use egs_api::EpicGames;
-use gtk::{Application, EntryExt, ProgressBarExt, RevealerExt, StackExt, WidgetExt};
 use relm::{Relm, Update};
 use std::collections::HashMap;
 use std::thread;
@@ -14,6 +13,8 @@ use crate::ui::epic_assets::EpicAssets;
 use crate::ui::images::Images;
 use crate::ui::messages::Msg;
 use crate::{Model, Win};
+use gtk::traits::{EntryExt, ProgressBarExt, RevealerExt, StackExt, WidgetExt};
+use gtk::Application;
 use slab_tree::TreeBuilder;
 
 impl Update for Win {

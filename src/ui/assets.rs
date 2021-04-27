@@ -1,12 +1,15 @@
 use crate::tools::asset_info::Search;
 use crate::Win;
 use egs_api::api::types::asset_info::AssetInfo;
-use gdk_pixbuf::PixbufLoaderExt;
 use glib::Cast;
+use gtk::gdk_pixbuf::traits::PixbufLoaderExt;
+use gtk::traits::{
+    ButtonExt, ContainerExt, EntryExt, FlowBoxExt, GridExt, ImageExt, LabelExt, OverlayExt,
+    RevealerExt, WidgetExt,
+};
 use gtk::{
-    Align, AspectFrame, Box, Button, ButtonExt, ContainerExt, EntryExt, FlowBoxChild, FlowBoxExt,
-    GridBuilder, GridExt, Image, ImageExt, Justification, Label, LabelExt, Overlay, OverlayExt,
-    RevealerExt, Separator, WidgetExt,
+    Align, AspectFrame, Box, Button, FlowBoxChild, GridBuilder, Image, Justification, Label,
+    Overlay, Separator,
 };
 use relm::connect;
 use std::thread;

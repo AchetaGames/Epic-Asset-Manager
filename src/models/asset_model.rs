@@ -1,6 +1,6 @@
 use crate::glib::subclass::types::ObjectSubclassExt;
 use crate::models::row_data::RowData;
-use gio::ListModelExt;
+use gio::traits::ListModelExt;
 use gtk::gio;
 
 mod imp {

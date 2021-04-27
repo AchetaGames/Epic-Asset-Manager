@@ -5,10 +5,12 @@ use egs_api::api::types::asset_info::ReleaseInfo;
 use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use glib::Cast;
 use gtk::prelude::ComboBoxExtManual;
+use gtk::traits::{
+    ButtonExt, ComboBoxExt, ComboBoxTextExt, ContainerExt, GridExt, ImageExt, LabelExt, OverlayExt,
+    RevealerExt, StackExt, ToggleButtonExt, WidgetExt,
+};
 use gtk::{
-    Align, Box, Button, ButtonExt, CheckButton, ComboBoxExt, ComboBoxTextExt, ContainerExt,
-    Expander, GridBuilder, GridExt, IconSize, ImageExt, Label, LabelExt, Overlay, OverlayExt,
-    RevealerExt, StackExt, ToggleButtonExt, Widget, WidgetExt,
+    Align, Box, Button, CheckButton, Expander, GridBuilder, IconSize, Label, Overlay, Widget,
 };
 use relm::{connect, Channel};
 use slab_tree::{NodeId, NodeRef, TreeBuilder};

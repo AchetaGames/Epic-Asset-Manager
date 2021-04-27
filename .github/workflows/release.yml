@@ -7,7 +7,7 @@ on:
       - '**.md'
   release:
     release:
-      types: [ published, created, edited ]
+      types: [ published ]
 
 env:
   CARGO_TERM_COLOR: always
