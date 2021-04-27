@@ -2,7 +2,7 @@ use crate::tools::cache::Cache;
 use crate::Win;
 use egs_api::api::types::asset_info::AssetInfo;
 use egs_api::api::types::epic_asset::EpicAsset;
-use gtk::{ProgressBarExt, RevealerExt};
+use gtk::traits::{ProgressBarExt, RevealerExt};
 use relm::Channel;
 use std::collections::HashMap;
 use std::iter::FromIterator;

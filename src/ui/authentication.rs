@@ -3,10 +3,10 @@ use crate::tools::cache::Cache;
 use crate::Win;
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
-use gtk::{
-    Box, Button, ButtonExt, ContainerExt, EntryExt, LabelExt, MenuButton, MenuButtonExt,
-    PopoverMenu, StackExt, WidgetExt,
+use gtk::traits::{
+    ButtonExt, ContainerExt, EntryExt, LabelExt, MenuButtonExt, StackExt, WidgetExt,
 };
+use gtk::{Box, Button, MenuButton, PopoverMenu};
 use relm::{connect, Channel};
 use std::collections::HashMap;
 use std::thread;

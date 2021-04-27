@@ -1,6 +1,7 @@
 use crate::Win;
-use gio::FileExt;
-use gtk::{Box, Button, ButtonExt, ContainerExt, FileChooserExt, Label, LabelExt, WidgetExt};
+use gio::traits::FileExt;
+use gtk::traits::{ButtonExt, ContainerExt, FileChooserExt, LabelExt, WidgetExt};
+use gtk::{Box, Button, Label};
 use relm::connect;
 
 pub(crate) trait Configuration {
