@@ -32,6 +32,9 @@ html2pango = "0.4.1"
 byte-unit = "4.0.10"
 slab_tree = "0.3"
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
 [dependencies.serde]
 version = "1.0.123"
 features = ["derive"]

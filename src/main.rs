@@ -500,6 +500,12 @@ fn main() {
     setlocale(LocaleCategory::LcAll, "");
     bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).unwrap();
     textdomain(GETTEXT_PACKAGE).unwrap();
+    #[cfg(windows)]
+    {
+        WindowsResource::new()
+            .set_icon("data/icons/io.github.achetagames.epic_asset_manager.ico")
+            .compile()?;
+    }
 
     glib::set_application_name("Epic Asset Manager");
     glib::set_prgname(Some("epic_asset_manager"));
