@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="PreferencesWindow" parent="AdwPreferencesWindow">
+        <property name="default-width">820</property>
+        <property name="default-height">760</property>
+        <property name="can-swipe-back">True</property>
+    </template>
+</interface>

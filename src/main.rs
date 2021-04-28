@@ -3,6 +3,7 @@ mod application;
 mod config;
 mod configuration;
 // mod download;
+mod models;
 mod tools;
 mod ui;
 mod window;

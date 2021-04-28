@@ -7,6 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+adw = {package = "libadwaita", git = "https://gitlab.gnome.org/World/Rust/libadwaita-rs"}
 serde_json = "1.0.62"
 gettext-rs = { version = "0.6", features = ["gettext-system"] }
 relm-derive = "^0.21.0"

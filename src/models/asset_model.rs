@@ -1,7 +1,7 @@
-use crate::glib::subclass::types::ObjectSubclassExt;
 use crate::models::row_data::RowData;
 use gio::traits::ListModelExt;
 use gtk::gio;
+use gtk::glib::subclass::types::ObjectSubclassExt;
 
 mod imp {
     use super::*;

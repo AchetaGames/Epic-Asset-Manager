@@ -1,4 +1,5 @@
 use crate::config;
+use crate::ui::widgets::preferences::window::PreferencesWindow;
 use crate::window::EpicAssetManagerWindow;
 use gio::ApplicationFlags;
 use glib::clone;
@@ -41,15 +42,6 @@ impl EpicAssetManager {
                 // and saving the window state
                 app.get_main_window().close();
                 app.quit();
-            })
-        );
-
-        // About
-        action!(
-            self,
-            "preferences",
-            clone!(@weak self as app => move |_, _| {
-                app.get_main_window().data().main_stack.set_visible_child_name("sid_box");
             })
         );
 

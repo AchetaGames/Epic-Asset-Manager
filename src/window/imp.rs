@@ -12,27 +12,6 @@ use std::fs;
 use threadpool::ThreadPool;
 // use crate::download::DownloadedFile;
 
-pub struct Model {
-    epic_games: EpicGames,
-    configuration: Configuration,
-    // asset_model: crate::models::asset_model::Model,
-    selected_asset: Option<String>,
-    selected_files: HashMap<String, HashMap<String, Vec<String>>>,
-    download_pool: ThreadPool,
-    thumbnail_pool: ThreadPool,
-    image_pool: ThreadPool,
-    file_pool: ThreadPool,
-    downloaded_chunks: HashMap<String, Vec<String>>,
-    // downloaded_files: HashMap<String, DownloadedFile>,
-    download_manifest_tree: Tree<Option<CheckButton>>,
-    download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
-    download_manifest_file_details: HashMap<NodeId, (String, String, String, u128)>,
-    sender: Sender<crate::ui::messages::Msg>,
-    receiver: Receiver<crate::ui::messages::Msg>,
-    selected_files_size: u128,
-    pub settings: gio::Settings,
-}
-
 #[derive(CompositeTemplate)]
 #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
 pub struct EpicAssetManagerWindow {
@@ -40,8 +19,8 @@ pub struct EpicAssetManagerWindow {
     pub headerbar: TemplateChild<gtk::HeaderBar>,
     #[template_child]
     pub main_stack: TemplateChild<gtk::Stack>,
+    pub settings: gio::Settings,
     // pub widgets: Widgets,
-    pub model: Model,
 }
 
 #[glib::object_subclass]
@@ -52,27 +31,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
 
     fn new() -> Self {
         println!("New called");
-        let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
-        let model = Model {
-            epic_games: EpicGames::new(),
-            configuration: Configuration::new(),
-            // asset_model: crate::models::asset_model::Model::new(),
-            selected_asset: None,
-            selected_files: HashMap::new(),
-            download_pool: ThreadPool::with_name("Download Pool".to_string(), 5),
-            thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
-            image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
-            file_pool: ThreadPool::with_name("File Pool".to_string(), 5),
-            downloaded_chunks: HashMap::new(),
-            // downloaded_files: HashMap::new(),
-            download_manifest_tree: TreeBuilder::new().with_root(None).build(),
-            download_manifest_handlers: HashMap::new(),
-            download_manifest_file_details: HashMap::new(),
-            sender: sender.clone(),
-            receiver,
-            selected_files_size: 0,
-            settings: gio::Settings::new(APP_ID),
-        };
+
         // let builder =
         //     gtk::Builder::from_resource("/io/github/achetagames/epic_asset_manager/window.ui");
         // let main_stack: Stack = builder.object("main_stack").unwrap();
@@ -213,26 +172,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
         Self {
             headerbar: TemplateChild::default(),
             main_stack: TemplateChild::default(),
-            model,
-            // widgets: Widgets {
-            //     logged_in_stack,
-            //     main_stack,
-            //     title_right_box,
-            //     login_box,
-            //     progress_message,
-            //     asset_flow,
-            //     search,
-            //     progress_revealer,
-            //     loading_progress,
-            //     details_revealer,
-            //     details_content,
-            //     close_details,
-            //     image_stack,
-            //     download_button,
-            //     settings_widgets,
-            //     asset_download_widgets,
-            //     login_widgets,
-            // },
+            settings: gio::Settings::new(crate::config::APP_ID),
         }
     }
 

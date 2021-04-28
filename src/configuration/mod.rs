@@ -10,7 +10,7 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Configuration {
     pub egs: Config,
     pub user_data: Option<UserData>,
