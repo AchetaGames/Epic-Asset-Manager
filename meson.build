@@ -9,10 +9,9 @@ gnome = import('gnome')
 
 base_id = 'io.github.achetagames.epic_asset_manager'
 
-dependency('glib-2.0', version: '>= 2.56')
-dependency('gio-2.0', version: '>= 2.56')
-dependency('gtk+-3.0', version: '>= 3.24.7')
-dependency('libsoup-2.4', version: '>= 2.72.0')
+dependency('glib-2.0', version: '>= 2.66')
+dependency('gio-2.0', version: '>= 2.66')
+dependency('gtk4', version: '>= 4.0.0')
 
 glib_compile_resources = find_program('glib-compile-resources', required: true)
 glib_compile_schemas = find_program('glib-compile-schemas', required: true)

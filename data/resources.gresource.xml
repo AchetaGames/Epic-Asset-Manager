@@ -2,7 +2,7 @@
 <gresources>
   <gresource prefix="/io/github/achetagames/epic_asset_manager/">
     <file compressed="true" preprocess="xml-stripblanks" alias="window.ui">resources/ui/window.ui</file>
-
+    <file compressed="true" preprocess="xml-stripblanks" alias="logged_in.ui">resources/ui/logged_in.ui</file>
     <file compressed="true" alias="style.css">resources/style.css</file>
   </gresource>
 </gresources>

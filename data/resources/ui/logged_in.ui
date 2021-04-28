@@ -1,0 +1,700 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+        <template class="EpicLoggedInStack" parent="GtkStack" id="logged_in_stack">
+        <property name="can-focus">0</property>
+        <property name="hexpand">1</property>
+        <property name="vexpand">1</property>
+        <property name="transition-type">crossfade</property>
+        <property name="interpolate-size">1</property>
+        <child>
+            <object class="GtkBox" id="asset_box">
+                <property name="can-focus">0</property>
+                <property name="hexpand">1</property>
+                <property name="vexpand">1</property>
+                <child>
+                    <object class="GtkBox" id="navigation">
+                        <property name="can-focus">0</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkButton" id="all_button">
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="yes">All Assets
+                                </property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">gtk-home</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="assets_button">
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="yes">Assets
+                                </property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">gtk-orientation-portrait
+                                        </property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="plugins_button">
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="yes">Plugins
+                                </property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">gtk-connect</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="games_button">
+                                <property name="receives-default">1</property>
+                                <property name="tooltip-text" translatable="yes">Games
+                                </property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">gtk-cdrom</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="can-focus">0</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                    <object class="GtkButton" id="settings_button">
+                                        <property name="receives-default">1</property>
+                                        <property name="tooltip-text" translatable="yes">
+                                            Settings
+                                        </property>
+                                        <property name="halign">center</property>
+                                        <property name="valign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="can-focus">0</property>
+                                                <property name="icon-name">gtk-properties
+                                                </property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkRevealer" id="navigation_pinned_revealer">
+                        <property name="can-focus">0</property>
+                        <property name="transition-type">none</property>
+                        <property name="reveal-child">1</property>
+                        <child>
+                            <placeholder/>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkOverlay" id="MainOverlay">
+                        <property name="can-focus">0</property>
+                        <property name="hexpand">1</property>
+                        <property name="vexpand">1</property>
+                        <property name="child">
+                            <object class="GtkBox">
+                                <property name="can-focus">0</property>
+                                <property name="hexpand">1</property>
+                                <property name="vexpand">1</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                    <object class="GtkSearchEntry" id="search"/>
+                                </child>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <property name="hexpand">1</property>
+                                        <property name="vexpand">1</property>
+                                        <property name="child">
+                                            <object class="GtkViewport">
+                                                <property name="can-focus">0</property>
+                                                <property name="child">
+                                                    <object class="GtkFlowBox" id="asset_flow">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="halign">start</property>
+                                                        <property name="valign">start</property>
+                                                        <property name="homogeneous">1</property>
+                                                        <property name="max-children-per-line">20</property>
+                                                    </object>
+                                                </property>
+                                            </object>
+                                        </property>
+                                    </object>
+                                </child>
+                            </object>
+                        </property>
+                        <child type="overlay">
+                            <object class="GtkRevealer" id="progress_revealer">
+                                <property name="can-focus">0</property>
+                                <property name="valign">start</property>
+                                <property name="child">
+                                    <object class="GtkProgressBar" id="loading_progress">
+                                        <property name="can-focus">0</property>
+                                    </object>
+                                </property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkRevealer" id="details_revealer">
+                        <property name="can-focus">0</property>
+                        <property name="vexpand">1</property>
+                        <property name="transition-type">slide-left</property>
+                        <property name="child">
+                            <object class="GtkBox">
+                                <property name="can-focus">0</property>
+                                <property name="vexpand">1</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                    <object class="GtkButton" id="close_details">
+                                        <property name="receives-default">1</property>
+                                        <property name="halign">end</property>
+                                        <property name="valign">start</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="can-focus">0</property>
+                                                <property name="icon-name">gtk-close</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <property name="vexpand">1</property>
+                                        <property name="child">
+                                            <object class="GtkViewport">
+                                                <property name="can-focus">0</property>
+                                                <property name="child">
+                                                    <object class="GtkBox" id="details_content">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="valign">start</property>
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="baseline-position">top</property>
+                                                        <child>
+                                                            <placeholder/>
+                                                        </child>
+                                                    </object>
+                                                </property>
+                                            </object>
+                                        </property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="can-focus">0</property>
+                                        <property name="halign">end</property>
+                                        <child>
+                                            <object class="GtkButton" id="download_button">
+                                                <property name="sensitive">0</property>
+                                                <property name="receives-default">1</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="can-focus">0</property>
+                                                        <child>
+                                                            <object class="GtkImage">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="icon-name">gtk-goto-bottom</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="label" translatable="yes">Download</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </property>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkStackPage">
+                <property name="name">settings</property>
+                <property name="title" translatable="yes">page1</property>
+                <property name="child">
+                    <object class="GtkBox" id="settings">
+                        <property name="can-focus">0</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="can-focus">0</property>
+                                <child>
+                                    <object class="GtkButton" id="settings_close">
+                                        <property name="label">gtk-go-back</property>
+                                        <property name="receives-default">1</property>
+                                        <property name="halign">start</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Settings</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="vexpand">1</property>
+                                <property name="can-focus">0</property>
+                                <property name="margin-start">20</property>
+                                <property name="margin-end">20</property>
+                                <property name="margin-top">20</property>
+                                <property name="margin-bottom">20</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="can-focus">0</property>
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                            <object class="GtkStackSidebar">
+                                                <property name="can-focus">0</property>
+                                                <property name="valign">start</property>
+                                                <property name="stack">settings-stack</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <placeholder/>
+                                        </child>
+                                        <child>
+                                            <placeholder/>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkStack" id="settings-stack">
+                                        <property name="hexpand">1</property>
+                                        <property name="can-focus">0</property>
+                                        <child>
+                                            <object class="GtkStackPage">
+                                                <property name="name">general</property>
+                                                <property name="title" translatable="yes">
+                                                    General
+                                                </property>
+                                                <property name="child">
+                                                    <object class="GtkBox">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="spacing">4</property>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">General Settings</property>
+                                                                <attributes>
+                                                                    <attribute name="scale" value="2"></attribute>
+                                                                </attributes>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkBox"
+                                                                    id="Default View Category">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="orientation">vertical</property>
+                                                                <child>
+                                                                    <object class="GtkLabel">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="yes">Default View</property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkComboBox" id="default_view_selection">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="entry-text-column">0</property>
+                                                                    </object>
+                                                                </child>
+                                                                <style>
+                                                                    <class name="app-notification"/>
+                                                                </style>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <placeholder/>
+                                                        </child>
+                                                    </object>
+                                                </property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkStackPage">
+                                                <property name="name">directories</property>
+                                                <property name="title" translatable="yes">Directories</property>
+                                                <property name="child">
+                                                    <object class="GtkBox">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="spacing">4</property>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="halign">start</property>
+                                                                <property name="label" translatable="yes">Directories Settings</property>
+                                                                <attributes>
+                                                                    <attribute name="scale" value="2"/>
+                                                                </attributes>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkBox" id="Cache Directory Category">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="orientation">vertical</property>
+                                                                <child>
+                                                                    <object class="GtkLabel">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="yes">Cache Directory</property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkFileChooserWidget" id="cache_directory_selector">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="action">select-folder</property>
+                                                                    </object>
+                                                                </child>
+                                                                <style>
+                                                                    <class name="app-notification"/>
+                                                                </style>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkBox" id="Temporary Download Directory">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="orientation">vertical</property>
+                                                                <child>
+                                                                    <object class="GtkLabel">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="yes">Temporary Download Directory</property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkFileChooserWidget" id="temp_download_directory_selector">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="action">select-folder</property>
+                                                                    </object>
+                                                                </child>
+                                                                <style>
+                                                                    <class name="app-notification"/>
+                                                                </style>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkBox" id="Vault Directory">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="orientation">vertical</property>
+                                                                <child>
+                                                                    <object class="GtkLabel">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="yes">Vault Directory</property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkFileChooserWidget" id="ue_asset_vault_directory_selector">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="action">select-folder</property>
+                                                                    </object>
+                                                                </child>
+                                                                <style>
+                                                                    <class name="app-notification"/>
+                                                                </style>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkBox" id="Unreal Engine Directories Category">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="orientation">vertical</property>
+                                                                <child>
+                                                                    <object class="GtkLabel">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="yes">Unreal Engine Directories</property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkScrolledWindow">
+                                                                        <property name="min-content-height">100</property>
+                                                                        <property name="max-content-height">100</property>
+                                                                        <property name="child">
+                                                                            <object class="GtkViewport">
+                                                                                <property name="can-focus">0</property>
+                                                                                <property name="child">
+                                                                                    <object class="GtkBox" id="unreal_engine_directories_box">
+                                                                                        <property name="can-focus">0</property>
+                                                                                        <property name="orientation">vertical</property>
+                                                                                        <child>
+                                                                                            <placeholder/>
+                                                                                        </child>
+                                                                                    </object>
+                                                                                </property>
+                                                                            </object>
+                                                                        </property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkBox">
+                                                                        <property name="can-focus">0</property>
+                                                                        <child>
+                                                                            <object class="GtkFileChooserWidget" id="ue_directory_selector">
+                                                                                <property name="hexpand">1</property>
+                                                                                <property name="can-focus">0</property>
+                                                                                <property name="action">select-folder</property>
+                                                                            </object>
+                                                                        </child>
+                                                                        <child>
+                                                                            <object class="GtkButton" id="add_unreal_directory">
+                                                                                <property name="label" translatable="yes">+</property>
+                                                                                <property name="receives-default">1</property>
+                                                                            </object>
+                                                                        </child>
+                                                                    </object>
+                                                                </child>
+                                                                <style>
+                                                                    <class name="app-notification"/>
+                                                                </style>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkBox" id="Unreal Engine Project Category">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="orientation">vertical</property>
+                                                                <child>
+                                                                    <object class="GtkLabel">
+                                                                        <property name="can-focus">0</property>
+                                                                        <property name="halign">start</property>
+                                                                        <property name="label" translatable="yes">Unreal Projects Directories</property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkScrolledWindow">
+                                                                        <property name="min-content-height">100</property>
+                                                                        <property name="max-content-height">100</property>
+                                                                        <property name="child">
+                                                                            <object class="GtkViewport">
+                                                                                <property name="can-focus">0</property>
+                                                                                <property name="child">
+                                                                                    <object class="GtkBox" id="unreal_engine_project_directories_box">
+                                                                                        <property name="can-focus">0</property>
+                                                                                        <property name="orientation">vertical</property>
+                                                                                        <child>
+                                                                                            <placeholder/>
+                                                                                        </child>
+                                                                                    </object>
+                                                                                </property>
+                                                                            </object>
+                                                                        </property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkBox">
+                                                                        <property name="can-focus">0</property>
+                                                                        <child>
+                                                                            <object class="GtkFileChooserWidget" id="ue_project_directory_selector">
+                                                                                <property name="hexpand">1</property>
+                                                                                <property name="can-focus">0</property>
+                                                                                <property name="action">select-folder</property>
+                                                                            </object>
+                                                                        </child>
+                                                                        <child>
+                                                                            <object class="GtkButton" id="add_unreal_project_directory">
+                                                                                <property name="label" translatable="yes">+</property>
+                                                                                <property name="receives-default">1</property>
+                                                                            </object>
+                                                                        </child>
+                                                                    </object>
+                                                                </child>
+                                                                <style>
+                                                                    <class name="app-notification"/>
+                                                                </style>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkStackPage">
+                <property name="name">asset_download_details</property>
+                <property name="title" translatable="yes">page0</property>
+                <property name="child">
+                    <object class="GtkBox" id="asset_download_details">
+                        <property name="can-focus">0</property>
+                        <property name="vexpand">1</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="can-focus">0</property>
+                                <child>
+                                    <object class="GtkButton" id="asset_download_details_close">
+                                        <property name="label">gtk-go-back</property>
+                                        <property name="receives-default">1</property>
+                                        <property name="halign">start</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="hexpand">1</property>
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Download Details</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="vexpand">1</property>
+                                <property name="can-focus">0</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                    <object class="GtkLabel" id="download_asset_name">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Asset Name</property>
+                                        <property name="xalign">0</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="can-focus">0</property>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="can-focus">0</property>
+                                                <property name="label" translatable="yes">Select version:</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkComboBoxText" id="asset_version_combo">
+                                                <property name="can-focus">0</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkButton" id="asset_download_info_revealer_button">
+                                                <property name="receives-default">1</property>
+                                                <child>
+                                                    <object class="GtkImage" id="asset_download_info_revealer_button_image">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="icon-name">gtk-go-up</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkRevealer"
+                                            id="asset_download_info_revealer">
+                                        <property name="can-focus">0</property>
+                                        <property name="transition-type">none</property>
+                                        <property name="reveal-child">1</property>
+                                        <property name="child">
+                                            <object class="GtkBox" id="asset_download_info_box">
+                                                <property name="can-focus">0</property>
+                                                <property name="orientation">vertical</property>
+                                                <child>
+                                                    <placeholder/>
+                                                </child>
+                                            </object>
+                                        </property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox" id="asset_download_content">
+                                        <property name="vexpand">1</property>
+                                        <property name="can-focus">0</property>
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                            <placeholder/>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox" id="download_actions">
+                                        <property name="can-focus">0</property>
+                                        <property name="halign">end</property>
+                                        <child>
+                                            <placeholder/>
+                                        </child>
+                                        <child>
+                                            <placeholder/>
+                                        </child>
+                                        <child>
+                                            <placeholder/>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <placeholder/>
+                        </child>
+                    </object>
+                </property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkStackPage">
+                <property name="name">page1</property>
+                <property name="title" translatable="yes">page1</property>
+                <property name="child">
+                    <object class="GtkBox" id="download_details">
+                        <property name="can-focus">0</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkButton" id="download_details_close">
+                                <property name="label">gtk-go-back</property>
+                                <property name="receives-default">1</property>
+                                <property name="halign">start</property>
+                            </object>
+                        </child>
+                        <child>
+                            <placeholder/>
+                        </child>
+                        <child>
+                            <placeholder/>
+                        </child>
+                    </object>
+                </property>
+            </object>
+        </child>
+    </template>
+</interface>

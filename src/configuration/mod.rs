@@ -4,13 +4,14 @@ use clap::{App, Arg};
 use config::Config;
 use egs_api::api::UserData;
 use env_logger::Env;
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
-pub(crate) struct Configuration {
+pub struct Configuration {
     pub egs: Config,
     pub user_data: Option<UserData>,
     pub directories: DirectoryConfiguration,
@@ -79,7 +80,7 @@ impl Configuration {
                 record.args()
             )
         })
-        .init();
+        .try_init();
 
         match conf.egs.merge(config::File::new(
             Path::new(&conf.path.clone().unwrap())
@@ -115,7 +116,7 @@ impl Configuration {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct DirectoryConfiguration {
+pub struct DirectoryConfiguration {
     pub cache_directory: String,
     pub temporary_download_directory: String,
     pub unreal_vault_directory: String,
@@ -123,7 +124,7 @@ pub(crate) struct DirectoryConfiguration {
     pub unreal_projects_directories: Vec<String>,
 }
 
-pub(crate) trait Save {
+pub trait Save {
     fn remove(&self, _path: Option<String>) {
         todo!()
     }

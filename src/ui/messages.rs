@@ -3,14 +3,14 @@ use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
-use relm_derive::Msg;
+use gtk::gio::File;
 use slab_tree::NodeId;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[derive(Msg, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub enum Msg {
-    Open(Vec<gio::File>, String),
+    Open(Vec<File>, String),
     Quit,
     PasswordLogin,
     AlternateLogin,

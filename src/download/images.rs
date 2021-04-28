@@ -1,7 +1,6 @@
 use crate::tools::cache::Cache;
-use crate::Win;
 use egs_api::api::types::asset_info::KeyImage;
-use relm::Channel;
+use log::debug;
 use std::path::Path;
 use std::thread;
 
@@ -11,7 +10,7 @@ pub(crate) trait Images {
     }
 }
 
-impl Images for Win {
+impl Images for EpicAssetManagerWindow {
     fn download_image(&self, asset_id: Option<String>, image: KeyImage) {
         let stream = self.model.relm.stream().clone();
         let (_channel, sender) = Channel::new(move |(id, b)| {
