@@ -4,5 +4,53 @@
         <property name="default-width">820</property>
         <property name="default-height">760</property>
         <property name="can-swipe-back">True</property>
+        <child>
+            <object class="AdwPreferencesPage">
+                <property name="icon-name">applications-system-symbolic</property>
+                <property name="title" translatable="yes">General</property>
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Startup</property>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Default view</property>
+                                <property name="use-underline">True</property>
+                                <property name="activatable-widget">default_view_selection</property>
+                                <property name="subtitle" translatable="yes">What panel to open the application on</property>
+                                <child>
+                                    <object class="GtkComboBox" id="default_view_selection">
+                                        <property name="valign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="AdwPreferencesPage">
+                <property name="icon-name">folder-symbolic</property>
+                <property name="title" translatable="yes">Directories</property>
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Download Targets</property>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Cache Directory</property>
+                                <property name="use-underline">True</property>
+                                <property name="activatable-widget">dark_theme_switch</property>
+                                <property name="subtitle" translatable="yes">Where asset info files will be stored</property>
+                                <child>
+                                    <object class="GtkFileChooserWidget " id="default_view_selection">
+                                        <property name="valign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
     </template>
 </interface>
