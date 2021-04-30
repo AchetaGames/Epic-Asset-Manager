@@ -12,7 +12,7 @@ use threadpool::ThreadPool;
 #[derive(Debug)]
 pub struct Model {
     epic_games: EpicGames,
-    configuration: Configuration,
+    pub configuration: Configuration,
     // asset_model: crate::models::asset_model::Model,
     selected_asset: Option<String>,
     selected_files: HashMap<String, HashMap<String, Vec<String>>>,

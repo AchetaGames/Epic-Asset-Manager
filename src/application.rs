@@ -1,6 +1,7 @@
 use crate::config;
 use crate::ui::widgets::preferences::window::PreferencesWindow;
 use crate::window::EpicAssetManagerWindow;
+use egs_api::api::UserData;
 use gio::ApplicationFlags;
 use glib::clone;
 use glib::WeakRef;
@@ -45,6 +46,17 @@ impl EpicAssetManager {
             })
         );
 
+        // Quit
+        action!(
+            self,
+            "inspector",
+            clone!(@weak self as app => move |_, _| {
+                // This is needed to trigger the delete event
+                // and saving the window state
+                gtk::Window::set_interactive_debugging(true);
+            })
+        );
+
         // About
         action!(
             self,
@@ -70,6 +82,30 @@ impl EpicAssetManager {
                 &provider,
                 gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
             );
+        }
+    }
+
+    pub fn init(&self) {
+        let priv_ = crate::application::imp::EpicAssetManager::from_instance(self);
+        match priv_.model.configuration.user_data {
+            None => priv_
+                .window
+                .get()
+                .unwrap()
+                .upgrade()
+                .unwrap()
+                .data()
+                .main_stack
+                .set_visible_child_name("sid_box"),
+            Some(_) => priv_
+                .window
+                .get()
+                .unwrap()
+                .upgrade()
+                .unwrap()
+                .data()
+                .main_stack
+                .set_visible_child_name("logged_in_stack"),
         }
     }
 
