@@ -1,22 +1,11 @@
-use crate::config::APP_ID;
-use crate::models::Model;
-use adw::prelude::*;
-use gettextrs::gettext;
-use glib::clone;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::action;
 use once_cell::sync::OnceCell;
 
 pub mod imp {
     use super::*;
     use crate::models::Model;
     use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
-    use glib::{
-        subclass::{self, Signal},
-        ParamSpec,
-    };
-    use once_cell::sync::Lazy;
-    use std::cell::{Cell, RefCell};
+    use glib::subclass::{self};
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/preferences.ui")]
@@ -64,8 +53,6 @@ glib::wrapper! {
 impl PreferencesWindow {
     pub fn new() -> Self {
         let window = glib::Object::new(&[]).expect("Failed to create PreferencesWindow");
-        let self_ = imp::PreferencesWindow::from_instance(&window);
-        // self_.model.set(model).unwrap();
         window
     }
 }

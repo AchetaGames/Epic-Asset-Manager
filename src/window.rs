@@ -1,7 +1,6 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
 use glib::signal::Inhibit;
-use gtk::prelude::MediaFileExt;
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{gio, glib, CompositeTemplate};

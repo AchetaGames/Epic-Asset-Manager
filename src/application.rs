@@ -1,7 +1,6 @@
 use crate::config;
 use crate::ui::widgets::preferences::window::PreferencesWindow;
 use crate::window::EpicAssetManagerWindow;
-use egs_api::api::UserData;
 use gio::ApplicationFlags;
 use glib::clone;
 use glib::WeakRef;

@@ -52,8 +52,7 @@
                         <property name="name">logged_in_stack</property>
                         <property name="title" translatable="yes">logged_in_stack</property>
                         <property name="child">
-                            <object class="GtkBox" id="logged_in_stack">
-                            </object>
+                            <object class="EpicLoggedInBox" id="logged_in_stack"/>
                         </property>
                     </object>
                 </child>
@@ -81,7 +80,7 @@
                                     <object class="GtkLabel">
                                         <property name="can-focus">0</property>
                                         <property name="label" translatable="yes">Click &quot;&lt;b&gt;Open in Browser&lt;/b&gt;&quot; to continue to login page
-or go to &lt;a href=&quot;https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect&quot;&gt;https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect&lt;/a&gt;
+                                            or go to &lt;a href=&quot;https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect&quot;&gt;https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect&lt;/a&gt;
                                         </property>
                                         <property name="use-markup">1</property>
                                         <property name="selectable">1</property>

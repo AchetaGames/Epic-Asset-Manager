@@ -1,16 +1,4 @@
 use super::*;
-use crate::configuration::Configuration;
-use egs_api::EpicGames;
-use gtk::glib::{MainContext, Receiver, Sender, SignalHandlerId, PRIORITY_DEFAULT};
-use gtk::{
-    Application, ApplicationWindow, Box, Button, CheckButton, ComboBoxText, Entry,
-    FileChooserWidget, FlowBox, Image, Label, ProgressBar, Revealer, SearchEntry, Stack,
-};
-use slab_tree::{NodeId, Tree, TreeBuilder};
-use std::collections::HashMap;
-use std::fs;
-use threadpool::ThreadPool;
-// use crate::download::DownloadedFile;
 
 #[derive(CompositeTemplate)]
 #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
@@ -19,6 +7,8 @@ pub struct EpicAssetManagerWindow {
     pub headerbar: TemplateChild<gtk::HeaderBar>,
     #[template_child]
     pub main_stack: TemplateChild<gtk::Stack>,
+    #[template_child]
+    pub logged_in_stack: TemplateChild<crate::ui::widgets::logged_in::EpicLoggedInBox>,
     pub settings: gio::Settings,
     // pub widgets: Widgets,
 }
@@ -30,8 +20,6 @@ impl ObjectSubclass for EpicAssetManagerWindow {
     type ParentType = gtk::ApplicationWindow;
 
     fn new() -> Self {
-        println!("New called");
-
         // let builder =
         //     gtk::Builder::from_resource("/io/github/achetagames/epic_asset_manager/window.ui");
         // let main_stack: Stack = builder.object("main_stack").unwrap();
@@ -172,6 +160,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
         Self {
             headerbar: TemplateChild::default(),
             main_stack: TemplateChild::default(),
+            logged_in_stack: TemplateChild::default(),
             settings: gio::Settings::new(crate::config::APP_ID),
         }
     }
