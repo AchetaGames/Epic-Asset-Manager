@@ -1,3 +1,4 @@
+use glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{self, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
@@ -13,7 +14,7 @@ pub(crate) mod imp {
     pub struct SidBox {
         pub actions: gio::SimpleActionGroup,
         #[template_child]
-        pub sid_entry: TemplateChild<gtk::Entry>,
+        pub sid_entry: TemplateChild<gtk::Text>,
     }
 
     #[glib::object_subclass]
@@ -71,5 +72,13 @@ impl SidBox {
             error!("Please go to https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect")
         }
         });
+        action!(
+            actions,
+            "cancel",
+            clone!(@weak self as sid_box => move |_, _| {
+                let self_ = imp::SidBox::from_instance(&sid_box);
+                self_.sid_entry.set_text("");
+            })
+        );
     }
 }

@@ -28,6 +28,7 @@ Click &quot;&lt;b&gt;Open in Browser&lt;/b&gt;&quot; to continue to login page
                 <property name="can-focus">0</property>
                 <child>
                     <object class="GtkEntry" id="sid_entry">
+                        <property name="can-focus">1</property>
                         <property name="width-chars">32</property>
                     </object>
                 </child>

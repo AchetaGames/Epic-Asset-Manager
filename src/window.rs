@@ -18,7 +18,7 @@ impl EpicAssetManagerWindow {
     pub fn new(app: &EpicAssetManager) -> Self {
         let window: Self = glib::Object::new(&[]).expect("Failed to create EpicAssetManagerWindow");
         window.set_application(Some(app));
-
+        // TODO: Set subwidget things here
         // Set icons for shell
         gtk::Window::set_default_icon_name(APP_ID);
 
