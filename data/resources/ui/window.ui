@@ -22,12 +22,10 @@
         </section>
     </menu>
     <template class="EpicAssetManagerWindow" parent="GtkApplicationWindow">
-        <property name="can-focus">0</property>
         <property name="default-width">800</property>
         <property name="default-height">400</property>
         <child>
             <object class="GtkStack" id="main_stack">
-                <property name="can-focus">0</property>
                 <property name="transition-type">crossfade</property>
                 <child>
                     <object class="GtkBox" id="progress">
@@ -41,7 +39,6 @@
                         </child>
                         <child>
                             <object class="GtkLabel" id="progress_message">
-                                <property name="can-focus">0</property>
                                 <property name="label" translatable="yes">Loading</property>
                             </object>
                         </child>

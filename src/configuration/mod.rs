@@ -80,7 +80,7 @@ impl Configuration {
                 record.args()
             )
         })
-        .try_init();
+        .init();
 
         match conf.egs.merge(config::File::new(
             Path::new(&conf.path.clone().unwrap())

@@ -1,10 +1,8 @@
 use super::*;
-use crate::models::Model;
 
 #[derive(Debug)]
 pub struct EpicAssetManager {
     pub window: OnceCell<WeakRef<EpicAssetManagerWindow>>,
-    pub model: Model,
     pub settings: gio::Settings,
 }
 
@@ -15,12 +13,10 @@ impl ObjectSubclass for EpicAssetManager {
     type ParentType = gtk::Application;
 
     fn new() -> Self {
-        let model = Model::new();
         let settings = gio::Settings::new(config::APP_ID);
 
         Self {
             window: OnceCell::new(),
-            model,
             settings,
         }
     }

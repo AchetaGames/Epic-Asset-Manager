@@ -1,9 +1,9 @@
 use super::*;
+use crate::models::Model;
 
 #[derive(CompositeTemplate)]
 #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
 pub struct EpicAssetManagerWindow {
-    pub actions: gio::SimpleActionGroup,
     #[template_child]
     pub headerbar: TemplateChild<gtk::HeaderBar>,
     #[template_child]
@@ -13,7 +13,7 @@ pub struct EpicAssetManagerWindow {
     #[template_child]
     pub sid_box: TemplateChild<crate::ui::widgets::sid_login::SidBox>,
     pub settings: gio::Settings,
-    // pub widgets: Widgets,
+    pub model: Model,
 }
 
 #[glib::object_subclass]
@@ -24,12 +24,12 @@ impl ObjectSubclass for EpicAssetManagerWindow {
 
     fn new() -> Self {
         let win = Self {
-            actions: gio::SimpleActionGroup::new(),
             headerbar: TemplateChild::default(),
             main_stack: TemplateChild::default(),
             logged_in_stack: TemplateChild::default(),
             sid_box: TemplateChild::default(),
             settings: gio::Settings::new(crate::config::APP_ID),
+            model: Model::new(),
         };
         win
     }
@@ -55,6 +55,7 @@ impl ObjectImpl for EpicAssetManagerWindow {
 
         // load latest window state
         obj.load_window_size();
+        obj.setup_actions();
     }
 }
 

@@ -1,17 +1,18 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
+use glib::clone;
 use glib::signal::Inhibit;
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{gio, glib, CompositeTemplate};
-
+use gtk_macros::action;
 use log::warn;
 
 mod imp;
 
 glib::wrapper! {
     pub struct EpicAssetManagerWindow(ObjectSubclass<imp::EpicAssetManagerWindow>)
-        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, @implements gio::ActionMap, gio::ActionGroup;
+        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, gio::ActionMap, gio::ActionGroup;
 }
 
 impl EpicAssetManagerWindow {
@@ -21,6 +22,9 @@ impl EpicAssetManagerWindow {
         // TODO: Set subwidget things here
         // Set icons for shell
         gtk::Window::set_default_icon_name(APP_ID);
+        let self_ = imp::EpicAssetManagerWindow::from_instance(&window);
+        self_.sid_box.set_window(&window);
+        println!("set window");
 
         window
     }
@@ -54,5 +58,16 @@ impl EpicAssetManagerWindow {
         if is_maximized {
             self.maximize();
         }
+    }
+
+    pub fn setup_actions(&self) {
+        action!(
+            self,
+            "login",
+            Some(&String::static_variant_type()),
+            clone!(@weak self as window => move |_, sid| {
+            println!("login called: {:?}", sid.unwrap().str());
+                        })
+        );
     }
 }

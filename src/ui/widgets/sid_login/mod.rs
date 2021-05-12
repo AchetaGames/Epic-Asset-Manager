@@ -7,7 +7,9 @@ use log::error;
 
 pub(crate) mod imp {
     use super::*;
+    use crate::window::EpicAssetManagerWindow;
     use gtk::gio;
+    use once_cell::sync::OnceCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/sid.ui")]
@@ -15,6 +17,7 @@ pub(crate) mod imp {
         pub actions: gio::SimpleActionGroup,
         #[template_child]
         pub sid_entry: TemplateChild<gtk::Text>,
+        pub window: OnceCell<EpicAssetManagerWindow>,
     }
 
     #[glib::object_subclass]
@@ -27,6 +30,7 @@ pub(crate) mod imp {
             Self {
                 actions: gio::SimpleActionGroup::new(),
                 sid_entry: TemplateChild::default(),
+                window: OnceCell::new(),
             }
         }
 
@@ -57,9 +61,9 @@ glib::wrapper! {
 }
 
 impl SidBox {
-    pub fn new() -> Self {
-        let sid: Self = glib::Object::new(&[]).expect("Failed to create SidBox");
-        sid
+    pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
+        let self_ = imp::SidBox::from_instance(self);
+        self_.window.set(window.clone()).unwrap();
     }
 
     pub fn setup_actions(&self) {
@@ -78,6 +82,18 @@ impl SidBox {
             clone!(@weak self as sid_box => move |_, _| {
                 let self_ = imp::SidBox::from_instance(&sid_box);
                 self_.sid_entry.set_text("");
+            })
+        );
+
+        action!(
+            actions,
+            "login",
+            clone!(@weak self as sid_box => move |_, _| {
+                let self_ = imp::SidBox::from_instance(&sid_box);
+                let text = self_.sid_entry.text();
+                if let Some(window) = self_.window.get() {
+                        gtk::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));
+                }
             })
         );
     }
