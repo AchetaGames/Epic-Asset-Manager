@@ -1,5 +1,7 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
+use crate::ui::authentication::Authorization;
+use crate::ui::update::Update;
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk::subclass::prelude::*;
@@ -24,7 +26,6 @@ impl EpicAssetManagerWindow {
         gtk::Window::set_default_icon_name(APP_ID);
         let self_ = imp::EpicAssetManagerWindow::from_instance(&window);
         self_.sid_box.set_window(&window);
-        println!("set window");
 
         window
     }
@@ -60,14 +61,29 @@ impl EpicAssetManagerWindow {
         }
     }
 
+    pub fn setup_receiver(&self) {
+        let _self = (*self).data();
+        _self.model.receiver.borrow_mut().take().unwrap().attach(
+            None,
+            clone!(@weak self as window => @default-panic, move |msg| {
+                window.update(msg);
+                glib::Continue(true)
+            }),
+        );
+    }
+
     pub fn setup_actions(&self) {
         action!(
             self,
             "login",
             Some(&String::static_variant_type()),
-            clone!(@weak self as window => move |_, sid| {
-            println!("login called: {:?}", sid.unwrap().str());
-                        })
+            clone!(@weak self as window => move |_, sid_par| {
+                if let Some(sid_opt) = sid_par {
+                    if let Some(sid) = sid_opt.get::<String>() {
+                        window.login(sid.to_string());
+                    }
+                }
+            })
         );
     }
 }

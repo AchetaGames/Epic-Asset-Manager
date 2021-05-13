@@ -38,8 +38,9 @@ impl EpicAssetManager {
             self,
             "quit",
             clone!(@weak self as app => move |_, _| {
-                // This is needed to trigger the delete event
-                // and saving the window state
+                if let Ok(mut w) = crate::RUNNING.write() {
+                    *w = false
+                }
                 app.get_main_window().close();
                 app.quit();
             })

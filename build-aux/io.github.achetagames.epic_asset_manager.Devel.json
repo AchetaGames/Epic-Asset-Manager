@@ -13,7 +13,7 @@
     "--share=network",
     "--filesystem=home",
     "--device=dri",
-    "--env=RUST_LOG=epic_asset_manager=debug",
+    "--env=RUST_LOG=debug",
     "--env=G_MESSAGES_DEBUG=none"
   ],
   "build-options": {

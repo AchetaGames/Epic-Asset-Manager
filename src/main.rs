@@ -8,11 +8,19 @@ mod tools;
 mod ui;
 mod window;
 
+#[macro_use]
+extern crate lazy_static;
+
 use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use application::EpicAssetManager;
 use gettextrs::*;
 use gtk::gio;
 use log::debug;
+use std::sync::Arc;
+
+lazy_static! {
+    static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
+}
 
 fn main() {
     #[cfg(windows)]

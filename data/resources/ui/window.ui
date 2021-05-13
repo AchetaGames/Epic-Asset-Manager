@@ -28,20 +28,26 @@
             <object class="GtkStack" id="main_stack">
                 <property name="transition-type">crossfade</property>
                 <child>
-                    <object class="GtkBox" id="progress">
-                        <property name="can-focus">0</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <child>
-                            <object class="GtkSpinner">
-                                <property name="spinning">True</property>
+                    <object class="GtkStackPage">
+                        <property name="name">progress</property>
+                        <property name="title" translatable="yes">progress</property>
+                        <property name="child">
+                            <object class="GtkBox" id="progress">
+                                <property name="can-focus">0</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkSpinner">
+                                        <property name="spinning">True</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel" id="progress_message">
+                                        <property name="label" translatable="yes">Loading</property>
+                                    </object>
+                                </child>
                             </object>
-                        </child>
-                        <child>
-                            <object class="GtkLabel" id="progress_message">
-                                <property name="label" translatable="yes">Loading</property>
-                            </object>
-                        </child>
+                        </property>
                     </object>
                 </child>
                 <child>

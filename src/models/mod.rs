@@ -4,6 +4,7 @@ use egs_api::EpicGames;
 use gtk::glib::{MainContext, Receiver, Sender, SignalHandlerId, PRIORITY_DEFAULT};
 use gtk::{gio, CheckButton};
 use slab_tree::{NodeId, Tree, TreeBuilder};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use threadpool::ThreadPool;
 
@@ -11,7 +12,7 @@ use threadpool::ThreadPool;
 // pub mod row_data;
 #[derive(Debug)]
 pub struct Model {
-    epic_games: EpicGames,
+    pub epic_games: EpicGames,
     pub configuration: Configuration,
     // asset_model: crate::models::asset_model::Model,
     selected_asset: Option<String>,
@@ -25,8 +26,8 @@ pub struct Model {
     download_manifest_tree: Tree<Option<CheckButton>>,
     download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
     download_manifest_file_details: HashMap<NodeId, (String, String, String, u128)>,
-    sender: Sender<crate::ui::messages::Msg>,
-    receiver: Receiver<crate::ui::messages::Msg>,
+    pub sender: Sender<crate::ui::messages::Msg>,
+    pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
     selected_files_size: u128,
     pub settings: gio::Settings,
 }
@@ -50,7 +51,7 @@ impl Model {
             download_manifest_handlers: HashMap::new(),
             download_manifest_file_details: HashMap::new(),
             sender: sender.clone(),
-            receiver,
+            receiver: RefCell::new(Some(receiver)),
             selected_files_size: 0,
             settings: gio::Settings::new(APP_ID),
         }

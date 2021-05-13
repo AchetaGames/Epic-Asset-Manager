@@ -12,6 +12,8 @@ pub struct EpicAssetManagerWindow {
     pub logged_in_stack: TemplateChild<crate::ui::widgets::logged_in::EpicLoggedInBox>,
     #[template_child]
     pub sid_box: TemplateChild<crate::ui::widgets::sid_login::SidBox>,
+    #[template_child]
+    pub progress_message: TemplateChild<gtk::Label>,
     pub settings: gio::Settings,
     pub model: Model,
 }
@@ -28,6 +30,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             main_stack: TemplateChild::default(),
             logged_in_stack: TemplateChild::default(),
             sid_box: TemplateChild::default(),
+            progress_message: TemplateChild::default(),
             settings: gio::Settings::new(crate::config::APP_ID),
             model: Model::new(),
         };
