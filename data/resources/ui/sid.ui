@@ -15,11 +15,49 @@
             </object>
         </child>
         <child>
-            <object class="GtkLabel">
-                <property name="can-focus">0</property>
-                <property name="label" translatable="yes">Click &quot;&lt;b&gt;Open in Browser&lt;/b&gt;&quot; to continue to login page</property>
-                <property name="use-markup">1</property>
+            <object class="GtkBox">
+                <property name="halign">center</property>
+                <property name="spacing">5</property>
+                <child>
+                    <object class="GtkLabel">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">Click</property>
+                        <property name="use-markup">1</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="sid_browser_button">
+                        <property name="action-name">sid.browser</property>
+                        <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect</property>
+                        <property name="receives-default">1</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="spacing">5</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">emblem-web</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Open In Browser</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">to continue to login page</property>
+                        <property name="use-markup">1</property>
+                    </object>
+                </child>
             </object>
+
         </child>
         <child>
             <object class="GtkBox">
@@ -34,34 +72,31 @@
                     </object>
                 </child>
                 <child>
-                    <object class="GtkButton" id="sid_browser_button">
-                        <property name="label" translatable="yes">Open In Browser</property>
-                        <property name="action-name">sid.browser</property>
-                        <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect</property>
-                        <property name="receives-default">1</property>
-                    </object>
-                </child>
-            </object>
-        </child>
-        <child>
-            <object class="GtkBox">
-                <property name="halign">center</property>
-                <property name="spacing">20</property>
-                <child>
-                    <object class="GtkButton" id="sid_cancel">
-                        <property name="label" translatable="yes">Cancel</property>
-                        <property name="action-name">sid.cancel</property>
-                        <property name="receives-default">1</property>
-                    </object>
-                </child>
-                <child>
                     <object class="GtkButton" id="sid_login">
-                        <property name="label" translatable="yes">Login</property>
+                        <property name="halign">center</property>
                         <property name="action-name">sid.login</property>
                         <property name="receives-default">1</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="spacing">5</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">dialog-password</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Authenticate</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
                 </child>
             </object>
         </child>
+
     </template>
 </interface>
