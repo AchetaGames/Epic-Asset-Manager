@@ -10,7 +10,7 @@ use gtk::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 use log::warn;
 
-mod imp;
+pub(crate) mod imp;
 
 glib::wrapper! {
     pub struct EpicAssetManagerWindow(ObjectSubclass<imp::EpicAssetManagerWindow>)
@@ -62,7 +62,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn setup_receiver(&self) {
-        let _self = (*self).data();
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         _self.model.receiver.borrow_mut().take().unwrap().attach(
             None,
             clone!(@weak self as window => @default-panic, move |msg| {

@@ -43,7 +43,7 @@ impl Authorization for EpicAssetManagerWindow {
     // }
 
     fn login(&self, sid: String) {
-        let _self = (*self).data();
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         _self.main_stack.set_visible_child_name("progress");
         _self.progress_message.set_text("Authenticating");
         let sender = _self.model.sender.clone();

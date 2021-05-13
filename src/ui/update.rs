@@ -12,6 +12,7 @@ pub(crate) trait Update {
 impl Update for EpicAssetManagerWindow {
     fn update(&self, event: Msg) {
         let start = std::time::Instant::now();
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         match event.clone() {
             Msg::Open(_, _) => {}
             Msg::Quit => {}
@@ -23,7 +24,9 @@ impl Update for EpicAssetManagerWindow {
             Msg::Logout => {}
             Msg::ShowLogin => {}
             Msg::Relogin => {}
-            Msg::LoginOk(ud) => {}
+            Msg::LoginOk(ud) => {
+                _self.main_stack.set_visible_child_name("logged_in_stack");
+            }
             Msg::ProcessAssetList(_, _) => {}
             Msg::ProcessAssetInfo(_) => {}
             Msg::ProcessImage(_, _) => {}
