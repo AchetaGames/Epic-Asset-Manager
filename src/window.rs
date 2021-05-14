@@ -35,7 +35,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn save_window_size(&self) -> Result<(), glib::BoolError> {
-        let settings = &imp::EpicAssetManagerWindow::from_instance(self).settings;
+        let settings = &(*self).data().model.settings;
 
         let size = self.default_size();
 
@@ -48,7 +48,7 @@ impl EpicAssetManagerWindow {
     }
 
     fn load_window_size(&self) {
-        let settings = &imp::EpicAssetManagerWindow::from_instance(self).settings;
+        let settings = &(*self).data().model.settings;
 
         let width = settings.int("window-width");
         let height = settings.int("window-height");

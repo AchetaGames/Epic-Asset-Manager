@@ -3,12 +3,17 @@
 from os import environ, path
 from subprocess import call
 
-if not environ.get('DESTDIR', ''):
-    PREFIX = environ.get('MESON_INSTALL_PREFIX', '/usr/local')
-    DATA_DIR = path.join(PREFIX, 'share')
+prefix = environ.get('MESON_INSTALL_PREFIX', '/usr/local')
+datadir = path.join(prefix, 'share')
+destdir = environ.get('DESTDIR', '')
+
+# Package managers set this so we don't need to run
+if not destdir:
     print('Updating icon cache...')
-    call(['gtk-update-icon-cache', '-qtf', path.join(DATA_DIR, 'icons/hicolor')])
-    print("Compiling new schemas...")
-    call(["glib-compile-schemas", path.join(DATA_DIR, 'glib-2.0/schemas')])
-    print("Updating desktop database...")
-    call(["update-desktop-database", path.join(DATA_DIR, 'applications')])
+    call(['gtk-update-icon-cache', '-qtf', path.join(datadir, 'icons', 'hicolor')])
+
+    print('Updating desktop database...')
+    call(['update-desktop-database', '-q', path.join(datadir, 'applications')])
+
+    print('Compiling GSettings schemas...')
+    call(['glib-compile-schemas', path.join(datadir, 'glib-2.0', 'schemas')])

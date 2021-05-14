@@ -81,11 +81,13 @@ impl SidBox {
             actions,
             "login",
             clone!(@weak self as sid_box => move |_, _| {
-                let self_ = imp::SidBox::from_instance(&sid_box);
+                let self_: &crate::ui::widgets::sid_login::imp::SidBox = imp::SidBox::from_instance(&sid_box);
                 let text = self_.sid_entry.text();
+
                 if let Some(window) = self_.window.get() {
                         gtk::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));
                 }
+                self_.sid_entry.set_text();
             })
         );
     }

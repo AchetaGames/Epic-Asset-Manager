@@ -12,6 +12,7 @@
     "--socket=wayland",
     "--share=network",
     "--filesystem=home",
+    "--talk-name=org.freedesktop.secrets",
     "--device=dri",
     "--env=RUST_LOG=debug",
     "--env=G_MESSAGES_DEBUG=none"

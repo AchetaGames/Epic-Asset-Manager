@@ -16,5 +16,15 @@
       <summary>Default window maximized behaviour</summary>
       <description></description>
     </key>
+    <key name="token-expiration" type="s">
+      <default>""</default>
+      <summary>Access token expiration</summary>
+      <description></description>
+    </key>
+    <key name="refresh-token-expiration" type="s">
+      <default>""</default>
+      <summary>Refresh token expiration</summary>
+      <description></description>
+    </key>
   </schema>
 </schemalist>

@@ -14,7 +14,6 @@ pub struct EpicAssetManagerWindow {
     pub sid_box: TemplateChild<crate::ui::widgets::sid_login::SidBox>,
     #[template_child]
     pub progress_message: TemplateChild<gtk::Label>,
-    pub settings: gio::Settings,
     pub model: Model,
 }
 
@@ -31,9 +30,10 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             logged_in_stack: TemplateChild::default(),
             sid_box: TemplateChild::default(),
             progress_message: TemplateChild::default(),
-            settings: gio::Settings::new(crate::config::APP_ID),
             model: Model::new(),
         };
+        // Try to get old secrets
+
         win
     }
 
@@ -59,6 +59,7 @@ impl ObjectImpl for EpicAssetManagerWindow {
         // load latest window state
         obj.load_window_size();
         obj.setup_actions();
+        obj.setup_receiver();
     }
 }
 

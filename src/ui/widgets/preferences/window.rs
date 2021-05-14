@@ -7,7 +7,7 @@ pub mod imp {
     use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
     use glib::subclass::{self};
 
-    #[derive(Debug, CompositeTemplate)]
+    #[derive(CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/preferences.ui")]
     pub struct PreferencesWindow {
         pub settings: gio::Settings,
