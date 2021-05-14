@@ -1,5 +1,4 @@
 use crate::config::APP_ID;
-use crate::configuration::Configuration;
 use egs_api::EpicGames;
 use gtk::glib::{MainContext, Receiver, Sender, SignalHandlerId, PRIORITY_DEFAULT};
 use gtk::prelude::*;
@@ -15,7 +14,6 @@ use threadpool::ThreadPool;
 // pub mod row_data;
 pub struct Model {
     pub epic_games: EpicGames,
-    pub configuration: Configuration,
     pub secret_service: SecretService<'static>,
     // asset_model: crate::models::asset_model::Model,
     selected_asset: Option<String>,
@@ -40,7 +38,6 @@ impl Model {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         let mut obj = Self {
             epic_games: EpicGames::new(),
-            configuration: Configuration::new(),
             secret_service: SecretService::new(EncryptionType::Dh)
                 .expect("A running secret-service is required"),
             // asset_model: crate::models::asset_model::Model::new(),

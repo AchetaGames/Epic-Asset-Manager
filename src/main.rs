@@ -1,7 +1,6 @@
 mod application;
 #[rustfmt::skip]
 mod config;
-mod configuration;
 // mod download;
 mod models;
 mod tools;
@@ -13,9 +12,12 @@ extern crate lazy_static;
 
 use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use application::EpicAssetManager;
+use clap::{App, Arg};
+use env_logger::Env;
 use gettextrs::*;
 use gtk::gio;
 use log::debug;
+use std::io::Write;
 use std::sync::Arc;
 
 lazy_static! {
@@ -29,6 +31,32 @@ fn main() {
             .set_icon("data/icons/io.github.achetagames.epic_asset_manager.ico")
             .compile()?;
     }
+
+    let matches = App::new("Epic Asset Manager")
+        .about("A GUI tool to access the Epic Games Store Assets")
+        .arg(
+            Arg::with_name("v")
+                .short("v")
+                .help("Sets the level of verbosity"),
+        )
+        .get_matches();
+
+    env_logger::Builder::from_env(Env::default().default_filter_or(
+        match matches.occurrences_of("v") {
+            0 => "epic_asset_manager:info",
+            1 | _ => "epic_asset_manager:debug",
+        },
+    ))
+    .format(|buf, record| {
+        writeln!(
+            buf,
+            "<{}> - [{}] - {}",
+            record.target(),
+            record.level(),
+            record.args()
+        )
+    })
+    .init();
 
     // Prepare i18n
     setlocale(LocaleCategory::LcAll, "");
