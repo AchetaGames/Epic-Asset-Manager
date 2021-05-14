@@ -32,15 +32,15 @@
       <summary>Temporary download directory</summary>
     </key>
     <key name="unreal-vault-directories" type="as">
-      <default>""</default>
+      <default>[]</default>
       <summary>Unreal Vault Directories</summary>
     </key>
     <key name="unreal-engine-directories" type="as">
-      <default>""</default>
+      <default>[]</default>
       <summary>Unreal Engine Directories</summary>
     </key>
     <key name="unreal-projects-directories" type="as">
-      <default>""</default>
+      <default>[]</default>
       <summary>Unreal Projects Directories</summary>
     </key>
   </schema>

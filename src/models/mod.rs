@@ -74,18 +74,21 @@ impl Model {
                     let label = match item.get_label() {
                         Ok(l) => l,
                         Err(_) => {
+                            debug!("No label skipping");
                             continue;
                         }
                     };
+                    debug!("Loading: {}", label);
                     if let Ok(attributes) = item.get_attributes() {
-                        let t = match attributes.get("type") {
-                            None => {
-                                continue;
-                            }
-                            Some(v) => v.clone(),
-                        };
                         match label.as_str() {
                             "eam_epic_games_token" => {
+                                let t = match attributes.get("type") {
+                                    None => {
+                                        debug!("Access token does not have type");
+                                        continue;
+                                    }
+                                    Some(v) => v.clone(),
+                                };
                                 let exp = match chrono::DateTime::parse_from_rfc3339(
                                     self.settings.string("token-expiration").as_str(),
                                 ) {
@@ -106,6 +109,7 @@ impl Model {
                                 ud.token_type = Some(t);
                                 if let Ok(d) = item.get_secret() {
                                     if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                        debug!("Loaded access token");
                                         ud.set_access_token(Some(s.to_string()))
                                     }
                                 };
@@ -133,6 +137,7 @@ impl Model {
                                 ud.refresh_expires_at = Some(exp);
                                 if let Ok(d) = item.get_secret() {
                                     if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                        debug!("Loaded refresh token");
                                         ud.set_refresh_token(Some(s.to_string()))
                                     }
                                 };

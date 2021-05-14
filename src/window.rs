@@ -1,7 +1,7 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
-use crate::ui::authentication::Authorization;
 use crate::ui::update::Update;
+use chrono::{DateTime, Utc};
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk::subclass::prelude::*;
@@ -85,5 +85,18 @@ impl EpicAssetManagerWindow {
                 }
             })
         );
+    }
+
+    pub fn check_login(&mut self) {
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let now = chrono::offset::Utc::now();
+        _self.main_stack.set_visible_child_name("progress");
+        _self.progress_message.set_text("Loading");
+        if self.can_relogin() {
+            _self.progress_message.set_text("Resuming session");
+            self.relogin();
+        } else {
+            _self.main_stack.set_visible_child_name("sid_box")
+        }
     }
 }

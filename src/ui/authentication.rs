@@ -1,31 +1,12 @@
 use crate::window::EpicAssetManagerWindow;
+use chrono::{DateTime, Utc};
 use egs_api::api::UserData;
-use log::debug;
+use gtk::prelude::SettingsExt;
+use log::{debug, error};
 use std::thread;
 use tokio::runtime::Runtime;
 
-pub(crate) trait Authorization {
-    fn show_login(&self) {
-        unimplemented!()
-    }
-    fn login(&self, _sid: String) {
-        unimplemented!()
-    }
-
-    fn relogin(&mut self) {
-        unimplemented!()
-    }
-
-    fn login_ok(&mut self, _user_data: UserData) {
-        unimplemented!()
-    }
-
-    fn logout(&mut self) {
-        unimplemented!()
-    }
-}
-
-impl Authorization for EpicAssetManagerWindow {
+impl EpicAssetManagerWindow {
     // fn show_login(&self) {
     //     self.widgets
     //         .title_right_box
@@ -42,7 +23,7 @@ impl Authorization for EpicAssetManagerWindow {
     //         .emit(crate::ui::messages::Msg::AlternateLogin);
     // }
 
-    fn login(&self, sid: String) {
+    pub fn login(&self, sid: String) {
         let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         _self.main_stack.set_visible_child_name("progress");
         _self.progress_message.set_text("Authenticating");
@@ -70,35 +51,72 @@ impl Authorization for EpicAssetManagerWindow {
         });
     }
 
-    // fn relogin(&mut self) {
-    //     println!("Starting relogin");
-    //     self.widgets.progress_message.set_label("Resuming session");
-    //     println!("Changed the message");
-    //     self.model
-    //         .epic_games
-    //         .set_user_details(self.model.configuration.user_data.clone().unwrap());
-    //     &self.widgets.main_stack.set_visible_child_name("progress");
-    //     println!("Shown progress");
-    //     let stream = self.model.relm.stream().clone();
-    //     let (_channel, sender) = Channel::new(move |ud| {
-    //         if let Some(user_data) = ud {
-    //             stream.emit(crate::ui::messages::Msg::LoginOk(user_data));
-    //         }
-    //     });
-    //
-    //     let mut eg = self.model.epic_games.clone();
-    //     thread::spawn(move || {
-    //         let start = std::time::Instant::now();
-    //         if Runtime::new().unwrap().block_on(eg.login()) {
-    //             sender.send(Some(eg.user_details())).unwrap();
-    //         };
-    //         debug!(
-    //             "{:?} - Relogin requests took {:?}",
-    //             thread::current().id(),
-    //             start.elapsed()
-    //         );
-    //     });
-    // }
+    pub fn get_token_time(&self, key: &str) -> Option<DateTime<Utc>> {
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        match chrono::DateTime::parse_from_rfc3339(_self.model.settings.string(key).as_str()) {
+            Ok(d) => Some(d.with_timezone(&chrono::Utc)),
+            Err(_) => None,
+        }
+    }
+
+    pub fn can_relogin(&self) -> bool {
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let now = chrono::Utc::now();
+        if let Some(te) = self.get_token_time("token-expiration") {
+            let td = te - now;
+            if td.num_seconds() > 600 {
+                if _self
+                    .model
+                    .epic_games
+                    .user_details()
+                    .access_token()
+                    .is_some()
+                {
+                    debug!("Access token is valid and exists");
+                    return true;
+                }
+            }
+        }
+        if let Some(rte) = self.get_token_time("refresh-token-expiration") {
+            let td = rte - now;
+            if td.num_seconds() > 600 {
+                if _self
+                    .model
+                    .epic_games
+                    .user_details()
+                    .refresh_token()
+                    .is_some()
+                {
+                    debug!("Refresh token is valid and exists");
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn relogin(&mut self) {
+        println!("Starting relogin");
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let sender = _self.model.sender.clone();
+        let mut eg = _self.model.epic_games.clone();
+        thread::spawn(move || {
+            let start = std::time::Instant::now();
+            if Runtime::new().unwrap().block_on(eg.login()) {
+                sender
+                    .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
+                    .unwrap();
+            } else {
+                error!("Relogin request failed")
+                //TODO: Login failed
+            };
+            debug!(
+                "{:?} - Relogin requests took {:?}",
+                thread::current().id(),
+                start.elapsed()
+            );
+        });
+    }
 
     // fn login_ok(&mut self, user_data: UserData) {
     //     self.model.epic_games.set_user_details(user_data);

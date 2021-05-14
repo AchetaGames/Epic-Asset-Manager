@@ -32,8 +32,6 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             progress_message: TemplateChild::default(),
             model: Model::new(),
         };
-        // Try to get old secrets
-
         win
     }
 

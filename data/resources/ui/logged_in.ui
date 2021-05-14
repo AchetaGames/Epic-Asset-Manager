@@ -2,12 +2,10 @@
 <interface>
     <requires lib="gtk" version="4.0"/>
     <template class="EpicLoggedInBox" parent="GtkBox">
-        <property name="can-focus">0</property>
         <property name="hexpand">1</property>
         <property name="vexpand">1</property>
         <child>
             <object class="GtkBox" id="navigation">
-                <property name="can-focus">0</property>
                 <property name="orientation">vertical</property>
                 <child>
                     <object class="GtkButton" id="all_button">
@@ -17,7 +15,6 @@
                         <property name="valign">center</property>
                         <child>
                             <object class="GtkImage">
-                                <property name="can-focus">0</property>
                                 <property name="icon-name">go-home</property>
                             </object>
                         </child>
@@ -69,7 +66,6 @@
         </child>
         <child>
             <object class="GtkRevealer" id="navigation_pinned_revealer">
-                <property name="can-focus">0</property>
                 <property name="transition-type">none</property>
                 <property name="reveal-child">1</property>
                 <child>
@@ -79,12 +75,10 @@
         </child>
         <child>
             <object class="GtkOverlay" id="MainOverlay">
-                <property name="can-focus">0</property>
                 <property name="hexpand">1</property>
                 <property name="vexpand">1</property>
                 <property name="child">
                     <object class="GtkBox">
-                        <property name="can-focus">0</property>
                         <property name="hexpand">1</property>
                         <property name="vexpand">1</property>
                         <property name="orientation">vertical</property>
@@ -97,7 +91,6 @@
                                 <property name="vexpand">1</property>
                                 <property name="child">
                                     <object class="GtkViewport">
-                                        <property name="can-focus">0</property>
                                         <property name="child">
                                             <object class="GtkFlowBox" id="asset_flow">
                                                 <property name="can-focus">0</property>
@@ -115,7 +108,6 @@
                 </property>
                 <child type="overlay">
                     <object class="GtkRevealer" id="progress_revealer">
-                        <property name="can-focus">0</property>
                         <property name="valign">start</property>
                         <property name="child">
                             <object class="GtkProgressBar" id="loading_progress">

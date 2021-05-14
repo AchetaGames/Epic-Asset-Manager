@@ -85,39 +85,6 @@ impl EpicAssetManager {
         }
     }
 
-    pub fn init(&self) {
-        let priv_ = crate::application::imp::EpicAssetManager::from_instance(self);
-        priv_
-            .window
-            .get()
-            .unwrap()
-            .upgrade()
-            .unwrap()
-            .data()
-            .main_stack
-            .set_visible_child_name("sid_box");
-        // match priv_.model.configuration.user_data {
-        //     None => priv_
-        //         .window
-        //         .get()
-        //         .unwrap()
-        //         .upgrade()
-        //         .unwrap()
-        //         .data()
-        //         .main_stack
-        //         .set_visible_child_name("sid_box"),
-        //     Some(_) => priv_
-        //         .window
-        //         .get()
-        //         .unwrap()
-        //         .upgrade()
-        //         .unwrap()
-        //         .data()
-        //         .main_stack
-        //         .set_visible_child_name("logged_in_stack"),
-        // }
-    }
-
     fn show_about_dialog(&self) {
         let dialog = gtk::AboutDialogBuilder::new()
             .program_name("Epic Asset Manager")

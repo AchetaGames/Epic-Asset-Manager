@@ -35,6 +35,7 @@
                             <object class="GtkBox" id="progress">
                                 <property name="can-focus">0</property>
                                 <property name="halign">center</property>
+                                <property name="spacing">10</property>
                                 <property name="valign">center</property>
                                 <child>
                                     <object class="GtkSpinner">

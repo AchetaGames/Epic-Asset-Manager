@@ -1,7 +1,8 @@
 use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
 use gtk::prelude::*;
-use log::debug;
+use log::{debug, error};
+use secret_service::{Error, Item};
 use std::collections::HashMap;
 use std::thread;
 
@@ -41,19 +42,21 @@ impl Update for EpicAssetManagerWindow {
                             .set_string("token-expiration", d.as_str())
                             .unwrap();
                         if let Some(at) = ud.access_token().clone() {
-                            collection
-                                .create_item(
-                                    "eam_epic_games_token",
-                                    attributes.clone(),
-                                    at.as_bytes(),
-                                    true,
-                                    "text/plain",
-                                )
-                                .unwrap();
+                            debug!("Saving token secret");
+                            if let Err(e) = collection.create_item(
+                                "eam_epic_games_token",
+                                attributes.clone(),
+                                at.as_bytes(),
+                                true,
+                                "text/plain",
+                            ) {
+                                error!("Failed to save secret {}", e)
+                            };
                         }
                     }
                     let mut attributes = HashMap::new();
                     attributes.insert("application", crate::config::APP_ID);
+                    attributes.insert("type", "refresh");
                     if let Some(e) = ud.refresh_expires_at.clone() {
                         let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
                         _self
@@ -62,15 +65,16 @@ impl Update for EpicAssetManagerWindow {
                             .set_string("refresh-token-expiration", d.as_str())
                             .unwrap();
                         if let Some(rt) = ud.refresh_token().clone() {
-                            collection
-                                .create_item(
-                                    "eam_epic_games_refresh_token",
-                                    attributes,
-                                    rt.as_bytes(),
-                                    true,
-                                    "text/plain",
-                                )
-                                .unwrap();
+                            debug!("Saving refresh token secret");
+                            if let Err(e) = collection.create_item(
+                                "eam_epic_games_refresh_token",
+                                attributes,
+                                rt.as_bytes(),
+                                true,
+                                "text/plain",
+                            ) {
+                                error!("Failed to save secret {}", e)
+                            };
                         }
                     }
                 }

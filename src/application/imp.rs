@@ -58,8 +58,8 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
 
         app.setup_gactions();
         app.setup_accels();
-        app.init();
 
+        app.get_main_window().check_login();
         app.get_main_window().present();
     }
 
