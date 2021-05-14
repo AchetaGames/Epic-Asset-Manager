@@ -87,7 +87,7 @@ impl SidBox {
                 if let Some(window) = self_.window.get() {
                         gtk::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));
                 }
-                self_.sid_entry.set_text();
+                self_.sid_entry.set_text("");
             })
         );
     }
