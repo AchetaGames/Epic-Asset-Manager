@@ -49,7 +49,7 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
         action!(
             app_d,
             "preferences",
-            clone!(@weak app_d as app => move |_,_| {
+            clone!(@weak app as app => move |_,_| {
                 let preferences = PreferencesWindow::new();
                 preferences.set_transient_for(Some(&app.get_main_window()));
                 preferences.show();

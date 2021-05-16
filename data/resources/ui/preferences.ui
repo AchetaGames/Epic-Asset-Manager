@@ -39,7 +39,6 @@
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">_Cache Directory</property>
                                 <property name="use-underline">True</property>
-                                <property name="activatable-widget">dark_theme_switch</property>
                                 <property name="subtitle" translatable="yes">Where asset info files will be stored</property>
                                 <property name="margin-start">6</property>
                                 <property name="margin-end">6</property>
@@ -73,7 +72,6 @@
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">_Temporary download directory</property>
                                 <property name="use-underline">True</property>
-                                <property name="activatable-widget">dark_theme_switch</property>
                                 <property name="subtitle" translatable="yes">Temporary place for chunk downloads</property>
                                 <property name="margin-start">6</property>
                                 <property name="margin-end">6</property>

@@ -11,7 +11,6 @@ pub mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/preferences.ui")]
     pub struct PreferencesWindow {
         pub settings: gio::Settings,
-        pub model: OnceCell<Model>,
     }
 
     #[glib::object_subclass]
@@ -23,10 +22,7 @@ pub mod imp {
         fn new() -> Self {
             let settings = gio::Settings::new(crate::config::APP_ID);
 
-            Self {
-                settings,
-                model: OnceCell::new(),
-            }
+            Self { settings }
         }
 
         fn class_init(klass: &mut Self::Class) {
