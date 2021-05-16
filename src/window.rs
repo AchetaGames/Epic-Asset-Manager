@@ -1,7 +1,6 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
-use chrono::{DateTime, Utc};
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk::subclass::prelude::*;

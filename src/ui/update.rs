@@ -2,7 +2,6 @@ use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
 use gtk::prelude::*;
 use log::{debug, error};
-use secret_service::{Error, Item};
 use std::collections::HashMap;
 use std::thread;
 

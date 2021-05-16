@@ -2,7 +2,7 @@ use glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{self, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 use log::error;
 
 pub(crate) mod imp {
@@ -16,7 +16,7 @@ pub(crate) mod imp {
     pub struct SidBox {
         pub actions: gio::SimpleActionGroup,
         #[template_child]
-        pub sid_entry: TemplateChild<gtk::Text>,
+        pub sid_entry: TemplateChild<gtk::Entry>,
         pub window: OnceCell<EpicAssetManagerWindow>,
     }
 
@@ -48,6 +48,7 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+            obj.setup_events();
         }
     }
 
@@ -62,12 +63,30 @@ glib::wrapper! {
 
 impl SidBox {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_ = imp::SidBox::from_instance(self);
+        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
         self_.window.set(window.clone()).unwrap();
     }
 
+    pub fn setup_events(&self) {
+        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        self_
+            .sid_entry
+            .connect_changed(clone!(@weak self as sid_box => move |_| sid_box.validate_sid()));
+    }
+
+    fn validate_sid(&self) {
+        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        let text = self_.sid_entry.text();
+        let is_valid = if text.len() == 32 {
+            text.chars().all(char::is_alphanumeric)
+        } else {
+            false
+        };
+        get_action!(self_.actions, @login).set_enabled(is_valid);
+    }
+
     pub fn setup_actions(&self) {
-        let self_ = imp::SidBox::from_instance(self);
+        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
         let actions = &self_.actions;
 
         self.insert_action_group("sid", Some(actions));
@@ -90,5 +109,7 @@ impl SidBox {
                 self_.sid_entry.set_text("");
             })
         );
+
+        get_action!(self_.actions, @login).set_enabled(false);
     }
 }
