@@ -46,7 +46,7 @@ impl EpicAssetManager {
             })
         );
 
-        // Quit
+        // Inspector
         action!(
             self,
             "inspector",

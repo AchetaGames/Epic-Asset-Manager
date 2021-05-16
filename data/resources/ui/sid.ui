@@ -9,8 +9,7 @@
         <child>
             <object class="GtkLabel">
                 <property name="can-focus">0</property>
-                <property name="label" translatable="yes">&lt;span size=&quot;26000&quot;&gt;Epic Games Login&lt;/span&gt;
-                </property>
+                <property name="label" translatable="yes">&lt;span size=&quot;26000&quot;&gt;Epic Games Login&lt;/span&gt;</property>
                 <property name="use-markup">1</property>
             </object>
         </child>
