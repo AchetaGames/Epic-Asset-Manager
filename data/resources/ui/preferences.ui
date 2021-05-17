@@ -36,16 +36,16 @@
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Download Targets</property>
                         <child>
-                            <object class="AdwActionRow">
+                            <object class="AdwActionRow" id="cache_directory_row">
                                 <property name="title" translatable="yes">_Cache Directory</property>
                                 <property name="use-underline">True</property>
                                 <property name="subtitle" translatable="yes">Where asset info files will be stored</property>
-                                <property name="margin-start">6</property>
-                                <property name="margin-end">6</property>
-                                <property name="margin-top">6</property>
-                                <property name="margin-bottom">6</property>
                                 <child>
-                                    <object class="GtkButton" id="default_view_selection">
+                                    <object class="GtkButton">
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="margin-bottom">6</property>
                                         <property name="action-name">preferences.cache</property>
                                         <child>
                                             <object class="GtkBox">
@@ -69,16 +69,16 @@
                             </object>
                         </child>
                         <child>
-                            <object class="AdwActionRow">
+                            <object class="AdwActionRow" id="temp_directory_row">
                                 <property name="title" translatable="yes">_Temporary download directory</property>
                                 <property name="use-underline">True</property>
                                 <property name="subtitle" translatable="yes">Temporary place for chunk downloads</property>
-                                <property name="margin-start">6</property>
-                                <property name="margin-end">6</property>
-                                <property name="margin-top">6</property>
-                                <property name="margin-bottom">6</property>
                                 <child>
                                     <object class="GtkButton" id="default_view_selection">
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="margin-bottom">6</property>
                                         <property name="action-name">preferences.temp</property>
                                         <child>
                                             <object class="GtkBox">
@@ -183,9 +183,6 @@
                                             <object class="GtkViewport">
                                                 <child>
                                                     <object class="GtkBox" id="unreal_engine_project_directories_box">
-                                                        <child>
-                                                            <placeholder/>
-                                                        </child>
                                                     </object>
                                                 </child>
                                             </object>

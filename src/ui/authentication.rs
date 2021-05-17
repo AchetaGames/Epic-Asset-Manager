@@ -96,7 +96,6 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn relogin(&mut self) {
-        println!("Starting relogin");
         let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         let sender = _self.model.sender.clone();
         let mut eg = _self.model.epic_games.clone();

@@ -1,6 +1,6 @@
 use crate::config::APP_ID;
 use egs_api::EpicGames;
-use gtk::glib::{MainContext, Receiver, Sender, SignalHandlerId, PRIORITY_DEFAULT};
+use gtk::glib::{MainContext, Receiver, Sender, SignalHandlerId, UserDirectory, PRIORITY_DEFAULT};
 use gtk::prelude::*;
 use gtk::{gio, CheckButton};
 use log::{debug, info};
@@ -8,6 +8,7 @@ use secret_service::{EncryptionType, SecretService};
 use slab_tree::{NodeId, Tree, TreeBuilder};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use threadpool::ThreadPool;
 
 // pub mod asset_model;
@@ -58,7 +59,38 @@ impl Model {
             settings: gio::Settings::new(APP_ID),
         };
         obj.load_secrets();
+        obj.load_defaults();
         obj
+    }
+
+    fn load_defaults(&mut self) {
+        if self.settings.string("cache-directory").is_empty() {
+            let mut dir = gtk::glib::user_cache_dir();
+            dir.push("epic_asset_manager");
+            self.settings
+                .set_string("cache-directory", dir.to_str().unwrap());
+        }
+
+        if self
+            .settings
+            .string("temporary-download-directory")
+            .is_empty()
+        {
+            let mut dir = match gtk::glib::tmp_dir() {
+                None => gtk::glib::user_cache_dir(),
+                Some(p) => p,
+            };
+            dir.push("epic_asset_manager");
+            self.settings
+                .set_string("temporary-download-directory", dir.to_str().unwrap());
+        }
+
+        if self.settings.strv("unreal-projects-directories").is_empty() {
+            let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
+            dir.push("Unreal Projects");
+            self.settings
+                .set_strv("unreal-projects-directories", &[&dir.to_str().unwrap()]);
+        }
     }
 
     fn load_secrets(&mut self) {

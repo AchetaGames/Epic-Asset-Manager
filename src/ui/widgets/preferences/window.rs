@@ -1,9 +1,9 @@
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk::gio::SettingsBindFlags;
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate, Orientation};
 use once_cell::sync::OnceCell;
 
 pub mod imp {
     use super::*;
-    use crate::models::Model;
     use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
     use glib::subclass::{self};
 
@@ -11,6 +11,12 @@ pub mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/preferences.ui")]
     pub struct PreferencesWindow {
         pub settings: gio::Settings,
+        #[template_child]
+        pub cache_directory_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub temp_directory_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub unreal_engine_project_directories_box: TemplateChild<gtk::Box>,
     }
 
     #[glib::object_subclass]
@@ -22,7 +28,12 @@ pub mod imp {
         fn new() -> Self {
             let settings = gio::Settings::new(crate::config::APP_ID);
 
-            Self { settings }
+            Self {
+                settings,
+                cache_directory_row: TemplateChild::default(),
+                temp_directory_row: TemplateChild::default(),
+                unreal_engine_project_directories_box: TemplateChild::default(),
+            }
         }
 
         fn class_init(klass: &mut Self::Class) {
@@ -34,7 +45,13 @@ pub mod imp {
         }
     }
 
-    impl ObjectImpl for PreferencesWindow {}
+    impl ObjectImpl for PreferencesWindow {
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+            obj.bind_settings();
+            obj.load_settings();
+        }
+    }
     impl WidgetImpl for PreferencesWindow {}
     impl WindowImpl for PreferencesWindow {}
     impl AdwWindowImpl for PreferencesWindow {}
@@ -48,7 +65,51 @@ glib::wrapper! {
 
 impl PreferencesWindow {
     pub fn new() -> Self {
-        let window = glib::Object::new(&[]).expect("Failed to create PreferencesWindow");
+        let window: Self = glib::Object::new(&[]).expect("Failed to create PreferencesWindow");
+
         window
+    }
+
+    pub fn bind_settings(&self) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        self_
+            .settings
+            .bind("cache-directory", &*self_.cache_directory_row, "subtitle")
+            .flags(SettingsBindFlags::DEFAULT)
+            .build();
+        self_
+            .settings
+            .bind(
+                "temporary-download-directory",
+                &*self_.temp_directory_row,
+                "subtitle",
+            )
+            .flags(SettingsBindFlags::DEFAULT)
+            .build();
+    }
+
+    pub fn load_settings(&self) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        for dir in self_.settings.strv("unreal-projects-directories") {
+            println!("Adding {}", dir);
+            self.add_directory_row(
+                &self_.unreal_engine_project_directories_box,
+                dir.to_string(),
+            );
+        }
+    }
+
+    fn add_directory_row(&self, target_box: &gtk::Box, dir: String) {
+        let container = gtk::BoxBuilder::new()
+            .orientation(Orientation::Horizontal)
+            .build();
+        container.append(&gtk::Label::new(Some(&dir)));
+        let remove = gtk::Button::from_icon_name(Some("list-remove"));
+        container.append(&remove);
+        let up = gtk::Button::from_icon_name(Some("go-up-symbolic"));
+        container.append(&up);
+        let down = gtk::Button::from_icon_name(Some("go-down-symbolic"));
+        container.append(&down);
+        target_box.append(&container);
     }
 }
