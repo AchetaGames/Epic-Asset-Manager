@@ -66,7 +66,6 @@ impl Model {
         if self.settings.string("cache-directory").is_empty() {
             let mut dir = gtk::glib::user_cache_dir();
             dir.push("epic_asset_manager");
-            std::fs::create_dir_all(dir.clone());
             self.settings
                 .set_string("cache-directory", dir.to_str().unwrap())
                 .unwrap();
@@ -82,7 +81,6 @@ impl Model {
                 Some(p) => p,
             };
             dir.push("epic_asset_manager");
-            std::fs::create_dir_all(dir.clone());
             self.settings
                 .set_string("temporary-download-directory", dir.to_str().unwrap())
                 .unwrap();
@@ -91,7 +89,6 @@ impl Model {
         if self.settings.strv("unreal-projects-directories").is_empty() {
             let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
             dir.push("Unreal Projects");
-            std::fs::create_dir_all(dir.clone());
             self.settings
                 .set_strv("unreal-projects-directories", &[&dir.to_str().unwrap()])
                 .unwrap();
@@ -100,16 +97,14 @@ impl Model {
         if self.settings.strv("unreal-vault-directories").is_empty() {
             let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
             dir.push("EpicVault");
-            std::fs::create_dir_all(dir.clone());
             self.settings
                 .set_strv("unreal-vault-directories", &[&dir.to_str().unwrap()])
                 .unwrap();
         }
 
         if self.settings.strv("unreal-engine-directories").is_empty() {
-            let mut dir = gtk::glib::home_dir();
-            dir.push("EpicVault");
-            std::fs::create_dir_all(dir.clone());
+            let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
+            dir.push("Unreal Engine");
             self.settings
                 .set_strv("unreal-engine-directories", &[&dir.to_str().unwrap()])
                 .unwrap();

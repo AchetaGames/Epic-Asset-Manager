@@ -1,11 +1,12 @@
 use gettextrs::gettext;
 use glib::clone;
-use gtk::gdk_pixbuf::gio::FileType;
+use gtk::gdk_pixbuf::gio::{FileType, Settings};
 use gtk::gio::{File, FileQueryInfoFlags, SettingsBindFlags};
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use log::debug;
+use log::{debug, error};
 use once_cell::sync::OnceCell;
+use std::ffi::OsString;
 
 pub mod imp {
     use super::*;
@@ -83,6 +84,7 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Window, adw::Window, adw::PreferencesWindow;
 }
 
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum DirectoryConfigType {
     Cache,
     Temp,
@@ -104,6 +106,10 @@ impl PreferencesWindow {
         self_.window.set(window.clone()).unwrap();
     }
 
+    pub fn imp(&self) -> &imp::PreferencesWindow {
+        imp::PreferencesWindow::from_instance(self)
+    }
+
     pub fn bind_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         self_
@@ -122,21 +128,38 @@ impl PreferencesWindow {
             .build();
     }
 
+    fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        match self_.window.get() {
+            Some(window) => Some(&(*window)),
+            None => None,
+        }
+    }
+
     pub fn load_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         for dir in self_.settings.strv("unreal-projects-directories") {
             self.add_directory_row(
                 &self_.unreal_engine_project_directories_box,
                 dir.to_string(),
+                DirectoryConfigType::Projects,
             );
         }
 
         for dir in self_.settings.strv("unreal-vault-directories") {
-            self.add_directory_row(&self_.unreal_engine_vault_directories_box, dir.to_string());
+            self.add_directory_row(
+                &self_.unreal_engine_vault_directories_box,
+                dir.to_string(),
+                DirectoryConfigType::Vault,
+            );
         }
 
         for dir in self_.settings.strv("unreal-engine-directories") {
-            self.add_directory_row(&self_.unreal_engine_directories_box, dir.to_string());
+            self.add_directory_row(
+                &self_.unreal_engine_directories_box,
+                dir.to_string(),
+                DirectoryConfigType::Engine,
+            );
         }
     }
 
@@ -266,12 +289,70 @@ impl PreferencesWindow {
                     )
                     .unwrap();
             }
-            _ => {}
+            DirectoryConfigType::Vault => {
+                let mut current = self_.settings.strv("unreal-vault-directories");
+                let n = match name.into_string() {
+                    Ok(s) => s,
+                    Err(_) => {
+                        error!("Selected directory is not UTF8");
+                        return;
+                    }
+                };
+                if !current.contains(&gtk::glib::GString::from(n.clone())) {
+                    current.push(gtk::glib::GString::from(n.clone()));
+                    self.add_directory_row(
+                        &self_.unreal_engine_vault_directories_box,
+                        n,
+                        DirectoryConfigType::Vault,
+                    );
+                }
+                let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
+                self_
+                    .settings
+                    .set_strv("unreal-vault-directories", &new.as_slice())
+                    .unwrap()
+            }
+            DirectoryConfigType::Engine => {}
+            DirectoryConfigType::Projects => {}
+            DirectoryConfigType::Games => {}
         };
     }
 
-    fn add_directory_row(&self, target_box: &gtk::Box, dir: String) {
-        target_box.append(&super::dir_row::DirectoryRow::new(dir));
+    fn unset_directory(&self, dir: String, kind: DirectoryConfigType) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        match kind {
+            DirectoryConfigType::Cache => {}
+            DirectoryConfigType::Temp => {}
+            DirectoryConfigType::Vault => {
+                let mut current = self_.settings.strv("unreal-vault-directories");
+                current.retain(|s| !s.eq(&dir));
+                let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
+                self_
+                    .settings
+                    .set_strv("unreal-vault-directories", &new.as_slice())
+                    .unwrap()
+            }
+            DirectoryConfigType::Engine => {}
+            DirectoryConfigType::Projects => {}
+            DirectoryConfigType::Games => {}
+        }
+    }
+
+    fn add_directory_row(&self, target_box: &gtk::Box, dir: String, kind: DirectoryConfigType) {
+        let row: super::dir_row::DirectoryRow =
+            super::dir_row::DirectoryRow::new(dir.clone(), &self);
+
+        row.connect_local(
+            "remove",
+            false,
+            clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
+                target_box.remove(&row);
+                win.unset_directory(dir.clone(), kind.clone());
+                None
+            }),
+        )
+        .unwrap();
+        target_box.append(&row);
     }
 
     fn select_file(&self, filters: &'static [&str], title: &'static str) -> gtk::FileChooserDialog {

@@ -11,7 +11,7 @@
     "--socket=fallback-x11",
     "--socket=wayland",
     "--share=network",
-    "--filesystem=home",
+    "--filesystem=host",
     "--talk-name=org.freedesktop.secrets",
     "--device=dri",
     "--env=RUST_LOG=epic_asset_manager=debug",
