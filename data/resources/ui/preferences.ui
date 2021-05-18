@@ -108,6 +108,7 @@
                         <property name="title" translatable="yes">Unreal Directories</property>
                         <child>
                             <object class="AdwExpanderRow">
+                                <property name="expanded">1</property>
                                 <property name="title" translatable="yes">Unreal Vault Directories</property>
                                 <child>
                                     <object class="GtkScrolledWindow">
@@ -117,9 +118,7 @@
                                             <object class="GtkViewport">
                                                 <child>
                                                     <object class="GtkBox" id="unreal_engine_vault_directories_box">
-                                                        <child>
-                                                            <placeholder/>
-                                                        </child>
+                                                        <property name="orientation">vertical</property>
                                                     </object>
                                                 </child>
                                             </object>
@@ -142,6 +141,7 @@
                         <child>
                             <object class="AdwExpanderRow">
                                 <property name="title" translatable="yes">Unreal Engine Directories</property>
+                                <property name="expanded">1</property>
                                 <child>
                                     <object class="GtkScrolledWindow">
                                         <property name="min-content-height">100</property>
@@ -150,9 +150,7 @@
                                             <object class="GtkViewport">
                                                 <child>
                                                     <object class="GtkBox" id="unreal_engine_directories_box">
-                                                        <child>
-                                                            <placeholder/>
-                                                        </child>
+                                                        <property name="orientation">vertical</property>
                                                     </object>
                                                 </child>
                                             </object>
@@ -175,6 +173,7 @@
                         <child>
                             <object class="AdwExpanderRow">
                                 <property name="title" translatable="yes">Unreal Projects Directories</property>
+                                <property name="expanded">1</property>
                                 <child>
                                     <object class="GtkScrolledWindow">
                                         <property name="min-content-height">100</property>
@@ -183,6 +182,7 @@
                                             <object class="GtkViewport">
                                                 <child>
                                                     <object class="GtkBox" id="unreal_engine_project_directories_box">
+                                                        <property name="orientation">vertical</property>
                                                     </object>
                                                 </child>
                                             </object>

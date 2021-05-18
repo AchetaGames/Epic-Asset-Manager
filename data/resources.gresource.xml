@@ -5,6 +5,7 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="logged_in.ui">resources/ui/logged_in.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="sid.ui">resources/ui/sid.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="preferences.ui">resources/ui/preferences.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="dir_row.ui">resources/ui/dir_row.ui</file>
         <file compressed="true" alias="style.css">resources/style.css</file>
     </gresource>
 </gresources>

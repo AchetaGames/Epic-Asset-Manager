@@ -1,5 +1,6 @@
 use gtk::gio::SettingsBindFlags;
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate, Orientation};
+use gtk::pango::EllipsizeMode;
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, Align, CompositeTemplate, Orientation};
 use once_cell::sync::OnceCell;
 
 pub mod imp {
@@ -100,16 +101,6 @@ impl PreferencesWindow {
     }
 
     fn add_directory_row(&self, target_box: &gtk::Box, dir: String) {
-        let container = gtk::BoxBuilder::new()
-            .orientation(Orientation::Horizontal)
-            .build();
-        container.append(&gtk::Label::new(Some(&dir)));
-        let remove = gtk::Button::from_icon_name(Some("list-remove"));
-        container.append(&remove);
-        let up = gtk::Button::from_icon_name(Some("go-up-symbolic"));
-        container.append(&up);
-        let down = gtk::Button::from_icon_name(Some("go-down-symbolic"));
-        container.append(&down);
-        target_box.append(&container);
+        target_box.append(&super::dir_row::DirectoryRow::new(dir));
     }
 }
