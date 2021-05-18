@@ -1,6 +1,5 @@
 use crate::window::EpicAssetManagerWindow;
 use chrono::{DateTime, Utc};
-use egs_api::api::UserData;
 use gtk::prelude::SettingsExt;
 use log::{debug, error};
 use std::thread;

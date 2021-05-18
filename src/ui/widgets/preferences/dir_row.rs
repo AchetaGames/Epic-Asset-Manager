@@ -1,13 +1,8 @@
-use adw::ActionRow;
-use gtk::gio::SettingsBindFlags;
-use gtk::pango::EllipsizeMode;
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, Align, CompositeTemplate, Orientation};
-use once_cell::sync::OnceCell;
+use gtk::{glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 pub mod imp {
     use super::*;
     use adw::subclass::action_row::ActionRowImpl;
-    use adw::subclass::preferences_row::PreferencesRowImpl;
     use glib::subclass::{self};
 
     #[derive(CompositeTemplate)]

@@ -88,7 +88,6 @@ impl EpicAssetManagerWindow {
 
     pub fn check_login(&mut self) {
         let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        let now = chrono::offset::Utc::now();
         _self.main_stack.set_visible_child_name("progress");
         _self.progress_message.set_text("Loading");
         if self.can_relogin() {

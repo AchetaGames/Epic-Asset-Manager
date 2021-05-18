@@ -19,9 +19,39 @@ run_command(
 )
 
 sources = files(
-    'main.rs',
+    'window.rs',
+    'tools/asset_info.rs',
+    'tools/cache.rs',
+    'tools/or.rs',
+    'tools/mod.rs',
     'application.rs',
-    'window.rs'
+    'main.rs',
+    'models/asset_model.rs',
+    'models/row_data.rs',
+    'models/mod.rs',
+    'api_data.rs',
+    'ui/assets.rs',
+    'ui/epic_assets.rs',
+    'ui/update.rs',
+    'ui/configuration.rs',
+    'ui/authentication.rs',
+    'ui/widgets/preferences/window.rs',
+    'ui/widgets/preferences/dir_row.rs',
+    'ui/widgets/preferences/mod.rs',
+    'ui/widgets/logged_in/mod.rs',
+    'ui/widgets/mod.rs',
+    'ui/widgets/sid_login/mod.rs',
+    'ui/images.rs',
+    'ui/mod.rs',
+    'ui/messages.rs',
+    'ui/download_manifest.rs',
+    'application/imp.rs',
+    'window/imp.rs',
+    'config.rs',
+    'old_main.rs',
+    'download/images.rs',
+    'download/chunks.rs',
+    'download/mod.rs'
 )
 
 custom_target(

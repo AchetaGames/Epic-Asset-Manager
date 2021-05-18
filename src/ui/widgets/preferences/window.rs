@@ -1,23 +1,36 @@
-use gtk::gio::SettingsBindFlags;
-use gtk::pango::EllipsizeMode;
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, Align, CompositeTemplate, Orientation};
+use gettextrs::gettext;
+use glib::clone;
+use gtk::gdk_pixbuf::gio::FileType;
+use gtk::gio::{File, FileQueryInfoFlags, SettingsBindFlags};
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk_macros::{action, get_action};
+use log::debug;
 use once_cell::sync::OnceCell;
 
 pub mod imp {
     use super::*;
+    use crate::window::EpicAssetManagerWindow;
     use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
     use glib::subclass::{self};
+    use std::cell::RefCell;
 
     #[derive(CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/preferences.ui")]
     pub struct PreferencesWindow {
         pub settings: gio::Settings,
+        pub actions: gio::SimpleActionGroup,
+        pub window: OnceCell<EpicAssetManagerWindow>,
+        pub file_chooser: RefCell<Option<gtk::FileChooserDialog>>,
         #[template_child]
         pub cache_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
         pub temp_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
         pub unreal_engine_project_directories_box: TemplateChild<gtk::Box>,
+        #[template_child]
+        pub unreal_engine_vault_directories_box: TemplateChild<gtk::Box>,
+        #[template_child]
+        pub unreal_engine_directories_box: TemplateChild<gtk::Box>,
     }
 
     #[glib::object_subclass]
@@ -31,9 +44,14 @@ pub mod imp {
 
             Self {
                 settings,
+                actions: gio::SimpleActionGroup::new(),
+                window: OnceCell::new(),
+                file_chooser: RefCell::new(None),
                 cache_directory_row: TemplateChild::default(),
                 temp_directory_row: TemplateChild::default(),
                 unreal_engine_project_directories_box: TemplateChild::default(),
+                unreal_engine_vault_directories_box: TemplateChild::default(),
+                unreal_engine_directories_box: TemplateChild::default(),
             }
         }
 
@@ -51,6 +69,7 @@ pub mod imp {
             self.parent_constructed(obj);
             obj.bind_settings();
             obj.load_settings();
+            obj.setup_actions();
         }
     }
     impl WidgetImpl for PreferencesWindow {}
@@ -64,11 +83,25 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Window, adw::Window, adw::PreferencesWindow;
 }
 
+enum DirectoryConfigType {
+    Cache,
+    Temp,
+    Vault,
+    Engine,
+    Projects,
+    Games,
+}
+
 impl PreferencesWindow {
     pub fn new() -> Self {
         let window: Self = glib::Object::new(&[]).expect("Failed to create PreferencesWindow");
 
         window
+    }
+
+    pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        self_.window.set(window.clone()).unwrap();
     }
 
     pub fn bind_settings(&self) {
@@ -92,15 +125,180 @@ impl PreferencesWindow {
     pub fn load_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         for dir in self_.settings.strv("unreal-projects-directories") {
-            println!("Adding {}", dir);
             self.add_directory_row(
                 &self_.unreal_engine_project_directories_box,
                 dir.to_string(),
             );
         }
+
+        for dir in self_.settings.strv("unreal-vault-directories") {
+            self.add_directory_row(&self_.unreal_engine_vault_directories_box, dir.to_string());
+        }
+
+        for dir in self_.settings.strv("unreal-engine-directories") {
+            self.add_directory_row(&self_.unreal_engine_directories_box, dir.to_string());
+        }
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let actions = &self_.actions;
+
+        self.insert_action_group("preferences", Some(actions));
+
+        action!(
+            actions,
+            "cache",
+            clone!(@weak self as win => move |_, _| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Cache Directory");
+                dialog.connect_response(clone!(@weak win => move |d, response| {
+                    if response == gtk::ResponseType::Accept {
+                        if let Some(file) = d.file() {
+                            win.set_directory(file, DirectoryConfigType::Cache);
+                        }
+                    }
+                    d.destroy();
+                }));
+            })
+        );
+
+        action!(
+            actions,
+            "temp",
+            clone!(@weak self as win => move |_, _| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Temporary Directory");
+                dialog.connect_response(clone!(@weak win => move |d, response| {
+                    if response == gtk::ResponseType::Accept {
+                        if let Some(file) = d.file() {
+                            win.set_directory(file, DirectoryConfigType::Temp);
+                        }
+                    }
+                    d.destroy();
+                }));
+            })
+        );
+        action!(
+            actions,
+            "add_vault",
+            clone!(@weak self as win => move |_, _| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
+                dialog.connect_response(clone!(@weak win => move |d, response| {
+                    if response == gtk::ResponseType::Accept {
+                        if let Some(file) = d.file() {
+                            win.set_directory(file, DirectoryConfigType::Vault);
+                        }
+                    }
+                    d.destroy();
+                }));
+            })
+        );
+        action!(
+            actions,
+            "add_engine",
+            clone!(@weak self as win => move |_, _| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
+                dialog.connect_response(clone!(@weak win => move |d, response| {
+                    if response == gtk::ResponseType::Accept {
+                        if let Some(file) = d.file() {
+                            win.set_directory(file, DirectoryConfigType::Engine);
+                        }
+                    }
+                    d.destroy();
+                }));
+            })
+        );
+        action!(
+            actions,
+            "add_project",
+            clone!(@weak self as win => move |_, _| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
+                dialog.connect_response(clone!(@weak win => move |d, response| {
+                    if response == gtk::ResponseType::Accept {
+                        if let Some(file) = d.file() {
+                            win.set_directory(file, DirectoryConfigType::Projects);
+                        }
+                    }
+                    d.destroy();
+                }));
+            })
+        );
+    }
+
+    fn set_directory(&self, dir: File, kind: DirectoryConfigType) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        match dir.query_file_type(FileQueryInfoFlags::NONE, gtk::gio::NONE_CANCELLABLE) {
+            FileType::Directory => {
+                debug!("Selected Directory")
+            }
+            _ => {
+                return;
+            }
+        };
+
+        let name = match dir.path() {
+            None => return,
+            Some(d) => d.into_os_string(),
+        };
+
+        match kind {
+            DirectoryConfigType::Cache => {
+                debug!("Setting the cache directory");
+                self_
+                    .settings
+                    .set_string(
+                        "cache-directory",
+                        name.as_os_str().to_str().unwrap_or_default(),
+                    )
+                    .unwrap();
+            }
+            DirectoryConfigType::Temp => {
+                debug!("Setting the temporary directory");
+                self_
+                    .settings
+                    .set_string(
+                        "temporary-download-directory",
+                        name.as_os_str().to_str().unwrap_or_default(),
+                    )
+                    .unwrap();
+            }
+            _ => {}
+        };
     }
 
     fn add_directory_row(&self, target_box: &gtk::Box, dir: String) {
         target_box.append(&super::dir_row::DirectoryRow::new(dir));
+    }
+
+    fn select_file(&self, filters: &'static [&str], title: &'static str) -> gtk::FileChooserDialog {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+
+        let native = gtk::FileChooserDialog::new(
+            Some(&gettext(title)),
+            Some(self),
+            gtk::FileChooserAction::SelectFolder,
+            &[
+                (&gettext("Select"), gtk::ResponseType::Accept),
+                (&gettext("Cancel"), gtk::ResponseType::Cancel),
+            ],
+        );
+
+        native.set_modal(true);
+        native.set_transient_for(Some(self));
+
+        filters.iter().for_each(|f| {
+            let filter = gtk::FileFilter::new();
+            filter.add_mime_type(f);
+            filter.set_name(Some(f));
+            native.add_filter(&filter);
+        });
+
+        self_.file_chooser.replace(Some(native.clone()));
+        native.show();
+        native
     }
 }
