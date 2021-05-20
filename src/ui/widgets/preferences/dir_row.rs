@@ -1,6 +1,6 @@
 use glib::clone;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 
 pub mod imp {
     use super::*;
@@ -14,6 +14,7 @@ pub mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/dir_row.ui")]
     pub struct DirectoryRow {
         pub window: OnceCell<crate::ui::widgets::preferences::window::PreferencesWindow>,
+        pub actions: gio::SimpleActionGroup,
     }
 
     #[glib::object_subclass]
@@ -24,6 +25,7 @@ pub mod imp {
 
         fn new() -> Self {
             Self {
+                actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
             }
         }
@@ -44,9 +46,17 @@ pub mod imp {
 
         fn signals() -> &'static [Signal] {
             static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-                vec![Signal::builder("remove", &[], <()>::static_type().into())
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                vec![
+                    Signal::builder("remove", &[], <()>::static_type().into())
+                        .flags(glib::SignalFlags::ACTION)
+                        .build(),
+                    Signal::builder("move-up", &[], <()>::static_type().into())
+                        .flags(glib::SignalFlags::ACTION)
+                        .build(),
+                    Signal::builder("move-down", &[], <()>::static_type().into())
+                        .flags(glib::SignalFlags::ACTION)
+                        .build(),
+                ]
             });
             SIGNALS.as_ref()
         }
@@ -70,17 +80,43 @@ impl DirectoryRow {
         adw::prelude::PreferencesRowExt::set_title(&row, Some(&dir));
         let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(&row);
         self_.window.set(window.clone()).unwrap();
-        let actions = gio::SimpleActionGroup::new();
 
-        row.insert_action_group("dir_row", Some(&actions));
+        row.insert_action_group("dir_row", Some(&self_.actions));
 
         action!(
-            actions,
+            self_.actions,
             "remove",
             clone!(@weak row as row => move |_, _| {
                 row.emit_by_name("remove", &[]).unwrap();
             })
         );
+
+        action!(
+            self_.actions,
+            "up",
+            clone!(@weak row as row => move |_, _| {
+                row.emit_by_name("move-up", &[]).unwrap();
+            })
+        );
+
+        action!(
+            self_.actions,
+            "down",
+            clone!(@weak row as row => move |_, _| {
+                row.emit_by_name("move-down", &[]).unwrap();
+            })
+        );
+        row.set_down_enabled(false);
         row
+    }
+
+    pub fn set_up_enabled(&self, enabled: bool) {
+        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(self);
+        get_action!(self_.actions, @up).set_enabled(enabled);
+    }
+
+    pub fn set_down_enabled(&self, enabled: bool) {
+        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(self);
+        get_action!(self_.actions, @down).set_enabled(enabled);
     }
 }

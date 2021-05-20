@@ -1,16 +1,18 @@
+use crate::ui::widgets::preferences::dir_row::DirectoryRow;
 use gettextrs::gettext;
 use glib::clone;
-use gtk::gdk_pixbuf::gio::{FileType, Settings};
-use gtk::gio::{File, FileQueryInfoFlags, SettingsBindFlags};
+use gtk::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::{action, get_action};
+use gtk_macros::action;
 use log::{debug, error};
 use once_cell::sync::OnceCell;
-use std::ffi::OsString;
+use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
 
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
+    use adw::subclass::prelude::PreferencesRowImpl;
     use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
     use glib::subclass::{self};
     use std::cell::RefCell;
@@ -21,6 +23,15 @@ pub mod imp {
         pub settings: gio::Settings,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub directory_rows: RefCell<
+            HashMap<
+                super::DirectoryConfigType,
+                Vec<(
+                    String,
+                    crate::ui::widgets::preferences::dir_row::DirectoryRow,
+                )>,
+            >,
+        >,
         pub file_chooser: RefCell<Option<gtk::FileChooserDialog>>,
         #[template_child]
         pub cache_directory_row: TemplateChild<adw::ActionRow>,
@@ -47,6 +58,7 @@ pub mod imp {
                 settings,
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
+                directory_rows: RefCell::new(HashMap::new()),
                 file_chooser: RefCell::new(None),
                 cache_directory_row: TemplateChild::default(),
                 temp_directory_row: TemplateChild::default(),
@@ -84,8 +96,8 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Window, adw::Window, adw::PreferencesWindow;
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-enum DirectoryConfigType {
+#[derive(PartialEq, Debug, Clone, Copy, Hash, Eq)]
+pub enum DirectoryConfigType {
     Cache,
     Temp,
     Vault,
@@ -318,6 +330,28 @@ impl PreferencesWindow {
         };
     }
 
+    fn update_directories(&self, kind: DirectoryConfigType) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let mut rows = self_.directory_rows.borrow_mut();
+        match rows.get(&kind) {
+            None => {}
+            Some(r) => {
+                let v: Vec<&str> = r.iter().map(|i| i.0.as_str()).collect();
+                match kind {
+                    DirectoryConfigType::Cache => {}
+                    DirectoryConfigType::Temp => {}
+                    DirectoryConfigType::Vault => self_
+                        .settings
+                        .set_strv("unreal-vault-directories", &v.as_slice())
+                        .unwrap(),
+                    DirectoryConfigType::Engine => {}
+                    DirectoryConfigType::Projects => {}
+                    DirectoryConfigType::Games => {}
+                }
+            }
+        };
+    }
+
     fn unset_directory(&self, dir: String, kind: DirectoryConfigType) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         match kind {
@@ -342,16 +376,137 @@ impl PreferencesWindow {
         let row: super::dir_row::DirectoryRow =
             super::dir_row::DirectoryRow::new(dir.clone(), &self);
 
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+
+        let mut rows = self_.directory_rows.borrow_mut();
+        match rows.get_mut(&kind) {
+            None => {
+                row.set_up_enabled(false);
+                rows.insert(kind, vec![(dir.clone(), row.clone())]);
+            }
+            Some(r) => {
+                r.push((dir.clone(), row.clone()));
+                for (i, ro) in r.iter().enumerate() {
+                    ro.1.set_down_enabled(true);
+                    if i != 0 {
+                        ro.1.set_up_enabled(true);
+                    }
+                }
+                row.set_down_enabled(false);
+            }
+        };
+
+        let k = kind.clone();
+        let dir_c = dir.clone();
         row.connect_local(
             "remove",
             false,
             clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
-                target_box.remove(&row);
-                win.unset_directory(dir.clone(), kind.clone());
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                {
+                    let mut rows = self_.directory_rows.borrow_mut();
+                    target_box.remove(&row);
+                    if let Some(r) = rows.get_mut(&k) {
+                        r.retain(|i| i.0 != dir_c);
+                        let total = r.len();
+                        for (i, ro) in r.iter().enumerate() {
+                            ro.1.set_up_enabled(true);
+                            ro.1.set_down_enabled(true);
+                            if i == 0 {
+                                ro.1.set_up_enabled(false);
+                            }
+                            if i == total-1 {
+                                ro.1.set_down_enabled(false);
+                            }
+                        }
+                    }
+                }
+                win.update_directories(kind.clone());
                 None
             }),
         )
         .unwrap();
+
+        let k = kind.clone();
+        let dir_c = dir.clone();
+        row.connect_local(
+            "move-up",
+            false,
+            clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                {
+                    let mut rows = self_.directory_rows.borrow_mut();
+                    if let Some(r) = rows.get_mut(&k) {
+                        let current_position = match r.iter().position(|i| i.0 == dir_c) {
+                            Some(p) => p,
+                            None => return None
+                        };
+                        let item = r.remove(current_position);
+                        let total = r.len();
+                        if current_position-1 >= 0 {
+                            let sibling = &r[current_position-1];
+                            target_box.reorder_child_after(&sibling.1, Some(&item.1));
+                            r.insert(current_position-1, (dir_c.clone(), row.clone()));
+                        }
+
+                        for (i, ro) in r.iter().enumerate() {
+                            ro.1.set_up_enabled(true);
+                            ro.1.set_down_enabled(true);
+                            if i == 0 {
+                                ro.1.set_up_enabled(false);
+                            }
+                            if i == total {
+                                ro.1.set_down_enabled(false);
+                            }
+                        }
+
+                    }
+                }
+                win.update_directories(kind.clone());
+                None
+            }),
+        ).unwrap();
+
+        let k = kind.clone();
+        let dir_c = dir.clone();
+        row.connect_local(
+            "move-down",
+            false,
+            clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                {
+                    let mut rows = self_.directory_rows.borrow_mut();
+                    if let Some(r) = rows.get_mut(&k) {
+                        let current_position = match r.iter().position(|i| i.0 == dir_c) {
+                            Some(p) => p,
+                            None => return None
+                        };
+                        let item = r.remove(current_position);
+                        let total = r.len();
+                        if current_position+1 <= total {
+                            let sibling = &r[current_position];
+                            target_box.reorder_child_after(&item.1, Some(&sibling.1));
+                            r.insert(current_position+1, (dir_c.clone(), row.clone()));
+                        }
+
+                        for (i, ro) in r.iter().enumerate() {
+                            ro.1.set_up_enabled(true);
+                            ro.1.set_down_enabled(true);
+                            if i == 0 {
+                                ro.1.set_up_enabled(false);
+                            }
+                            if i == total {
+                                ro.1.set_down_enabled(false);
+                            }
+                        }
+
+                    }
+                }
+                win.update_directories(kind.clone());
+                None
+            }),
+        ).unwrap();
+
         target_box.append(&row);
     }
 
