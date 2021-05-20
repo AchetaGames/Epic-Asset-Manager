@@ -235,7 +235,7 @@ impl PreferencesWindow {
             "add_engine",
             clone!(@weak self as win => move |_, _| {
                 let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Engine Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
                         if let Some(file) = d.file() {
@@ -251,7 +251,7 @@ impl PreferencesWindow {
             "add_project",
             clone!(@weak self as win => move |_, _| {
                 let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
+                let dialog: gtk::FileChooserDialog = win.select_file(&[], " Projects Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
                         if let Some(file) = d.file() {
@@ -301,31 +301,29 @@ impl PreferencesWindow {
                     )
                     .unwrap();
             }
-            DirectoryConfigType::Vault => {
-                let mut current = self_.settings.strv("unreal-vault-directories");
-                let n = match name.into_string() {
-                    Ok(s) => s,
-                    Err(_) => {
-                        error!("Selected directory is not UTF8");
-                        return;
+            DirectoryConfigType::Vault
+            | DirectoryConfigType::Engine
+            | DirectoryConfigType::Projects => {
+                if let Some((setting_name, widget)) = self.setting_name_and_box_from_type(kind) {
+                    let mut current = self_.settings.strv(setting_name);
+                    let n = match name.into_string() {
+                        Ok(s) => s,
+                        Err(_) => {
+                            error!("Selected directory is not UTF8");
+                            return;
+                        }
+                    };
+                    if !current.contains(&gtk::glib::GString::from(n.clone())) {
+                        current.push(gtk::glib::GString::from(n.clone()));
+                        self.add_directory_row(widget, n, kind);
                     }
-                };
-                if !current.contains(&gtk::glib::GString::from(n.clone())) {
-                    current.push(gtk::glib::GString::from(n.clone()));
-                    self.add_directory_row(
-                        &self_.unreal_engine_vault_directories_box,
-                        n,
-                        DirectoryConfigType::Vault,
-                    );
+                    let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
+                    self_
+                        .settings
+                        .set_strv(setting_name, &new.as_slice())
+                        .unwrap()
                 }
-                let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
-                self_
-                    .settings
-                    .set_strv("unreal-vault-directories", &new.as_slice())
-                    .unwrap()
             }
-            DirectoryConfigType::Engine => {}
-            DirectoryConfigType::Projects => {}
             DirectoryConfigType::Games => {}
         };
     }
@@ -337,16 +335,11 @@ impl PreferencesWindow {
             None => {}
             Some(r) => {
                 let v: Vec<&str> = r.iter().map(|i| i.0.as_str()).collect();
-                match kind {
-                    DirectoryConfigType::Cache => {}
-                    DirectoryConfigType::Temp => {}
-                    DirectoryConfigType::Vault => self_
+                if let Some(setting_name) = Self::setting_name_from_type(kind) {
+                    self_
                         .settings
-                        .set_strv("unreal-vault-directories", &v.as_slice())
-                        .unwrap(),
-                    DirectoryConfigType::Engine => {}
-                    DirectoryConfigType::Projects => {}
-                    DirectoryConfigType::Games => {}
+                        .set_strv(setting_name, &v.as_slice())
+                        .unwrap()
                 }
             }
         };
@@ -354,21 +347,49 @@ impl PreferencesWindow {
 
     fn unset_directory(&self, dir: String, kind: DirectoryConfigType) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        if let Some(setting_name) = Self::setting_name_from_type(kind) {
+            let mut current = self_.settings.strv(setting_name);
+            current.retain(|s| !s.eq(&dir));
+            let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
+            self_
+                .settings
+                .set_strv(setting_name, &new.as_slice())
+                .unwrap()
+        }
+    }
+
+    fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
         match kind {
-            DirectoryConfigType::Cache => {}
-            DirectoryConfigType::Temp => {}
-            DirectoryConfigType::Vault => {
-                let mut current = self_.settings.strv("unreal-vault-directories");
-                current.retain(|s| !s.eq(&dir));
-                let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
-                self_
-                    .settings
-                    .set_strv("unreal-vault-directories", &new.as_slice())
-                    .unwrap()
-            }
-            DirectoryConfigType::Engine => {}
-            DirectoryConfigType::Projects => {}
-            DirectoryConfigType::Games => {}
+            DirectoryConfigType::Cache => None,
+            DirectoryConfigType::Temp => None,
+            DirectoryConfigType::Vault => Some("unreal-vault-directories"),
+            DirectoryConfigType::Engine => Some("unreal-engine-directories"),
+            DirectoryConfigType::Projects => Some("unreal-projects-directories"),
+            DirectoryConfigType::Games => None,
+        }
+    }
+
+    fn setting_name_and_box_from_type(
+        &self,
+        kind: DirectoryConfigType,
+    ) -> Option<(&'static str, &gtk::Box)> {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        match kind {
+            DirectoryConfigType::Cache => None,
+            DirectoryConfigType::Temp => None,
+            DirectoryConfigType::Vault => Some((
+                "unreal-vault-directories",
+                &*self_.unreal_engine_vault_directories_box,
+            )),
+            DirectoryConfigType::Engine => Some((
+                "unreal-engine-directories",
+                &*self_.unreal_engine_directories_box,
+            )),
+            DirectoryConfigType::Projects => Some((
+                "unreal-projects-directories",
+                &*self_.unreal_engine_project_directories_box,
+            )),
+            DirectoryConfigType::Games => None,
         }
     }
 
@@ -382,17 +403,22 @@ impl PreferencesWindow {
         match rows.get_mut(&kind) {
             None => {
                 row.set_up_enabled(false);
+                row.set_down_enabled(false);
                 rows.insert(kind, vec![(dir.clone(), row.clone())]);
             }
             Some(r) => {
                 r.push((dir.clone(), row.clone()));
+                let total = r.len();
                 for (i, ro) in r.iter().enumerate() {
+                    ro.1.set_up_enabled(true);
                     ro.1.set_down_enabled(true);
-                    if i != 0 {
-                        ro.1.set_up_enabled(true);
+                    if i == 0 {
+                        ro.1.set_up_enabled(false);
+                    }
+                    if i == total - 1 {
+                        ro.1.set_down_enabled(false);
                     }
                 }
-                row.set_down_enabled(false);
             }
         };
 
@@ -443,11 +469,10 @@ impl PreferencesWindow {
                         };
                         let item = r.remove(current_position);
                         let total = r.len();
-                        if current_position-1 >= 0 {
-                            let sibling = &r[current_position-1];
-                            target_box.reorder_child_after(&sibling.1, Some(&item.1));
-                            r.insert(current_position-1, (dir_c.clone(), row.clone()));
-                        }
+
+                        let sibling = &r[current_position-1];
+                        target_box.reorder_child_after(&sibling.1, Some(&item.1));
+                        r.insert(current_position-1, (dir_c.clone(), row.clone()));
 
                         for (i, ro) in r.iter().enumerate() {
                             ro.1.set_up_enabled(true);
