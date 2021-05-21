@@ -49,7 +49,6 @@ sources = files(
     'application/imp.rs',
     'window/imp.rs',
     'config.rs',
-    'old_main.rs',
     'download/images.rs',
     'download/chunks.rs',
     'download/mod.rs'

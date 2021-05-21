@@ -76,10 +76,7 @@ impl Model {
             .string("temporary-download-directory")
             .is_empty()
         {
-            let mut dir = match gtk::glib::tmp_dir() {
-                None => gtk::glib::user_cache_dir(),
-                Some(p) => p,
-            };
+            let mut dir = gtk::glib::tmp_dir();
             dir.push("epic_asset_manager");
             self.settings
                 .set_string("temporary-download-directory", dir.to_str().unwrap())
