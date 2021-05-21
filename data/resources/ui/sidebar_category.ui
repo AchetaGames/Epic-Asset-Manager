@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicSidebarCategory" parent="GtkBox">
+        <property name="halign">start</property>
+        <property name="valign">center</property>
+        <child>
+            <object class="GtkButton" id="assets_button">
+                <property name="receives-default">1</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <child>
+                    <object class="GtkImage">
+                        <property name="can-focus">0</property>
+                        <property name="icon-name" bind-source="EpicSidebarCategory" bind-property="icon-name" bind-flags="sync-create"/>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkRevealer" id="revealer">
+                <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
+                <child>
+                    <object class="AdwExpanderRow">
+                        <property name="title" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
+                        <property name="expanded">1</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

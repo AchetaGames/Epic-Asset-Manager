@@ -39,6 +39,7 @@ sources = files(
     'ui/widgets/preferences/dir_row.rs',
     'ui/widgets/preferences/mod.rs',
     'ui/widgets/logged_in/mod.rs',
+    'ui/widgets/logged_in/category.rs',
     'ui/widgets/mod.rs',
     'ui/widgets/sid_login/mod.rs',
     'ui/images.rs',

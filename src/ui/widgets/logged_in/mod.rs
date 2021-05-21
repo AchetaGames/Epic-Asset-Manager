@@ -1,13 +1,31 @@
+pub mod category;
+
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
+    use gtk::glib::ParamSpec;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/logged_in.ui")]
-    pub struct EpicLoggedInBox {}
+    pub struct EpicLoggedInBox {
+        #[template_child]
+        pub home_category:
+            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        #[template_child]
+        pub assets_category:
+            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        #[template_child]
+        pub plugins_category:
+            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        #[template_child]
+        pub games_category:
+            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        pub sidebar_expanded: RefCell<bool>,
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for EpicLoggedInBox {
@@ -16,7 +34,13 @@ pub(crate) mod imp {
         type ParentType = gtk::Box;
 
         fn new() -> Self {
-            Self {}
+            Self {
+                home_category: TemplateChild::default(),
+                assets_category: TemplateChild::default(),
+                plugins_category: TemplateChild::default(),
+                games_category: TemplateChild::default(),
+                sidebar_expanded: RefCell::new(false),
+            }
         }
 
         fn class_init(klass: &mut Self::Class) {
@@ -30,8 +54,46 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicLoggedInBox {
+        fn properties() -> &'static [ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![ParamSpec::new_boolean(
+                    "sidebar-expanded",
+                    "sidebar expanded",
+                    "Is Sidebar expanded",
+                    false,
+                    glib::ParamFlags::READWRITE,
+                )]
+            });
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &ParamSpec,
+        ) {
+            match pspec.name() {
+                "sidebar-expanded" => {
+                    let sidebar_expanded = value.get().unwrap();
+                    self.sidebar_expanded.replace(sidebar_expanded);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
+                _ => unimplemented!(),
+            }
+        }
+
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.bind_properties();
         }
     }
 
@@ -49,5 +111,21 @@ impl EpicLoggedInBox {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox");
 
         stack
+    }
+
+    pub fn bind_properties(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        self.bind_property("sidebar-expanded", &*self_.home_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+        self.bind_property("sidebar-expanded", &*self_.assets_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+        self.bind_property("sidebar-expanded", &*self_.plugins_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+        self.bind_property("sidebar-expanded", &*self_.games_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
     }
 }
