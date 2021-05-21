@@ -1,4 +1,5 @@
 use crate::ui::widgets::preferences::dir_row::DirectoryRow;
+use crate::window::EpicAssetManagerWindow;
 use gettextrs::gettext;
 use glib::clone;
 use gtk::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
@@ -12,7 +13,6 @@ use std::collections::HashMap;
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use adw::subclass::prelude::PreferencesRowImpl;
     use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
     use glib::subclass::{self};
     use std::cell::RefCell;

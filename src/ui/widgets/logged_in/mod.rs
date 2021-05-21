@@ -1,12 +1,18 @@
 pub mod category;
 
+use glib::clone;
+use gtk::cairo::glib::{BoolError, Value};
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk_macros::action;
 
 pub(crate) mod imp {
     use super::*;
+    use crate::window::EpicAssetManagerWindow;
+    use gtk::gio;
     use gtk::glib::ParamSpec;
+    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -24,7 +30,11 @@ pub(crate) mod imp {
         #[template_child]
         pub games_category:
             TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        #[template_child]
+        pub expand_button: TemplateChild<gtk::Button>,
         pub sidebar_expanded: RefCell<bool>,
+        pub actions: gio::SimpleActionGroup,
+        pub window: OnceCell<EpicAssetManagerWindow>,
     }
 
     #[glib::object_subclass]
@@ -39,7 +49,10 @@ pub(crate) mod imp {
                 assets_category: TemplateChild::default(),
                 plugins_category: TemplateChild::default(),
                 games_category: TemplateChild::default(),
+                expand_button: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
+                actions: gio::SimpleActionGroup::new(),
+                window: OnceCell::new(),
             }
         }
 
@@ -94,6 +107,7 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.bind_properties();
+            obj.setup_actions();
         }
     }
 
@@ -113,6 +127,11 @@ impl EpicLoggedInBox {
         stack
     }
 
+    pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        self_.window.set(window.clone()).unwrap();
+    }
+
     pub fn bind_properties(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         self.bind_property("sidebar-expanded", &*self_.home_category, "expanded")
@@ -127,5 +146,26 @@ impl EpicLoggedInBox {
         self.bind_property("sidebar-expanded", &*self_.games_category, "expanded")
             .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
             .build();
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        self.insert_action_group("loggedin", Some(&self_.actions));
+        action!(
+            self_.actions,
+            "expand",
+            clone!(@weak self as win => move |_, _| {
+                    if let Ok(v) = win.property("sidebar-expanded") {
+                    let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&win);
+                    let new_value = !v.get::<bool>().unwrap();
+                    if new_value {
+                        self_.expand_button.set_label("<<")
+                    } else {
+                        self_.expand_button.set_label(">>")
+                    };
+                    win.set_property("sidebar-expanded", &new_value);
+                }
+            })
+        );
     }
 }

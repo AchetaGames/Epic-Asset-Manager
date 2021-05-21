@@ -25,6 +25,7 @@ impl EpicAssetManagerWindow {
         gtk::Window::set_default_icon_name(APP_ID);
         let self_ = imp::EpicAssetManagerWindow::from_instance(&window);
         self_.sid_box.set_window(&window);
+        self_.logged_in_stack.set_window(&window);
 
         window
     }
