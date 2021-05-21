@@ -345,19 +345,6 @@ impl PreferencesWindow {
         };
     }
 
-    fn unset_directory(&self, dir: String, kind: DirectoryConfigType) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-        if let Some(setting_name) = Self::setting_name_from_type(kind) {
-            let mut current = self_.settings.strv(setting_name);
-            current.retain(|s| !s.eq(&dir));
-            let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
-            self_
-                .settings
-                .set_strv(setting_name, &new.as_slice())
-                .unwrap()
-        }
-    }
-
     fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
         match kind {
             DirectoryConfigType::Cache => None,

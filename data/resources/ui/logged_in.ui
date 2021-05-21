@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+    <object class="GtkSizeGroup">
+        <widgets>
+            <widget name="home_category"/>
+            <widget name="assets_category"/>
+            <widget name="plugins_category"/>
+            <widget name="games_category"/>
+        </widgets>
+    </object>
     <requires lib="gtk" version="4.0"/>
     <template class="EpicLoggedInBox" parent="GtkBox">
         <property name="hexpand">1</property>
@@ -7,10 +15,11 @@
         <child>
             <object class="GtkBox" id="navigation">
                 <property name="orientation">vertical</property>
+                <property name="hexpand">false</property>
                 <child>
                     <object class="EpicSidebarCategory" id="home_category">
                         <property name="icon-name">go-home</property>
-                        <property name="tooltip-text" translatable="yes">All Assets</property>
+                        <property name="tooltip-text" translatable="yes">Home</property>
                     </object>
                 </child>
                 <child>
@@ -34,16 +43,18 @@
                 <child>
                     <object class="GtkBox">
                         <property name="valign">end</property>
-                        <property name="halign">end</property>
+                        <property name="halign">fill</property>
+                        <property name="hexpand">true</property>
                         <property name="vexpand">1</property>
                         <child>
                             <object class="GtkButton" id="expand_button">
                                 <property name="receives-default">1</property>
                                 <property name="action-name">loggedin.expand</property>
                                 <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
-                                <property name="halign">center</property>
+                                <property name="halign">fill</property>
+                                <property name="hexpand">true</property>
                                 <property name="valign">center</property>
-                                <property name="label">>></property>
+                                <property name="label">></property>
                             </object>
                         </child>
                     </object>
@@ -51,12 +62,8 @@
             </object>
         </child>
         <child>
-            <object class="GtkRevealer" id="navigation_pinned_revealer">
-                <property name="transition-type">none</property>
-                <property name="reveal-child">1</property>
-                <child>
-                    <placeholder/>
-                </child>
+            <object class="GtkSeparator">
+                <property name="orientation">vertical</property>
             </object>
         </child>
         <child>
