@@ -1,10 +1,13 @@
+use glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk::{gio, glib, CompositeTemplate};
+use gtk_macros::action;
 
 pub(crate) mod imp {
     use super::*;
     use glib::ParamSpec;
+    use gtk::gio;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -13,6 +16,11 @@ pub(crate) mod imp {
         pub tooltip_text: RefCell<Option<String>>,
         pub icon_name: RefCell<Option<String>>,
         pub expanded: RefCell<bool>,
+        pub actions: gio::SimpleActionGroup,
+        #[template_child]
+        pub sub_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub sub_box: TemplateChild<gtk::Box>,
     }
 
     #[glib::object_subclass]
@@ -26,6 +34,9 @@ pub(crate) mod imp {
                 tooltip_text: RefCell::new(None),
                 icon_name: RefCell::new(None),
                 expanded: RefCell::new(false),
+                actions: gio::SimpleActionGroup::new(),
+                sub_revealer: TemplateChild::default(),
+                sub_box: TemplateChild::default(),
             }
         }
 
@@ -88,6 +99,11 @@ pub(crate) mod imp {
                 }
                 "expanded" => {
                     let expanded = value.get().unwrap();
+                    if expanded {
+                        self.sub_revealer.set_visible(true);
+                    } else {
+                        self.sub_revealer.set_visible(false);
+                    }
                     self.expanded.replace(expanded);
                 }
                 _ => unimplemented!(),
@@ -105,6 +121,7 @@ pub(crate) mod imp {
 
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.setup_actions();
         }
     }
 
@@ -122,5 +139,55 @@ impl EpicSidebarCategory {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategory");
 
         stack
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        action!(
+            self_.actions,
+            "clicked",
+            clone!(@weak self as win => move |_, _| {
+                if let Ok(v) = win.property("expanded") {
+                    let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&win);
+                    if v.get::<bool>().unwrap() {
+                        if self_.sub_box.first_child().is_none() {
+                            println!("Clicked empty expanded");
+                        } else {
+                            self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
+                            }
+                    } else {
+                        println!("Clicked collapsed");
+                    }
+                }
+
+            })
+        );
+        self.insert_action_group("category", Some(&self_.actions));
+    }
+
+    fn capitalize_first_letter(s: &str) -> String {
+        let mut c = s.chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        }
+    }
+
+    pub fn add_category(&self, name: String, filter: String) {
+        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let label = gtk::LabelBuilder::new()
+            .label(&EpicSidebarCategory::capitalize_first_letter(&name))
+            .halign(gtk::Align::Start)
+            .build();
+        let button = gtk::ButtonBuilder::new()
+            .name("subcategory")
+            .child(&label)
+            .build();
+
+        button.connect_clicked(clone!(@weak self as win => move |_| {
+            println!("Subclicked {}", filter);
+        }));
+        button.show();
+        self_.sub_box.append(&button);
     }
 }

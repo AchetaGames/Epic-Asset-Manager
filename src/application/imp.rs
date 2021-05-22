@@ -37,7 +37,7 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
         }
 
         app.set_resource_base_path(Some("/io/github/achetagames/epic_asset_manager"));
-        // app.setup_css();
+        app.setup_css();
 
         let window = EpicAssetManagerWindow::new(app);
         self.window

@@ -32,9 +32,11 @@ pub(crate) mod imp {
         pub games_category:
             TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
         #[template_child]
-        pub expand_button: TemplateChild<adw::ActionRow>,
+        pub expand_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub expand_image: TemplateChild<gtk::Image>,
+        #[template_child]
+        pub expand_label: TemplateChild<gtk::Label>,
         pub sidebar_expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
@@ -54,6 +56,7 @@ pub(crate) mod imp {
                 games_category: TemplateChild::default(),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
+                expand_label: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
@@ -112,6 +115,50 @@ pub(crate) mod imp {
             self.parent_constructed(obj);
             obj.bind_properties();
             obj.setup_actions();
+            self.plugins_category
+                .add_category("Engine".to_string(), "plugins/engine".to_string());
+            self.assets_category
+                .add_category("2d".to_string(), "assets/2d".to_string());
+            self.assets_category
+                .add_category("animations".to_string(), "assets/animations".to_string());
+            self.assets_category
+                .add_category("archvis".to_string(), "assets/archvis".to_string());
+            self.assets_category
+                .add_category("blueprints".to_string(), "assets/blueprints".to_string());
+            self.assets_category
+                .add_category("characters".to_string(), "assets/characters".to_string());
+            self.assets_category.add_category(
+                "communitysamples".to_string(),
+                "assets/communitysamples".to_string(),
+            );
+            self.assets_category.add_category(
+                "environments".to_string(),
+                "assets/environments".to_string(),
+            );
+            self.assets_category
+                .add_category("fx".to_string(), "assets/fx".to_string());
+            self.assets_category
+                .add_category("materials".to_string(), "assets/materials".to_string());
+            self.assets_category
+                .add_category("megascans".to_string(), "assets/megascans".to_string());
+            self.assets_category
+                .add_category("music".to_string(), "assets/music".to_string());
+            self.assets_category
+                .add_category("props".to_string(), "assets/props".to_string());
+            self.assets_category.add_category(
+                "showcasedemos".to_string(),
+                "assets/showcasedemos".to_string(),
+            );
+            self.assets_category
+                .add_category("soundfx".to_string(), "assets/soundfx".to_string());
+            self.assets_category
+                .add_category("textures".to_string(), "assets/textures".to_string());
+            self.assets_category
+                .add_category("weapons".to_string(), "assets/weapons".to_string());
+            self.home_category
+                .add_category("all".to_string(), "".to_string());
+            self.home_category
+                .add_category("favorites".to_string(), "favorites".to_string());
         }
     }
 
@@ -165,11 +212,11 @@ impl EpicLoggedInBox {
                     if new_value {
                         self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
-                        self_.expand_button.set_title(Some("Collapse"));
+                        self_.expand_label.set_label("Collapse");
                     } else {
                         self_.expand_image.set_icon_name(Some("go-next-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
-                        self_.expand_button.set_title(None);
+                        self_.expand_label.set_label("");
                     };
                     win.set_property("sidebar-expanded", &new_value);
                 }

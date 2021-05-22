@@ -16,45 +16,68 @@
                 <property name="orientation">vertical</property>
                 <property name="hexpand">false</property>
                 <child>
-                    <object class="EpicSidebarCategory" id="home_category">
-                        <property name="icon-name">go-home</property>
-                        <property name="tooltip-text" translatable="yes">Home</property>
+                    <object class="GtkScrolledWindow">
+                        <property name="vexpand">true</property>
+                        <property name="hscrollbar-policy">never</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="orientation">vertical</property>
+                                <property name="hexpand">false</property>
+                                <child>
+                                    <object class="EpicSidebarCategory" id="home_category">
+                                        <property name="icon-name">go-home</property>
+                                        <property name="tooltip-text" translatable="yes">Home</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="EpicSidebarCategory" id="assets_category">
+                                        <property name="icon-name">x-package-repository</property>
+                                        <property name="tooltip-text" translatable="yes">Assets</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="EpicSidebarCategory" id="plugins_category">
+                                        <property name="icon-name">application-x-addon</property>
+                                        <property name="tooltip-text" translatable="yes">Plugins</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="EpicSidebarCategory" id="games_category">
+                                        <property name="icon-name">input-gaming</property>
+                                        <property name="tooltip-text" translatable="yes">Games</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
                 </child>
                 <child>
-                    <object class="EpicSidebarCategory" id="assets_category">
-                        <property name="icon-name">x-package-repository</property>
-                        <property name="tooltip-text" translatable="yes">Assets</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="EpicSidebarCategory" id="plugins_category">
-                        <property name="icon-name">application-x-addon</property>
-                        <property name="tooltip-text" translatable="yes">Plugins</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="EpicSidebarCategory" id="games_category">
-                        <property name="icon-name">input-gaming</property>
-                        <property name="tooltip-text" translatable="yes">Games</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="AdwPreferencesGroup">
+                    <object class="GtkBox">
                         <property name="valign">end</property>
                         <property name="halign">fill</property>
                         <property name="hexpand">true</property>
-                        <property name="vexpand">1</property>
                         <child>
-                            <object class="AdwActionRow" id="expand_button">
-                                <property name="activatable">True</property>
+                            <object class="GtkButton" id="expand_button">
+                                <property name="name">category_button</property>
                                 <property name="action-name">loggedin.expand</property>
                                 <property name="halign">fill</property>
                                 <property name="hexpand">true</property>
+                                <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
                                 <property name="valign">center</property>
                                 <child>
-                                    <object class="GtkImage" id="expand_image">
-                                        <property name="icon_name">go-next-symbolic</property>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage" id="expand_image">
+                                                <property name="icon-name">go-next-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel" id="expand_label">
+                                                <property name="label" translatable="yes"></property>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>

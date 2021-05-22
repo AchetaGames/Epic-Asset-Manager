@@ -4,17 +4,16 @@
     <template class="EpicSidebarCategory" parent="GtkBox">
         <property name="halign">start</property>
         <property name="valign">center</property>
+        <property name="orientation">vertical</property>
         <child>
-            <object class="AdwPreferencesGroup">
+            <object class="GtkButton" id="category_button">
+                <property name="name">category_button</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
                 <property name="hexpand">true</property>
+                <property name="action-name">category.clicked</property>
                 <property name="halign">fill</property>
                 <child>
-                    <object class="AdwActionRow" id="assets_button">
-                        <property name="receives-default">1</property>
-                        <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
-                        <property name="activatable">true</property>
-                        <property name="hexpand">true</property>
-                        <property name="halign">fill</property>
+                    <object class="GtkBox">
                         <child>
                             <object class="GtkImage">
                                 <property name="can-focus">0</property>
@@ -27,6 +26,7 @@
                                 <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
                                 <child>
                                     <object class="GtkLabel">
+                                        <property name="margin-start">10</property>
                                         <property name="label" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
                                     </object>
                                 </child>
@@ -36,6 +36,23 @@
                 </child>
             </object>
         </child>
-
+        <child>
+            <object class="GtkRevealer" id="revealer">
+                <property name="transition-type">slide-right</property>
+                <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
+                <child>
+                    <object class="GtkRevealer" id="sub_revealer">
+                        <property name="transition-type">slide-down</property>
+                        <property name="margin-start">25</property>
+                        <property name="visible">false</property>
+                        <child>
+                            <object class="GtkBox" id="sub_box">
+                                <property name="orientation">vertical</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
     </template>
 </interface>

@@ -2,3 +2,15 @@
   font-size: 36px;
   font-weight: bold;
 }
+
+button#category_button {
+  padding: 6px 12px 6px 12px;
+  border-style: none;
+  border-radius: 0;
+}
+
+button#subcategory {
+  padding: 4px 6px 4px 6px;
+  border-style: none;
+  border-radius: 0;
+}
