@@ -5,25 +5,31 @@
         <property name="halign">start</property>
         <property name="valign">center</property>
         <child>
-            <object class="AdwActionRow" id="assets_button">
-                <property name="receives-default">1</property>
-                <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
-                <property name="activatable">true</property>
+            <object class="AdwPreferencesGroup">
                 <property name="hexpand">true</property>
                 <property name="halign">fill</property>
                 <child>
-                    <object class="GtkImage">
-                        <property name="can-focus">0</property>
-                        <property name="icon-name" bind-source="EpicSidebarCategory" bind-property="icon-name" bind-flags="sync-create"/>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkRevealer" id="revealer">
-                        <property name="transition-type">slide-right</property>
-                        <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
+                    <object class="AdwActionRow" id="assets_button">
+                        <property name="receives-default">1</property>
+                        <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
+                        <property name="activatable">true</property>
+                        <property name="hexpand">true</property>
+                        <property name="halign">fill</property>
                         <child>
-                            <object class="GtkLabel">
-                                <property name="label" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
+                            <object class="GtkImage">
+                                <property name="can-focus">0</property>
+                                <property name="icon-name" bind-source="EpicSidebarCategory" bind-property="icon-name" bind-flags="sync-create"/>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkRevealer" id="revealer">
+                                <property name="transition-type">slide-right</property>
+                                <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="label" translatable="yes" bind-source="EpicSidebarCategory" bind-property="tooltip-text" bind-flags="sync-create"/>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                     </object>

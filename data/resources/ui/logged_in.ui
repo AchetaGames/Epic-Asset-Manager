@@ -8,7 +8,6 @@
             <widget name="games_category"/>
         </widgets>
     </object>
-    <requires lib="gtk" version="4.0"/>
     <template class="EpicLoggedInBox" parent="GtkBox">
         <property name="hexpand">1</property>
         <property name="vexpand">1</property>
@@ -41,22 +40,20 @@
                     </object>
                 </child>
                 <child>
-                    <object class="GtkBox">
+                    <object class="AdwPreferencesGroup">
                         <property name="valign">end</property>
                         <property name="halign">fill</property>
                         <property name="hexpand">true</property>
                         <property name="vexpand">1</property>
                         <child>
                             <object class="AdwActionRow" id="expand_button">
-                                <property name="receives-default">1</property>
                                 <property name="activatable">True</property>
                                 <property name="action-name">loggedin.expand</property>
-                                <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
                                 <property name="halign">fill</property>
                                 <property name="hexpand">true</property>
                                 <property name="valign">center</property>
                                 <child>
-                                    <object class="GtkImage">
+                                    <object class="GtkImage" id="expand_image">
                                         <property name="icon_name">go-next-symbolic</property>
                                     </object>
                                 </child>

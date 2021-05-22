@@ -33,6 +33,8 @@ pub(crate) mod imp {
             TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
         #[template_child]
         pub expand_button: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub expand_image: TemplateChild<gtk::Image>,
         pub sidebar_expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
@@ -51,6 +53,7 @@ pub(crate) mod imp {
                 plugins_category: TemplateChild::default(),
                 games_category: TemplateChild::default(),
                 expand_button: TemplateChild::default(),
+                expand_image: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
@@ -151,7 +154,7 @@ impl EpicLoggedInBox {
 
     pub fn setup_actions(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        self.insert_action_group("loggedin", Some(&self_.actions));
+
         action!(
             self_.actions,
             "expand",
@@ -160,15 +163,18 @@ impl EpicLoggedInBox {
                     let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&win);
                     let new_value = !v.get::<bool>().unwrap();
                     if new_value {
-                        // self_.expand_button.set_title(Some("<"));
+                        self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
+                        self_.expand_button.set_title(Some("Collapse"));
                     } else {
-                        // self_.expand_button.set_title(Some(">"));
+                        self_.expand_image.set_icon_name(Some("go-next-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
+                        self_.expand_button.set_title(None);
                     };
                     win.set_property("sidebar-expanded", &new_value);
                 }
             })
         );
+        self.insert_action_group("loggedin", Some(&self_.actions));
     }
 }
