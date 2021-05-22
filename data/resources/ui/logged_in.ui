@@ -47,14 +47,15 @@
                         <property name="hexpand">true</property>
                         <property name="vexpand">1</property>
                         <child>
-                            <object class="GtkButton" id="expand_button">
+                            <object class="AdwActionRow" id="expand_button">
                                 <property name="receives-default">1</property>
+                                <property name="activatable">True</property>
                                 <property name="action-name">loggedin.expand</property>
                                 <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
                                 <property name="halign">fill</property>
                                 <property name="hexpand">true</property>
                                 <property name="valign">center</property>
-                                <property name="label">></property>
+                                <property name="title">></property>
                             </object>
                         </child>
                     </object>

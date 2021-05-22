@@ -1,5 +1,6 @@
 pub mod category;
 
+use adw::prelude::*;
 use glib::clone;
 use gtk::cairo::glib::{BoolError, Value};
 use gtk::subclass::prelude::*;
@@ -31,7 +32,7 @@ pub(crate) mod imp {
         pub games_category:
             TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
         #[template_child]
-        pub expand_button: TemplateChild<gtk::Button>,
+        pub expand_button: TemplateChild<adw::ActionRow>,
         pub sidebar_expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
@@ -159,10 +160,10 @@ impl EpicLoggedInBox {
                     let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&win);
                     let new_value = !v.get::<bool>().unwrap();
                     if new_value {
-                        self_.expand_button.set_label("<");
+                        self_.expand_button.set_title(Some("<"));
                         self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
                     } else {
-                        self_.expand_button.set_label(">");
+                        self_.expand_button.set_title(Some(">"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                     };
                     win.set_property("sidebar-expanded", &new_value);
