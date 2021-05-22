@@ -55,7 +55,11 @@
                                 <property name="halign">fill</property>
                                 <property name="hexpand">true</property>
                                 <property name="valign">center</property>
-                                <property name="title">></property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="icon_name">go-next-symbolic</property>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                     </object>

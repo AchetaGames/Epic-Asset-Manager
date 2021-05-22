@@ -160,10 +160,10 @@ impl EpicLoggedInBox {
                     let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&win);
                     let new_value = !v.get::<bool>().unwrap();
                     if new_value {
-                        self_.expand_button.set_title(Some("<"));
+                        // self_.expand_button.set_title(Some("<"));
                         self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
                     } else {
-                        self_.expand_button.set_title(Some(">"));
+                        // self_.expand_button.set_title(Some(">"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                     };
                     win.set_property("sidebar-expanded", &new_value);
