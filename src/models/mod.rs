@@ -1,3 +1,5 @@
+pub mod row_data;
+
 use crate::config::APP_ID;
 use egs_api::EpicGames;
 use gtk::glib::{MainContext, Receiver, Sender, SignalHandlerId, UserDirectory, PRIORITY_DEFAULT};

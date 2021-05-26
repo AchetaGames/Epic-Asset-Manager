@@ -27,7 +27,7 @@ impl EpicAssetManager {
         .expect("Application initialization failed...")
     }
 
-    pub fn get_main_window(&self) -> EpicAssetManagerWindow {
+    pub fn main_window(&self) -> EpicAssetManagerWindow {
         let priv_ = crate::application::imp::EpicAssetManager::from_instance(self);
         priv_.window.get().unwrap().upgrade().unwrap()
     }
@@ -41,7 +41,7 @@ impl EpicAssetManager {
                 if let Ok(mut w) = crate::RUNNING.write() {
                     *w = false
                 }
-                app.get_main_window().close();
+                app.main_window().close();
                 app.quit();
             })
         );
@@ -92,7 +92,7 @@ impl EpicAssetManager {
             .license_type(gtk::License::MitX11)
             .website("https://github.com/AchetaGames/Epic-Asset-Manager")
             .version(config::VERSION)
-            .transient_for(&self.get_main_window())
+            .transient_for(&self.main_window())
             .modal(true)
             .authors(vec!["Milan Stastny".into()])
             .build();

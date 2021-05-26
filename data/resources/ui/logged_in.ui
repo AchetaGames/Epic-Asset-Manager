@@ -110,12 +110,10 @@
                                 <property name="child">
                                     <object class="GtkViewport">
                                         <property name="child">
-                                            <object class="GtkFlowBox" id="asset_flow">
-                                                <property name="can-focus">0</property>
+                                            <object class="GtkGridView" id="asset_grid">
+                                                <property name="can-focus">1</property>
                                                 <property name="halign">start</property>
                                                 <property name="valign">start</property>
-                                                <property name="homogeneous">1</property>
-                                                <property name="max-children-per-line">20</property>
                                             </object>
                                         </property>
                                     </object>

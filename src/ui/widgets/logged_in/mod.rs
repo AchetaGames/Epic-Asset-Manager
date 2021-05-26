@@ -1,20 +1,30 @@
 pub mod category;
 
+use crate::window::EpicAssetManagerWindow;
 use adw::prelude::*;
+use egs_api::api::types::asset_info::AssetInfo;
 use glib::clone;
 use gtk::cairo::glib::{BoolError, Value};
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
+use log::{debug, error};
+use std::io::Read;
+use std::ops::Not;
+use std::path::Path;
+use std::path::PathBuf;
 
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk::gio;
+    use gtk::gio::ListStore;
     use gtk::glib::ParamSpec;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
+    use std::collections::HashMap;
+    use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/logged_in.ui")]
@@ -37,9 +47,14 @@ pub(crate) mod imp {
         pub expand_image: TemplateChild<gtk::Image>,
         #[template_child]
         pub expand_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub asset_grid: TemplateChild<gtk::GridView>,
         pub sidebar_expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub grid_model: ListStore,
+        pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
+        pub asset_load_pool: ThreadPool,
     }
 
     #[glib::object_subclass]
@@ -57,9 +72,13 @@ pub(crate) mod imp {
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
                 expand_label: TemplateChild::default(),
+                asset_grid: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
+                grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
+                loaded_assets: RefCell::new(HashMap::new()),
+                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 1),
             }
         }
 
@@ -181,6 +200,44 @@ impl EpicLoggedInBox {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         self_.window.set(window.clone()).unwrap();
+        self.fetch_assets();
+        let factory = gtk::SignalListItemFactory::new();
+        factory.connect_setup(move |_factory, item| {
+            let row = gtk::Label::new(None);
+            item.set_child(Some(&row));
+        });
+
+        factory.connect_bind(move |_factory, list_item| {
+            let app_info = list_item
+                .item()
+                .unwrap()
+                .downcast::<crate::models::row_data::RowData>()
+                .unwrap();
+
+            let child = list_item.child().unwrap().downcast::<gtk::Label>().unwrap();
+            child.set_label(&app_info.name());
+        });
+
+        let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
+            let info1 = obj1
+                .downcast_ref::<crate::models::row_data::RowData>()
+                .unwrap();
+            let info2 = obj2
+                .downcast_ref::<crate::models::row_data::RowData>()
+                .unwrap();
+
+            info1
+                .name()
+                .to_lowercase()
+                .cmp(&info2.name().to_lowercase())
+                .into()
+        });
+
+        let sorted_model = gtk::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
+        let selection_model = gtk::SingleSelection::new(Some(&sorted_model));
+
+        self_.asset_grid.set_model(Some(&selection_model));
+        self_.asset_grid.set_factory(Some(&factory));
     }
 
     pub fn bind_properties(&self) {
@@ -223,5 +280,97 @@ impl EpicLoggedInBox {
             })
         );
         self.insert_action_group("loggedin", Some(&self_.actions));
+    }
+
+    pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let mut assets = self_.loaded_assets.borrow_mut();
+        if match assets.get_mut(&asset.id) {
+            None => {
+                println!("Inserting new asset: {:?}", asset.title);
+                assets.insert(asset.id.clone(), asset.clone());
+                true
+            }
+            Some(a) => {
+                if asset.eq(a) {
+                    false
+                } else {
+                    println!("Updating asset: {:?}", asset.title);
+                    assets.insert(asset.id.clone(), asset.clone());
+                    true
+                }
+            }
+        } {
+            if let Some(name) = asset.title {
+                self_
+                    .grid_model
+                    .append(&crate::models::row_data::RowData::new(
+                        Some(asset.id),
+                        name,
+                        vec![],
+                    ))
+            } else {
+                error!("Asset {} does not have name", asset.id);
+            }
+        }
+    }
+
+    fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        match self_.window.get() {
+            Some(window) => Some(&(*window)),
+            None => None,
+        }
+    }
+
+    pub fn fetch_assets(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        println!("Stating Fetching assets");
+        match self.main_window() {
+            None => {}
+            Some(window) => {
+                let win_ = window.data();
+                let sender = win_.model.sender.clone();
+                let cache_dir = win_
+                    .model
+                    .settings
+                    .string("cache-directory")
+                    .to_string()
+                    .clone();
+                println!("Fetching assets");
+                self_.asset_load_pool.execute(move || {
+                    // Load assets from cache
+                    let cache_path = PathBuf::from(cache_dir);
+                    if cache_path.is_dir() {
+                        for entry in std::fs::read_dir(cache_path).unwrap() {
+                            if let Ok(mut w) = crate::RUNNING.read() {
+                                if w.not() {
+                                    break;
+                                }
+                            }
+                            let mut asset_file = entry.unwrap().path();
+                            asset_file.push("asset_info.json");
+                            if asset_file.exists() {
+                                println!("Got asset file {:?}", asset_file.file_name());
+                                if let Ok(mut f) = std::fs::File::open(asset_file.as_path()) {
+                                    let mut buffer = String::new();
+                                    f.read_to_string(&mut buffer);
+                                    if let Ok(asset) = serde_json::from_str::<
+                                        egs_api::api::types::asset_info::AssetInfo,
+                                    >(&buffer)
+                                    {
+                                        println!("Loaded asset {:?}", asset.title);
+                                        sender.send(crate::ui::messages::Msg::ProcessAssetInfo(
+                                            asset,
+                                        ));
+                                    }
+                                };
+                            }
+                        }
+                    }
+                    // TODO: Update from the API
+                })
+            }
+        }
     }
 }

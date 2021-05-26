@@ -36,14 +36,23 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
             return;
         }
 
-        app.set_resource_base_path(Some("/io/github/achetagames/epic_asset_manager"));
-        app.setup_css();
-
         let window = EpicAssetManagerWindow::new(app);
         self.window
             .set(window.downgrade())
             .expect("Window already set.");
 
+        app.main_window().check_login();
+        app.main_window().present();
+    }
+
+    fn startup(&self, app: &Self::Type) {
+        debug!("GtkApplication<EpicAssetManager>::startup");
+        self.parent_startup(app);
+
+        adw::functions::init();
+
+        app.set_resource_base_path(Some("/io/github/achetagames/epic_asset_manager"));
+        app.setup_css();
         let app_d = app.downcast_ref::<super::EpicAssetManager>().unwrap();
         // Preferences
         action!(
@@ -51,22 +60,14 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
             "preferences",
             clone!(@weak app as app => move |_,_| {
                 let preferences = PreferencesWindow::new();
-                preferences.set_transient_for(Some(&app.get_main_window()));
-                preferences.set_window(&app.get_main_window());
+                preferences.set_transient_for(Some(&app.main_window()));
+                preferences.set_window(&app.main_window());
                 preferences.show();
             })
         );
 
         app.setup_gactions();
         app.setup_accels();
-
-        app.get_main_window().check_login();
-        app.get_main_window().present();
-    }
-
-    fn startup(&self, app: &Self::Type) {
-        debug!("GtkApplication<EpicAssetManager>::startup");
-        self.parent_startup(app);
     }
 }
 

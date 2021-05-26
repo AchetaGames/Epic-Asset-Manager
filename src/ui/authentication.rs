@@ -50,7 +50,7 @@ impl EpicAssetManagerWindow {
         });
     }
 
-    pub fn get_token_time(&self, key: &str) -> Option<DateTime<Utc>> {
+    pub fn token_time(&self, key: &str) -> Option<DateTime<Utc>> {
         let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         match chrono::DateTime::parse_from_rfc3339(_self.model.settings.string(key).as_str()) {
             Ok(d) => Some(d.with_timezone(&chrono::Utc)),
@@ -61,7 +61,7 @@ impl EpicAssetManagerWindow {
     pub fn can_relogin(&self) -> bool {
         let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         let now = chrono::Utc::now();
-        if let Some(te) = self.get_token_time("token-expiration") {
+        if let Some(te) = self.token_time("token-expiration") {
             let td = te - now;
             if td.num_seconds() > 600 {
                 if _self
@@ -76,7 +76,7 @@ impl EpicAssetManagerWindow {
                 }
             }
         }
-        if let Some(rte) = self.get_token_time("refresh-token-expiration") {
+        if let Some(rte) = self.token_time("refresh-token-expiration") {
             let td = rte - now;
             if td.num_seconds() > 600 {
                 if _self

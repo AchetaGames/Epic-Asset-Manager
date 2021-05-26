@@ -1,5 +1,5 @@
-use glib::subclass::prelude::*;
-use glib::ObjectExt;
+use glib::{clone, Cast, ObjectExt, StaticType, ToValue};
+use gtk::{glib, subclass::prelude::*};
 use serde::de::DeserializeOwned;
 
 // Implementation sub-module of the GObject
@@ -13,7 +13,7 @@ mod imp {
     #[derive(Debug, Default)]
     pub struct RowData {
         id: RefCell<Option<String>>,
-        data: RefCell<Option<String>>,
+        name: RefCell<Option<String>>,
         thumbnail: RefCell<Option<String>>,
     }
 
@@ -23,6 +23,14 @@ mod imp {
         const NAME: &'static str = "RowData";
         type Type = super::RowData;
         type ParentType = glib::Object;
+
+        fn new() -> Self {
+            Self {
+                id: RefCell::new(None),
+                name: RefCell::new(None),
+                thumbnail: RefCell::new(None),
+            }
+        }
     }
 
     // The ObjectImpl trait provides the setters/getters for GObject properties.
@@ -37,9 +45,9 @@ mod imp {
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
                     glib::ParamSpec::new_string(
-                        "data",
-                        "Data",
-                        "Data",
+                        "name",
+                        "Name",
+                        "Name",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
@@ -71,11 +79,11 @@ mod imp {
             pspec: &glib::ParamSpec,
         ) {
             match pspec.name() {
-                "data" => {
-                    let data = value
+                "name" => {
+                    let name = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
-                    self.data.replace(data);
+                    self.name.replace(name);
                 }
                 "id" => {
                     let id = value
@@ -95,7 +103,7 @@ mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
-                "data" => self.data.borrow().to_value(),
+                "name" => self.name.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
@@ -113,13 +121,10 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl RowData {
-    pub fn new<O>(id: Option<String>, object: O, image: Vec<u8>) -> RowData
-    where
-        O: serde::ser::Serialize,
-    {
+    pub fn new(id: Option<String>, name: String, image: Vec<u8>) -> RowData {
         glib::Object::new(&[
             ("id", &id),
-            ("data", &serde_json::to_string(&object).unwrap()),
+            ("name", &name),
             ("thumbnail", &Some(hex::encode(image))),
         ])
         .expect("Failed to create row data")
@@ -134,12 +139,13 @@ impl RowData {
         return "".to_string();
     }
 
-    pub fn deserialize<O>(&self) -> O
-    where
-        O: DeserializeOwned,
-    {
-        let data = self.property("data").unwrap().get::<String>().unwrap();
-        serde_json::from_str(&data).unwrap()
+    pub fn name(&self) -> String {
+        if let Ok(value) = self.property("name") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return id_opt;
+            }
+        };
+        return "".to_string();
     }
 
     pub fn image(&self) -> Vec<u8> {

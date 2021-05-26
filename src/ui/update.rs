@@ -14,7 +14,8 @@ pub(crate) trait Update {
 impl Update for EpicAssetManagerWindow {
     fn update(&self, event: Msg) {
         let start = std::time::Instant::now();
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+
         match event.clone() {
             Msg::Open(_, _) => {}
             Msg::Quit => {}
@@ -27,15 +28,15 @@ impl Update for EpicAssetManagerWindow {
             Msg::ShowLogin => {}
             Msg::Relogin => {}
             Msg::LoginOk(ud) => {
-                _self.main_stack.set_visible_child_name("logged_in_stack");
-                let collection = _self.model.secret_service.get_default_collection().unwrap();
+                self_.main_stack.set_visible_child_name("logged_in_stack");
+                let collection = self_.model.secret_service.get_default_collection().unwrap();
                 if let Some(t) = ud.token_type.clone() {
                     let mut attributes = HashMap::new();
                     attributes.insert("application", crate::config::APP_ID);
                     attributes.insert("type", t.as_str());
                     if let Some(e) = ud.expires_at.clone() {
                         let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-                        _self
+                        self_
                             .model
                             .settings
                             .set_string("token-expiration", d.as_str())
@@ -58,7 +59,7 @@ impl Update for EpicAssetManagerWindow {
                     attributes.insert("type", "refresh");
                     if let Some(e) = ud.refresh_expires_at.clone() {
                         let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-                        _self
+                        self_
                             .model
                             .settings
                             .set_string("refresh-token-expiration", d.as_str())
@@ -79,7 +80,9 @@ impl Update for EpicAssetManagerWindow {
                 }
             }
             Msg::ProcessAssetList(_, _) => {}
-            Msg::ProcessAssetInfo(_) => {}
+            Msg::ProcessAssetInfo(a) => {
+                self_.logged_in_stack.add_asset(a);
+            }
             Msg::ProcessImage(_, _) => {}
             Msg::DownloadImage(_, _) => {}
             Msg::LoadDownloadManifest(_, _) => {}
