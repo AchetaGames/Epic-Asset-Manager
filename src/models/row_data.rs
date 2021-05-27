@@ -1,6 +1,5 @@
-use glib::{clone, Cast, ObjectExt, StaticType, ToValue};
+use glib::ObjectExt;
 use gtk::{glib, subclass::prelude::*};
-use serde::de::DeserializeOwned;
 
 // Implementation sub-module of the GObject
 mod imp {

@@ -1,5 +1,3 @@
-use crate::ui::widgets::preferences::dir_row::DirectoryRow;
-use crate::window::EpicAssetManagerWindow;
 use gettextrs::gettext;
 use glib::clone;
 use gtk::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
@@ -7,7 +5,6 @@ use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};
 use once_cell::sync::OnceCell;
-use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
 pub mod imp {
@@ -140,13 +137,13 @@ impl PreferencesWindow {
             .build();
     }
 
-    fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-        match self_.window.get() {
-            Some(window) => Some(&(*window)),
-            None => None,
-        }
-    }
+    // fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
+    //     let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+    //     match self_.window.get() {
+    //         Some(window) => Some(&(*window)),
+    //         None => None,
+    //     }
+    // }
 
     pub fn load_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
@@ -185,7 +182,6 @@ impl PreferencesWindow {
             actions,
             "cache",
             clone!(@weak self as win => move |_, _| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
                 let dialog: gtk::FileChooserDialog = win.select_file(&[], "Cache Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
@@ -202,7 +198,6 @@ impl PreferencesWindow {
             actions,
             "temp",
             clone!(@weak self as win => move |_, _| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
                 let dialog: gtk::FileChooserDialog = win.select_file(&[], "Temporary Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
@@ -218,7 +213,6 @@ impl PreferencesWindow {
             actions,
             "add_vault",
             clone!(@weak self as win => move |_, _| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
                 let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
@@ -234,7 +228,6 @@ impl PreferencesWindow {
             actions,
             "add_engine",
             clone!(@weak self as win => move |_, _| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
                 let dialog: gtk::FileChooserDialog = win.select_file(&[], "Engine Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
@@ -250,7 +243,6 @@ impl PreferencesWindow {
             actions,
             "add_project",
             clone!(@weak self as win => move |_, _| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
                 let dialog: gtk::FileChooserDialog = win.select_file(&[], " Projects Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk::ResponseType::Accept {
@@ -330,7 +322,7 @@ impl PreferencesWindow {
 
     fn update_directories(&self, kind: DirectoryConfigType) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-        let mut rows = self_.directory_rows.borrow_mut();
+        let rows = self_.directory_rows.borrow();
         match rows.get(&kind) {
             None => {}
             Some(r) => {

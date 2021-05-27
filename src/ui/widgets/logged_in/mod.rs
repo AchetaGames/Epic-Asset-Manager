@@ -1,18 +1,12 @@
 pub mod category;
 
-use crate::window::EpicAssetManagerWindow;
-use adw::prelude::*;
-use egs_api::api::types::asset_info::AssetInfo;
 use glib::clone;
-use gtk::cairo::glib::{BoolError, Value};
-use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};
 use std::io::Read;
 use std::ops::Not;
-use std::path::Path;
 use std::path::PathBuf;
 
 pub(crate) mod imp {
@@ -48,7 +42,7 @@ pub(crate) mod imp {
         #[template_child]
         pub expand_label: TemplateChild<gtk::Label>,
         #[template_child]
-        pub asset_grid: TemplateChild<gtk::GridView>,
+        pub asset_grid: TemplateChild<gtk::ListView>,
         pub sidebar_expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
@@ -235,7 +229,6 @@ impl EpicLoggedInBox {
 
         let sorted_model = gtk::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
         let selection_model = gtk::SingleSelection::new(Some(&sorted_model));
-
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
     }
@@ -275,7 +268,7 @@ impl EpicLoggedInBox {
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                         self_.expand_label.set_label("");
                     };
-                    win.set_property("sidebar-expanded", &new_value);
+                    win.set_property("sidebar-expanded", &new_value).unwrap();
                 }
             })
         );
@@ -287,20 +280,20 @@ impl EpicLoggedInBox {
         let mut assets = self_.loaded_assets.borrow_mut();
         if match assets.get_mut(&asset.id) {
             None => {
-                println!("Inserting new asset: {:?}", asset.title);
                 assets.insert(asset.id.clone(), asset.clone());
                 true
             }
             Some(a) => {
                 if asset.eq(a) {
+                    debug!("Duplicate asset: {}", asset.id);
                     false
                 } else {
-                    println!("Updating asset: {:?}", asset.title);
                     assets.insert(asset.id.clone(), asset.clone());
                     true
                 }
             }
         } {
+            println!("Current asset count: {}", assets.len());
             if let Some(name) = asset.title {
                 self_
                     .grid_model
@@ -342,8 +335,9 @@ impl EpicLoggedInBox {
                     // Load assets from cache
                     let cache_path = PathBuf::from(cache_dir);
                     if cache_path.is_dir() {
+                        let mut count = 0;
                         for entry in std::fs::read_dir(cache_path).unwrap() {
-                            if let Ok(mut w) = crate::RUNNING.read() {
+                            if let Ok(w) = crate::RUNNING.read() {
                                 if w.not() {
                                     break;
                                 }
@@ -351,18 +345,19 @@ impl EpicLoggedInBox {
                             let mut asset_file = entry.unwrap().path();
                             asset_file.push("asset_info.json");
                             if asset_file.exists() {
-                                println!("Got asset file {:?}", asset_file.file_name());
                                 if let Ok(mut f) = std::fs::File::open(asset_file.as_path()) {
                                     let mut buffer = String::new();
-                                    f.read_to_string(&mut buffer);
+                                    f.read_to_string(&mut buffer).unwrap();
                                     if let Ok(asset) = serde_json::from_str::<
                                         egs_api::api::types::asset_info::AssetInfo,
                                     >(&buffer)
                                     {
-                                        println!("Loaded asset {:?}", asset.title);
-                                        sender.send(crate::ui::messages::Msg::ProcessAssetInfo(
-                                            asset,
-                                        ));
+                                        count += 1;
+                                        println!("Current Total Assets: {}", count);
+                                        sender
+                                            .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                                            .unwrap();
+                                        std::thread::sleep(std::time::Duration::from_millis(100));
                                     }
                                 };
                             }
