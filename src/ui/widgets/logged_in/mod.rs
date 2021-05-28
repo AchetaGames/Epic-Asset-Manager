@@ -42,7 +42,7 @@ pub(crate) mod imp {
         #[template_child]
         pub expand_label: TemplateChild<gtk::Label>,
         #[template_child]
-        pub asset_grid: TemplateChild<gtk::ListView>,
+        pub asset_grid: TemplateChild<gtk::GridView>,
         pub sidebar_expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
@@ -357,7 +357,6 @@ impl EpicLoggedInBox {
                                         sender
                                             .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
                                             .unwrap();
-                                        std::thread::sleep(std::time::Duration::from_millis(100));
                                     }
                                 };
                             }

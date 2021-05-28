@@ -108,14 +108,10 @@
                                 <property name="hexpand">1</property>
                                 <property name="vexpand">1</property>
                                 <property name="child">
-                                    <object class="GtkViewport">
-                                        <property name="child">
-                                            <object class="GtkListView" id="asset_grid">
-                                                <property name="can-focus">1</property>
-                                                <property name="halign">start</property>
-                                                <property name="valign">start</property>
-                                            </object>
-                                        </property>
+                                    <object class="GtkGridView" id="asset_grid">
+                                        <property name="can-focus">1</property>
+                                        <property name="halign">start</property>
+                                        <property name="valign">start</property>
                                     </object>
                                 </property>
                             </object>
