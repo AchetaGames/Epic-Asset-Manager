@@ -1,5 +1,7 @@
+mod asset;
 pub mod category;
 
+use crate::ui::widgets::logged_in::asset::EpicAsset;
 use glib::clone;
 use gtk::{self, prelude::*};
 use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
@@ -197,19 +199,19 @@ impl EpicLoggedInBox {
         self.fetch_assets();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
-            let row = gtk::Label::new(None);
+            let row = EpicAsset::new();
             item.set_child(Some(&row));
         });
 
         factory.connect_bind(move |_factory, list_item| {
-            let app_info = list_item
+            let data = list_item
                 .item()
                 .unwrap()
                 .downcast::<crate::models::row_data::RowData>()
                 .unwrap();
 
-            let child = list_item.child().unwrap().downcast::<gtk::Label>().unwrap();
-            child.set_label(&app_info.name());
+            let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
+            child.set_property("label", &data.name());
         });
 
         let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
@@ -293,7 +295,6 @@ impl EpicLoggedInBox {
                 }
             }
         } {
-            println!("Current asset count: {}", assets.len());
             if let Some(name) = asset.title {
                 self_
                     .grid_model
@@ -318,7 +319,6 @@ impl EpicLoggedInBox {
 
     pub fn fetch_assets(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        println!("Stating Fetching assets");
         match self.main_window() {
             None => {}
             Some(window) => {
@@ -330,12 +330,10 @@ impl EpicLoggedInBox {
                     .string("cache-directory")
                     .to_string()
                     .clone();
-                println!("Fetching assets");
                 self_.asset_load_pool.execute(move || {
                     // Load assets from cache
                     let cache_path = PathBuf::from(cache_dir);
                     if cache_path.is_dir() {
-                        let mut count = 0;
                         for entry in std::fs::read_dir(cache_path).unwrap() {
                             if let Ok(w) = crate::RUNNING.read() {
                                 if w.not() {
@@ -352,8 +350,6 @@ impl EpicLoggedInBox {
                                         egs_api::api::types::asset_info::AssetInfo,
                                     >(&buffer)
                                     {
-                                        count += 1;
-                                        println!("Current Total Assets: {}", count);
                                         sender
                                             .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
                                             .unwrap();

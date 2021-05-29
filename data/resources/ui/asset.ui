@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicAsset" parent="GtkBox">
+        <property name="valign">center</property>
+        <property name="margin-start">20</property>
+        <property name="margin-end">20</property>
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkLabel" id="name">
+                <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+            </object>
+        </child>
+    </template>
+</interface>
