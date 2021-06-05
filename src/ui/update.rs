@@ -25,7 +25,9 @@ impl Update for EpicAssetManagerWindow {
             Msg::OpenBrowserSid => {}
             Msg::Login(_) => {}
             Msg::Logout => {}
-            Msg::ShowLogin => {}
+            Msg::ShowLogin => {
+                self.show_login();
+            }
             Msg::Relogin => {}
             Msg::LoginOk(ud) => {
                 self_.main_stack.set_visible_child_name("logged_in_stack");
@@ -81,9 +83,11 @@ impl Update for EpicAssetManagerWindow {
             }
             Msg::ProcessAssetList(_, _) => {}
             Msg::ProcessAssetInfo(a) => {
-                self_.logged_in_stack.add_asset(a);
+                self_.logged_in_stack.load_thumbnail(a);
             }
-            Msg::ProcessImage(_, _) => {}
+            Msg::ProcessImage(a, i) => {
+                self_.logged_in_stack.add_asset(a, i);
+            }
             Msg::DownloadImage(_, _) => {}
             Msg::LoadDownloadManifest(_, _) => {}
             Msg::ProcessDownloadManifest(_, _) => {}

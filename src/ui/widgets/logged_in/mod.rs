@@ -1,15 +1,19 @@
 mod asset;
 pub mod category;
 
+use crate::tools::asset_info::Search;
 use crate::ui::widgets::logged_in::asset::EpicAsset;
 use glib::clone;
 use gtk::{self, prelude::*};
 use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};
+use std::ffi::OsStr;
+use std::fs;
+use std::fs::File;
 use std::io::Read;
 use std::ops::Not;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub(crate) mod imp {
     use super::*;
@@ -51,6 +55,7 @@ pub(crate) mod imp {
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub asset_load_pool: ThreadPool,
+        pub image_load_pool: ThreadPool,
     }
 
     #[glib::object_subclass]
@@ -75,6 +80,7 @@ pub(crate) mod imp {
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 1),
+                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 1),
             }
         }
 
@@ -211,7 +217,7 @@ impl EpicLoggedInBox {
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
-            child.set_property("label", &data.name());
+            child.set_property("label", &data.name()).unwrap();
         });
 
         let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
@@ -277,7 +283,7 @@ impl EpicLoggedInBox {
         self.insert_action_group("loggedin", Some(&self_.actions));
     }
 
-    pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
+    pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo, image: Vec<u8>) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         let mut assets = self_.loaded_assets.borrow_mut();
         if match assets.get_mut(&asset.id) {
@@ -301,10 +307,50 @@ impl EpicLoggedInBox {
                     .append(&crate::models::row_data::RowData::new(
                         Some(asset.id),
                         name,
-                        vec![],
+                        image,
                     ))
             } else {
                 error!("Asset {} does not have name", asset.id);
+            }
+        }
+    }
+
+    pub fn load_thumbnail(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        if let Some(window) = self.main_window() {
+            let win_ = window.data();
+            let sender = win_.model.sender.clone();
+            match asset.thumbnail() {
+                None => {
+                    sender.send(crate::ui::messages::Msg::ProcessImage(asset, vec![]));
+                }
+                Some(t) => {
+                    let cache_dir = win_
+                        .model
+                        .settings
+                        .string("cache-directory")
+                        .to_string()
+                        .clone();
+                    let mut cache_path = PathBuf::from(cache_dir);
+                    cache_path.push("images");
+                    let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
+                    cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(&".png")));
+                    self_.image_load_pool.execute(move || {
+                        match File::open(cache_path.as_path()) {
+                            Ok(mut f) => {
+                                let metadata = fs::metadata(&cache_path.as_path())
+                                    .expect("unable to read metadata");
+                                let mut buffer = vec![0; metadata.len() as usize];
+                                f.read(&mut buffer).expect("buffer overflow");
+                                sender.send(crate::ui::messages::Msg::ProcessImage(asset, buffer));
+                                println!("Image exists in cache");
+                            }
+                            Err(_) => {
+                                println!("Need to load image");
+                            }
+                        };
+                    })
+                }
             }
         }
     }
@@ -319,48 +365,45 @@ impl EpicLoggedInBox {
 
     pub fn fetch_assets(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        match self.main_window() {
-            None => {}
-            Some(window) => {
-                let win_ = window.data();
-                let sender = win_.model.sender.clone();
-                let cache_dir = win_
-                    .model
-                    .settings
-                    .string("cache-directory")
-                    .to_string()
-                    .clone();
-                self_.asset_load_pool.execute(move || {
-                    // Load assets from cache
-                    let cache_path = PathBuf::from(cache_dir);
-                    if cache_path.is_dir() {
-                        for entry in std::fs::read_dir(cache_path).unwrap() {
-                            if let Ok(w) = crate::RUNNING.read() {
-                                if w.not() {
-                                    break;
-                                }
-                            }
-                            let mut asset_file = entry.unwrap().path();
-                            asset_file.push("asset_info.json");
-                            if asset_file.exists() {
-                                if let Ok(mut f) = std::fs::File::open(asset_file.as_path()) {
-                                    let mut buffer = String::new();
-                                    f.read_to_string(&mut buffer).unwrap();
-                                    if let Ok(asset) = serde_json::from_str::<
-                                        egs_api::api::types::asset_info::AssetInfo,
-                                    >(&buffer)
-                                    {
-                                        sender
-                                            .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
-                                            .unwrap();
-                                    }
-                                };
+        if let Some(window) = self.main_window() {
+            let win_ = window.data();
+            let sender = win_.model.sender.clone();
+            let cache_dir = win_
+                .model
+                .settings
+                .string("cache-directory")
+                .to_string()
+                .clone();
+            self_.asset_load_pool.execute(move || {
+                // Load assets from cache
+                let cache_path = PathBuf::from(cache_dir);
+                if cache_path.is_dir() {
+                    for entry in std::fs::read_dir(cache_path).unwrap() {
+                        if let Ok(w) = crate::RUNNING.read() {
+                            if w.not() {
+                                break;
                             }
                         }
+                        let mut asset_file = entry.unwrap().path();
+                        asset_file.push("asset_info.json");
+                        if asset_file.exists() {
+                            if let Ok(mut f) = std::fs::File::open(asset_file.as_path()) {
+                                let mut buffer = String::new();
+                                f.read_to_string(&mut buffer).unwrap();
+                                if let Ok(asset) = serde_json::from_str::<
+                                    egs_api::api::types::asset_info::AssetInfo,
+                                >(&buffer)
+                                {
+                                    sender
+                                        .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                                        .unwrap();
+                                }
+                            };
+                        }
                     }
-                    // TODO: Update from the API
-                })
-            }
+                }
+                // TODO: Update from the API
+            })
         }
     }
 }

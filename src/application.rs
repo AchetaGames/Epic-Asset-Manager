@@ -1,5 +1,4 @@
 use crate::config;
-use crate::ui::widgets::preferences::window::PreferencesWindow;
 use crate::window::EpicAssetManagerWindow;
 use gio::ApplicationFlags;
 use glib::clone;

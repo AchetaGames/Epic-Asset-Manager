@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::PreferencesWindow;
 
 #[derive(Debug)]
 pub struct EpicAssetManager {

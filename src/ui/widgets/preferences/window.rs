@@ -1,6 +1,6 @@
 use gettextrs::gettext;
-use glib::clone;
 use gtk::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
+use gtk::glib::clone;
 use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};

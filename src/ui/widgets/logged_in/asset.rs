@@ -1,17 +1,9 @@
-use crate::models::row_data::RowData;
-use glib::clone;
 use gtk::subclass::prelude::*;
-use gtk::{self, gio, prelude::*};
+use gtk::{self, prelude::*};
 use gtk::{glib, CompositeTemplate};
-use gtk_macros::{action, get_action};
-use log::error;
 
 pub(crate) mod imp {
     use super::*;
-    use crate::models::row_data::RowData;
-    use crate::window::EpicAssetManagerWindow;
-    use gtk::gio;
-    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]

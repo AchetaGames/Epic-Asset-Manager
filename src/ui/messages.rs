@@ -23,7 +23,7 @@ pub enum Msg {
     LoginOk(UserData),
     ProcessAssetList(HashMap<String, Vec<String>>, HashMap<String, EpicAsset>),
     ProcessAssetInfo(AssetInfo),
-    ProcessImage(Option<String>, Vec<u8>),
+    ProcessImage(AssetInfo, Vec<u8>),
     DownloadImage(Option<String>, KeyImage),
     LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),

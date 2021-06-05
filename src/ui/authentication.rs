@@ -105,8 +105,8 @@ impl EpicAssetManagerWindow {
                     .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
             } else {
-                error!("Relogin request failed")
-                //TODO: Login failed
+                error!("Relogin request failed");
+                sender.send(crate::ui::messages::Msg::ShowLogin).unwrap();
             };
             debug!(
                 "{:?} - Relogin requests took {:?}",

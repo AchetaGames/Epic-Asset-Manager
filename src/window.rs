@@ -98,4 +98,9 @@ impl EpicAssetManagerWindow {
             _self.main_stack.set_visible_child_name("sid_box")
         }
     }
+
+    pub fn show_login(&self) {
+        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        _self.main_stack.set_visible_child_name("sid_box")
+    }
 }
