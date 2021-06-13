@@ -6,8 +6,16 @@
         <property name="margin-end">20</property>
         <property name="orientation">vertical</property>
         <child>
+            <object class="GtkImage" id="image"/>
+        </child>
+        <child>
             <object class="GtkLabel" id="name">
                 <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+                <property name="wrap">true</property>
+                <property name="max_width_chars">15</property>
+                <property name="ellipsize">middle</property>
+                <property name="justify">center</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
             </object>
         </child>
     </template>

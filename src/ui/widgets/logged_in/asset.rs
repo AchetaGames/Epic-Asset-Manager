@@ -13,7 +13,7 @@ pub(crate) mod imp {
         label: RefCell<Option<String>>,
         thumbnail: RefCell<Option<String>>,
         #[template_child]
-        pub name: TemplateChild<gtk::Label>,
+        pub image: TemplateChild<gtk::Image>,
     }
 
     #[glib::object_subclass]
@@ -27,7 +27,7 @@ pub(crate) mod imp {
                 id: RefCell::new(None),
                 label: RefCell::new(None),
                 thumbnail: RefCell::new(None),
-                name: TemplateChild::default(),
+                image: TemplateChild::default(),
             }
         }
 
@@ -98,9 +98,10 @@ pub(crate) mod imp {
                     self.id.replace(id);
                 }
                 "thumbnail" => {
-                    let thumbnail = value
+                    let thumbnail: Option<String> = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
+
                     self.thumbnail.replace(thumbnail);
                 }
                 _ => unimplemented!(),

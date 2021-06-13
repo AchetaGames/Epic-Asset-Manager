@@ -1,10 +1,14 @@
 use glib::ObjectExt;
-use gtk::{glib, subclass::prelude::*};
+use gtk::gdk_pixbuf::prelude::PixbufLoaderExt;
+use gtk::gdk_pixbuf::Pixbuf;
+use gtk::{gdk_pixbuf, glib, subclass::prelude::*};
 
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
     use glib::ToValue;
+    use gtk::gdk_pixbuf::prelude::StaticType;
+    use gtk::gdk_pixbuf::Pixbuf;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -13,7 +17,7 @@ mod imp {
     pub struct RowData {
         id: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
-        thumbnail: RefCell<Option<String>>,
+        thumbnail: RefCell<Option<Pixbuf>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -57,11 +61,11 @@ mod imp {
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpec::new_object(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        None,
+                        Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -120,11 +124,21 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl RowData {
-    pub fn new(id: Option<String>, name: String, image: Vec<u8>) -> RowData {
+    pub fn new(id: Option<String>, name: String, image: &[u8]) -> RowData {
+        let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+        pixbuf_loader.write(&image).unwrap();
+        pixbuf_loader.close().ok();
         glib::Object::new(&[
             ("id", &id),
             ("name", &name),
-            ("thumbnail", &Some(hex::encode(image))),
+            (
+                "thumbnail",
+                &pixbuf_loader
+                    .pixbuf()
+                    .unwrap()
+                    .scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
+                    .unwrap(),
+            ),
         ])
         .expect("Failed to create row data")
     }
@@ -147,22 +161,12 @@ impl RowData {
         return "".to_string();
     }
 
-    pub fn image(&self) -> Vec<u8> {
-        match self.property("thumbnail") {
-            Ok(i) => match i.get::<String>() {
-                Ok(img) => match hex::decode(img) {
-                    Ok(v) => v,
-                    Err(_) => {
-                        vec![]
-                    }
-                },
-                Err(_) => {
-                    vec![]
-                }
-            },
-            Err(_) => {
-                vec![]
+    pub fn image(&self) -> Option<Pixbuf> {
+        if let Ok(value) = self.property("thumbnail") {
+            if let Ok(id_opt) = value.get::<Pixbuf>() {
+                return Some(id_opt);
             }
-        }
+        };
+        return None;
     }
 }

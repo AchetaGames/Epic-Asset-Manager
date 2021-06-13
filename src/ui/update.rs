@@ -85,8 +85,8 @@ impl Update for EpicAssetManagerWindow {
             Msg::ProcessAssetInfo(a) => {
                 self_.logged_in_stack.load_thumbnail(a);
             }
-            Msg::ProcessImage(a, i) => {
-                self_.logged_in_stack.add_asset(a, i);
+            Msg::ProcessAssetThumbnail(a, i) => {
+                self_.logged_in_stack.add_asset(a, i.as_slice());
             }
             Msg::DownloadImage(_, _) => {}
             Msg::LoadDownloadManifest(_, _) => {}

@@ -218,6 +218,7 @@ impl EpicLoggedInBox {
 
             let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
             child.set_property("label", &data.name()).unwrap();
+            child.set_property("thumbnail", &data.image()).unwrap();
         });
 
         let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
@@ -283,7 +284,7 @@ impl EpicLoggedInBox {
         self.insert_action_group("loggedin", Some(&self_.actions));
     }
 
-    pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo, image: Vec<u8>) {
+    pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         let mut assets = self_.loaded_assets.borrow_mut();
         if match assets.get_mut(&asset.id) {
@@ -322,7 +323,12 @@ impl EpicLoggedInBox {
             let sender = win_.model.sender.clone();
             match asset.thumbnail() {
                 None => {
-                    sender.send(crate::ui::messages::Msg::ProcessImage(asset, vec![]));
+                    sender
+                        .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                            asset,
+                            vec![],
+                        ))
+                        .unwrap();
                 }
                 Some(t) => {
                     let cache_dir = win_
@@ -342,7 +348,11 @@ impl EpicLoggedInBox {
                                     .expect("unable to read metadata");
                                 let mut buffer = vec![0; metadata.len() as usize];
                                 f.read(&mut buffer).expect("buffer overflow");
-                                sender.send(crate::ui::messages::Msg::ProcessImage(asset, buffer));
+                                sender
+                                    .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                                        asset, buffer,
+                                    ))
+                                    .unwrap();
                                 println!("Image exists in cache");
                             }
                             Err(_) => {

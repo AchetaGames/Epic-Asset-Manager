@@ -23,7 +23,7 @@ pub enum Msg {
     LoginOk(UserData),
     ProcessAssetList(HashMap<String, Vec<String>>, HashMap<String, EpicAsset>),
     ProcessAssetInfo(AssetInfo),
-    ProcessImage(AssetInfo, Vec<u8>),
+    ProcessAssetThumbnail(AssetInfo, Vec<u8>),
     DownloadImage(Option<String>, KeyImage),
     LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),
@@ -70,7 +70,7 @@ impl fmt::Display for Msg {
             Msg::ProcessAssetInfo(_) => {
                 write!(f, "ProcessAssetInfo")
             }
-            Msg::ProcessImage(_, _) => {
+            Msg::ProcessAssetThumbnail(_, _) => {
                 write!(f, "ProcessImage")
             }
             Msg::LoadDownloadManifest(_, _) => {
