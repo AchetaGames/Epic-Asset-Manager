@@ -7,7 +7,8 @@ use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
-use log::warn;
+use log::{debug, error, warn};
+use std::collections::HashMap;
 
 pub(crate) mod imp;
 
@@ -23,9 +24,6 @@ impl EpicAssetManagerWindow {
         // TODO: Set subwidget things here
         // Set icons for shell
         gtk::Window::set_default_icon_name(APP_ID);
-        let self_ = imp::EpicAssetManagerWindow::from_instance(&window);
-        self_.sid_box.set_window(&window);
-        self_.logged_in_stack.set_window(&window);
 
         window
     }
@@ -62,8 +60,8 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn setup_receiver(&self) {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        _self.model.receiver.borrow_mut().take().unwrap().attach(
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.model.receiver.borrow_mut().take().unwrap().attach(
             None,
             clone!(@weak self as window => @default-panic, move |msg| {
                 window.update(msg);
@@ -88,19 +86,75 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn check_login(&mut self) {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        _self.main_stack.set_visible_child_name("progress");
-        _self.progress_message.set_text("Loading");
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.main_stack.set_visible_child_name("progress");
+        self_.progress_message.set_text("Loading");
         if self.can_relogin() {
-            _self.progress_message.set_text("Resuming session");
+            self_.progress_message.set_text("Resuming session");
             self.relogin();
         } else {
-            _self.main_stack.set_visible_child_name("sid_box")
+            self_.main_stack.set_visible_child_name("sid_box")
         }
     }
 
     pub fn show_login(&self) {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        _self.main_stack.set_visible_child_name("sid_box")
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.sid_box.set_window(self);
+        self_.main_stack.set_visible_child_name("sid_box")
+    }
+
+    pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.logged_in_stack.set_window(self);
+        self_.main_stack.set_visible_child_name("logged_in_stack");
+        let collection = self_.model.secret_service.get_default_collection().unwrap();
+        if let Some(t) = ud.token_type.clone() {
+            let mut attributes = HashMap::new();
+            attributes.insert("application", crate::config::APP_ID);
+            attributes.insert("type", t.as_str());
+            if let Some(e) = ud.expires_at.clone() {
+                let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+                self_
+                    .model
+                    .settings
+                    .set_string("token-expiration", d.as_str())
+                    .unwrap();
+                if let Some(at) = ud.access_token().clone() {
+                    debug!("Saving token secret");
+                    if let Err(e) = collection.create_item(
+                        "eam_epic_games_token",
+                        attributes.clone(),
+                        at.as_bytes(),
+                        true,
+                        "text/plain",
+                    ) {
+                        error!("Failed to save secret {}", e)
+                    };
+                }
+            }
+            let mut attributes = HashMap::new();
+            attributes.insert("application", crate::config::APP_ID);
+            attributes.insert("type", "refresh");
+            if let Some(e) = ud.refresh_expires_at.clone() {
+                let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+                self_
+                    .model
+                    .settings
+                    .set_string("refresh-token-expiration", d.as_str())
+                    .unwrap();
+                if let Some(rt) = ud.refresh_token().clone() {
+                    debug!("Saving refresh token secret");
+                    if let Err(e) = collection.create_item(
+                        "eam_epic_games_refresh_token",
+                        attributes,
+                        rt.as_bytes(),
+                        true,
+                        "text/plain",
+                    ) {
+                        error!("Failed to save secret {}", e)
+                    };
+                }
+            }
+        }
     }
 }

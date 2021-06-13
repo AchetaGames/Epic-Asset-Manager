@@ -64,6 +64,10 @@ glib::wrapper! {
 impl SidBox {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        // Do not run this twice
+        if let Some(_) = self_.window.get() {
+            return;
+        }
         self_.window.set(window.clone()).unwrap();
     }
 

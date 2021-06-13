@@ -4,6 +4,8 @@ use gtk::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
+    use gtk::gdk_pixbuf::prelude::StaticType;
+    use gtk::gdk_pixbuf::Pixbuf;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -11,7 +13,7 @@ pub(crate) mod imp {
     pub struct EpicAsset {
         id: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
-        thumbnail: RefCell<Option<String>>,
+        thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
         pub image: TemplateChild<gtk::Image>,
     }
@@ -64,11 +66,11 @@ pub(crate) mod imp {
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpec::new_object(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        None,
+                        Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -98,10 +100,11 @@ pub(crate) mod imp {
                     self.id.replace(id);
                 }
                 "thumbnail" => {
-                    let thumbnail: Option<String> = value
+                    let thumbnail: Option<Pixbuf> = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
 
+                    self.image.set_from_pixbuf(thumbnail.as_ref());
                     self.thumbnail.replace(thumbnail);
                 }
                 _ => unimplemented!(),

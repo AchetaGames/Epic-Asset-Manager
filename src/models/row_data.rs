@@ -128,18 +128,18 @@ impl RowData {
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
         pixbuf_loader.write(&image).unwrap();
         pixbuf_loader.close().ok();
-        glib::Object::new(&[
-            ("id", &id),
-            ("name", &name),
-            (
-                "thumbnail",
-                &pixbuf_loader
-                    .pixbuf()
-                    .unwrap()
-                    .scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
-                    .unwrap(),
-            ),
-        ])
+        match pixbuf_loader.pixbuf() {
+            None => glib::Object::new(&[("id", &id), ("name", &name)]),
+            Some(pix) => glib::Object::new(&[
+                ("id", &id),
+                ("name", &name),
+                (
+                    "thumbnail",
+                    &pix.scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
+                        .unwrap(),
+                ),
+            ]),
+        }
         .expect("Failed to create row data")
     }
 

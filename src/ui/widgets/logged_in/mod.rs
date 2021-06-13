@@ -201,8 +201,11 @@ impl EpicLoggedInBox {
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        // Do not run this twice
+        if let Some(_) = self_.window.get() {
+            return;
+        }
         self_.window.set(window.clone()).unwrap();
-        self.fetch_assets();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
@@ -240,6 +243,7 @@ impl EpicLoggedInBox {
         let selection_model = gtk::SingleSelection::new(Some(&sorted_model));
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
+        self.fetch_assets();
     }
 
     pub fn bind_properties(&self) {

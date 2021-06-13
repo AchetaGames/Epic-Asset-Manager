@@ -4,9 +4,14 @@
         <property name="valign">center</property>
         <property name="margin-start">20</property>
         <property name="margin-end">20</property>
+        <property name="width-request">128</property>
         <property name="orientation">vertical</property>
         <child>
-            <object class="GtkImage" id="image"/>
+            <object class="GtkImage" id="image">
+                <property name="name">thumbnail</property>
+                <property name="width-request">128</property>
+                <property name="height-request">128</property>
+            </object>
         </child>
         <child>
             <object class="GtkLabel" id="name">
