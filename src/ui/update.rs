@@ -56,6 +56,9 @@ impl Update for EpicAssetManagerWindow {
             Msg::ConfigurationDirectorySelectionChanged(_) => {}
             Msg::ConfigurationAddUnrealEngineDir(_) => {}
             Msg::ConfigurationRemoveUnrealEngineDir(_, _) => {}
+            Msg::FlushAssetThumbnails => {
+                self_.logged_in_stack.flush_assets();
+            }
         }
         debug!(
             "{:?} - {} took {:?}",

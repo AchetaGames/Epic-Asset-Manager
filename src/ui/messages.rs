@@ -24,6 +24,7 @@ pub enum Msg {
     ProcessAssetList(HashMap<String, Vec<String>>, HashMap<String, EpicAsset>),
     ProcessAssetInfo(AssetInfo),
     ProcessAssetThumbnail(AssetInfo, Vec<u8>),
+    FlushAssetThumbnails,
     DownloadImage(Option<String>, KeyImage),
     LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),
@@ -162,6 +163,9 @@ impl fmt::Display for Msg {
             }
             Msg::Open(_, _) => {
                 write!(f, "Open")
+            }
+            Msg::FlushAssetThumbnails => {
+                write!(f, "FlushAssetThumbnails")
             }
         }
     }

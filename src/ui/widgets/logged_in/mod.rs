@@ -9,21 +9,22 @@ use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};
 use std::ffi::OsStr;
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::ops::Not;
 use std::path::{Path, PathBuf};
-use std::{fs, thread};
 
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk::gio;
     use gtk::gio::ListStore;
-    use gtk::glib::ParamSpec;
+    use gtk::glib::{Object, ParamSpec};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
+    use std::sync::Arc;
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -56,6 +57,7 @@ pub(crate) mod imp {
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub asset_load_pool: ThreadPool,
         pub image_load_pool: ThreadPool,
+        pub assets_pending: Arc<std::sync::RwLock<Vec<Object>>>,
     }
 
     #[glib::object_subclass]
@@ -79,8 +81,9 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
-                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 2),
-                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 4),
+                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
+                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
+                assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
             }
         }
 
@@ -205,6 +208,7 @@ impl EpicLoggedInBox {
         if let Some(_) = self_.window.get() {
             return;
         }
+
         self_.window.set(window.clone()).unwrap();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
@@ -244,6 +248,27 @@ impl EpicLoggedInBox {
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
         self.fetch_assets();
+        glib::timeout_add_seconds_local(
+            1,
+            clone!(@weak self as obj => @default-panic, move || {
+                obj.flush_assets();
+
+                glib::Continue(true)
+            }),
+        );
+    }
+
+    pub fn flush_assets(&self) {
+        let start = std::time::Instant::now();
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        if let Ok(mut vec) = self_.assets_pending.write() {
+            if vec.is_empty() {
+                return;
+            }
+            self_.grid_model.splice(0, 0, vec.as_slice());
+            vec.clear();
+        }
+        debug!("Finished flushing {:?}", start.elapsed());
     }
 
     pub fn bind_properties(&self) {
@@ -312,7 +337,9 @@ impl EpicLoggedInBox {
                 let data =
                     crate::models::row_data::RowData::new(Some(asset.id), name.clone(), image);
                 debug!("{} - Finished image load took {:?}", name, start.elapsed());
-                self_.grid_model.append(&data);
+                if let Ok(mut vec) = self_.assets_pending.write() {
+                    vec.push(data.upcast());
+                }
                 debug!("{} - Finished appending {:?}", name, start.elapsed());
             } else {
                 error!("Asset {} does not have name", asset.id);

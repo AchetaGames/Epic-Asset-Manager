@@ -31,6 +31,7 @@ chrono = "0.4"
 
 [dependencies.gtk]
 package = "gtk4"
+features = ["v4_2"]
 git = "https://github.com/gtk-rs/gtk4-rs"
 
 [target.'cfg(windows)'.build-dependencies]

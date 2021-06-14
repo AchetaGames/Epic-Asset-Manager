@@ -3,7 +3,6 @@ use gtk::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk::gdk_pixbuf::Pixbuf;
 use gtk::{gdk_pixbuf, glib, subclass::prelude::*};
 use log::debug;
-use std::thread;
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -130,9 +129,9 @@ impl RowData {
         let start = std::time::Instant::now();
         let data: Self = glib::Object::new(&[]).expect("Failed to create RowData");
         debug!("{:?} - Object created in {:?}", name, start.elapsed());
-        data.set_property("id", &id);
+        data.set_property("id", &id).unwrap();
         debug!("{:?} - ID set in {:?}", name, start.elapsed());
-        data.set_property("name", &name);
+        data.set_property("name", &name).unwrap();
         debug!("{:?} - name set in {:?}", name, start.elapsed());
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
         pixbuf_loader.write(&image).unwrap();
@@ -140,7 +139,7 @@ impl RowData {
         debug!("{:?} - Image loaded in {:?}", name, start.elapsed());
         if let Some(pix) = pixbuf_loader.pixbuf() {
             debug!("{:?} - Pixbuf created in {:?}", name, start.elapsed());
-            data.set_property("thumbnail", &pix);
+            data.set_property("thumbnail", &pix).unwrap();
             debug!("{:?} - Pixbuf set in {:?}", name, start.elapsed());
         };
         data
