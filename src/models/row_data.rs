@@ -2,6 +2,8 @@ use glib::ObjectExt;
 use gtk::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk::gdk_pixbuf::Pixbuf;
 use gtk::{gdk_pixbuf, glib, subclass::prelude::*};
+use log::debug;
+use std::thread;
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -125,22 +127,23 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl RowData {
     pub fn new(id: Option<String>, name: String, image: &[u8]) -> RowData {
+        let start = std::time::Instant::now();
+        let data: Self = glib::Object::new(&[]).expect("Failed to create RowData");
+        debug!("{:?} - Object created in {:?}", name, start.elapsed());
+        data.set_property("id", &id);
+        debug!("{:?} - ID set in {:?}", name, start.elapsed());
+        data.set_property("name", &name);
+        debug!("{:?} - name set in {:?}", name, start.elapsed());
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
         pixbuf_loader.write(&image).unwrap();
         pixbuf_loader.close().ok();
-        match pixbuf_loader.pixbuf() {
-            None => glib::Object::new(&[("id", &id), ("name", &name)]),
-            Some(pix) => glib::Object::new(&[
-                ("id", &id),
-                ("name", &name),
-                (
-                    "thumbnail",
-                    &pix.scale_simple(128, 128, gdk_pixbuf::InterpType::Bilinear)
-                        .unwrap(),
-                ),
-            ]),
-        }
-        .expect("Failed to create row data")
+        debug!("{:?} - Image loaded in {:?}", name, start.elapsed());
+        if let Some(pix) = pixbuf_loader.pixbuf() {
+            debug!("{:?} - Pixbuf created in {:?}", name, start.elapsed());
+            data.set_property("thumbnail", &pix);
+            debug!("{:?} - Pixbuf set in {:?}", name, start.elapsed());
+        };
+        data
     }
 
     pub fn id(&self) -> String {

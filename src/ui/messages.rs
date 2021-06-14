@@ -71,7 +71,7 @@ impl fmt::Display for Msg {
                 write!(f, "ProcessAssetInfo")
             }
             Msg::ProcessAssetThumbnail(_, _) => {
-                write!(f, "ProcessImage")
+                write!(f, "ProcessAssetThumbnail")
             }
             Msg::LoadDownloadManifest(_, _) => {
                 write!(f, "LoadDownloadManifest")

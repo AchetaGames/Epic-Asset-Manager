@@ -4,16 +4,16 @@ pub mod category;
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::logged_in::asset::EpicAsset;
 use glib::clone;
-use gtk::{self, prelude::*};
+use gtk::{self, gdk_pixbuf, prelude::*};
 use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};
 use std::ffi::OsStr;
-use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::ops::Not;
 use std::path::{Path, PathBuf};
+use std::{fs, thread};
 
 pub(crate) mod imp {
     use super::*;
@@ -79,8 +79,8 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
-                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 1),
-                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 1),
+                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 2),
+                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 4),
             }
         }
 
@@ -290,6 +290,7 @@ impl EpicLoggedInBox {
 
     pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let start = std::time::Instant::now();
         let mut assets = self_.loaded_assets.borrow_mut();
         if match assets.get_mut(&asset.id) {
             None => {
@@ -307,13 +308,12 @@ impl EpicLoggedInBox {
             }
         } {
             if let Some(name) = asset.title {
-                self_
-                    .grid_model
-                    .append(&crate::models::row_data::RowData::new(
-                        Some(asset.id),
-                        name,
-                        image,
-                    ))
+                debug!("{} - Starting image load took {:?}", name, start.elapsed());
+                let data =
+                    crate::models::row_data::RowData::new(Some(asset.id), name.clone(), image);
+                debug!("{} - Finished image load took {:?}", name, start.elapsed());
+                self_.grid_model.append(&data);
+                debug!("{} - Finished appending {:?}", name, start.elapsed());
             } else {
                 error!("Asset {} does not have name", asset.id);
             }
@@ -352,12 +352,39 @@ impl EpicLoggedInBox {
                                     .expect("unable to read metadata");
                                 let mut buffer = vec![0; metadata.len() as usize];
                                 f.read(&mut buffer).expect("buffer overflow");
-                                sender
-                                    .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
-                                        asset, buffer,
-                                    ))
-                                    .unwrap();
-                                println!("Image exists in cache");
+                                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+                                pixbuf_loader.write(&buffer).unwrap();
+                                pixbuf_loader.close().ok();
+                                match pixbuf_loader.pixbuf() {
+                                    None => {}
+                                    Some(pb) => {
+                                        let width = pb.width();
+                                        let height = pb.height();
+
+                                        let width_percent = 128.0 / width as f64;
+                                        let height_percent = 128.0 / height as f64;
+                                        let percent = if height_percent < width_percent {
+                                            height_percent
+                                        } else {
+                                            width_percent
+                                        };
+                                        let desired =
+                                            (width as f64 * percent, height as f64 * percent);
+                                        sender
+                                            .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                                                asset,
+                                                pb.scale_simple(
+                                                    desired.0.round() as i32,
+                                                    desired.1.round() as i32,
+                                                    gdk_pixbuf::InterpType::Bilinear,
+                                                )
+                                                .unwrap()
+                                                .save_to_bufferv("png", &[])
+                                                .unwrap(),
+                                            ))
+                                            .unwrap()
+                                    }
+                                };
                             }
                             Err(_) => {
                                 println!("Need to load image");

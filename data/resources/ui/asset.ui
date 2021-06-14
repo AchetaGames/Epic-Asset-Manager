@@ -11,6 +11,7 @@
                 <property name="name">thumbnail</property>
                 <property name="width-request">128</property>
                 <property name="height-request">128</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
             </object>
         </child>
         <child>
@@ -18,7 +19,7 @@
                 <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
                 <property name="wrap">true</property>
                 <property name="max_width_chars">15</property>
-                <property name="ellipsize">middle</property>
+                <property name="ellipsize">end</property>
                 <property name="justify">center</property>
                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
             </object>
