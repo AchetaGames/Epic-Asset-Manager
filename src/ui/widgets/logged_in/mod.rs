@@ -248,14 +248,11 @@ impl EpicLoggedInBox {
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
         self.fetch_assets();
-        glib::timeout_add_seconds_local(
-            1,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.flush_assets();
+        glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
+            obj.flush_assets();
 
-                glib::Continue(true)
-            }),
-        );
+            glib::Continue(true)
+        }));
     }
 
     pub fn flush_assets(&self) {
