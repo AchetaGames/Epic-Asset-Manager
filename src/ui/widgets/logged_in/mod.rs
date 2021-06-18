@@ -7,7 +7,7 @@ use glib::clone;
 use gtk::{self, gdk_pixbuf, prelude::*};
 use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
-use log::{debug, error};
+use log::debug;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -23,7 +23,7 @@ pub(crate) mod imp {
     use gtk::glib::{Object, ParamSpec};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::sync::Arc;
     use threadpool::ThreadPool;
 
@@ -43,6 +43,12 @@ pub(crate) mod imp {
         pub games_category:
             TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
         #[template_child]
+        pub other_category:
+            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        #[template_child]
+        pub projects_category:
+            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+        #[template_child]
         pub expand_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub expand_image: TemplateChild<gtk::Image>,
@@ -50,14 +56,20 @@ pub(crate) mod imp {
         pub expand_label: TemplateChild<gtk::Label>,
         #[template_child]
         pub asset_grid: TemplateChild<gtk::GridView>,
+        #[template_child]
+        pub asset_search: TemplateChild<gtk::SearchEntry>,
         pub sidebar_expanded: RefCell<bool>,
+        pub filter: RefCell<Option<String>>,
+        pub search: RefCell<Option<String>>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub filter_model: gtk::FilterListModel,
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub asset_load_pool: ThreadPool,
         pub image_load_pool: ThreadPool,
         pub assets_pending: Arc<std::sync::RwLock<Vec<Object>>>,
+        pub categories: RefCell<HashSet<String>>,
     }
 
     #[glib::object_subclass]
@@ -72,18 +84,25 @@ pub(crate) mod imp {
                 assets_category: TemplateChild::default(),
                 plugins_category: TemplateChild::default(),
                 games_category: TemplateChild::default(),
+                other_category: TemplateChild::default(),
+                projects_category: TemplateChild::default(),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
                 expand_label: TemplateChild::default(),
                 asset_grid: TemplateChild::default(),
+                asset_search: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
+                filter: RefCell::new(None),
+                search: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
+                filter_model: gtk::FilterListModel::new(gio::NONE_LIST_MODEL, gtk::NONE_FILTER),
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
+                categories: RefCell::new(HashSet::new()),
             }
         }
 
@@ -101,20 +120,36 @@ pub(crate) mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpec::new_boolean(
-                    "sidebar-expanded",
-                    "sidebar expanded",
-                    "Is Sidebar expanded",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
+                vec![
+                    ParamSpec::new_boolean(
+                        "sidebar-expanded",
+                        "sidebar expanded",
+                        "Is Sidebar expanded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "filter",
+                        "Filter",
+                        "Filter",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "search",
+                        "Search",
+                        "Search",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
             });
             PROPERTIES.as_ref()
         }
 
         fn set_property(
             &self,
-            _obj: &Self::Type,
+            obj: &Self::Type,
             _id: usize,
             value: &glib::Value,
             pspec: &ParamSpec,
@@ -124,6 +159,36 @@ pub(crate) mod imp {
                     let sidebar_expanded = value.get().unwrap();
                     self.sidebar_expanded.replace(sidebar_expanded);
                 }
+                "filter" => {
+                    let filter: Option<String> = value.get().unwrap();
+
+                    self.filter.replace(match filter {
+                        None => None,
+                        Some(f) => {
+                            if f.is_empty() {
+                                None
+                            } else {
+                                Some(f)
+                            }
+                        }
+                    });
+                    obj.unselect_categories_except();
+                    obj.apply_filter();
+                }
+                "search" => {
+                    let search: Option<String> = value.get().unwrap();
+                    self.search.replace(match search {
+                        None => None,
+                        Some(f) => {
+                            if f.is_empty() {
+                                None
+                            } else {
+                                Some(f)
+                            }
+                        }
+                    });
+                    obj.apply_filter();
+                }
                 _ => unimplemented!(),
             }
         }
@@ -131,6 +196,8 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
+                "filter" => self.filter.borrow().to_value(),
+                "search" => self.search.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -139,46 +206,7 @@ pub(crate) mod imp {
             self.parent_constructed(obj);
             obj.bind_properties();
             obj.setup_actions();
-            self.plugins_category
-                .add_category("Engine".to_string(), "plugins/engine".to_string());
-            self.assets_category
-                .add_category("2d".to_string(), "assets/2d".to_string());
-            self.assets_category
-                .add_category("animations".to_string(), "assets/animations".to_string());
-            self.assets_category
-                .add_category("archvis".to_string(), "assets/archvis".to_string());
-            self.assets_category
-                .add_category("blueprints".to_string(), "assets/blueprints".to_string());
-            self.assets_category
-                .add_category("characters".to_string(), "assets/characters".to_string());
-            self.assets_category.add_category(
-                "communitysamples".to_string(),
-                "assets/communitysamples".to_string(),
-            );
-            self.assets_category.add_category(
-                "environments".to_string(),
-                "assets/environments".to_string(),
-            );
-            self.assets_category
-                .add_category("fx".to_string(), "assets/fx".to_string());
-            self.assets_category
-                .add_category("materials".to_string(), "assets/materials".to_string());
-            self.assets_category
-                .add_category("megascans".to_string(), "assets/megascans".to_string());
-            self.assets_category
-                .add_category("music".to_string(), "assets/music".to_string());
-            self.assets_category
-                .add_category("props".to_string(), "assets/props".to_string());
-            self.assets_category.add_category(
-                "showcasedemos".to_string(),
-                "assets/showcasedemos".to_string(),
-            );
-            self.assets_category
-                .add_category("soundfx".to_string(), "assets/soundfx".to_string());
-            self.assets_category
-                .add_category("textures".to_string(), "assets/textures".to_string());
-            self.assets_category
-                .add_category("weapons".to_string(), "assets/weapons".to_string());
+            obj.setup_widgets();
             self.home_category
                 .add_category("all".to_string(), "".to_string());
             self.home_category
@@ -243,16 +271,22 @@ impl EpicLoggedInBox {
                 .into()
         });
 
-        let sorted_model = gtk::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
+        self_.filter_model.set_model(Some(&self_.grid_model));
+        let sorted_model = gtk::SortListModel::new(Some(&self_.filter_model), Some(&sorter));
         let selection_model = gtk::SingleSelection::new(Some(&sorted_model));
+        selection_model.set_autoselect(false);
+        selection_model.set_can_unselect(true);
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
-        self.fetch_assets();
-        glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
-            obj.flush_assets();
 
-            glib::Continue(true)
+        selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
+            if let Some(a) = model.selected_item() {
+                let asset = a.downcast::<crate::models::row_data::RowData>().unwrap();
+                println!("Selected: {}", asset.name());
+            }
         }));
+
+        self.fetch_assets();
     }
 
     pub fn flush_assets(&self) {
@@ -282,6 +316,27 @@ impl EpicLoggedInBox {
         self.bind_property("sidebar-expanded", &*self_.games_category, "expanded")
             .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
             .build();
+        self.bind_property("sidebar-expanded", &*self_.other_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+        self.bind_property("sidebar-expanded", &*self_.projects_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+        self_
+            .asset_search
+            .bind_property("text", self, "search")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
+    }
+
+    pub fn setup_widgets(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        self_.projects_category.set_logged_in(self);
+        self_.assets_category.set_logged_in(self);
+        self_.plugins_category.set_logged_in(self);
+        self_.other_category.set_logged_in(self);
+        self_.games_category.set_logged_in(self);
+        self_.home_category.set_logged_in(self);
     }
 
     pub fn setup_actions(&self) {
@@ -310,9 +365,73 @@ impl EpicLoggedInBox {
         self.insert_action_group("loggedin", Some(&self_.actions));
     }
 
+    pub fn filter(&self) -> Option<String> {
+        if let Ok(value) = self.property("filter") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        return None;
+    }
+
+    pub fn search(&self) -> Option<String> {
+        if let Ok(value) = self.property("search") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        return None;
+    }
+
+    pub fn unselect_categories_except(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let filter = match self.filter() {
+            None => "".to_string(),
+            Some(f) => f,
+        };
+        self_.projects_category.unselect_except(&filter);
+        self_.assets_category.unselect_except(&filter);
+        self_.plugins_category.unselect_except(&filter);
+        self_.other_category.unselect_except(&filter);
+        self_.games_category.unselect_except(&filter);
+        self_.home_category.unselect_except(&filter);
+    }
+
+    pub fn apply_filter(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let search = self.search();
+        let filter = self.filter();
+        println!("Search {:?} ", search);
+        println!("Filter {:?} ", filter);
+
+        let filter = gtk::CustomFilter::new(move |object| {
+            let asset = object
+                .downcast_ref::<crate::models::row_data::RowData>()
+                .unwrap();
+            (match &search {
+                None => true,
+                Some(se) => asset
+                    .name()
+                    .to_ascii_lowercase()
+                    .contains(&se.to_ascii_lowercase()),
+            }) && (match &filter {
+                None => true,
+                Some(f) => asset.check_category(f.clone()),
+            })
+        });
+        self_.filter_model.set_filter(Some(&filter));
+    }
+
     pub fn add_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        let start = std::time::Instant::now();
+        if let Some(categories) = &asset.categories {
+            for category in categories {
+                let mut cats = self_.categories.borrow_mut();
+                if cats.insert(category.path.clone()) {
+                    self.add_category(&category.path);
+                }
+            }
+        };
         let mut assets = self_.loaded_assets.borrow_mut();
         if match assets.get_mut(&asset.id) {
             None => {
@@ -329,18 +448,25 @@ impl EpicLoggedInBox {
                 }
             }
         } {
-            if let Some(name) = asset.title {
-                debug!("{} - Starting image load took {:?}", name, start.elapsed());
-                let data =
-                    crate::models::row_data::RowData::new(Some(asset.id), name.clone(), image);
-                debug!("{} - Finished image load took {:?}", name, start.elapsed());
-                if let Ok(mut vec) = self_.assets_pending.write() {
-                    vec.push(data.upcast());
-                }
-                debug!("{} - Finished appending {:?}", name, start.elapsed());
-            } else {
-                error!("Asset {} does not have name", asset.id);
+            let data = crate::models::row_data::RowData::new(asset, image);
+            if let Ok(mut vec) = self_.assets_pending.write() {
+                vec.push(data.upcast());
             }
+        }
+    }
+
+    fn add_category(&self, path: &str) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let parts = path.split("/").collect::<Vec<&str>>();
+        if parts.len() > 1 {
+            let name = parts[1..].join("/");
+            match parts[0] {
+                "assets" => &self_.assets_category,
+                "plugins" => &self_.plugins_category,
+                "projects" => &self_.projects_category,
+                &_ => &self_.other_category,
+            }
+            .add_category(name, path.to_string());
         }
     }
 
@@ -468,7 +594,15 @@ impl EpicLoggedInBox {
                     }
                 }
                 // TODO: Update from the API
-            })
+            });
+            glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
+                obj.flush_assets();
+                let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&obj);
+                glib::Continue((self_.asset_load_pool.queued_count() +
+                    self_.asset_load_pool.active_count() +
+                    self_.image_load_pool.queued_count() +
+                    self_.image_load_pool.active_count()) > 0)
+            }));
         }
     }
 }

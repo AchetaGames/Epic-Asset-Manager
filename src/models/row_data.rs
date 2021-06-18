@@ -2,7 +2,6 @@ use glib::ObjectExt;
 use gtk::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk::gdk_pixbuf::Pixbuf;
 use gtk::{gdk_pixbuf, glib, subclass::prelude::*};
-use log::debug;
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -18,6 +17,7 @@ mod imp {
     pub struct RowData {
         id: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
+        pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         thumbnail: RefCell<Option<Pixbuf>>,
     }
 
@@ -32,6 +32,7 @@ mod imp {
             Self {
                 id: RefCell::new(None),
                 name: RefCell::new(None),
+                asset: RefCell::new(None),
                 thumbnail: RefCell::new(None),
             }
         }
@@ -125,22 +126,20 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl RowData {
-    pub fn new(id: Option<String>, name: String, image: &[u8]) -> RowData {
-        let start = std::time::Instant::now();
+    pub fn new(asset: egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> RowData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create RowData");
-        debug!("{:?} - Object created in {:?}", name, start.elapsed());
-        data.set_property("id", &id).unwrap();
-        debug!("{:?} - ID set in {:?}", name, start.elapsed());
-        data.set_property("name", &name).unwrap();
-        debug!("{:?} - name set in {:?}", name, start.elapsed());
+        let self_: &imp::RowData = imp::RowData::from_instance(&data);
+
+        data.set_property("id", &asset.id).unwrap();
+        data.set_property("name", &asset.title).unwrap();
+        self_.asset.replace(Some(asset));
+
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
         pixbuf_loader.write(&image).unwrap();
         pixbuf_loader.close().ok();
-        debug!("{:?} - Image loaded in {:?}", name, start.elapsed());
+
         if let Some(pix) = pixbuf_loader.pixbuf() {
-            debug!("{:?} - Pixbuf created in {:?}", name, start.elapsed());
             data.set_property("thumbnail", &pix).unwrap();
-            debug!("{:?} - Pixbuf set in {:?}", name, start.elapsed());
         };
         data
     }
@@ -170,5 +169,29 @@ impl RowData {
             }
         };
         return None;
+    }
+
+    pub fn check_category(&self, cat: String) -> bool {
+        let self_: &imp::RowData = imp::RowData::from_instance(self);
+        match self_.asset.borrow().as_ref() {
+            None => {
+                println!("No asset");
+                false
+            }
+            Some(b) => {
+                for category in b.categories.as_ref().unwrap() {
+                    for split in cat.split("|") {
+                        if category
+                            .path
+                            .to_ascii_lowercase()
+                            .contains(&split.to_ascii_lowercase())
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        }
     }
 }

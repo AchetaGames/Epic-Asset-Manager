@@ -49,7 +49,7 @@
                                         <property name="action-name">preferences.cache</property>
                                         <child>
                                             <object class="GtkBox">
-                                                              <property name="spacing">5</property>
+                                                <property name="spacing">5</property>
                                                 <child>
                                                     <object class="GtkImage">
                                                         <property name="can-focus">0</property>
@@ -115,12 +115,8 @@
                                         <property name="min-content-height">100</property>
                                         <property name="max-content-height">100</property>
                                         <child>
-                                            <object class="GtkViewport">
-                                                <child>
-                                                    <object class="GtkBox" id="unreal_engine_vault_directories_box">
-                                                        <property name="orientation">vertical</property>
-                                                    </object>
-                                                </child>
+                                            <object class="GtkBox" id="unreal_engine_vault_directories_box">
+                                                <property name="orientation">vertical</property>
                                             </object>
                                         </child>
                                     </object>
@@ -147,12 +143,8 @@
                                         <property name="min-content-height">100</property>
                                         <property name="max-content-height">100</property>
                                         <child>
-                                            <object class="GtkViewport">
-                                                <child>
-                                                    <object class="GtkBox" id="unreal_engine_directories_box">
-                                                        <property name="orientation">vertical</property>
-                                                    </object>
-                                                </child>
+                                            <object class="GtkBox" id="unreal_engine_directories_box">
+                                                <property name="orientation">vertical</property>
                                             </object>
                                         </child>
                                     </object>
@@ -179,12 +171,8 @@
                                         <property name="min-content-height">100</property>
                                         <property name="max-content-height">100</property>
                                         <child>
-                                            <object class="GtkViewport">
-                                                <child>
-                                                    <object class="GtkBox" id="unreal_engine_project_directories_box">
-                                                        <property name="orientation">vertical</property>
-                                                    </object>
-                                                </child>
+                                            <object class="GtkBox" id="unreal_engine_project_directories_box">
+                                                <property name="orientation">vertical</property>
                                             </object>
                                         </child>
                                     </object>

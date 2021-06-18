@@ -1,3 +1,4 @@
+pub mod category_data;
 pub mod row_data;
 
 use crate::config::APP_ID;

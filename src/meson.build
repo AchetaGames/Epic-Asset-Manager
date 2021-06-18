@@ -28,6 +28,7 @@ sources = files(
     'main.rs',
     'models/asset_model.rs',
     'models/row_data.rs',
+    'models/category_data.rs',
     'models/mod.rs',
     'api_data.rs',
     'ui/assets.rs',

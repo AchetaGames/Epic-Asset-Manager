@@ -1,13 +1,16 @@
+use crate::models::category_data::CategoryData;
 use glib::clone;
 use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*};
+use gtk::{self, prelude::*, Label};
 use gtk::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 
 pub(crate) mod imp {
     use super::*;
+    use crate::models::category_data::CategoryData;
     use glib::ParamSpec;
-    use gtk::gio;
+    use gtk::{gio, gio::ListStore, SingleSelection};
+    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -15,12 +18,16 @@ pub(crate) mod imp {
     pub struct EpicSidebarCategory {
         pub tooltip_text: RefCell<Option<String>>,
         pub icon_name: RefCell<Option<String>>,
+        pub filter: RefCell<Option<String>>,
+        pub loggedin: OnceCell<crate::ui::widgets::logged_in::EpicLoggedInBox>,
         pub expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         #[template_child]
         pub sub_revealer: TemplateChild<gtk::Revealer>,
         #[template_child]
-        pub sub_box: TemplateChild<gtk::Box>,
+        pub sub_box: TemplateChild<gtk::ListView>,
+        pub categories: ListStore,
+        pub selection_model: SingleSelection,
     }
 
     #[glib::object_subclass]
@@ -33,10 +40,14 @@ pub(crate) mod imp {
             Self {
                 tooltip_text: RefCell::new(None),
                 icon_name: RefCell::new(None),
+                filter: RefCell::new(None),
+                loggedin: OnceCell::new(),
                 expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
                 sub_revealer: TemplateChild::default(),
                 sub_box: TemplateChild::default(),
+                categories: ListStore::new(CategoryData::static_type()),
+                selection_model: SingleSelection::new(None::<&gtk::SortListModel>),
             }
         }
 
@@ -69,6 +80,13 @@ pub(crate) mod imp {
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
+                    ParamSpec::new_string(
+                        "filter",
+                        "Filter",
+                        "Filter",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
                     ParamSpec::new_boolean(
                         "expanded",
                         "expanded",
@@ -93,6 +111,10 @@ pub(crate) mod imp {
                     let tooltip_text = value.get().unwrap();
                     self.tooltip_text.replace(tooltip_text);
                 }
+                "filter" => {
+                    let filter = value.get().unwrap();
+                    self.filter.replace(filter);
+                }
                 "icon-name" => {
                     let icon_name = value.get().unwrap();
                     self.icon_name.replace(icon_name);
@@ -115,6 +137,7 @@ pub(crate) mod imp {
                 "tooltip-text" => self.tooltip_text.borrow().to_value(),
                 "icon-name" => self.icon_name.borrow().to_value(),
                 "expanded" => self.expanded.borrow().to_value(),
+                "filter" => self.filter.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -122,6 +145,7 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+            obj.setup_categories();
         }
     }
 
@@ -141,6 +165,71 @@ impl EpicSidebarCategory {
         stack
     }
 
+    pub fn set_logged_in(&self, loggedin: &crate::ui::widgets::logged_in::EpicLoggedInBox) {
+        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        // Do not run this twice
+        if let Some(_) = self_.loggedin.get() {
+            return;
+        }
+
+        self_.loggedin.set(loggedin.clone()).unwrap();
+    }
+
+    pub fn setup_categories(&self) {
+        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let factory = gtk::SignalListItemFactory::new();
+        factory.connect_setup(move |_factory, item| {
+            let row = Label::new(None);
+            row.set_halign(gtk::Align::Fill);
+            row.set_xalign(0.0);
+            item.set_child(Some(&row));
+        });
+
+        factory.connect_bind(move |_factory, list_item| {
+            let data = list_item
+                .item()
+                .unwrap()
+                .downcast::<crate::models::category_data::CategoryData>()
+                .unwrap();
+
+            let child = list_item.child().unwrap().downcast::<Label>().unwrap();
+            child.set_label(&data.name());
+            child.set_tooltip_text(Some(&data.filter()))
+        });
+        let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
+            let info1 = obj1
+                .downcast_ref::<crate::models::category_data::CategoryData>()
+                .unwrap();
+            let info2 = obj2
+                .downcast_ref::<crate::models::category_data::CategoryData>()
+                .unwrap();
+
+            info1
+                .name()
+                .to_lowercase()
+                .cmp(&info2.name().to_lowercase())
+                .into()
+        });
+
+        let sorted_model = gtk::SortListModel::new(Some(&self_.categories), Some(&sorter));
+        self_.selection_model.set_model(Some(&sorted_model));
+        self_.selection_model.set_autoselect(false);
+        self_.selection_model.set_can_unselect(true);
+        self_.sub_box.set_model(Some(&self_.selection_model));
+        self_.sub_box.set_factory(Some(&factory));
+
+        self_.selection_model.connect_selected_notify(clone!(@weak self as category => move |model| {
+            let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&category);
+            if let Some(item) = model.selected_item() {
+                let filter = item.downcast::<crate::models::category_data::CategoryData>().unwrap();
+                println!("Filtered: {}", filter.filter());
+                if let Some(l) = self_.loggedin.get() {
+                    l.set_property("filter", filter.filter()).unwrap();
+                };
+            }
+        }));
+    }
+
     pub fn setup_actions(&self) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
         action!(
@@ -151,12 +240,12 @@ impl EpicSidebarCategory {
                     let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&win);
                     if v.get::<bool>().unwrap() {
                         if self_.sub_box.first_child().is_none() {
-                            println!("Clicked empty expanded");
+                            if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()).unwrap(); };
                         } else {
                             self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
                             }
                     } else {
-                        println!("Clicked collapsed");
+                        if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()).unwrap(); };
                     }
                 }
 
@@ -175,19 +264,33 @@ impl EpicSidebarCategory {
 
     pub fn add_category(&self, name: String, filter: String) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
-        let label = gtk::LabelBuilder::new()
-            .label(&EpicSidebarCategory::capitalize_first_letter(&name))
-            .halign(gtk::Align::Start)
-            .build();
-        let button = gtk::ButtonBuilder::new()
-            .name("subcategory")
-            .child(&label)
-            .build();
+        self_.categories.append(&CategoryData::new(
+            EpicSidebarCategory::capitalize_first_letter(&name),
+            filter,
+        ))
+    }
 
-        button.connect_clicked(clone!(@weak self as win => move |_| {
-            println!("Subclicked {}", filter);
-        }));
-        button.show();
-        self_.sub_box.append(&button);
+    pub fn filter(&self) -> String {
+        if let Ok(value) = self.property("filter") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return id_opt;
+            }
+        };
+        return "".to_string();
+    }
+
+    pub fn unselect_except(&self, category: &String) {
+        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let selected_id = self_.selection_model.selected();
+        if let Some(item) = self_.selection_model.selected_item() {
+            let cat = item
+                .downcast::<crate::models::category_data::CategoryData>()
+                .unwrap();
+            println!("Testing {}", cat.filter());
+            if !cat.filter().eq(category) {
+                println!("Unselected all");
+                self_.selection_model.unselect_item(selected_id);
+            }
+        }
     }
 }

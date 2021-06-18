@@ -2,7 +2,7 @@
 <interface>
     <requires lib="gtk" version="4.0"/>
     <template class="EpicSidebarCategory" parent="GtkBox">
-        <property name="halign">start</property>
+        <property name="halign">fill</property>
         <property name="valign">center</property>
         <property name="orientation">vertical</property>
         <child>
@@ -46,7 +46,7 @@
                         <property name="margin-start">25</property>
                         <property name="visible">false</property>
                         <child>
-                            <object class="GtkBox" id="sub_box">
+                            <object class="GtkListView" id="sub_box">
                                 <property name="orientation">vertical</property>
                             </object>
                         </child>

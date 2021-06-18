@@ -32,19 +32,35 @@
                                 <child>
                                     <object class="EpicSidebarCategory" id="assets_category">
                                         <property name="icon-name">x-package-repository</property>
+                                        <property name="filter">assets</property>
                                         <property name="tooltip-text" translatable="yes">Assets</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="EpicSidebarCategory" id="projects_category">
+                                        <property name="icon-name">folder</property>
+                                        <property name="filter">projects</property>
+                                        <property name="tooltip-text" translatable="yes">Projects</property>
                                     </object>
                                 </child>
                                 <child>
                                     <object class="EpicSidebarCategory" id="plugins_category">
                                         <property name="icon-name">application-x-addon</property>
+                                        <property name="filter">plugins</property>
                                         <property name="tooltip-text" translatable="yes">Plugins</property>
                                     </object>
                                 </child>
                                 <child>
                                     <object class="EpicSidebarCategory" id="games_category">
                                         <property name="icon-name">input-gaming</property>
+                                        <property name="filter">games|dlc</property>
                                         <property name="tooltip-text" translatable="yes">Games</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="EpicSidebarCategory" id="other_category">
+                                        <property name="icon-name">image-x-generic</property>
+                                        <property name="tooltip-text" translatable="yes">Other</property>
                                     </object>
                                 </child>
                             </object>
@@ -101,7 +117,7 @@
                         <property name="vexpand">1</property>
                         <property name="orientation">vertical</property>
                         <child>
-                            <object class="GtkSearchEntry" id="search"/>
+                            <object class="GtkSearchEntry" id="asset_search"/>
                         </child>
                         <child>
                             <object class="GtkScrolledWindow">
