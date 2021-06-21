@@ -222,7 +222,6 @@ impl EpicSidebarCategory {
             let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&category);
             if let Some(item) = model.selected_item() {
                 let filter = item.downcast::<crate::models::category_data::CategoryData>().unwrap();
-                println!("Filtered: {}", filter.filter());
                 if let Some(l) = self_.loggedin.get() {
                     l.set_property("filter", filter.filter()).unwrap();
                 };
@@ -286,9 +285,7 @@ impl EpicSidebarCategory {
             let cat = item
                 .downcast::<crate::models::category_data::CategoryData>()
                 .unwrap();
-            println!("Testing {}", cat.filter());
             if !cat.filter().eq(category) {
-                println!("Unselected all");
                 self_.selection_model.unselect_item(selected_id);
             }
         }

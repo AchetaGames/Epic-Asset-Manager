@@ -174,10 +174,7 @@ impl RowData {
     pub fn check_category(&self, cat: String) -> bool {
         let self_: &imp::RowData = imp::RowData::from_instance(self);
         match self_.asset.borrow().as_ref() {
-            None => {
-                println!("No asset");
-                false
-            }
+            None => false,
             Some(b) => {
                 for category in b.categories.as_ref().unwrap() {
                     for split in cat.split("|") {

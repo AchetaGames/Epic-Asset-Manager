@@ -282,7 +282,6 @@ impl EpicLoggedInBox {
         selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
             if let Some(a) = model.selected_item() {
                 let asset = a.downcast::<crate::models::row_data::RowData>().unwrap();
-                println!("Selected: {}", asset.name());
             }
         }));
 
@@ -401,8 +400,6 @@ impl EpicLoggedInBox {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         let search = self.search();
         let filter = self.filter();
-        println!("Search {:?} ", search);
-        println!("Filter {:?} ", filter);
 
         let filter = gtk::CustomFilter::new(move |object| {
             let asset = object
