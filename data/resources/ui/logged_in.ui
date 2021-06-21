@@ -91,7 +91,7 @@
                                         </child>
                                         <child>
                                             <object class="GtkLabel" id="expand_label">
-                                                <property name="label" translatable="yes"></property>
+                                                <property name="label" translatable="yes"/>
                                             </object>
                                         </child>
                                     </object>
@@ -146,6 +146,9 @@
                     </object>
                 </child>
             </object>
+        </child>
+        <child>
+            <object class="EpicAssetDetails" id="details"/>
         </child>
     </template>
 </interface>

@@ -8,6 +8,7 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="dir_row.ui">resources/ui/dir_row.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_category.ui">resources/ui/sidebar_category.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="asset.ui">resources/ui/asset.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="asset_detail.ui">resources/ui/asset_detail.ui</file>
         <file compressed="true" alias="style.css">resources/style.css</file>
     </gresource>
 </gresources>

@@ -121,11 +121,6 @@ pub(crate) mod imp {
                 }
                 "expanded" => {
                     let expanded = value.get().unwrap();
-                    if expanded {
-                        self.sub_revealer.set_visible(true);
-                    } else {
-                        self.sub_revealer.set_visible(false);
-                    }
                     self.expanded.replace(expanded);
                 }
                 _ => unimplemented!(),

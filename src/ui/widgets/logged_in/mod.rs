@@ -1,4 +1,5 @@
 mod asset;
+pub mod asset_detail;
 pub mod category;
 
 use crate::tools::asset_info::Search;
@@ -49,6 +50,8 @@ pub(crate) mod imp {
         pub projects_category:
             TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
         #[template_child]
+        pub details: TemplateChild<crate::ui::widgets::logged_in::asset_detail::EpicAssetDetails>,
+        #[template_child]
         pub expand_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub expand_image: TemplateChild<gtk::Image>,
@@ -86,6 +89,7 @@ pub(crate) mod imp {
                 games_category: TemplateChild::default(),
                 other_category: TemplateChild::default(),
                 projects_category: TemplateChild::default(),
+                details: TemplateChild::default(),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
                 expand_label: TemplateChild::default(),
@@ -281,7 +285,10 @@ impl EpicLoggedInBox {
 
         selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
             if let Some(a) = model.selected_item() {
+                let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&loggedin);
                 let asset = a.downcast::<crate::models::row_data::RowData>().unwrap();
+                let assets = self_.loaded_assets.borrow();
+                if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a.clone()) }
             }
         }));
 
