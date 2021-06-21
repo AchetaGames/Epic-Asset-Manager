@@ -10,9 +10,25 @@
                         <property name="width-request">300</property>
                         <child>
                             <object class="GtkBox" id="details">
+                                <property name="orientation">vertical</property>
                                 <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">TEMP</property>
+                                    <object class="GtkLabel" id="title">
+                                        <property name="ellipsize">middle</property>
+                                        <property name="halign">start</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkSeparator">
+                                        <property name="orientation">horizontal</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="EpicImageOverlay" id="images">
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkSeparator">
+                                        <property name="orientation">horizontal</property>
                                     </object>
                                 </child>
                             </object>

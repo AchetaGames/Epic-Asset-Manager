@@ -43,6 +43,7 @@ sources = files(
     'ui/widgets/logged_in/category.rs',
     'ui/widgets/logged_in/asset.rs',
     'ui/widgets/logged_in/asset_detail.rs',
+    'ui/widgets/logged_in/image_stack.rs',
     'ui/widgets/mod.rs',
     'ui/widgets/sid_login/mod.rs',
     'ui/images.rs',

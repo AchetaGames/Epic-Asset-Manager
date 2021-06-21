@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicImageOverlay" parent="GtkBox">
+        <property name="height-request">300</property>
+        <child>
+            <object class="GtkOverlay" id="navigation">
+
+            </object>
+        </child>
+    </template>
+</interface>

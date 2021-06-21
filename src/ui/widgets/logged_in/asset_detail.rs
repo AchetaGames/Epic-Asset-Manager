@@ -1,6 +1,7 @@
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{glib, CompositeTemplate};
+use log::info;
 
 pub(crate) mod imp {
     use super::*;
@@ -16,6 +17,10 @@ pub(crate) mod imp {
         pub detail_slider: TemplateChild<gtk::Revealer>,
         #[template_child]
         pub details: TemplateChild<gtk::Box>,
+        #[template_child]
+        pub title: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
     }
 
     #[glib::object_subclass]
@@ -30,6 +35,8 @@ pub(crate) mod imp {
                 asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
                 details: TemplateChild::default(),
+                title: TemplateChild::default(),
+                images: TemplateChild::default(),
             }
         }
 
@@ -102,7 +109,14 @@ impl EpicAssetDetails {
 
     pub fn set_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
-        self_.asset.replace(Some(asset));
+        self_.asset.replace(Some(asset.clone()));
+        info!("Showing details for {:?}", asset.title);
+        if let Some(title) = &asset.title {
+            self_
+                .title
+                .set_markup(&format!("<b><u><big>{}</big></u></b>", title));
+        }
+
         if !self.is_expanded() {
             self.set_property("expanded", true).unwrap();
         }
