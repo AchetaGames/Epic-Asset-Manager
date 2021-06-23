@@ -117,6 +117,15 @@ impl EpicAssetDetails {
                 .set_markup(&format!("<b><u><big>{}</big></u></b>", title));
         }
 
+        if let Some(images) = asset.key_images {
+            for image in images {
+                if image.width < 300 || image.height < 300 {
+                    continue;
+                }
+                self_.images.add_image(image);
+            }
+        }
+
         if !self.is_expanded() {
             self.set_property("expanded", true).unwrap();
         }
