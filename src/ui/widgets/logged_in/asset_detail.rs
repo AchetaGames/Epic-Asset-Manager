@@ -1,3 +1,4 @@
+use adw::prelude::ActionRowExt;
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{glib, CompositeTemplate};
@@ -18,6 +19,8 @@ pub(crate) mod imp {
         #[template_child]
         pub details: TemplateChild<gtk::Box>,
         #[template_child]
+        pub details_box: TemplateChild<gtk::Box>,
+        #[template_child]
         pub title: TemplateChild<gtk::Label>,
         #[template_child]
         pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
@@ -35,6 +38,7 @@ pub(crate) mod imp {
                 asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
                 details: TemplateChild::default(),
+                details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
                 images: TemplateChild::default(),
             }
@@ -117,13 +121,87 @@ impl EpicAssetDetails {
                 .set_markup(&format!("<b><u><big>{}</big></u></b>", title));
         }
 
-        if let Some(images) = asset.key_images {
+        self_.images.clear();
+
+        if let Some(images) = &asset.key_images {
             for image in images {
                 if image.width < 300 || image.height < 300 {
                     continue;
                 }
                 self_.images.add_image(image);
             }
+        }
+
+        while let Some(el) = self_.details_box.first_child() {
+            self_.details_box.remove(&el)
+        }
+        let size_group_labels = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
+        let size_group_prefix = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
+
+        if let Some(dev_name) = &asset.developer {
+            let row = adw::ActionRowBuilder::new()
+                .activatable(true)
+                .width_request(500)
+                .build();
+            let title = gtk::LabelBuilder::new().label("Developer").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            let label = gtk::LabelBuilder::new()
+                .label(&dev_name)
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details_box.append(&row)
+        }
+
+        if let Some(platforms) = &asset.platforms() {
+            let row = adw::ActionRowBuilder::new()
+                .activatable(true)
+                .width_request(500)
+                .build();
+            let title = gtk::LabelBuilder::new().label("Platforms").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            let label = gtk::LabelBuilder::new()
+                .label(&platforms.join(", "))
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details_box.append(&row)
+        }
+
+        if let Some(compatible_apps) = &asset.compatible_apps() {
+            let row = adw::ActionRowBuilder::new()
+                .activatable(true)
+                .width_request(500)
+                .build();
+            let title = gtk::LabelBuilder::new().label("Compatible with").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            let label = gtk::LabelBuilder::new()
+                .label(&compatible_apps.join(", ").replace("UE_", ""))
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details_box.append(&row)
+        }
+
+        if let Some(desc) = &asset.long_description {
+            let label = gtk::LabelBuilder::new().wrap(true).xalign(0.0).build();
+            label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
+            self_.details_box.append(&label);
+        }
+
+        if let Some(desc) = &asset.technical_details {
+            let label = gtk::LabelBuilder::new().wrap(true).xalign(0.0).build();
+            label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
+            self_.details_box.append(&label);
         }
 
         if !self.is_expanded() {

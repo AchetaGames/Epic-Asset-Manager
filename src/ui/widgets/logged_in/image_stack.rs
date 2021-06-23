@@ -67,7 +67,14 @@ impl EpicImageOverlay {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
     }
 
-    pub fn add_image(&self, image: egs_api::api::types::asset_info::KeyImage) {
+    pub fn clear(&self) {
+        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        while let Some(el) = self_.stack.first_child() {
+            self_.stack.remove(&el)
+        }
+    }
+
+    pub fn add_image(&self, image: &egs_api::api::types::asset_info::KeyImage) {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
         let cache_dir = self_.settings.string("cache-directory").to_string().clone();
         let mut cache_path = PathBuf::from(cache_dir);
@@ -76,6 +83,7 @@ impl EpicImageOverlay {
             .extension()
             .and_then(OsStr::to_str);
         cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(&".png")));
+        // TODO Have just one sender&receiver per the widget
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         receiver.attach(
             None,
@@ -106,7 +114,7 @@ impl EpicImageOverlay {
                             let width = pb.width();
                             let height = pb.height();
                             let width_percent = 300.0 / width as f64;
-                            let height_percent = 300.0 / height as f64;
+                            let height_percent = 500.0 / height as f64;
                             let percent = if height_percent < width_percent {
                                 height_percent
                             } else {
