@@ -139,10 +139,7 @@ impl EpicAssetDetails {
         let size_group_prefix = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
 
         if let Some(dev_name) = &asset.developer {
-            let row = adw::ActionRowBuilder::new()
-                .activatable(true)
-                .width_request(500)
-                .build();
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
             let title = gtk::LabelBuilder::new().label("Developer").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
@@ -157,10 +154,7 @@ impl EpicAssetDetails {
         }
 
         if let Some(platforms) = &asset.platforms() {
-            let row = adw::ActionRowBuilder::new()
-                .activatable(true)
-                .width_request(500)
-                .build();
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
             let title = gtk::LabelBuilder::new().label("Platforms").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
@@ -175,10 +169,7 @@ impl EpicAssetDetails {
         }
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
-            let row = adw::ActionRowBuilder::new()
-                .activatable(true)
-                .width_request(500)
-                .build();
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
             let title = gtk::LabelBuilder::new().label("Compatible with").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);

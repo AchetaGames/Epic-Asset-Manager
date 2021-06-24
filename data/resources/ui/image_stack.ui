@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicImageOverlay" parent="GtkBox">
-        <property name="height-request">300</property>
+        <property name="orientation">vertical</property>
+        <property name="height-request">500</property>
         <child>
             <object class="GtkOverlay" id="navigation">
                 <property name="hexpand" bind-source="EpicImageOverlay" bind-property="hexpand" bind-flags="sync-create"/>
                 <property name="child">
-                    <object class="GtkStack" id="stack">
-                        <property name="height-request">300</property>
+                    <object class="AdwCarousel" id="stack">
+                        <property name="vexpand">True</property>
+                        <property name="hexpand">True</property>
                     </object>
                 </property>
                 <child type="overlay">
@@ -28,6 +30,11 @@
                         <property name="tooltip-text" translatable="yes">Next Image</property>
                     </object>
                 </child>
+            </object>
+        </child>
+        <child>
+            <object class="AdwCarouselIndicatorLines">
+                <property name="carousel">stack</property>
             </object>
         </child>
     </template>

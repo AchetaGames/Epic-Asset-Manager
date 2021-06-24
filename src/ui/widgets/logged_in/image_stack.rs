@@ -1,7 +1,8 @@
 use gtk::glib::{clone, MainContext, PRIORITY_DEFAULT};
 use gtk::subclass::prelude::*;
-use gtk::{self, gdk_pixbuf, prelude::*};
+use gtk::{self, gdk_pixbuf, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
+use gtk_macros::{action, get_action};
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -19,8 +20,9 @@ pub(crate) mod imp {
     pub struct EpicImageOverlay {
         pub image_load_pool: ThreadPool,
         #[template_child]
-        pub stack: TemplateChild<gtk::Stack>,
+        pub stack: TemplateChild<adw::Carousel>,
         pub settings: gio::Settings,
+        pub actions: gio::SimpleActionGroup,
     }
 
     #[glib::object_subclass]
@@ -34,6 +36,7 @@ pub(crate) mod imp {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 stack: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
+                actions: gio::SimpleActionGroup::new(),
             }
         }
 
@@ -50,6 +53,7 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicImageOverlay {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.setup_actions();
         }
     }
 
@@ -69,9 +73,55 @@ impl EpicImageOverlay {
 
     pub fn clear(&self) {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
-        while let Some(el) = self_.stack.first_child() {
+
+        while let Some(el) = self_.stack.nth_page(0) {
             self_.stack.remove(&el)
         }
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+
+        let actions = &self_.actions;
+        self.insert_action_group("image_stack", Some(actions));
+
+        self_.stack.connect_page_changed(
+            clone!(@weak self as image_stack => move |_, _| image_stack.check_actions();),
+        );
+        action!(
+            actions,
+            "next",
+            clone!(@weak self as image_stack => move |_, _| {
+                let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
+                if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32) + 1) {
+                    self_.stack.scroll_to(&image)
+                };
+            })
+        );
+
+        action!(
+            actions,
+            "prev",
+            clone!(@weak self as image_stack => move |_, _| {
+                let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
+                if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32).checked_sub(1).unwrap_or(0)) {
+                    self_.stack.scroll_to(&image)
+                };
+            })
+        );
+    }
+
+    pub fn check_actions(&self) {
+        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        println!(
+            "Current position {} out of {}",
+            self_.stack.position(),
+            self_.stack.n_pages()
+        );
+        get_action!(self_.actions, @prev).set_enabled(!(self_.stack.position() < 1.0));
+        get_action!(self_.actions, @next).set_enabled(
+            !(self_.stack.position() > self_.stack.n_pages().checked_sub(2).unwrap_or(0) as f64),
+        );
     }
 
     pub fn add_image(&self, image: &egs_api::api::types::asset_info::KeyImage) {
@@ -82,6 +132,7 @@ impl EpicImageOverlay {
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
+        println!("{}", image.md5);
         cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(&".png")));
         // TODO Have just one sender&receiver per the widget
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
@@ -92,8 +143,11 @@ impl EpicImageOverlay {
                 let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(&img.as_slice()).unwrap();
                 pixbuf_loader.close().ok();
-                let image = gtk::Image::from_pixbuf(pixbuf_loader.pixbuf().as_ref());
-                self_.stack.add_child(&image);
+                let image = gtk::Picture::for_pixbuf(pixbuf_loader.pixbuf().as_ref());
+                image.set_hexpand(true);
+                image.set_vexpand(true);
+                self_.stack.append(&image);
+                image_stack.check_actions();
                 glib::Continue(true)
             }),
         );
@@ -110,30 +164,9 @@ impl EpicImageOverlay {
                     pixbuf_loader.close().ok();
                     match pixbuf_loader.pixbuf() {
                         None => {}
-                        Some(pb) => {
-                            let width = pb.width();
-                            let height = pb.height();
-                            let width_percent = 300.0 / width as f64;
-                            let height_percent = 500.0 / height as f64;
-                            let percent = if height_percent < width_percent {
-                                height_percent
-                            } else {
-                                width_percent
-                            };
-                            let desired = (width as f64 * percent, height as f64 * percent);
-                            sender
-                                .send(
-                                    pb.scale_simple(
-                                        desired.0.round() as i32,
-                                        desired.1.round() as i32,
-                                        gdk_pixbuf::InterpType::Bilinear,
-                                    )
-                                    .unwrap()
-                                    .save_to_bufferv("png", &[])
-                                    .unwrap(),
-                                )
-                                .unwrap()
-                        }
+                        Some(pb) => sender
+                            .send(pb.save_to_bufferv("png", &[]).unwrap())
+                            .unwrap(),
                     };
                 }
                 Err(_) => {

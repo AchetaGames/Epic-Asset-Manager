@@ -38,13 +38,13 @@
         </child>
         <child>
             <object class="GtkRevealer" id="revealer">
-                <property name="transition-type">slide-right</property>
                 <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="transition-type">slide-right</property>
                 <child>
                     <object class="GtkRevealer" id="sub_revealer">
                         <property name="transition-type">slide-down</property>
                         <property name="margin-start">25</property>
-                        <property name="visible">false</property>
+                        <property name="visible" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
                         <child>
                             <object class="GtkListView" id="sub_box">
                                 <property name="orientation">vertical</property>
