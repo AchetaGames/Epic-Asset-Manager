@@ -76,7 +76,6 @@ impl EpicAssetManagerWindow {
             "login",
             Some(&String::static_variant_type()),
             clone!(@weak self as window => move |_, sid_par| {
-                println!("Attempting to login");
                 if let Some(sid_opt) = sid_par {
                     if let Some(sid) = sid_opt.get::<String>() {
                         window.login(sid.to_string());

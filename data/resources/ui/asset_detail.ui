@@ -7,36 +7,50 @@
                 <property name="reveal-child" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="transition-type">slide-left</property>
                 <child>
-                    <object class="GtkScrolledWindow">
-                        <child>
-                            <object class="GtkBox" id="details">
-                                <property name="orientation">vertical</property>
+                    <object class="GtkOverlay">
+                        <property name="child">
+                            <object class="GtkScrolledWindow">
                                 <child>
-                                    <object class="GtkLabel" id="title">
-                                        <property name="ellipsize">middle</property>
-                                        <property name="halign">start</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkSeparator">
-                                        <property name="orientation">horizontal</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="EpicImageOverlay" id="images">
-                                        <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkSeparator">
-                                        <property name="orientation">horizontal</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkBox" id="details_box">
+                                    <object class="GtkBox" id="details">
                                         <property name="orientation">vertical</property>
+                                        <child>
+                                            <object class="GtkLabel" id="title">
+                                                <property name="ellipsize">middle</property>
+                                                <property name="halign">start</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkSeparator">
+                                                <property name="orientation">horizontal</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="EpicImageOverlay" id="images">
+                                                <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkSeparator">
+                                                <property name="orientation">horizontal</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkBox" id="details_box">
+                                                <property name="orientation">vertical</property>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
+                            </object>
+                        </property>
+                        <child type="overlay">
+                            <object class="GtkButton">
+                                <property name="margin-top">6</property>
+                                <property name="margin-end">6</property>
+                                <property name="halign">end</property>
+                                <property name="valign">start</property>
+                                <property name="action-name">details.close</property>
+                                <property name="icon-name">window-close-symbolic</property>
                             </object>
                         </child>
                     </object>

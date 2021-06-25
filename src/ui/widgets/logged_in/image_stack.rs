@@ -113,11 +113,6 @@ impl EpicImageOverlay {
 
     pub fn check_actions(&self) {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
-        println!(
-            "Current position {} out of {}",
-            self_.stack.position(),
-            self_.stack.n_pages()
-        );
         get_action!(self_.actions, @prev).set_enabled(!(self_.stack.position() < 1.0));
         get_action!(self_.actions, @next).set_enabled(
             !(self_.stack.position() > self_.stack.n_pages().checked_sub(2).unwrap_or(0) as f64),
@@ -132,7 +127,6 @@ impl EpicImageOverlay {
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        println!("{}", image.md5);
         cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(&".png")));
         // TODO Have just one sender&receiver per the widget
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);

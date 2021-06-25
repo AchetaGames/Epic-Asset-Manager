@@ -1,7 +1,9 @@
 use adw::prelude::ActionRowExt;
+use gtk::glib::clone;
 use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*};
+use gtk::{self, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
+use gtk_macros::action;
 use log::info;
 
 pub(crate) mod imp {
@@ -24,6 +26,7 @@ pub(crate) mod imp {
         pub title: TemplateChild<gtk::Label>,
         #[template_child]
         pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
+        pub actions: gio::SimpleActionGroup,
     }
 
     #[glib::object_subclass]
@@ -41,6 +44,7 @@ pub(crate) mod imp {
                 details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
                 images: TemplateChild::default(),
+                actions: gio::SimpleActionGroup::new(),
             }
         }
 
@@ -57,6 +61,7 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicAssetDetails {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.setup_actions();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -109,6 +114,20 @@ glib::wrapper! {
 impl EpicAssetDetails {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let actions = &self_.actions;
+        self.insert_action_group("details", Some(actions));
+
+        action!(
+            actions,
+            "close",
+            clone!(@weak self as details => move |_, _| {
+                details.set_property("expanded", false).unwrap();
+            })
+        );
     }
 
     pub fn set_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
