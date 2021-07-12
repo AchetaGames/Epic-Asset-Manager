@@ -73,10 +73,12 @@ impl EpicImageOverlay {
 
     pub fn clear(&self) {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
-
-        while let Some(el) = self_.stack.nth_page(0) {
-            self_.stack.remove(&el)
+        if self_.stack.n_pages() > 0 {
+            while let Some(el) = self_.stack.nth_page(0) {
+                self_.stack.remove(&el)
+            }
         }
+        self.check_actions();
     }
 
     pub fn setup_actions(&self) {
@@ -115,7 +117,8 @@ impl EpicImageOverlay {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
         get_action!(self_.actions, @prev).set_enabled(!(self_.stack.position() < 1.0));
         get_action!(self_.actions, @next).set_enabled(
-            !(self_.stack.position() > self_.stack.n_pages().checked_sub(2).unwrap_or(0) as f64),
+            !(self_.stack.position() > self_.stack.n_pages().checked_sub(2).unwrap_or(0) as f64)
+                && (self_.stack.n_pages() > 0),
         );
     }
 

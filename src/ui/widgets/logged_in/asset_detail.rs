@@ -8,7 +8,9 @@ use log::info;
 
 pub(crate) mod imp {
     use super::*;
+    use crate::window::EpicAssetManagerWindow;
     use gtk::glib::ParamSpec;
+    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -26,6 +28,7 @@ pub(crate) mod imp {
         pub title: TemplateChild<gtk::Label>,
         #[template_child]
         pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
+        pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
     }
 
@@ -44,6 +47,7 @@ pub(crate) mod imp {
                 details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
                 images: TemplateChild::default(),
+                window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
             }
         }

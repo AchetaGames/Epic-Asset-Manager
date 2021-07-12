@@ -7,13 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-adw = { package = "libadwaita", version= "0.1.0-alpha" }
+adw = { package = "libadwaita", version= "0.1.0-alpha-2" }
 serde_json = "1.0.62"
-gettext-rs = { version = "0.6", features = ["gettext-system"] }
-relm-derive = "^0.21.0"
+gettext-rs = { version = "0.7", features = ["gettext-system"] }
+relm-derive = "^0.22"
 threadpool = "1.8.1"
 dirs = "3.0.1"
-config = "0.10.1"
+config = "0.11"
 secret-service = "2.0"
 clap = "2.33.3"
 env_logger = "0.8.3"
@@ -28,22 +28,20 @@ slab_tree = "0.3"
 log = "0.4"
 gtk-macros = "0.3"
 chrono = "0.4"
+egs-api = "0.3.3"
 
 [dependencies.gtk]
 package = "gtk4"
 features = ["v4_2"]
-version = "0.1"
+version = "0.2"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 
 [dependencies.serde]
-version = "1.0.123"
+version = "1"
 features = ["derive"]
 
-[dependencies.egs-api]
-version = "0.3.3"
-
 [dependencies.tokio]
-version = "1.2.0"
+version = "1"
 features = ["full"]
