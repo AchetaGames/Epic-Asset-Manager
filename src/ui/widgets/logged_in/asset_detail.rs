@@ -3,7 +3,7 @@ use gtk::glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{self, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 use log::info;
 
 pub(crate) mod imp {
@@ -21,6 +21,10 @@ pub(crate) mod imp {
         #[template_child]
         pub detail_slider: TemplateChild<gtk::Revealer>,
         #[template_child]
+        pub details_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub download_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
         pub details: TemplateChild<gtk::Box>,
         #[template_child]
         pub details_box: TemplateChild<gtk::Box>,
@@ -28,6 +32,9 @@ pub(crate) mod imp {
         pub title: TemplateChild<gtk::Label>,
         #[template_child]
         pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
+        #[template_child]
+        pub download_details:
+            TemplateChild<crate::ui::widgets::logged_in::download_detail::EpicDownloadDetails>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
     }
@@ -43,10 +50,13 @@ pub(crate) mod imp {
                 expanded: RefCell::new(false),
                 asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
+                details_revealer: TemplateChild::default(),
+                download_revealer: TemplateChild::default(),
                 details: TemplateChild::default(),
                 details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
                 images: TemplateChild::default(),
+                download_details: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
             }
@@ -132,11 +142,39 @@ impl EpicAssetDetails {
                 details.set_property("expanded", false).unwrap();
             })
         );
+
+        action!(
+            actions,
+            "show_download_details",
+            clone!(@weak self as details => move |_, _| {
+                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                self_.details_revealer.set_reveal_child(false);
+                self_.download_revealer.set_reveal_child(true);
+                get_action!(self_.actions, @show_download_details).set_enabled(false);
+                get_action!(self_.actions, @show_asset_details).set_enabled(true);
+            })
+        );
+
+        action!(
+            actions,
+            "show_asset_details",
+            clone!(@weak self as details => move |_, _| {
+                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                self_.details_revealer.set_reveal_child(true);
+                self_.download_revealer.set_reveal_child(false);
+                get_action!(self_.actions, @show_download_details).set_enabled(true);
+                get_action!(self_.actions, @show_asset_details).set_enabled(false);
+            })
+        );
     }
 
     pub fn set_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
         self_.asset.replace(Some(asset.clone()));
+        self_.details_revealer.set_reveal_child(true);
+        self_.download_revealer.set_reveal_child(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(true);
+        get_action!(self_.actions, @show_asset_details).set_enabled(false);
         info!("Showing details for {:?}", asset.title);
         if let Some(title) = &asset.title {
             self_

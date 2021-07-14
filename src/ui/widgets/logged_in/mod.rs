@@ -1,7 +1,8 @@
 mod asset;
 pub mod asset_detail;
 pub mod category;
-pub mod image_stack;
+mod download_detail;
+mod image_stack;
 
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::logged_in::asset::EpicAsset;

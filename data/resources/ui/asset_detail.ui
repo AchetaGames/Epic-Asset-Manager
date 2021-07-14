@@ -10,45 +10,63 @@
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <child>
-                            <object class="GtkOverlay">
-                                <property name="child">
+                            <object class="GtkLabel" id="title">
+                                <property name="ellipsize">middle</property>
+                                <property name="halign">start</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <child>
+                                    <object class="GtkButton">
+                                        <property name="halign">start</property>
+                                        <property name="valign">start</property>
+                                        <property name="action-name">details.close</property>
+                                        <property name="icon-name">go-next-symbolic</property>
+                                    </object>
+                                </child>
+                                <child>
                                     <object class="GtkBox">
-                                        <property name="orientation">vertical</property>
+                                        <property name="hexpand">true</property>
+                                        <property name="halign">end</property>
                                         <child>
-                                            <object class="GtkLabel" id="title">
-                                                <property name="ellipsize">middle</property>
-                                                <property name="halign">start</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkSeparator">
-                                                <property name="orientation">horizontal</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkRevealer" id="details_revealer">
-                                                <property name="reveal-child">true</property>
+                                            <object class="GtkButton" id="information_button">
+                                                <property name="name">asset_details_button</property>
+                                                <property name="action-name">details.show_asset_details</property>
                                                 <child>
-                                                    <object class="GtkScrolledWindow">
+                                                    <object class="GtkBox">
+                                                        <property name="valign">center</property>
+                                                        <property name="halign">center</property>
                                                         <child>
-                                                            <object class="GtkBox" id="details">
-                                                                <property name="orientation">vertical</property>
-                                                                <child>
-                                                                    <object class="EpicImageOverlay" id="images">
-                                                                        <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
-                                                                    </object>
-                                                                </child>
-                                                                <child>
-                                                                    <object class="GtkSeparator">
-                                                                        <property name="orientation">horizontal</property>
-                                                                    </object>
-                                                                </child>
-                                                                <child>
-                                                                    <object class="GtkBox" id="details_box">
-                                                                        <property name="vexpand">True</property>
-                                                                        <property name="orientation">vertical</property>
-                                                                    </object>
-                                                                </child>
+                                                            <object class="GtkImage">
+                                                                <property name="icon-name">dialog-information-symbolic</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel" id="expand_label">
+                                                                <property name="label" translatable="yes">Details</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkButton" id="download_button">
+                                                <property name="name">download_details_button</property>
+                                                <property name="action-name">details.show_download_details</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="valign">center</property>
+                                                        <property name="halign">center</property>
+                                                        <child>
+                                                            <object class="GtkImage">
+                                                                <property name="icon-name">folder-download-symbolic</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel" id="expand_label">
+                                                                <property name="label" translatable="yes">Download</property>
                                                             </object>
                                                         </child>
                                                     </object>
@@ -56,42 +74,51 @@
                                             </object>
                                         </child>
                                     </object>
-                                </property>
-                                <child type="overlay">
-                                    <object class="GtkButton">
-                                        <property name="margin-top">6</property>
-                                        <property name="margin-end">6</property>
-                                        <property name="halign">end</property>
-                                        <property name="valign">start</property>
-                                        <property name="action-name">details.close</property>
-                                        <property name="icon-name">window-close-symbolic</property>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkSeparator">
+                                <property name="orientation">horizontal</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkRevealer" id="details_revealer">
+                                <property name="reveal-child">true</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <child>
+                                            <object class="GtkBox" id="details">
+                                                <property name="orientation">vertical</property>
+                                                <child>
+                                                    <object class="EpicImageOverlay" id="images">
+                                                        <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
+                                                        <property name="vexpand-set">True</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkSeparator">
+                                                        <property name="orientation">horizontal</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkBox" id="details_box">
+                                                        <property name="vexpand">True</property>
+                                                        <property name="orientation">vertical</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
                         </child>
                         <child>
-                            <object class="GtkBox">
-                                <property name="halign">end</property>
+                            <object class="GtkRevealer" id="download_revealer">
+                                <property name="reveal-child">false</property>
+                                <property name="transition-type">slide-up</property>
                                 <child>
-                                    <object class="GtkButton" id="download_button">
-                                        <property name="name">download_details_button</property>
-                                        <property name="action-name">details.show_download_details</property>
-                                        <child>
-                                            <object class="GtkBox">
-                                                <property name="valign">center</property>
-                                                <property name="halign">center</property>
-                                                <child>
-                                                    <object class="GtkImage">
-                                                        <property name="icon-name">folder-download-symbolic</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel" id="expand_label">
-                                                        <property name="label" translatable="yes">Download</property>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
+                                    <object class="EpicDownloadDetails" id="download_details">
                                     </object>
                                 </child>
                             </object>
