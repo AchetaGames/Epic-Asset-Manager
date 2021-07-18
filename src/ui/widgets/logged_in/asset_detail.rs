@@ -5,6 +5,7 @@ use gtk::{self, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
+use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
@@ -150,6 +151,7 @@ impl EpicAssetDetails {
                 let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
                 self_.details_revealer.set_reveal_child(false);
                 self_.download_revealer.set_reveal_child(true);
+                self_.details_revealer.set_vexpand_set(true);
                 get_action!(self_.actions, @show_download_details).set_enabled(false);
                 get_action!(self_.actions, @show_asset_details).set_enabled(true);
             })
@@ -162,6 +164,7 @@ impl EpicAssetDetails {
                 let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
                 self_.details_revealer.set_reveal_child(true);
                 self_.download_revealer.set_reveal_child(false);
+                self_.details_revealer.set_vexpand_set(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(true);
                 get_action!(self_.actions, @show_asset_details).set_enabled(false);
             })
@@ -170,8 +173,15 @@ impl EpicAssetDetails {
 
     pub fn set_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        if let Some(a) = self_.asset.borrow().deref() {
+            if asset.id.eq(&a.id) {
+                return;
+            }
+        };
         self_.asset.replace(Some(asset.clone()));
+        self_.download_details.set_asset(asset.clone());
         self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand_set(false);
         self_.download_revealer.set_reveal_child(false);
         get_action!(self_.actions, @show_download_details).set_enabled(true);
         get_action!(self_.actions, @show_asset_details).set_enabled(false);
