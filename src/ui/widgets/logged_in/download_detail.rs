@@ -3,6 +3,7 @@ use gtk::glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{self, gio, prelude::*};
 use gtk::{glib, CompositeTemplate};
+use gtk_macros::action;
 use std::ops::Deref;
 
 pub(crate) mod imp {
@@ -29,6 +30,10 @@ pub(crate) mod imp {
         pub release_date_row: TemplateChild<adw::ActionRow>,
         #[template_child]
         pub release_notes_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub download_details_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub download_details_button: TemplateChild<gtk::Button>,
         pub actions: gio::SimpleActionGroup,
     }
 
@@ -51,6 +56,8 @@ pub(crate) mod imp {
                 platforms_row: TemplateChild::default(),
                 release_date_row: TemplateChild::default(),
                 release_notes_row: TemplateChild::default(),
+                download_details_revealer: TemplateChild::default(),
+                download_details_button: TemplateChild::default(),
                 actions: gio::SimpleActionGroup::new(),
             }
         }
@@ -174,7 +181,24 @@ impl EpicDownloadDetails {
     pub fn setup_actions(&self) {
         let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
         let actions = &self_.actions;
-        self.insert_action_group("download", Some(actions));
+        self.insert_action_group("download_details", Some(actions));
+
+        action!(
+            actions,
+            "show",
+            clone!(@weak self as download_details => move |_, _| {
+                let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(&download_details);
+                if self_.download_details_revealer.reveals_child() {
+                    self_.download_details_revealer.set_reveal_child(false);
+                    self_.download_details_button.set_icon_name("go-down-symbolic");
+                    self_.download_details_button.set_tooltip_text(Some("Show details"));
+                } else {
+                    self_.download_details_revealer.set_reveal_child(true);
+                    self_.download_details_button.set_icon_name("go-up-symbolic");
+                    self_.download_details_button.set_tooltip_text(Some("Hide details"));
+                }
+            })
+        );
     }
 
     pub fn setup_events(&self) {

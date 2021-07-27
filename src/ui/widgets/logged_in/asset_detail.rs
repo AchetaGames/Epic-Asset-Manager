@@ -152,6 +152,7 @@ impl EpicAssetDetails {
                 self_.details_revealer.set_reveal_child(false);
                 self_.download_revealer.set_reveal_child(true);
                 self_.details_revealer.set_vexpand_set(true);
+                self_.download_revealer.set_vexpand(true);
                 get_action!(self_.actions, @show_download_details).set_enabled(false);
                 get_action!(self_.actions, @show_asset_details).set_enabled(true);
             })
@@ -165,6 +166,7 @@ impl EpicAssetDetails {
                 self_.details_revealer.set_reveal_child(true);
                 self_.download_revealer.set_reveal_child(false);
                 self_.details_revealer.set_vexpand_set(false);
+                self_.download_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(true);
                 get_action!(self_.actions, @show_asset_details).set_enabled(false);
             })
@@ -183,6 +185,7 @@ impl EpicAssetDetails {
         self_.details_revealer.set_reveal_child(true);
         self_.details_revealer.set_vexpand_set(false);
         self_.download_revealer.set_reveal_child(false);
+        self_.download_revealer.set_vexpand(false);
         get_action!(self_.actions, @show_download_details).set_enabled(true);
         get_action!(self_.actions, @show_asset_details).set_enabled(false);
         info!("Showing details for {:?}", asset.title);

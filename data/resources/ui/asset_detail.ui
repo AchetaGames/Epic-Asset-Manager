@@ -116,6 +116,7 @@
                         <child>
                             <object class="GtkRevealer" id="download_revealer">
                                 <property name="reveal-child">false</property>
+                                <property name="vexpand-set">True</property>
                                 <property name="transition-type">slide-up</property>
                                 <child>
                                     <object class="EpicDownloadDetails" id="download_details">
