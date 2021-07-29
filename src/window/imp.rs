@@ -14,6 +14,8 @@ pub struct EpicAssetManagerWindow {
     pub sid_box: TemplateChild<crate::ui::widgets::sid_login::SidBox>,
     #[template_child]
     pub progress_message: TemplateChild<gtk::Label>,
+    #[template_child]
+    pub download_manager: TemplateChild<crate::ui::widgets::download_manager::EpicDownloadManager>,
     pub model: Model,
 }
 
@@ -30,6 +32,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             logged_in_stack: TemplateChild::default(),
             sid_box: TemplateChild::default(),
             progress_message: TemplateChild::default(),
+            download_manager: TemplateChild::default(),
             model: Model::new(),
         };
         win

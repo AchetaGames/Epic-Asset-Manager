@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 
 pub(crate) mod imp {
     use super::*;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
     use gtk::gio;
     use gtk::gio::ListStore;
@@ -68,6 +69,7 @@ pub(crate) mod imp {
         pub search: RefCell<Option<String>>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub download_manager: OnceCell<EpicDownloadManager>,
         pub filter_model: gtk::FilterListModel,
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
@@ -102,6 +104,7 @@ pub(crate) mod imp {
                 search: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
+                download_manager: OnceCell::new(),
                 filter_model: gtk::FilterListModel::new(gio::NONE_LIST_MODEL, gtk::NONE_FILTER),
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
@@ -234,6 +237,19 @@ impl EpicLoggedInBox {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox");
 
         stack
+    }
+
+    pub fn set_download_manager(
+        &self,
+        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
+    ) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        // Do not run this twice
+        if let Some(_) = self_.download_manager.get() {
+            return;
+        }
+        self_.download_manager.set(dm.clone()).unwrap();
+        self_.details.set_download_manager(dm);
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -370,6 +386,18 @@ impl EpicLoggedInBox {
                 }
             })
         );
+
+        action!(
+            self_.actions,
+            "show_download_details",
+            clone!(@weak self as win => move |_, _| {
+                let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&win);
+                if let Some(w) = self_.window.get() {
+                   w.show_download_manager()
+                }
+            })
+        );
+
         self.insert_action_group("loggedin", Some(&self_.actions));
     }
 

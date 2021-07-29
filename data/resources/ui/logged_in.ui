@@ -133,6 +133,53 @@
                                 </property>
                             </object>
                         </child>
+                        <child>
+                            <object class="GtkRevealer" id="download_progress_revealer">
+                                <property name="reveal-child">True</property>
+                                <property name="vexpand-set">True</property>
+                                <property name="transition-type">slide-up</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="margin-start">5</property>
+                                        <property name="spacing">5</property>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Downloading</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkProgressBar" id="download_progress">
+                                                <property name="hexpand">true</property>
+                                                <property name="valign">center</property>
+                                                <property name="can-focus">0</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkButton" id="download_details_button">
+                                                <property name="name">download_details_button</property>
+                                                <property name="action-name">loggedin.show_download_details</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="valign">center</property>
+                                                        <property name="halign">center</property>
+                                                        <child>
+                                                            <object class="GtkImage">
+                                                                <property name="icon-name">view-list-symbolic</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="label" translatable="yes">Download Details</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
                 </property>
                 <child type="overlay">

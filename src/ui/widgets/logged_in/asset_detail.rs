@@ -9,6 +9,7 @@ use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
     use gtk::glib::ParamSpec;
     use once_cell::sync::OnceCell;
@@ -38,6 +39,7 @@ pub(crate) mod imp {
             TemplateChild<crate::ui::widgets::logged_in::download_detail::EpicDownloadDetails>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
+        pub download_manager: OnceCell<EpicDownloadManager>,
     }
 
     #[glib::object_subclass]
@@ -60,6 +62,7 @@ pub(crate) mod imp {
                 download_details: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
+                download_manager: OnceCell::new(),
             }
         }
 
@@ -129,6 +132,20 @@ glib::wrapper! {
 impl EpicAssetDetails {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
+    }
+
+    pub fn set_download_manager(
+        &self,
+        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
+    ) {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        // Do not run this twice
+        if let Some(_) = self_.download_manager.get() {
+            return;
+        }
+
+        self_.download_manager.set(dm.clone()).unwrap();
+        self_.download_details.set_download_manager(dm);
     }
 
     pub fn setup_actions(&self) {

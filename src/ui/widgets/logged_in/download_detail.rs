@@ -8,6 +8,8 @@ use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -35,6 +37,7 @@ pub(crate) mod imp {
         #[template_child]
         pub download_details_button: TemplateChild<gtk::Button>,
         pub actions: gio::SimpleActionGroup,
+        pub download_manager: OnceCell<EpicDownloadManager>,
     }
 
     #[glib::object_subclass]
@@ -59,6 +62,7 @@ pub(crate) mod imp {
                 download_details_revealer: TemplateChild::default(),
                 download_details_button: TemplateChild::default(),
                 actions: gio::SimpleActionGroup::new(),
+                download_manager: OnceCell::new(),
             }
         }
 
@@ -178,6 +182,19 @@ impl EpicDownloadDetails {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
     }
 
+    pub fn set_download_manager(
+        &self,
+        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
+    ) {
+        let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
+        // Do not run this twice
+        if let Some(_) = self_.download_manager.get() {
+            return;
+        }
+
+        self_.download_manager.set(dm.clone()).unwrap();
+    }
+
     pub fn setup_actions(&self) {
         let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
         let actions = &self_.actions;
@@ -196,6 +213,17 @@ impl EpicDownloadDetails {
                     self_.download_details_revealer.set_reveal_child(true);
                     self_.download_details_button.set_icon_name("go-up-symbolic");
                     self_.download_details_button.set_tooltip_text(Some("Hide details"));
+                }
+            })
+        );
+
+        action!(
+            actions,
+            "download_all",
+            clone!(@weak self as download_details => move |_, _| {
+                let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(&download_details);
+                if let Some(dm) = self_.download_manager.get() {
+                    dm.add_download();
                 }
             })
         );
