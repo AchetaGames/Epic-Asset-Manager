@@ -105,13 +105,13 @@ impl EpicAssetManagerWindow {
 
     pub fn show_download_manager(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        self_.download_manager.set_window(self);
         self_.main_stack.set_visible_child_name("download_manager")
     }
 
     pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.logged_in_stack.set_window(self);
+        self_.download_manager.set_window(self);
         self_
             .logged_in_stack
             .set_download_manager(&self_.download_manager);

@@ -436,7 +436,11 @@ impl EpicLoggedInBox {
     pub fn apply_filter(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         let search = self.search();
-        let filter = self.filter();
+        let filter_p = self.filter();
+        if filter_p.is_none() && search.is_none() {
+            self_.filter_model.set_filter(None::<&gtk::CustomFilter>);
+            return;
+        }
 
         let filter = gtk::CustomFilter::new(move |object| {
             let asset = object
@@ -448,7 +452,7 @@ impl EpicLoggedInBox {
                     .name()
                     .to_ascii_lowercase()
                     .contains(&se.to_ascii_lowercase()),
-            }) && (match &filter {
+            }) && (match &filter_p {
                 None => true,
                 Some(f) => asset.check_category(f.clone()),
             })

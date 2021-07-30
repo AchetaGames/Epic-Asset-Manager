@@ -16,6 +16,7 @@ pub(crate) mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/download_detail.ui")]
     pub struct EpicDownloadDetails {
         supported_versions: RefCell<Option<String>>,
+        selected_version: RefCell<Option<String>>,
         platforms: RefCell<Option<String>>,
         release_date: RefCell<Option<String>>,
         release_notes: RefCell<Option<String>>,
@@ -49,6 +50,7 @@ pub(crate) mod imp {
         fn new() -> Self {
             Self {
                 supported_versions: RefCell::new(None),
+                selected_version: RefCell::new(None),
                 platforms: RefCell::new(None),
                 release_date: RefCell::new(None),
                 release_notes: RefCell::new(None),
@@ -87,6 +89,13 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
+                    glib::ParamSpec::new_string(
+                        "selected-version",
+                        "selected_version",
+                        "selected_version",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
                     glib::ParamSpec::new_string(
                         "supported-versions",
                         "supported_versions",
@@ -135,6 +144,12 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.supported_versions.replace(supported_versions);
                 }
+                "selected-version" => {
+                    let selected_version = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.selected_version.replace(selected_version);
+                }
                 "platforms" => {
                     let platforms = value
                         .get()
@@ -160,6 +175,7 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "supported-versions" => self.supported_versions.borrow().to_value(),
+                "selected-version" => self.selected_version.borrow().to_value(),
                 "platforms" => self.platforms.borrow().to_value(),
                 "release-date" => self.release_date.borrow().to_value(),
                 "release-notes" => self.release_notes.borrow().to_value(),
@@ -223,7 +239,9 @@ impl EpicDownloadDetails {
             clone!(@weak self as download_details => move |_, _| {
                 let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(&download_details);
                 if let Some(dm) = self_.download_manager.get() {
-                    dm.add_download();
+                    if let Some(asset_info) = self_.asset.borrow().deref() {
+                        dm.add_asset_download(download_details.selected_version(), asset_info.clone());
+                    }
                 }
             })
         );
@@ -262,9 +280,20 @@ impl EpicDownloadDetails {
         }
     }
 
+    pub fn selected_version(&self) -> String {
+        if let Ok(value) = self.property("selected-version") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return id_opt;
+            }
+        };
+        return "".to_string();
+    }
+
     pub fn version_selected(&self) {
         let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
         if let Some(id) = self_.select_download_version.active_id() {
+            self.set_property("selected-version", id.to_string())
+                .unwrap();
             if let Some(asset_info) = self_.asset.borrow().deref() {
                 if let Some(release) = asset_info.release_info(&id.to_string()) {
                     if let Some(ref compatible) = release.compatible_apps {
