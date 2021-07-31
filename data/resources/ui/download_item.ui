@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicDownloadItem" parent="AdwActionRow">
+        <property name="valign">start</property>
+        <property name="hexpand">true</property>
+        <property name="activatable">True</property>
+        <child>
+            <object class="GtkBox">
+                <child>
+                    <object class="GtkImage" id="image">
+                        <property name="name">thumbnail</property>
+                        <property name="width-request">64</property>
+                        <property name="height-request">64</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkLabel">
+                                <property name="can-focus">0</property>
+                                <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="label" bind-flags="sync-create"/>
+                                <property name="use-markup">1</property>
+                                <property name="hexpand">True</property>
+                                <property name="halign">start</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkLabel">
+                                <property name="can-focus">0</property>
+                                <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="status" bind-flags="sync-create"/>
+                                <property name="use-markup">1</property>
+                                <property name="hexpand">True</property>
+                                <property name="halign">start</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

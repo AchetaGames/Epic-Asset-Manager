@@ -11,6 +11,7 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="asset_detail.ui">resources/ui/asset_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_detail.ui">resources/ui/download_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_manager.ui">resources/ui/download_manager.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="download_item.ui">resources/ui/download_item.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="image_stack.ui">resources/ui/image_stack.ui</file>
         <file compressed="true" alias="style.css">resources/style.css</file>
     </gresource>

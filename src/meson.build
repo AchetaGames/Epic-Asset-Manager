@@ -48,6 +48,7 @@ sources = files(
     'ui/widgets/mod.rs',
     'ui/widgets/sid_login/mod.rs',
     'ui/widgets/download_manager/mod.rs',
+    'ui/widgets/download_manager/download_item.rs',
     'ui/images.rs',
     'ui/mod.rs',
     'ui/messages.rs',

@@ -108,6 +108,11 @@ impl EpicAssetManagerWindow {
         self_.main_stack.set_visible_child_name("download_manager")
     }
 
+    pub fn show_logged_in(&self) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.main_stack.set_visible_child_name("logged_in_stack");
+    }
+
     pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.logged_in_stack.set_window(self);
@@ -115,7 +120,7 @@ impl EpicAssetManagerWindow {
         self_
             .logged_in_stack
             .set_download_manager(&self_.download_manager);
-        self_.main_stack.set_visible_child_name("logged_in_stack");
+        self.show_logged_in();
         let collection = self_.model.secret_service.get_default_collection().unwrap();
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();

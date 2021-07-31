@@ -2,5 +2,41 @@
 <interface>
     <template class="EpicDownloadManager" parent="GtkBox">
         <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkBox">
+                <child>
+                    <object class="GtkLabel">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Download details&lt;/big&gt;&lt;/b&gt;</property>
+                        <property name="use-markup">1</property>
+                        <property name="hexpand">True</property>
+                        <property name="halign">start</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton">
+                        <property name="action-name">download_manager.close</property>
+                        <property name="icon-name">window-close</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkSeparator">
+                <property name="orientation">horizontal</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkScrolledWindow">
+                <property name="vexpand">true</property>
+                <property name="hscrollbar-policy">never</property>
+                <child>
+                    <object class="GtkBox" id="downloads">
+                        <property name="orientation">vertical</property>
+                        <property name="hexpand">false</property>
+                    </object>
+                </child>
+            </object>
+        </child>
     </template>
 </interface>
