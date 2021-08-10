@@ -1,11 +1,6 @@
-use crate::models::category_data::CategoryData;
-use glib::clone;
 use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*, Label};
-use gtk::{gio, glib, CompositeTemplate};
-use gtk_macros::action;
-use log::{debug, error};
-use tokio::runtime::Runtime;
+use gtk::{self, prelude::*};
+use gtk::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
@@ -15,7 +10,6 @@ pub(crate) mod imp {
     use gtk::gio;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
-    use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/download_item.ui")]
@@ -178,6 +172,6 @@ impl EpicDownloadItem {
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let _self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
     }
 }
