@@ -60,6 +60,7 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_pool: ThreadPool,
         pub thumbnail_pool: ThreadPool,
+        pub file_pool: ThreadPool,
         pub sender: gtk::glib::Sender<super::DownloadMsg>,
         pub receiver: RefCell<Option<gtk::glib::Receiver<super::DownloadMsg>>>,
         pub download_items: RefCell<
@@ -91,6 +92,7 @@ pub(crate) mod imp {
                 downloaded_chunks: RefCell::new(HashMap::new()),
                 downloads: TemplateChild::default(),
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
+                file_pool: ThreadPool::with_name("File Pool".to_string(), 1),
             }
         }
 
@@ -444,13 +446,12 @@ impl EpicDownloadManager {
             None => return,
             Some(i) => i,
         };
-        let vault_dir = match self_.settings.strv("unreal-vault-directories").get(0) {
-            None => {
-                return;
-            }
-            Some(s) => s.to_string(),
-        };
-        let mut target = std::path::PathBuf::from(vault_dir);
+        let mut target = std::path::PathBuf::from(
+            self_
+                .settings
+                .string("temporary-download-directory")
+                .to_string(),
+        );
         target.push(release.clone());
         target.push("temp");
         let full_filename = format!("{}/{}/{}", id.clone(), release.clone(), filename.clone());
@@ -534,19 +535,28 @@ impl EpicDownloadManager {
         });
     }
 
-    fn chunk_progress_report(&self, guid: String, progress: u128, finished: bool) {
+    fn chunk_progress_report(&self, guid: String, _progress: u128, finished: bool) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         if finished {
             debug!("Finished downloading {}", guid);
             let mut finished_files: Vec<String> = Vec::new();
             let chunks = self_.downloaded_chunks.borrow();
             if let Some(files) = chunks.get(&guid) {
-                let _vault_dir = match self_.settings.strv("unreal-vault-directories").get(0) {
-                    None => {
-                        return;
-                    }
-                    Some(s) => s.to_string(),
-                };
+                let vault_dir = PathBuf::from(
+                    match self_.settings.strv("unreal-vault-directories").get(0) {
+                        None => {
+                            return;
+                        }
+                        Some(s) => s.to_string(),
+                    },
+                );
+
+                let temp_dir = PathBuf::from(
+                    self_
+                        .settings
+                        .string("temporary-download-directory")
+                        .to_string(),
+                );
                 for file in files {
                     debug!("Affected files: {}", file);
                     if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
@@ -559,13 +569,83 @@ impl EpicDownloadManager {
                         if f.finished_chunks.len() == f.chunks.len() {
                             debug!("File finished {}", f.name);
                             finished_files.push(file.clone());
-                            let _finished = f.clone();
+                            let finished = f.clone();
+                            let mut temp = temp_dir.clone();
+                            let mut vault = vault_dir.clone();
+                            temp.push(f.release.clone());
+                            temp.push("temp");
+                            vault.push(f.release.clone());
+                            vault.push("data");
+                            let _chunk_file = file.clone();
+                            self_.file_pool.execute(move || {
+                                vault.push(finished.name);
+                                std::fs::create_dir_all(vault.parent().unwrap().clone()).unwrap();
+                                debug!("Created target directory: {:?}", vault.to_str());
+                                match File::create(vault.clone()) {
+                                    Ok(mut target) => {
+                                        let mut hasher = Sha1::new();
+                                        for chunk in finished.chunks {
+                                            let mut t = temp.clone();
+                                            t.push(format!("{}.chunk", chunk.guid));
+                                            match File::open(t) {
+                                                Ok(mut f) => {
+                                                    let metadata = f
+                                                        .metadata()
+                                                        .expect("Unable to read metadata");
+                                                    let mut buffer =
+                                                        vec![0 as u8; metadata.len() as usize];
+                                                    f.read(&mut buffer).expect("Read failed");
+                                                    let ch =
+                                                        egs_api::api::types::chunk::Chunk::from_vec(
+                                                            buffer,
+                                                        ).unwrap();
+                                                    if (ch
+                                                        .uncompressed_size
+                                                        .unwrap_or(ch.data.len() as u32)
+                                                        as u128)
+                                                        < chunk.offset + chunk.size
+                                                    {
+                                                        error!("Chunk is not big enough");
+                                                        break;
+                                                    };
+                                                    hasher.update(
+                                                        &ch.data[chunk.offset as usize
+                                                            ..(chunk.offset + chunk.size) as usize],
+                                                    );
+                                                    target
+                                                        .write(
+                                                            &ch.data[chunk.offset as usize
+                                                                ..(chunk.offset + chunk.size)
+                                                                    as usize],
+                                                        )
+                                                        .unwrap();
+                                                }
+                                                Err(e) => {
+                                                    error!("Error opening the chunk file: {:?}", e)
+                                                }
+                                            }
+                                            debug!("chunk: {:?}", chunk);
+                                        }
+                                        let hash = hasher.finalize();
+                                        if !finished.hash.eq(&hash
+                                            .iter()
+                                            .map(|b| format!("{:02x}", b))
+                                            .collect::<String>())
+                                        {
+                                            error!("Failed to validate hash on: {:?}", vault);
+                                        };
+                                    }
+                                    Err(e) => {
+                                        error!("Error opening the target file: {:?}", e)
+                                    }
+                                }
+                            });
                         }
                     }
                 }
             }
         } else {
-            debug!("Got progress report from {}, current: {}", guid, progress);
+            //debug!("Got progress report from {}, current: {}", guid, progress);
         }
     }
 }
