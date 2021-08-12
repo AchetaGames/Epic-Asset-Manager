@@ -77,7 +77,7 @@ impl DirectoryRow {
         window: &crate::ui::widgets::preferences::window::PreferencesWindow,
     ) -> Self {
         let row: Self = glib::Object::new(&[]).expect("Failed to create DirectoryRow");
-        adw::prelude::PreferencesRowExt::set_title(&row, Some(&dir));
+        adw::prelude::PreferencesRowExt::set_title(&row, &dir);
         let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(&row);
         self_.window.set(window.clone()).unwrap();
 

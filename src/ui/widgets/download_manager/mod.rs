@@ -379,7 +379,7 @@ impl EpicDownloadManager {
         });
         item.set_property("status", "waiting for download slot".to_string())
             .unwrap();
-        let item_c = item.clone();
+        let _item_c = item.clone();
 
         for (filename, manifest) in dm.files() {
             info!("Starting download of {}", filename);
@@ -440,7 +440,7 @@ impl EpicDownloadManager {
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
-        let item = match self.get_item(id.clone()) {
+        let _item = match self.get_item(id.clone()) {
             None => return,
             Some(i) => i,
         };
@@ -539,9 +539,9 @@ impl EpicDownloadManager {
         if finished {
             debug!("Finished downloading {}", guid);
             let mut finished_files: Vec<String> = Vec::new();
-            let mut chunks = self_.downloaded_chunks.borrow_mut();
+            let chunks = self_.downloaded_chunks.borrow();
             if let Some(files) = chunks.get(&guid) {
-                let vault_dir = match self_.settings.strv("unreal-vault-directories").get(0) {
+                let _vault_dir = match self_.settings.strv("unreal-vault-directories").get(0) {
                     None => {
                         return;
                     }
@@ -559,7 +559,7 @@ impl EpicDownloadManager {
                         if f.finished_chunks.len() == f.chunks.len() {
                             debug!("File finished {}", f.name);
                             finished_files.push(file.clone());
-                            let finished = f.clone();
+                            let _finished = f.clone();
                         }
                     }
                 }

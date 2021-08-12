@@ -18,7 +18,7 @@ run_command(
   check: true
 )
 
-sources = files(
+rust_sources = files(
     'window.rs',
     'tools/asset_info.rs',
     'tools/cache.rs',
@@ -60,6 +60,8 @@ sources = files(
     'download/chunks.rs',
     'download/mod.rs'
 )
+
+sources = [cargo_sources, rust_sources]
 
 custom_target(
   'cargo-build',
