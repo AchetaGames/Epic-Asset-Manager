@@ -31,6 +31,7 @@ pub enum DownloadMsg {
     ),
     PerformChunkDownload(Url, PathBuf, String),
     ChunkDownloadProgress(String, u128, bool),
+    FinalizeFileDownload(String, DownloadedFile),
 }
 
 #[derive(Default, Debug, Clone)]
@@ -196,6 +197,9 @@ impl EpicDownloadManager {
             }
             DownloadMsg::ChunkDownloadProgress(guid, size, finished) => {
                 self.chunk_progress_report(guid, size, finished);
+            }
+            DownloadMsg::FinalizeFileDownload(file, file_details) => {
+                self.finalize_file_download(file, file_details);
             }
         }
     }
@@ -535,7 +539,7 @@ impl EpicDownloadManager {
         });
     }
 
-    fn chunk_progress_report(&self, guid: String, _progress: u128, finished: bool) {
+    fn chunk_progress_report(&self, guid: String, progress: u128, finished: bool) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         if finished {
             debug!("Finished downloading {}", guid);
@@ -576,7 +580,9 @@ impl EpicDownloadManager {
                             temp.push("temp");
                             vault.push(f.release.clone());
                             vault.push("data");
-                            let _chunk_file = file.clone();
+                            let sender = self_.sender.clone();
+                            let f_c = f.clone();
+                            let file_c = file.clone();
                             self_.file_pool.execute(move || {
                                 vault.push(finished.name);
                                 std::fs::create_dir_all(vault.parent().unwrap().clone()).unwrap();
@@ -633,6 +639,14 @@ impl EpicDownloadManager {
                                             .collect::<String>())
                                         {
                                             error!("Failed to validate hash on: {:?}", vault);
+                                            // TODO: Try to download this file again
+                                        } else {
+                                            sender
+                                                .send(DownloadMsg::FinalizeFileDownload(
+                                                    file_c.clone(),
+                                                    f_c.clone(),
+                                                ))
+                                                .unwrap();
                                         };
                                     }
                                     Err(e) => {
@@ -645,7 +659,43 @@ impl EpicDownloadManager {
                 }
             }
         } else {
-            //debug!("Got progress report from {}, current: {}", guid, progress);
+            debug!("Got progress report from {}, current: {}", guid, progress);
+        }
+    }
+
+    fn finalize_file_download(&self, file: String, file_details: DownloadedFile) {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        info!("File finished: {}", file);
+        self_.downloaded_files.borrow_mut().remove(&file);
+        let temp_dir = PathBuf::from(
+            self_
+                .settings
+                .string("temporary-download-directory")
+                .to_string(),
+        );
+        for chunk in file_details.finished_chunks {
+            if let Some(ch) = self_.downloaded_chunks.borrow_mut().get_mut(&chunk.guid) {
+                ch.retain(|x| !x.eq(&file));
+                if ch.is_empty() {
+                    let mut p = temp_dir.clone();
+                    p.push(&file_details.release);
+                    p.push("temp");
+
+                    p.push(format!("{}.chunk", chunk.guid));
+                    debug!("Removing chunk {}", p.as_path().to_str().unwrap());
+                    if let Err(e) = std::fs::remove_file(p.clone()) {
+                        error!("Unable to remove chunk file: {}", e);
+                    };
+                    if let Err(e) = std::fs::remove_dir(p.parent().unwrap().clone()) {
+                        debug!("Unable to remove the temp directory(yet): {}", e)
+                    };
+                    if let Err(e) =
+                        std::fs::remove_dir(p.parent().unwrap().parent().unwrap().clone())
+                    {
+                        debug!("Unable to remove the temp directory(yet): {}", e)
+                    };
+                }
+            }
         }
     }
 }
