@@ -18,6 +18,8 @@
                         <property name="orientation">vertical</property>
                         <child>
                             <object class="GtkLabel">
+                                <property name="margin-start">5</property>
+                                <property name="margin-end">5</property>
                                 <property name="can-focus">0</property>
                                 <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="label" bind-flags="sync-create"/>
                                 <property name="use-markup">1</property>
@@ -26,12 +28,71 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkLabel">
-                                <property name="can-focus">0</property>
-                                <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="status" bind-flags="sync-create"/>
-                                <property name="use-markup">1</property>
-                                <property name="hexpand">True</property>
-                                <property name="halign">start</property>
+                            <object class="GtkStack" id="stack">
+                                <property name="transition-type">crossfade</property>
+                                <child>
+                                    <object class="GtkStackPage">
+                                        <property name="name">label</property>
+                                        <property name="child">
+                                            <object class="GtkLabel">
+                                                <property name="margin-start">5</property>
+                                                <property name="margin-end">5</property>
+                                                <property name="can-focus">0</property>
+                                                <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="status" bind-flags="sync-create"/>
+                                                <property name="use-markup">1</property>
+                                                <property name="hexpand">True</property>
+                                                <property name="halign">start</property>
+                                            </object>
+                                        </property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkStackPage">
+                                        <property name="name">progress</property>
+                                        <property name="child">
+                                            <object class="GtkBox">
+                                                <property name="margin-start">5</property>
+                                                <property name="orientation">vertical</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="spacing">5</property>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="label" translatable="yes">Download</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkProgressBar" id="download_progress">
+                                                                <property name="hexpand">true</property>
+                                                                <property name="valign">center</property>
+                                                                <property name="can-focus">0</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="spacing">5</property>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="can-focus">0</property>
+                                                                <property name="label" translatable="yes">Extraction</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkProgressBar" id="extraction_progress">
+                                                                <property name="hexpand">true</property>
+                                                                <property name="valign">center</property>
+                                                                <property name="can-focus">0</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </property>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                     </object>

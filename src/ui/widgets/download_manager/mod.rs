@@ -32,6 +32,8 @@ pub enum DownloadMsg {
     PerformChunkDownload(Url, PathBuf, String),
     ChunkDownloadProgress(String, u128, bool),
     FinalizeFileDownload(String, DownloadedFile),
+    FileAlreadyDownloaded(String, u128),
+    FileExtracted(String),
 }
 
 #[derive(Default, Debug, Clone)]
@@ -69,6 +71,7 @@ pub(crate) mod imp {
         >,
         pub downloaded_files: RefCell<HashMap<String, super::DownloadedFile>>,
         pub downloaded_chunks: RefCell<HashMap<String, Vec<String>>>,
+        pub asset_files: RefCell<HashMap<String, Vec<String>>>,
         #[template_child]
         pub downloads: TemplateChild<gtk::Box>,
     }
@@ -91,6 +94,7 @@ pub(crate) mod imp {
                 download_items: RefCell::new(HashMap::new()),
                 downloaded_files: RefCell::new(HashMap::new()),
                 downloaded_chunks: RefCell::new(HashMap::new()),
+                asset_files: RefCell::new(HashMap::new()),
                 downloads: TemplateChild::default(),
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
                 file_pool: ThreadPool::with_name("File Pool".to_string(), 1),
@@ -171,6 +175,7 @@ impl EpicDownloadManager {
     }
 
     pub fn update(&self, msg: DownloadMsg) {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         match msg {
             DownloadMsg::ProcessItemThumbnail(id, image) => {
                 let item = match self.get_item(id) {
@@ -200,6 +205,26 @@ impl EpicDownloadManager {
             }
             DownloadMsg::FinalizeFileDownload(file, file_details) => {
                 self.finalize_file_download(file, file_details);
+            }
+            DownloadMsg::FileAlreadyDownloaded(id, progress) => {
+                let item = match self.get_item(id.clone()) {
+                    None => {
+                        return;
+                    }
+                    Some(i) => i,
+                };
+                debug!("Adding progress to the widget");
+                item.add_downloaded_size(progress);
+                self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
+            }
+            DownloadMsg::FileExtracted(id) => {
+                let item = match self.get_item(id.clone()) {
+                    None => {
+                        return;
+                    }
+                    Some(i) => i,
+                };
+                item.file_processed();
             }
         }
     }
@@ -269,7 +294,7 @@ impl EpicDownloadManager {
                             };
                         }
                         Err(_) => {
-                            println!("Need to load image");
+                            warn!("Need to load image");
                         }
                     };
                 })
@@ -291,6 +316,7 @@ impl EpicDownloadManager {
         let mut items = self_.download_items.borrow_mut();
         match items.get_mut(&release_id) {
             None => {
+                debug!("Adding item to the list under: {}", release_id);
                 items.insert(release_id.clone(), item.clone());
             }
             Some(_) => {
@@ -385,7 +411,8 @@ impl EpicDownloadManager {
         });
         item.set_property("status", "waiting for download slot".to_string())
             .unwrap();
-        let _item_c = item.clone();
+        item.set_total_size(dm.total_download_size());
+        item.set_total_files(dm.file_manifest_list.len() as u64);
 
         for (filename, manifest) in dm.files() {
             info!("Starting download of {}", filename);
@@ -423,6 +450,10 @@ impl EpicDownloadManager {
                             warn!("Hashes do not match, downloading again: {:?}", full_path);
                             sender
                                 .send(DownloadMsg::PerformAssetDownload(r_id, r_name, f_name, m))
+                                .unwrap();
+                        } else {
+                            sender
+                                .send(DownloadMsg::FileAlreadyDownloaded(r_id, m.size()))
                                 .unwrap();
                         };
                     }
@@ -660,6 +691,23 @@ impl EpicDownloadManager {
             }
         } else {
             debug!("Got progress report from {}, current: {}", guid, progress);
+            let chunks = self_.downloaded_chunks.borrow();
+            if let Some(files) = chunks.get(&guid) {
+                for file in files {
+                    debug!("Affected files: {}", file);
+                    if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
+                        let item = match self.get_item(f.asset.clone()) {
+                            None => {
+                                break;
+                            }
+                            Some(i) => i,
+                        };
+                        debug!("Adding progress to the widget");
+                        item.add_downloaded_size(progress);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -697,5 +745,9 @@ impl EpicDownloadManager {
                 }
             }
         }
+        self_
+            .sender
+            .send(DownloadMsg::FileExtracted(file_details.asset))
+            .unwrap();
     }
 }
