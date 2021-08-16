@@ -55,6 +55,8 @@ pub(crate) mod imp {
         #[template_child]
         pub details: TemplateChild<crate::ui::widgets::logged_in::asset_detail::EpicAssetDetails>,
         #[template_child]
+        pub download_progress: TemplateChild<gtk::ProgressBar>,
+        #[template_child]
         pub expand_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub expand_image: TemplateChild<gtk::Image>,
@@ -94,6 +96,7 @@ pub(crate) mod imp {
                 other_category: TemplateChild::default(),
                 projects_category: TemplateChild::default(),
                 details: TemplateChild::default(),
+                download_progress: TemplateChild::default(),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
                 expand_label: TemplateChild::default(),
@@ -248,6 +251,16 @@ impl EpicLoggedInBox {
         if let Some(_) = self_.download_manager.get() {
             return;
         }
+
+        dm.connect_local(
+            "tick",
+            false,
+            clone!(@weak self as obj, @weak dm => @default-return None, move |_| {
+                let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&obj);
+                self_.download_progress.set_fraction(dm.progress());
+                None}),
+        )
+        .unwrap();
         self_.download_manager.set(dm.clone()).unwrap();
         self_.details.set_download_manager(dm);
     }

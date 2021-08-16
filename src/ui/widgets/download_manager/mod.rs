@@ -117,6 +117,20 @@ pub(crate) mod imp {
             obj.setup_actions();
             obj.setup_messaging();
         }
+
+        fn signals() -> &'static [gtk::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk::glib::subclass::Signal::builder(
+                        "tick",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
+        }
     }
 
     impl WidgetImpl for EpicDownloadManager {}
@@ -215,6 +229,7 @@ impl EpicDownloadManager {
                 };
                 debug!("Adding progress to the widget");
                 item.add_downloaded_size(progress);
+                self.emit_by_name("tick", &[]).unwrap();
                 self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
             }
             DownloadMsg::FileExtracted(id) => {
@@ -225,6 +240,7 @@ impl EpicDownloadManager {
                     Some(i) => i,
                 };
                 item.file_processed();
+                self.emit_by_name("tick", &[]).unwrap();
             }
         }
     }
@@ -329,6 +345,18 @@ impl EpicDownloadManager {
         self.load_thumbnail(release_id.clone(), asset.thumbnail());
 
         self_.downloads.append(&item);
+
+        item.connect_local(
+            "finished",
+            false,
+            clone!(@weak self as edm, @weak item => @default-return None, move |_| {
+                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&edm);
+                self_.downloads.remove(&item);
+                edm.emit_by_name("tick", &[]).unwrap();
+                None
+            }),
+        ).unwrap();
+
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow = window.data();
             let mut eg = win_.model.epic_games.clone();
@@ -704,6 +732,7 @@ impl EpicDownloadManager {
                         };
                         debug!("Adding progress to the widget");
                         item.add_downloaded_size(progress);
+                        self.emit_by_name("tick", &[]).unwrap();
                         break;
                     }
                 }
@@ -749,5 +778,19 @@ impl EpicDownloadManager {
             .sender
             .send(DownloadMsg::FileExtracted(file_details.asset))
             .unwrap();
+    }
+
+    pub fn progress(&self) -> f64 {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let items = self_.download_items.borrow().values().len();
+        let mut progress = 0.0;
+        for item in self_.download_items.borrow().values() {
+            progress += item.progress();
+        }
+        if items > 0 {
+            progress / items as f64
+        } else {
+            0.0
+        }
     }
 }

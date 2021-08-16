@@ -85,6 +85,20 @@ pub(crate) mod imp {
             obj.setup_events();
         }
 
+        fn signals() -> &'static [gtk::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk::glib::subclass::Signal::builder(
+                        "start-download",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
+        }
+
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -241,6 +255,7 @@ impl EpicDownloadDetails {
                 if let Some(dm) = self_.download_manager.get() {
                     if let Some(asset_info) = self_.asset.borrow().deref() {
                         dm.add_asset_download(download_details.selected_version(), asset_info.clone());
+                        download_details.emit_by_name("start-download", &[]).unwrap();
                     }
                 }
             })

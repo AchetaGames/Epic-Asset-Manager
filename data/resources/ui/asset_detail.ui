@@ -124,6 +124,22 @@
                                 </child>
                             </object>
                         </child>
+                        <child>
+                            <object class="GtkRevealer" id="download_confirmation_revealer">
+                                <property name="reveal-child">false</property>
+                                <property name="vexpand-set">True</property>
+                                <property name="transition-type">slide-up</property>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Download initialized&lt;/big&gt;&lt;/b&gt;</property>
+                                        <property name="use-markup">1</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="halign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
                 </child>
             </object>

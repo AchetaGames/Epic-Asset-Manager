@@ -27,6 +27,8 @@ pub(crate) mod imp {
         #[template_child]
         pub download_revealer: TemplateChild<gtk::Revealer>,
         #[template_child]
+        pub download_confirmation_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
         pub details: TemplateChild<gtk::Box>,
         #[template_child]
         pub details_box: TemplateChild<gtk::Box>,
@@ -55,6 +57,7 @@ pub(crate) mod imp {
                 detail_slider: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
                 download_revealer: TemplateChild::default(),
+                download_confirmation_revealer: TemplateChild::default(),
                 details: TemplateChild::default(),
                 details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
@@ -146,6 +149,27 @@ impl EpicAssetDetails {
 
         self_.download_manager.set(dm.clone()).unwrap();
         self_.download_details.set_download_manager(dm);
+
+        self_
+            .download_details
+            .connect_local(
+                "start-download",
+                false,
+                clone!(@weak self as ead => @default-return None, move |_| {
+                    let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&ead);
+                    get_action!(self_.actions, @show_download_confirmation).activate(None);
+                    glib::timeout_add_seconds_local(
+                        2,
+                        clone!(@weak ead as obj => @default-panic, move || {
+                            let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&obj);
+                            get_action!(self_.actions, @show_asset_details).activate(None);
+                            glib::Continue(false)
+                        }),
+                    );
+                    None
+                }),
+            )
+            .unwrap();
     }
 
     pub fn setup_actions(&self) {
@@ -167,10 +191,28 @@ impl EpicAssetDetails {
             clone!(@weak self as details => move |_, _| {
                 let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
                 self_.details_revealer.set_reveal_child(false);
-                self_.download_revealer.set_reveal_child(true);
                 self_.details_revealer.set_vexpand_set(true);
+                self_.download_revealer.set_reveal_child(true);
                 self_.download_revealer.set_vexpand(true);
+                self_.download_confirmation_revealer.set_reveal_child(false);
+                self_.download_confirmation_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(false);
+                get_action!(self_.actions, @show_asset_details).set_enabled(true);
+            })
+        );
+
+        action!(
+            actions,
+            "show_download_confirmation",
+            clone!(@weak self as details => move |_, _| {
+                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                self_.download_confirmation_revealer.set_reveal_child(true);
+                self_.download_confirmation_revealer.set_vexpand(true);
+                self_.details_revealer.set_reveal_child(false);
+                self_.details_revealer.set_vexpand_set(true);
+                self_.download_revealer.set_reveal_child(false);
+                self_.download_revealer.set_vexpand(false);
+                get_action!(self_.actions, @show_download_details).set_enabled(true);
                 get_action!(self_.actions, @show_asset_details).set_enabled(true);
             })
         );
@@ -181,9 +223,11 @@ impl EpicAssetDetails {
             clone!(@weak self as details => move |_, _| {
                 let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
                 self_.details_revealer.set_reveal_child(true);
-                self_.download_revealer.set_reveal_child(false);
                 self_.details_revealer.set_vexpand_set(false);
+                self_.download_revealer.set_reveal_child(false);
                 self_.download_revealer.set_vexpand(false);
+                self_.download_confirmation_revealer.set_reveal_child(false);
+                self_.download_confirmation_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(true);
                 get_action!(self_.actions, @show_asset_details).set_enabled(false);
             })
@@ -203,6 +247,8 @@ impl EpicAssetDetails {
         self_.details_revealer.set_vexpand_set(false);
         self_.download_revealer.set_reveal_child(false);
         self_.download_revealer.set_vexpand(false);
+        self_.download_confirmation_revealer.set_reveal_child(false);
+        self_.download_confirmation_revealer.set_vexpand(false);
         get_action!(self_.actions, @show_download_details).set_enabled(true);
         get_action!(self_.actions, @show_asset_details).set_enabled(false);
         info!("Showing details for {:?}", asset.title);

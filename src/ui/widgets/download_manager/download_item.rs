@@ -1,3 +1,4 @@
+use gtk::glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{self, prelude::*};
 use gtk::{glib, CompositeTemplate};
@@ -72,6 +73,20 @@ pub(crate) mod imp {
             self.parent_constructed(obj);
             obj.setup_actions();
             obj.setup_messaging();
+        }
+
+        fn signals() -> &'static [gtk::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk::glib::subclass::Signal::builder(
+                        "finished",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
         }
 
         fn properties() -> &'static [glib::ParamSpec] {
@@ -212,8 +227,16 @@ impl EpicDownloadItem {
             .extraction_progress
             .set_fraction(new_count as f64 / total as f64);
         self_.extracted_files.replace(new_count);
+        self.parent();
         if new_count == total {
             self.set_property("status", "Finished".to_string()).unwrap();
+            glib::timeout_add_seconds_local(
+                5,
+                clone!(@weak self as obj => @default-panic, move || {
+                    obj.emit_by_name("finished", &[]).unwrap();
+                    glib::Continue(false)
+                }),
+            );
         };
     }
 
@@ -226,5 +249,23 @@ impl EpicDownloadItem {
             .download_progress
             .set_fraction(new_size as f64 / total as f64);
         self_.downloaded_size.replace(new_size);
+    }
+
+    pub fn progress(&self) -> f64 {
+        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let new_size = self_.downloaded_size.borrow().clone();
+        let total = self_.total_size.borrow().clone();
+        let new_count = self_.extracted_files.borrow().clone();
+        let total_count = self_.total_files.borrow().clone();
+        ((if total != 0 {
+            new_size as f64 / total as f64
+        } else {
+            0.0
+        }) / 2.0)
+            + ((if total_count != 0 {
+                new_count as f64 / total_count as f64
+            } else {
+                0.0
+            }) / 2.0)
     }
 }
