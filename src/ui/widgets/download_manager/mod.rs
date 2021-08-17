@@ -13,7 +13,6 @@ use sha1::{Digest, Sha1};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::ops::Not;
 use std::path::{Path, PathBuf};
 use tokio::runtime::Runtime;
 
@@ -275,6 +274,11 @@ impl EpicDownloadManager {
                 let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
                 cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
                 self_.thumbnail_pool.execute(move || {
+                    if let Ok(w) = crate::RUNNING.read() {
+                        if !*w {
+                            return;
+                        }
+                    }
                     match File::open(cache_path.as_path()) {
                         Ok(mut f) => {
                             let metadata = std::fs::metadata(&cache_path.as_path())
@@ -368,6 +372,11 @@ impl EpicDownloadManager {
             let sender = self_.sender.clone();
             let id = release_id.clone();
             self_.download_pool.execute(move || {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
+                    }
+                }
                 let start = std::time::Instant::now();
                 if let Some(release_info) = asset.release_info(&release_id) {
                     if let Some(manifest) = Runtime::new().unwrap().block_on(eg.asset_manifest(
@@ -417,6 +426,11 @@ impl EpicDownloadManager {
         let t = target.clone();
         let manifest = dm.clone();
         self_.download_pool.execute(move || {
+            if let Ok(w) = crate::RUNNING.read() {
+                if !*w {
+                    return;
+                }
+            }
             std::fs::create_dir_all(t.clone()).expect("Unable to create target directory");
             match File::create(t.as_path().join("manifest.json")) {
                 Ok(mut json_manifest_file) => {
@@ -456,9 +470,13 @@ impl EpicDownloadManager {
 
             let m = manifest.clone();
             let full_path = target.clone().as_path().join("data").join(filename);
-            self_
-                .download_pool
-                .execute(move || match File::open(full_path.clone()) {
+            self_.download_pool.execute(move || {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
+                    }
+                };
+                match File::open(full_path.clone()) {
                     Ok(mut f) => {
                         let mut buffer: [u8; 1024] = [0; 1024];
                         let mut hasher = Sha1::new();
@@ -492,7 +510,8 @@ impl EpicDownloadManager {
                             .send(DownloadMsg::PerformAssetDownload(r_id, r_name, f_name, m))
                             .unwrap();
                     }
-                });
+                }
+            });
         }
     }
 
@@ -556,6 +575,11 @@ impl EpicDownloadManager {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let sender = self_.sender.clone();
         self_.download_pool.execute(move || {
+            if let Ok(w) = crate::RUNNING.read() {
+                if !*w {
+                    return;
+                }
+            };
             debug!(
                 "Downloading chunk {} from {} to {:?}",
                 g,
@@ -645,6 +669,11 @@ impl EpicDownloadManager {
                             let f_c = f.clone();
                             let file_c = file.clone();
                             self_.file_pool.execute(move || {
+                                if let Ok(w) = crate::RUNNING.read() {
+                                    if !*w {
+                                        return;
+                                    }
+                                };
                                 vault.push(finished.name);
                                 std::fs::create_dir_all(vault.parent().unwrap()).unwrap();
                                 debug!("Created target directory: {:?}", vault.to_str());
@@ -810,7 +839,7 @@ impl EpicDownloadManager {
         cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
         self_.thumbnail_pool.execute(move || {
             if let Ok(w) = crate::RUNNING.read() {
-                if w.not() {
+                if !*w {
                     return;
                 }
             }

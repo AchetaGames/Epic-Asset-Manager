@@ -77,4 +77,7 @@ fn main() {
     debug!("{}", PROFILE);
     debug!("{}", VERSION);
     app.run();
+    if let Ok(mut w) = crate::RUNNING.write() {
+        *w = false
+    }
 }

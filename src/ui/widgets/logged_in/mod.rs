@@ -16,7 +16,6 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
-use std::ops::Not;
 use std::path::{Path, PathBuf};
 
 pub(crate) mod imp {
@@ -554,7 +553,7 @@ impl EpicLoggedInBox {
                     cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
                     self_.image_load_pool.execute(move || {
                         if let Ok(w) = crate::RUNNING.read() {
-                            if w.not() {
+                            if !*w {
                                 return;
                             }
                         }
@@ -631,7 +630,7 @@ impl EpicLoggedInBox {
                         // Load assets from cache
 
                         if let Ok(w) = crate::RUNNING.read() {
-                            if w.not() {
+                            if !*w {
                                 return;
                             }
                         }
@@ -719,10 +718,9 @@ impl EpicLoggedInBox {
             let mut cache_dir_c = cache_dir;
             self_.asset_load_pool.execute(move || {
                 if let Ok(w) = crate::RUNNING.read() {
-                    if w.not() {
+                    if !*w {
                         return;
                     }
-                    println!("true");
                 }
                 if let Some(asset) = tokio::runtime::Runtime::new()
                     .unwrap()

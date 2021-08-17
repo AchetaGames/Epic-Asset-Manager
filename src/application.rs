@@ -51,17 +51,6 @@ impl EpicAssetManager {
             })
         );
 
-        // Inspector
-        action!(
-            self,
-            "inspector",
-            clone!(@weak self as app => move |_, _| {
-                // This is needed to trigger the delete event
-                // and saving the window state
-                gtk::Window::set_interactive_debugging(true);
-            })
-        );
-
         // About
         action!(
             self,
