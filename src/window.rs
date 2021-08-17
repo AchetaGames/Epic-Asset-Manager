@@ -78,7 +78,7 @@ impl EpicAssetManagerWindow {
             clone!(@weak self as window => move |_, sid_par| {
                 if let Some(sid_opt) = sid_par {
                     if let Some(sid) = sid_opt.get::<String>() {
-                        window.login(sid.to_string());
+                        window.login(sid);
                     }
                 }
             })
@@ -126,14 +126,14 @@ impl EpicAssetManagerWindow {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);
             attributes.insert("type", t.as_str());
-            if let Some(e) = ud.expires_at.clone() {
+            if let Some(e) = ud.expires_at {
                 let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
                 self_
                     .model
                     .settings
                     .set_string("token-expiration", d.as_str())
                     .unwrap();
-                if let Some(at) = ud.access_token().clone() {
+                if let Some(at) = ud.access_token() {
                     debug!("Saving token secret");
                     if let Err(e) = collection.create_item(
                         "eam_epic_games_token",
@@ -149,14 +149,14 @@ impl EpicAssetManagerWindow {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);
             attributes.insert("type", "refresh");
-            if let Some(e) = ud.refresh_expires_at.clone() {
+            if let Some(e) = ud.refresh_expires_at {
                 let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
                 self_
                     .model
                     .settings
                     .set_string("refresh-token-expiration", d.as_str())
                     .unwrap();
-                if let Some(rt) = ud.refresh_token().clone() {
+                if let Some(rt) = ud.refresh_token() {
                     debug!("Saving refresh token secret");
                     if let Err(e) = collection.create_item(
                         "eam_epic_games_refresh_token",

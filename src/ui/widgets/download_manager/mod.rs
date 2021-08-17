@@ -13,10 +13,12 @@ use sha1::{Digest, Sha1};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::ops::Not;
 use std::path::{Path, PathBuf};
 use tokio::runtime::Runtime;
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum DownloadMsg {
     ProcessItemThumbnail(String, Vec<u8>),
     StartAssetDownload(
@@ -142,6 +144,12 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Box;
 }
 
+impl Default for EpicDownloadManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicDownloadManager {
     pub fn new() -> Self {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicDownloadManager");
@@ -152,7 +160,7 @@ impl EpicDownloadManager {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.window.get() {
+        if self_.window.get().is_some() {
             return;
         }
 
@@ -233,7 +241,7 @@ impl EpicDownloadManager {
                 self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
             }
             DownloadMsg::FileExtracted(id) => {
-                let item = match self.get_item(id.clone()) {
+                let item = match self.get_item(id) {
                     None => {
                         return;
                     }
@@ -248,10 +256,7 @@ impl EpicDownloadManager {
     fn get_item(&self, id: String) -> Option<EpicDownloadItem> {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let mut items = self_.download_items.borrow_mut();
-        return match items.get_mut(&id) {
-            Some(i) => Some(i.clone()),
-            None => None,
-        };
+        items.get_mut(&id).map(|i| i.clone())
     }
 
     pub fn load_thumbnail(
@@ -263,19 +268,19 @@ impl EpicDownloadManager {
         match thumbnail {
             None => {}
             Some(t) => {
-                let cache_dir = self_.settings.string("cache-directory").to_string().clone();
+                let cache_dir = self_.settings.string("cache-directory").to_string();
                 let mut cache_path = std::path::PathBuf::from(cache_dir);
                 let sender = self_.sender.clone();
                 cache_path.push("images");
                 let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
-                cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(&".png")));
+                cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
                 self_.thumbnail_pool.execute(move || {
                     match File::open(cache_path.as_path()) {
                         Ok(mut f) => {
                             let metadata = std::fs::metadata(&cache_path.as_path())
                                 .expect("unable to read metadata");
                             let mut buffer = vec![0; metadata.len() as usize];
-                            f.read(&mut buffer).expect("buffer overflow");
+                            f.read_exact(&mut buffer).expect("buffer overflow");
                             let pixbuf_loader = gtk::gdk_pixbuf::PixbufLoader::new();
                             pixbuf_loader.write(&buffer).unwrap();
                             pixbuf_loader.close().ok();
@@ -416,7 +421,7 @@ impl EpicDownloadManager {
             match File::create(t.as_path().join("manifest.json")) {
                 Ok(mut json_manifest_file) => {
                     json_manifest_file
-                        .write(
+                        .write_all(
                             serde_json::to_string(&manifest)
                                 .unwrap()
                                 .as_bytes()
@@ -430,7 +435,7 @@ impl EpicDownloadManager {
             }
             match File::create(t.as_path().join("manifest")) {
                 Ok(mut manifest_file) => {
-                    manifest_file.write(&manifest.to_vec()).unwrap();
+                    manifest_file.write_all(&manifest.to_vec()).unwrap();
                 }
                 Err(e) => {
                     error!("Unable to save binary Manifest: {:?}", e)
@@ -458,15 +463,12 @@ impl EpicDownloadManager {
                         let mut buffer: [u8; 1024] = [0; 1024];
                         let mut hasher = Sha1::new();
                         loop {
-                            match f.read(&mut buffer) {
-                                Ok(size) => {
-                                    if size > 0 {
-                                        hasher.update(&buffer[..size]);
-                                    } else {
-                                        break;
-                                    }
+                            if let Ok(size) = f.read(&mut buffer) {
+                                if size > 0 {
+                                    hasher.update(&buffer[..size]);
+                                } else {
+                                    break;
                                 }
-                                Err(_) => {}
                             }
                         }
                         let hash = hasher.finalize();
@@ -517,13 +519,13 @@ impl EpicDownloadManager {
         );
         target.push(release.clone());
         target.push("temp");
-        let full_filename = format!("{}/{}/{}", id.clone(), release.clone(), filename.clone());
+        let full_filename = format!("{}/{}/{}", id, release, filename);
         self_.downloaded_files.borrow_mut().insert(
             full_filename.clone(),
             DownloadedFile {
-                asset: id.clone(),
+                asset: id,
                 release,
-                name: filename.clone(),
+                name: filename,
                 chunks: manifest.file_chunk_parts.clone(),
                 finished_chunks: vec![],
                 hash: manifest.file_hash,
@@ -560,7 +562,7 @@ impl EpicDownloadManager {
                 link.to_string(),
                 p
             );
-            std::fs::create_dir_all(p.parent().unwrap().clone()).unwrap();
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
             let mut client = reqwest::blocking::get(link).unwrap();
             let mut buffer: [u8; 1024] = [0; 1024];
             let mut downloaded: u128 = 0;
@@ -570,7 +572,7 @@ impl EpicDownloadManager {
                     Ok(size) => {
                         if size > 0 {
                             downloaded += size as u128;
-                            file.write(&buffer[0..size]).unwrap();
+                            file.write_all(&buffer[0..size]).unwrap();
                             sender
                                 .send(DownloadMsg::ChunkDownloadProgress(
                                     g.clone(),
@@ -591,7 +593,7 @@ impl EpicDownloadManager {
             sender
                 .send(DownloadMsg::ChunkDownloadProgress(
                     g.clone(),
-                    downloaded.clone(),
+                    downloaded,
                     true,
                 ))
                 .unwrap();
@@ -644,7 +646,7 @@ impl EpicDownloadManager {
                             let file_c = file.clone();
                             self_.file_pool.execute(move || {
                                 vault.push(finished.name);
-                                std::fs::create_dir_all(vault.parent().unwrap().clone()).unwrap();
+                                std::fs::create_dir_all(vault.parent().unwrap()).unwrap();
                                 debug!("Created target directory: {:?}", vault.to_str());
                                 match File::create(vault.clone()) {
                                     Ok(mut target) => {
@@ -658,8 +660,8 @@ impl EpicDownloadManager {
                                                         .metadata()
                                                         .expect("Unable to read metadata");
                                                     let mut buffer =
-                                                        vec![0 as u8; metadata.len() as usize];
-                                                    f.read(&mut buffer).expect("Read failed");
+                                                        vec![0_u8; metadata.len() as usize];
+                                                    f.read_exact(&mut buffer).expect("Read failed");
                                                     let ch =
                                                         egs_api::api::types::chunk::Chunk::from_vec(
                                                             buffer,
@@ -678,7 +680,7 @@ impl EpicDownloadManager {
                                                             ..(chunk.offset + chunk.size) as usize],
                                                     );
                                                     target
-                                                        .write(
+                                                        .write_all(
                                                             &ch.data[chunk.offset as usize
                                                                 ..(chunk.offset + chunk.size)
                                                                     as usize],
@@ -763,12 +765,10 @@ impl EpicDownloadManager {
                     if let Err(e) = std::fs::remove_file(p.clone()) {
                         error!("Unable to remove chunk file: {}", e);
                     };
-                    if let Err(e) = std::fs::remove_dir(p.parent().unwrap().clone()) {
+                    if let Err(e) = std::fs::remove_dir(p.parent().unwrap()) {
                         debug!("Unable to remove the temp directory(yet): {}", e)
                     };
-                    if let Err(e) =
-                        std::fs::remove_dir(p.parent().unwrap().parent().unwrap().clone())
-                    {
+                    if let Err(e) = std::fs::remove_dir(p.parent().unwrap().parent().unwrap()) {
                         debug!("Unable to remove the temp directory(yet): {}", e)
                     };
                 }
@@ -801,20 +801,25 @@ impl EpicDownloadManager {
         sender: gtk::glib::Sender<crate::ui::messages::Msg>,
     ) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
-        let cache_dir = self_.settings.string("cache-directory").to_string().clone();
+        let cache_dir = self_.settings.string("cache-directory").to_string();
         let mut cache_path = PathBuf::from(cache_dir);
         cache_path.push("images");
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(&".png")));
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
         self_.thumbnail_pool.execute(move || {
+            if let Ok(w) = crate::RUNNING.read() {
+                if w.not() {
+                    return;
+                }
+            }
             if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                 if let Ok(b) = response.bytes() {
                     //TODO: Report downloaded size
                     match File::create(cache_path.as_path()) {
                         Ok(mut thumbnail) => {
-                            thumbnail.write(&b).unwrap();
+                            thumbnail.write_all(&b).unwrap();
                         }
                         Err(e) => {
                             error!("{:?}", e);

@@ -239,6 +239,12 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Box;
 }
 
+impl Default for EpicLoggedInBox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicLoggedInBox {
     pub fn new() -> Self {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox");
@@ -252,7 +258,7 @@ impl EpicLoggedInBox {
     ) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.download_manager.get() {
+        if self_.download_manager.get().is_some() {
             return;
         }
 
@@ -272,7 +278,7 @@ impl EpicLoggedInBox {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.window.get() {
+        if self_.window.get().is_some() {
             return;
         }
 
@@ -424,7 +430,7 @@ impl EpicLoggedInBox {
                 return Some(id_opt);
             }
         };
-        return None;
+        None
     }
 
     pub fn search(&self) -> Option<String> {
@@ -433,7 +439,7 @@ impl EpicLoggedInBox {
                 return Some(id_opt);
             }
         };
-        return None;
+        None
     }
 
     pub fn unselect_categories_except(&self) {
@@ -513,7 +519,7 @@ impl EpicLoggedInBox {
 
     fn add_category(&self, path: &str) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        let parts = path.split("/").collect::<Vec<&str>>();
+        let parts = path.split('/').collect::<Vec<&str>>();
         if parts.len() > 1 {
             let name = parts[1..].join("/");
             match parts[0] {
@@ -541,23 +547,23 @@ impl EpicLoggedInBox {
                         .unwrap();
                 }
                 Some(t) => {
-                    let cache_dir = win_
-                        .model
-                        .settings
-                        .string("cache-directory")
-                        .to_string()
-                        .clone();
+                    let cache_dir = win_.model.settings.string("cache-directory").to_string();
                     let mut cache_path = PathBuf::from(cache_dir);
                     cache_path.push("images");
                     let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
-                    cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(&".png")));
+                    cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
                     self_.image_load_pool.execute(move || {
+                        if let Ok(w) = crate::RUNNING.read() {
+                            if w.not() {
+                                return;
+                            }
+                        }
                         match File::open(cache_path.as_path()) {
                             Ok(mut f) => {
                                 let metadata = fs::metadata(&cache_path.as_path())
                                     .expect("unable to read metadata");
                                 let mut buffer = vec![0; metadata.len() as usize];
-                                f.read(&mut buffer).expect("buffer overflow");
+                                f.read_exact(&mut buffer).expect("buffer overflow");
                                 let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
                                 pixbuf_loader.write(&buffer).unwrap();
                                 pixbuf_loader.close().ok();
@@ -616,12 +622,7 @@ impl EpicLoggedInBox {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if let Some(window) = self.main_window() {
             let win_ = window.data();
-            let cache_dir = win_
-                .model
-                .settings
-                .string("cache-directory")
-                .to_string()
-                .clone();
+            let cache_dir = win_.model.settings.string("cache-directory").to_string();
             let cache_path = PathBuf::from(cache_dir);
             if cache_path.is_dir() {
                 for entry in std::fs::read_dir(cache_path).unwrap() {
@@ -698,35 +699,41 @@ impl EpicLoggedInBox {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if let Some(window) = self.main_window() {
             let win_ = window.data();
-            let mut cache_dir =
-                PathBuf::from(self_.settings.string("cache-directory").to_string().clone());
-            cache_dir.push(&epic_asset.catalog_item_id.clone());
+            let mut cache_dir = PathBuf::from(self_.settings.string("cache-directory").to_string());
+            cache_dir.push(&epic_asset.catalog_item_id);
             let mut cache_dir_c = cache_dir.clone();
             let ea = epic_asset.clone();
 
             self_.asset_load_pool.execute(move || {
                 cache_dir_c.push("epic_asset.json");
-                fs::create_dir_all(cache_dir_c.parent().unwrap().clone()).unwrap();
+                fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
                 if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
                     asset_file
-                        .write(serde_json::to_string(&ea).unwrap().as_bytes().as_ref())
+                        .write_all(serde_json::to_string(&ea).unwrap().as_bytes().as_ref())
                         .unwrap();
                 }
             });
 
             let mut eg = win_.model.epic_games.clone();
             let sender = win_.model.sender.clone();
-            let mut cache_dir_c = cache_dir.clone();
+            let mut cache_dir_c = cache_dir;
             self_.asset_load_pool.execute(move || {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if w.not() {
+                        return;
+                    }
+                    println!("true");
+                }
                 if let Some(asset) = tokio::runtime::Runtime::new()
                     .unwrap()
                     .block_on(eg.asset_info(epic_asset))
                 {
+                    // TODO: Check with already added assets to see if it needs updating
                     cache_dir_c.push("asset_info.json");
-                    fs::create_dir_all(cache_dir_c.parent().unwrap().clone()).unwrap();
+                    fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
                     if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
                         asset_file
-                            .write(serde_json::to_string(&asset).unwrap().as_bytes().as_ref())
+                            .write_all(serde_json::to_string(&asset).unwrap().as_bytes().as_ref())
                             .unwrap();
                     }
                     sender

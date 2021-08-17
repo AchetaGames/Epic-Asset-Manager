@@ -129,24 +129,18 @@ pub(crate) mod imp {
         ) {
             match pspec.name() {
                 "label" => {
-                    let label = match value
+                    let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                    {
-                        Some(l) => Some(format!("<b><u>{}</u></b>", l)),
-                        None => None,
-                    };
+                        .map(|l| format!("<b><u>{}</u></b>", l));
 
                     self.label.replace(label);
                 }
                 "status" => {
-                    let status = match value
+                    let status = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                    {
-                        Some(l) => Some(format!("<i>{}</i>", l)),
-                        None => None,
-                    };
+                        .map(|l| format!("<i>{}</i>", l));
                     self.stack.set_visible_child_name("label");
                     self.status.replace(status);
                 }
@@ -181,17 +175,21 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
 }
 
+impl Default for EpicDownloadItem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicDownloadItem {
     pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicDownloadItem");
-
-        stack
+        glib::Object::new(&[]).expect("Failed to create EpicDownloadItem")
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.window.get() {
+        if self_.window.get().is_some() {
             return;
         }
 
@@ -221,8 +219,8 @@ impl EpicDownloadItem {
     pub fn file_processed(&self) {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
         self_.stack.set_visible_child_name("progress");
-        let new_count = self_.extracted_files.borrow().clone() + 1;
-        let total = self_.total_files.borrow().clone();
+        let new_count = *self_.extracted_files.borrow() + 1;
+        let total = *self_.total_files.borrow();
         self_
             .extraction_progress
             .set_fraction(new_count as f64 / total as f64);
@@ -243,8 +241,8 @@ impl EpicDownloadItem {
     pub fn add_downloaded_size(&self, size: u128) {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
         self_.stack.set_visible_child_name("progress");
-        let new_size = self_.downloaded_size.borrow().clone() + size;
-        let total = self_.total_size.borrow().clone();
+        let new_size = *self_.downloaded_size.borrow() + size;
+        let total = *self_.total_size.borrow();
         self_
             .download_progress
             .set_fraction(new_size as f64 / total as f64);
@@ -253,10 +251,10 @@ impl EpicDownloadItem {
 
     pub fn progress(&self) -> f64 {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
-        let new_size = self_.downloaded_size.borrow().clone();
-        let total = self_.total_size.borrow().clone();
-        let new_count = self_.extracted_files.borrow().clone();
-        let total_count = self_.total_files.borrow().clone();
+        let new_size = *self_.downloaded_size.borrow();
+        let total = *self_.total_size.borrow();
+        let new_count = *self_.extracted_files.borrow();
+        let total_count = *self_.total_files.borrow();
         ((if total != 0 {
             new_size as f64 / total as f64
         } else {

@@ -103,6 +103,12 @@ pub enum DirectoryConfigType {
     Games,
 }
 
+impl Default for PreferencesWindow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PreferencesWindow {
     pub fn new() -> Self {
         let window: Self = glib::Object::new(&[]).expect("Failed to create PreferencesWindow");
@@ -312,7 +318,7 @@ impl PreferencesWindow {
                     let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
                     self_
                         .settings
-                        .set_strv(setting_name, &new.as_slice())
+                        .set_strv(setting_name, new.as_slice())
                         .unwrap()
                 }
             }
@@ -328,10 +334,7 @@ impl PreferencesWindow {
             Some(r) => {
                 let v: Vec<&str> = r.iter().map(|i| i.0.as_str()).collect();
                 if let Some(setting_name) = Self::setting_name_from_type(kind) {
-                    self_
-                        .settings
-                        .set_strv(setting_name, &v.as_slice())
-                        .unwrap()
+                    self_.settings.set_strv(setting_name, v.as_slice()).unwrap()
                 }
             }
         };
@@ -374,7 +377,7 @@ impl PreferencesWindow {
 
     fn add_directory_row(&self, target_box: &gtk::Box, dir: String, kind: DirectoryConfigType) {
         let row: super::dir_row::DirectoryRow =
-            super::dir_row::DirectoryRow::new(dir.clone(), &self);
+            super::dir_row::DirectoryRow::new(dir.clone(), self);
 
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
 
@@ -401,7 +404,7 @@ impl PreferencesWindow {
             }
         };
 
-        let k = kind.clone();
+        let k = kind;
         let dir_c = dir.clone();
         row.connect_local(
             "remove",
@@ -426,13 +429,13 @@ impl PreferencesWindow {
                         }
                     }
                 }
-                win.update_directories(kind.clone());
+                win.update_directories(kind);
                 None
             }),
         )
         .unwrap();
 
-        let k = kind.clone();
+        let k = kind;
         let dir_c = dir.clone();
         row.connect_local(
             "move-up",
@@ -451,7 +454,7 @@ impl PreferencesWindow {
 
                         let sibling = &r[current_position-1];
                         target_box.reorder_child_after(&sibling.1, Some(&item.1));
-                        r.insert(current_position-1, (dir_c.clone(), row.clone()));
+                        r.insert(current_position-1, (dir_c.clone(), row));
 
                         for (i, ro) in r.iter().enumerate() {
                             ro.1.set_up_enabled(true);
@@ -466,13 +469,13 @@ impl PreferencesWindow {
 
                     }
                 }
-                win.update_directories(kind.clone());
+                win.update_directories(kind);
                 None
             }),
         ).unwrap();
 
-        let k = kind.clone();
-        let dir_c = dir.clone();
+        let k = kind;
+        let dir_c = dir;
         row.connect_local(
             "move-down",
             false,
@@ -487,10 +490,10 @@ impl PreferencesWindow {
                         };
                         let item = r.remove(current_position);
                         let total = r.len();
-                        if current_position+1 <= total {
+                        if current_position < total {
                             let sibling = &r[current_position];
                             target_box.reorder_child_after(&item.1, Some(&sibling.1));
-                            r.insert(current_position+1, (dir_c.clone(), row.clone()));
+                            r.insert(current_position+1, (dir_c.clone(), row));
                         }
 
                         for (i, ro) in r.iter().enumerate() {
@@ -506,7 +509,7 @@ impl PreferencesWindow {
 
                     }
                 }
-                win.update_directories(kind.clone());
+                win.update_directories(kind);
                 None
             }),
         ).unwrap();

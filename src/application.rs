@@ -17,6 +17,12 @@ glib::wrapper! {
         @extends gio::Application, gtk::Application, @implements gio::ActionMap, gio::ActionGroup;
 }
 
+impl Default for EpicAssetManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicAssetManager {
     pub fn new() -> Self {
         glib::Object::new(&[

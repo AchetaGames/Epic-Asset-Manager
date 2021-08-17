@@ -33,6 +33,12 @@ pub struct Model {
     pub settings: gio::Settings,
 }
 
+impl Default for Model {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Model {
     pub fn new() -> Self {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
@@ -40,7 +46,7 @@ impl Model {
             epic_games: EpicGames::new(),
             secret_service: SecretService::new(EncryptionType::Dh)
                 .expect("A running secret-service is required"),
-            sender: sender.clone(),
+            sender,
             receiver: RefCell::new(Some(receiver)),
             settings: gio::Settings::new(APP_ID),
             // asset_model: crate::models::asset_model::Model::new(),
@@ -87,7 +93,7 @@ impl Model {
             let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
             dir.push("Unreal Projects");
             self.settings
-                .set_strv("unreal-projects-directories", &[&dir.to_str().unwrap()])
+                .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
                 .unwrap();
         }
 
@@ -95,7 +101,7 @@ impl Model {
             let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
             dir.push("EpicVault");
             self.settings
-                .set_strv("unreal-vault-directories", &[&dir.to_str().unwrap()])
+                .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
                 .unwrap();
         }
 
@@ -103,7 +109,7 @@ impl Model {
             let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
             dir.push("Unreal Engine");
             self.settings
-                .set_strv("unreal-engine-directories", &[&dir.to_str().unwrap()])
+                .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
                 .unwrap();
         }
     }

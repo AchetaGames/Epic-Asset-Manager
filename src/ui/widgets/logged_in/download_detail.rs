@@ -207,6 +207,12 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Box;
 }
 
+impl Default for EpicDownloadDetails {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicDownloadDetails {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
@@ -218,7 +224,7 @@ impl EpicDownloadDetails {
     ) {
         let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.download_manager.get() {
+        if self_.download_manager.get().is_some() {
             return;
         }
 
@@ -301,7 +307,7 @@ impl EpicDownloadDetails {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 
     pub fn version_selected(&self) {

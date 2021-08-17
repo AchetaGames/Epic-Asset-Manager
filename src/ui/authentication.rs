@@ -27,7 +27,7 @@ impl EpicAssetManagerWindow {
         _self.main_stack.set_visible_child_name("progress");
         _self.progress_message.set_text("Authenticating");
         let sender = _self.model.sender.clone();
-        let s = sid.clone();
+        let s = sid;
         let mut eg = _self.model.epic_games.clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
@@ -63,32 +63,30 @@ impl EpicAssetManagerWindow {
         let now = chrono::Utc::now();
         if let Some(te) = self.token_time("token-expiration") {
             let td = te - now;
-            if td.num_seconds() > 600 {
-                if _self
+            if td.num_seconds() > 600
+                && _self
                     .model
                     .epic_games
                     .user_details()
                     .access_token()
                     .is_some()
-                {
-                    debug!("Access token is valid and exists");
-                    return true;
-                }
+            {
+                debug!("Access token is valid and exists");
+                return true;
             }
         }
         if let Some(rte) = self.token_time("refresh-token-expiration") {
             let td = rte - now;
-            if td.num_seconds() > 600 {
-                if _self
+            if td.num_seconds() > 600
+                && _self
                     .model
                     .epic_games
                     .user_details()
                     .refresh_token()
                     .is_some()
-                {
-                    debug!("Refresh token is valid and exists");
-                    return true;
-                }
+            {
+                debug!("Refresh token is valid and exists");
+                return true;
             }
         }
         false

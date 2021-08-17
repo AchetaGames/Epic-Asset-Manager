@@ -26,7 +26,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
     type ParentType = gtk::ApplicationWindow;
 
     fn new() -> Self {
-        let win = Self {
+        Self {
             headerbar: TemplateChild::default(),
             main_stack: TemplateChild::default(),
             logged_in_stack: TemplateChild::default(),
@@ -34,8 +34,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             progress_message: TemplateChild::default(),
             download_manager: TemplateChild::default(),
             model: Model::new(),
-        };
-        win
+        }
     }
 
     fn class_init(klass: &mut Self::Class) {

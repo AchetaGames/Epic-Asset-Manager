@@ -44,7 +44,7 @@ fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or(
         match matches.occurrences_of("v") {
             0 => "epic_asset_manager:info",
-            1 | _ => "epic_asset_manager:debug",
+            _ => "epic_asset_manager:debug",
         },
     ))
     .format(|buf, record| {

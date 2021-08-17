@@ -103,7 +103,7 @@ impl CategoryData {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 
     pub fn filter(&self) -> String {
@@ -112,6 +112,6 @@ impl CategoryData {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 }

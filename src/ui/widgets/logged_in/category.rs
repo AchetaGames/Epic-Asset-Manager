@@ -153,6 +153,12 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Box;
 }
 
+impl Default for EpicSidebarCategory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicSidebarCategory {
     pub fn new() -> Self {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategory");
@@ -163,7 +169,7 @@ impl EpicSidebarCategory {
     pub fn set_logged_in(&self, loggedin: &crate::ui::widgets::logged_in::EpicLoggedInBox) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.loggedin.get() {
+        if self_.loggedin.get().is_some() {
             return;
         }
 
@@ -238,9 +244,9 @@ impl EpicSidebarCategory {
                         } else {
                             self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
                             }
-                    } else {
-                        if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()).unwrap(); };
-                    }
+                    } else if let Some(l) = self_.loggedin.get() {
+                        l.set_property("filter", win.filter()).unwrap();
+                    };
                 }
 
             })
@@ -270,10 +276,10 @@ impl EpicSidebarCategory {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 
-    pub fn unselect_except(&self, category: &String) {
+    pub fn unselect_except(&self, category: &str) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
         let selected_id = self_.selection_model.selected();
         if let Some(item) = self_.selection_model.selected_item() {

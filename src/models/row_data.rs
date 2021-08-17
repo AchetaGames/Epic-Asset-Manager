@@ -135,7 +135,7 @@ impl RowData {
         self_.asset.replace(Some(asset));
 
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-        pixbuf_loader.write(&image).unwrap();
+        pixbuf_loader.write(image).unwrap();
         pixbuf_loader.close().ok();
 
         if let Some(pix) = pixbuf_loader.pixbuf() {
@@ -150,7 +150,7 @@ impl RowData {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 
     pub fn name(&self) -> String {
@@ -159,7 +159,7 @@ impl RowData {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 
     pub fn image(&self) -> Option<Pixbuf> {
@@ -168,7 +168,7 @@ impl RowData {
                 return Some(id_opt);
             }
         };
-        return None;
+        None
     }
 
     pub fn check_category(&self, cat: String) -> bool {
@@ -177,7 +177,7 @@ impl RowData {
             None => false,
             Some(b) => {
                 for category in b.categories.as_ref().unwrap() {
-                    for split in cat.split("|") {
+                    for split in cat.split('|') {
                         if category
                             .path
                             .to_ascii_lowercase()
@@ -187,7 +187,7 @@ impl RowData {
                         }
                     }
                 }
-                return false;
+                false
             }
         }
     }

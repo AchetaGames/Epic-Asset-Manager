@@ -132,6 +132,12 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Box;
 }
 
+impl Default for EpicAssetDetails {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicAssetDetails {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
@@ -143,7 +149,7 @@ impl EpicAssetDetails {
     ) {
         let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
         // Do not run this twice
-        if let Some(_) = self_.download_manager.get() {
+        if self_.download_manager.get().is_some() {
             return;
         }
 
@@ -281,7 +287,7 @@ impl EpicAssetDetails {
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
             let label = gtk::LabelBuilder::new()
-                .label(&dev_name)
+                .label(dev_name)
                 .wrap(true)
                 .xalign(0.0)
                 .build();
@@ -343,6 +349,6 @@ impl EpicAssetDetails {
                 return id_opt;
             }
         };
-        return false;
+        false
     }
 }

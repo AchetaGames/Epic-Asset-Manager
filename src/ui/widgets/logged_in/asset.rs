@@ -129,6 +129,12 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Box;
 }
 
+impl Default for EpicAsset {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EpicAsset {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
