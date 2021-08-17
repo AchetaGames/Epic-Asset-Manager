@@ -15,11 +15,13 @@ use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
+use std::io::Write;
 use std::ops::Not;
 use std::path::{Path, PathBuf};
 
 pub(crate) mod imp {
     use super::*;
+    use crate::config;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
     use gtk::gio;
@@ -79,6 +81,7 @@ pub(crate) mod imp {
         pub image_load_pool: ThreadPool,
         pub assets_pending: Arc<std::sync::RwLock<Vec<Object>>>,
         pub categories: RefCell<HashSet<String>>,
+        pub settings: gio::Settings,
     }
 
     #[glib::object_subclass]
@@ -115,6 +118,7 @@ pub(crate) mod imp {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
                 categories: RefCell::new(HashSet::new()),
+                settings: gio::Settings::new(config::APP_ID),
             }
         }
 
@@ -490,7 +494,8 @@ impl EpicLoggedInBox {
                 true
             }
             Some(a) => {
-                if asset.eq(a) {
+                if asset.id.eq(&a.id) {
+                    // TODO: update asset if there are changes
                     debug!("Duplicate asset: {}", asset.id);
                     false
                 } else {
@@ -588,7 +593,9 @@ impl EpicLoggedInBox {
                                 };
                             }
                             Err(_) => {
-                                println!("Need to load image");
+                                sender
+                                    .send(crate::ui::messages::Msg::DownloadImage(t, asset))
+                                    .unwrap();
                             }
                         };
                     })
@@ -609,21 +616,22 @@ impl EpicLoggedInBox {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if let Some(window) = self.main_window() {
             let win_ = window.data();
-            let sender = win_.model.sender.clone();
             let cache_dir = win_
                 .model
                 .settings
                 .string("cache-directory")
                 .to_string()
                 .clone();
-            self_.asset_load_pool.execute(move || {
-                // Load assets from cache
-                let cache_path = PathBuf::from(cache_dir);
-                if cache_path.is_dir() {
-                    for entry in std::fs::read_dir(cache_path).unwrap() {
+            let cache_path = PathBuf::from(cache_dir);
+            if cache_path.is_dir() {
+                for entry in std::fs::read_dir(cache_path).unwrap() {
+                    let sender = win_.model.sender.clone();
+                    self_.asset_load_pool.execute(move || {
+                        // Load assets from cache
+
                         if let Ok(w) = crate::RUNNING.read() {
                             if w.not() {
-                                break;
+                                return;
                             }
                         }
                         let mut asset_file = entry.unwrap().path();
@@ -642,10 +650,21 @@ impl EpicLoggedInBox {
                                 }
                             };
                         }
-                    }
+                    });
                 }
-                // TODO: Update from the API
-            });
+                let mut eg = win_.model.epic_games.clone();
+                let sender = win_.model.sender.clone();
+                self_.asset_load_pool.execute(move || {
+                    let assets = tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(eg.list_assets());
+                    for asset in assets {
+                        sender
+                            .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+                            .unwrap();
+                    }
+                })
+            };
             glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
                 obj.flush_assets();
                 let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&obj);
@@ -654,6 +673,67 @@ impl EpicLoggedInBox {
                     self_.image_load_pool.queued_count() +
                     self_.image_load_pool.active_count()) > 0)
             }));
+            glib::timeout_add_seconds_local(
+                1,
+                clone!(@weak self as obj => @default-panic, move || {
+                    let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&obj);
+                    if let Ok(a) = self_.assets_pending.read() {
+                        if a.len() > 0 {
+                            glib::idle_add_local(clone!(@weak obj => @default-panic, move || {
+                                obj.flush_assets();
+                                glib::Continue(false)
+                            }));
+                        }
+                    }
+                    glib::Continue(true)
+                }),
+            );
+        }
+    }
+
+    pub(crate) fn process_epic_asset(
+        &self,
+        epic_asset: egs_api::api::types::epic_asset::EpicAsset,
+    ) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        if let Some(window) = self.main_window() {
+            let win_ = window.data();
+            let mut cache_dir =
+                PathBuf::from(self_.settings.string("cache-directory").to_string().clone());
+            cache_dir.push(&epic_asset.catalog_item_id.clone());
+            let mut cache_dir_c = cache_dir.clone();
+            let ea = epic_asset.clone();
+
+            self_.asset_load_pool.execute(move || {
+                cache_dir_c.push("epic_asset.json");
+                fs::create_dir_all(cache_dir_c.parent().unwrap().clone()).unwrap();
+                if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
+                    asset_file
+                        .write(serde_json::to_string(&ea).unwrap().as_bytes().as_ref())
+                        .unwrap();
+                }
+            });
+
+            let mut eg = win_.model.epic_games.clone();
+            let sender = win_.model.sender.clone();
+            let mut cache_dir_c = cache_dir.clone();
+            self_.asset_load_pool.execute(move || {
+                if let Some(asset) = tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(eg.asset_info(epic_asset))
+                {
+                    cache_dir_c.push("asset_info.json");
+                    fs::create_dir_all(cache_dir_c.parent().unwrap().clone()).unwrap();
+                    if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
+                        asset_file
+                            .write(serde_json::to_string(&asset).unwrap().as_bytes().as_ref())
+                            .unwrap();
+                    }
+                    sender
+                        .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                        .unwrap();
+                }
+            });
         }
     }
 }

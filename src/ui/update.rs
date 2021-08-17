@@ -33,7 +33,11 @@ impl Update for EpicAssetManagerWindow {
             Msg::ProcessAssetThumbnail(a, i) => {
                 self_.logged_in_stack.add_asset(a, i.as_slice());
             }
-            Msg::DownloadImage(_, _) => {}
+            Msg::DownloadImage(image, asset) => {
+                self_
+                    .download_manager
+                    .download_thumbnail(image, asset, self_.model.sender.clone());
+            }
             Msg::LoadDownloadManifest(_, _) => {}
             Msg::ProcessDownloadManifest(_, _) => {}
             Msg::ProcessAssetSelected => {}
@@ -58,6 +62,9 @@ impl Update for EpicAssetManagerWindow {
             Msg::ConfigurationRemoveUnrealEngineDir(_, _) => {}
             Msg::FlushAssetThumbnails => {
                 self_.logged_in_stack.flush_assets();
+            }
+            Msg::ProcessEpicAsset(epic_asset) => {
+                self_.logged_in_stack.process_epic_asset(epic_asset);
             }
         }
         debug!(

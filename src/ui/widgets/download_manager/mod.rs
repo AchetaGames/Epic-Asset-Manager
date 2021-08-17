@@ -793,4 +793,38 @@ impl EpicDownloadManager {
             0.0
         }
     }
+
+    pub fn download_thumbnail(
+        &self,
+        image: egs_api::api::types::asset_info::KeyImage,
+        asset: egs_api::api::types::asset_info::AssetInfo,
+        sender: gtk::glib::Sender<crate::ui::messages::Msg>,
+    ) {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let cache_dir = self_.settings.string("cache-directory").to_string().clone();
+        let mut cache_path = PathBuf::from(cache_dir);
+        cache_path.push("images");
+        let name = Path::new(image.url.path())
+            .extension()
+            .and_then(OsStr::to_str);
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(&".png")));
+        self_.thumbnail_pool.execute(move || {
+            if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
+                if let Ok(b) = response.bytes() {
+                    //TODO: Report downloaded size
+                    match File::create(cache_path.as_path()) {
+                        Ok(mut thumbnail) => {
+                            thumbnail.write(&b).unwrap();
+                        }
+                        Err(e) => {
+                            error!("{:?}", e);
+                        }
+                    }
+                    sender
+                        .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                        .unwrap();
+                }
+            };
+        })
+    }
 }
