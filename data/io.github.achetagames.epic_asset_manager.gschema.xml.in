@@ -14,7 +14,34 @@
     <key name="is-maximized" type="b">
       <default>false</default>
       <summary>Default window maximized behaviour</summary>
-      <description></description>
+    </key>
+    <key name="token-expiration" type="s">
+      <default>""</default>
+      <summary>Access token expiration</summary>
+    </key>
+    <key name="refresh-token-expiration" type="s">
+      <default>""</default>
+      <summary>Refresh token expiration</summary>
+    </key>
+    <key name="cache-directory" type="s">
+      <default>""</default>
+      <summary>Cache directory</summary>
+    </key>
+    <key name="temporary-download-directory" type="s">
+      <default>""</default>
+      <summary>Temporary download directory</summary>
+    </key>
+    <key name="unreal-vault-directories" type="as">
+      <default>[]</default>
+      <summary>Unreal Vault Directories</summary>
+    </key>
+    <key name="unreal-engine-directories" type="as">
+      <default>[]</default>
+      <summary>Unreal Engine Directories</summary>
+    </key>
+    <key name="unreal-projects-directories" type="as">
+      <default>[]</default>
+      <summary>Unreal Projects Directories</summary>
     </key>
   </schema>
 </schemalist>

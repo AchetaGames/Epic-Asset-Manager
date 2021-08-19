@@ -1,11 +1,9 @@
 use crate::download::DownloadedFile;
-use crate::Win;
+use crate::window::EpicAssetManagerWindow;
 use byte_unit::Byte;
 use egs_api::api::types::download_manifest::FileManifestList;
-use glib::ObjectExt;
-use gtk::traits::{LabelExt, ToggleButtonExt};
-use gtk::CheckButton;
-use relm::{Channel, Sender};
+use gtk4::CheckButton;
+use log::{debug, error, info, warn};
 use reqwest::Url;
 use sha1::{Digest, Sha1};
 use slab_tree::{NodeId, NodeMut, NodeRef, Tree, TreeBuilder};
@@ -51,7 +49,7 @@ pub(crate) trait Chunks {
     }
 }
 
-impl Chunks for Win {
+impl Chunks for EpicAssetManagerWindow {
     fn chunk_extraction_finished(&mut self, file: String, path: PathBuf) {
         info!("File finished {}", file);
         for (chunk, files) in self.model.downloaded_chunks.iter_mut() {
@@ -334,6 +332,64 @@ impl Chunks for Win {
         };
     }
 
+    fn download_file_validated(
+        &mut self,
+        asset_id: String,
+        release: String,
+        filename: String,
+        manifest: FileManifestList,
+    ) {
+        let mut path = PathBuf::from(
+            self.model
+                .configuration
+                .directories
+                .unreal_vault_directory
+                .clone(),
+        );
+
+        path.push(release.clone());
+        path.push("temp");
+        let downloaded = DownloadedFile {
+            asset: asset_id.clone(),
+            release: release.clone(),
+            name: filename.clone(),
+            chunks: manifest.file_chunk_parts.clone(),
+            hash: manifest.file_hash,
+            finished_chunks: vec![],
+        };
+        let full_filename = format!(
+            "{}/{}/{}",
+            asset_id.clone(),
+            release.clone(),
+            filename.clone()
+        );
+        self.model
+            .downloaded_files
+            .insert(full_filename.clone(), downloaded);
+        for chunk in manifest.file_chunk_parts {
+            match self.model.downloaded_chunks.get_mut(&chunk.guid) {
+                None => {
+                    self.model
+                        .downloaded_chunks
+                        .insert(chunk.guid.clone(), vec![full_filename.clone()]);
+                    let link = chunk.link.unwrap();
+                    let mut p = path.clone();
+                    let g = chunk.guid.clone();
+                    p.push(format!("{}.chunk", g));
+                    let sender = self
+                        .widgets
+                        .asset_download_widgets
+                        .download_progress_sender
+                        .clone();
+                    self.model.download_pool.execute(move || {
+                        EpicAssetManagerWindow::perform_download(link, p, g, sender);
+                    });
+                }
+                Some(files) => files.push(full_filename.clone()),
+            }
+        }
+    }
+
     fn select_file_for_download(
         &mut self,
         asset_id: String,
@@ -392,67 +448,9 @@ impl Chunks for Win {
                     .to_string(),
             )
     }
-
-    fn download_file_validated(
-        &mut self,
-        asset_id: String,
-        release: String,
-        filename: String,
-        manifest: FileManifestList,
-    ) {
-        let mut path = PathBuf::from(
-            self.model
-                .configuration
-                .directories
-                .unreal_vault_directory
-                .clone(),
-        );
-
-        path.push(release.clone());
-        path.push("temp");
-        let downloaded = DownloadedFile {
-            asset: asset_id.clone(),
-            release: release.clone(),
-            name: filename.clone(),
-            chunks: manifest.file_chunk_parts.clone(),
-            hash: manifest.file_hash,
-            finished_chunks: vec![],
-        };
-        let full_filename = format!(
-            "{}/{}/{}",
-            asset_id.clone(),
-            release.clone(),
-            filename.clone()
-        );
-        self.model
-            .downloaded_files
-            .insert(full_filename.clone(), downloaded);
-        for chunk in manifest.file_chunk_parts {
-            match self.model.downloaded_chunks.get_mut(&chunk.guid) {
-                None => {
-                    self.model
-                        .downloaded_chunks
-                        .insert(chunk.guid.clone(), vec![full_filename.clone()]);
-                    let link = chunk.link.unwrap();
-                    let mut p = path.clone();
-                    let g = chunk.guid.clone();
-                    p.push(format!("{}.chunk", g));
-                    let sender = self
-                        .widgets
-                        .asset_download_widgets
-                        .download_progress_sender
-                        .clone();
-                    self.model.download_pool.execute(move || {
-                        Win::perform_download(link, p, g, sender);
-                    });
-                }
-                Some(files) => files.push(full_filename.clone()),
-            }
-        }
-    }
 }
 
-impl Win {
+impl EpicAssetManagerWindow {
     fn perform_download(link: Url, p: PathBuf, g: String, sender: Sender<(String, u128, bool)>) {
         debug!(
             "Downloading chunk {} from {} to {:?}",

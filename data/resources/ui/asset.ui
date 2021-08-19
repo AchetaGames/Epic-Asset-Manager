@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicAsset" parent="GtkBox">
+        <property name="valign">center</property>
+        <property name="margin-start">20</property>
+        <property name="margin-end">20</property>
+        <property name="width-request">128</property>
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkImage" id="image">
+                <property name="name">thumbnail</property>
+                <property name="width-request">128</property>
+                <property name="height-request">128</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+            </object>
+        </child>
+        <child>
+            <object class="GtkLabel" id="name">
+                <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+                <property name="wrap">true</property>
+                <property name="max_width_chars">15</property>
+                <property name="ellipsize">end</property>
+                <property name="justify">center</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+            </object>
+        </child>
+    </template>
+</interface>

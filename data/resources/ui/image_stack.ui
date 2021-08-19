@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicImageOverlay" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="height-request">500</property>
+        <child>
+            <object class="GtkOverlay" id="navigation">
+                <property name="hexpand" bind-source="EpicImageOverlay" bind-property="hexpand" bind-flags="sync-create"/>
+                <property name="child">
+                    <object class="AdwCarousel" id="stack">
+                        <property name="vexpand">True</property>
+                        <property name="hexpand">True</property>
+                    </object>
+                </property>
+                <child type="overlay">
+                    <object class="GtkButton">
+                        <property name="halign">start</property>
+                        <property name="opacity">0.5</property>
+                        <property name="label">&lt;</property>
+                        <property name="action-name">image_stack.prev</property>
+                        <property name="tooltip-text" translatable="yes">Previous Image</property>
+                    </object>
+                </child>
+                <child type="overlay">
+                    <object class="GtkButton">
+                        <property name="halign">end</property>
+                        <property name="opacity">0.5</property>
+                        <property name="label">></property>
+                        <property name="action-name">image_stack.next</property>
+                        <property name="tooltip-text" translatable="yes">Next Image</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="AdwCarouselIndicatorLines">
+                <property name="carousel">stack</property>
+            </object>
+        </child>
+    </template>
+</interface>

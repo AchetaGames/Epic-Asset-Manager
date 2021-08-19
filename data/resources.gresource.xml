@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/io/github/achetagames/epic_asset_manager/">
-    <file compressed="true" preprocess="xml-stripblanks" alias="window.ui">resources/ui/window.ui</file>
-
-    <file compressed="true" alias="style.css">resources/style.css</file>
-  </gresource>
+    <gresource prefix="/io/github/achetagames/epic_asset_manager/">
+        <file compressed="true" preprocess="xml-stripblanks" alias="window.ui">resources/ui/window.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="logged_in.ui">resources/ui/logged_in.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="sid.ui">resources/ui/sid.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="preferences.ui">resources/ui/preferences.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="dir_row.ui">resources/ui/dir_row.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_category.ui">resources/ui/sidebar_category.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="asset.ui">resources/ui/asset.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="asset_detail.ui">resources/ui/asset_detail.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="download_detail.ui">resources/ui/download_detail.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="download_manager.ui">resources/ui/download_manager.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="download_item.ui">resources/ui/download_item.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="image_stack.ui">resources/ui/image_stack.ui</file>
+        <file compressed="true" alias="style.css">resources/style.css</file>
+    </gresource>
 </gresources>

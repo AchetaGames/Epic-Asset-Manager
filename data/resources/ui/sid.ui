@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="SidBox" parent="GtkBox">
+        <property name="valign">center</property>
+        <property name="margin-start">20</property>
+        <property name="margin-end">20</property>
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkLabel">
+                <property name="can-focus">0</property>
+                <property name="label" translatable="yes">&lt;span size=&quot;26000&quot;&gt;Epic Games Login&lt;/span&gt;</property>
+                <property name="use-markup">1</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkBox">
+                <property name="halign">center</property>
+                <property name="spacing">5</property>
+                <child>
+                    <object class="GtkLabel">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">Click</property>
+                        <property name="use-markup">1</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="sid_browser_button">
+                        <property name="action-name">sid.browser</property>
+                        <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect</property>
+                        <property name="receives-default">1</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="spacing">5</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">emblem-web</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Open In Browser</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">to continue to login page</property>
+                        <property name="use-markup">1</property>
+                    </object>
+                </child>
+            </object>
+
+        </child>
+        <child>
+            <object class="GtkBox">
+                <property name="halign">center</property>
+                <property name="spacing">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-top">10</property>
+                <child>
+                    <object class="GtkEntry" id="sid_entry">
+                        <property name="width-chars">32</property>
+                        <property name="max-length">32</property>
+                        <property name="placeholder-text">Please enter sid from the response after login</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="sid_login">
+                        <property name="halign">center</property>
+                        <property name="action-name">sid.login</property>
+                        <property name="receives-default">1</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="spacing">5</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="can-focus">0</property>
+                                        <property name="icon-name">dialog-password</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Authenticate</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

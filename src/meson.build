@@ -18,14 +18,17 @@ run_command(
   check: true
 )
 
-sources = files(
+rust_sources = files(
+    'window.rs',
     'tools/asset_info.rs',
     'tools/cache.rs',
     'tools/or.rs',
     'tools/mod.rs',
+    'application.rs',
     'main.rs',
     'models/asset_model.rs',
     'models/row_data.rs',
+    'models/category_data.rs',
     'models/mod.rs',
     'api_data.rs',
     'ui/assets.rs',
@@ -33,15 +36,32 @@ sources = files(
     'ui/update.rs',
     'ui/configuration.rs',
     'ui/authentication.rs',
+    'ui/widgets/preferences/window.rs',
+    'ui/widgets/preferences/dir_row.rs',
+    'ui/widgets/preferences/mod.rs',
+    'ui/widgets/logged_in/mod.rs',
+    'ui/widgets/logged_in/category.rs',
+    'ui/widgets/logged_in/asset.rs',
+    'ui/widgets/logged_in/asset_detail.rs',
+    'ui/widgets/logged_in/image_stack.rs',
+    'ui/widgets/logged_in/download_detail.rs',
+    'ui/widgets/mod.rs',
+    'ui/widgets/sid_login/mod.rs',
+    'ui/widgets/download_manager/mod.rs',
+    'ui/widgets/download_manager/download_item.rs',
     'ui/images.rs',
     'ui/mod.rs',
     'ui/messages.rs',
     'ui/download_manifest.rs',
-    'configuration/mod.rs',
+    'application/imp.rs',
+    'window/imp.rs',
+    'config.rs',
     'download/images.rs',
     'download/chunks.rs',
-    'download/mod.rs',
+    'download/mod.rs'
 )
+
+sources = [cargo_sources, rust_sources]
 
 custom_target(
   'cargo-build',

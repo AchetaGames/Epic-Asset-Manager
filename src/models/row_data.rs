@@ -1,11 +1,14 @@
-use glib::subclass::prelude::*;
 use glib::ObjectExt;
-use serde::de::DeserializeOwned;
+use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
+use gtk4::gdk_pixbuf::Pixbuf;
+use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
 
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
     use glib::ToValue;
+    use gtk4::gdk_pixbuf::prelude::StaticType;
+    use gtk4::gdk_pixbuf::Pixbuf;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -13,8 +16,9 @@ mod imp {
     #[derive(Debug, Default)]
     pub struct RowData {
         id: RefCell<Option<String>>,
-        data: RefCell<Option<String>>,
-        thumbnail: RefCell<Option<String>>,
+        name: RefCell<Option<String>>,
+        pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        thumbnail: RefCell<Option<Pixbuf>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -23,6 +27,15 @@ mod imp {
         const NAME: &'static str = "RowData";
         type Type = super::RowData;
         type ParentType = glib::Object;
+
+        fn new() -> Self {
+            Self {
+                id: RefCell::new(None),
+                name: RefCell::new(None),
+                asset: RefCell::new(None),
+                thumbnail: RefCell::new(None),
+            }
+        }
     }
 
     // The ObjectImpl trait provides the setters/getters for GObject properties.
@@ -37,9 +50,9 @@ mod imp {
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
                     glib::ParamSpec::new_string(
-                        "data",
-                        "Data",
-                        "Data",
+                        "name",
+                        "Name",
+                        "Name",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
@@ -50,11 +63,11 @@ mod imp {
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpec::new_object(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        None,
+                        Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -71,11 +84,11 @@ mod imp {
             pspec: &glib::ParamSpec,
         ) {
             match pspec.name() {
-                "data" => {
-                    let data = value
+                "name" => {
+                    let name = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
-                    self.data.replace(data);
+                    self.name.replace(name);
                 }
                 "id" => {
                     let id = value
@@ -95,7 +108,7 @@ mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
-                "data" => self.data.borrow().to_value(),
+                "name" => self.name.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
@@ -113,16 +126,22 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl RowData {
-    pub fn new<O>(id: Option<String>, object: O, image: Vec<u8>) -> RowData
-    where
-        O: serde::ser::Serialize,
-    {
-        glib::Object::new(&[
-            ("id", &id),
-            ("data", &serde_json::to_string(&object).unwrap()),
-            ("thumbnail", &Some(hex::encode(image))),
-        ])
-        .expect("Failed to create row data")
+    pub fn new(asset: egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> RowData {
+        let data: Self = glib::Object::new(&[]).expect("Failed to create RowData");
+        let self_: &imp::RowData = imp::RowData::from_instance(&data);
+
+        data.set_property("id", &asset.id).unwrap();
+        data.set_property("name", &asset.title).unwrap();
+        self_.asset.replace(Some(asset));
+
+        let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+        pixbuf_loader.write(image).unwrap();
+        pixbuf_loader.close().ok();
+
+        if let Some(pix) = pixbuf_loader.pixbuf() {
+            data.set_property("thumbnail", &pix).unwrap();
+        };
+        data
     }
 
     pub fn id(&self) -> String {
@@ -131,32 +150,44 @@ impl RowData {
                 return id_opt;
             }
         };
-        return "".to_string();
+        "".to_string()
     }
 
-    pub fn deserialize<O>(&self) -> O
-    where
-        O: DeserializeOwned,
-    {
-        let data = self.property("data").unwrap().get::<String>().unwrap();
-        serde_json::from_str(&data).unwrap()
+    pub fn name(&self) -> String {
+        if let Ok(value) = self.property("name") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return id_opt;
+            }
+        };
+        "".to_string()
     }
 
-    pub fn image(&self) -> Vec<u8> {
-        match self.property("thumbnail") {
-            Ok(i) => match i.get::<String>() {
-                Ok(img) => match hex::decode(img) {
-                    Ok(v) => v,
-                    Err(_) => {
-                        vec![]
+    pub fn image(&self) -> Option<Pixbuf> {
+        if let Ok(value) = self.property("thumbnail") {
+            if let Ok(id_opt) = value.get::<Pixbuf>() {
+                return Some(id_opt);
+            }
+        };
+        None
+    }
+
+    pub fn check_category(&self, cat: String) -> bool {
+        let self_: &imp::RowData = imp::RowData::from_instance(self);
+        match self_.asset.borrow().as_ref() {
+            None => false,
+            Some(b) => {
+                for category in b.categories.as_ref().unwrap() {
+                    for split in cat.split('|') {
+                        if category
+                            .path
+                            .to_ascii_lowercase()
+                            .contains(&split.to_ascii_lowercase())
+                        {
+                            return true;
+                        }
                     }
-                },
-                Err(_) => {
-                    vec![]
                 }
-            },
-            Err(_) => {
-                vec![]
+                false
             }
         }
     }

@@ -1,7 +1,7 @@
 use crate::Win;
 use gio::traits::FileExt;
-use gtk::traits::{ButtonExt, ContainerExt, FileChooserExt, LabelExt, WidgetExt};
-use gtk::{Box, Button, Label};
+use gtk4::traits::{ButtonExt, ContainerExt, FileChooserExt, LabelExt, WidgetExt};
+use gtk4::{Box, Button, Label};
 use relm::connect;
 
 pub(crate) trait Configuration {
@@ -121,7 +121,7 @@ impl Configuration for Win {
     }
 
     fn create_unreal_directory_widget(&mut self, path: String, selector: &str) {
-        let hbox = Box::new(gtk::Orientation::Horizontal, 0);
+        let hbox = Box::new(gtk4::Orientation::Horizontal, 0);
         let label = Label::new(Some(&path));
         hbox.add(&label);
         label.set_hexpand(true);

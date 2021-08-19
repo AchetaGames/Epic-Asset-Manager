@@ -11,7 +11,7 @@
   </description>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/screenshot1.png</image>
+      <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/screenshot2.png</image>
       <caption>Main Window</caption>
     </screenshot>
   </screenshots>
@@ -19,6 +19,20 @@
   <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="2.0.0" date="2021-08-19">
+       <description>
+              <p>GTK4 Rewrite</p>
+              <ul>
+                  <li>Redesign</li>
+                  <li>Add categories and subcategories to the side panel</li>
+                  <li>Download progress</li>
+                  <li>Improve image display</li>
+                  <li>Move credentials from file to secret storage</li>
+                  <li>Move settings to gsettings instead of file</li>
+                  <li>Due to compatibility issues remove the webkit2gtk login screen and replace it by SID login</li>
+              </ul>
+       </description>
+    </release>
     <release version="1.0.10" date="2021-04-21">
        <description>
               <p>Added configuration for Unreal Engine directories and projects</p>

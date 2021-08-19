@@ -1,6 +1,6 @@
 project('epic_asset_manager',
         'rust',
-        version: '1.0.10',
+        version: '2.0.0',
         license: 'MIT',
   meson_version: '>= 0.50')
 
@@ -9,10 +9,10 @@ gnome = import('gnome')
 
 base_id = 'io.github.achetagames.epic_asset_manager'
 
-dependency('glib-2.0', version: '>= 2.56')
-dependency('gio-2.0', version: '>= 2.56')
-dependency('gtk+-3.0', version: '>= 3.24.7')
-dependency('libsoup-2.4', version: '>= 2.72.0')
+dependency('glib-2.0', version: '>= 2.66')
+dependency('gio-2.0', version: '>= 2.66')
+dependency('gtk4', version: '>= 4.0.0')
+dependency('libadwaita-1', version: '>=1.0.0')
 
 glib_compile_resources = find_program('glib-compile-resources', required: true)
 glib_compile_schemas = find_program('glib-compile-schemas', required: true)
@@ -20,6 +20,9 @@ desktop_file_validate = find_program('desktop-file-validate', required: false)
 appstream_util = find_program('appstream-util', required: false)
 cargo = find_program('cargo', required: true)
 cargo_script = find_program('build-aux/cargo.sh')
+cargo_sources = files(
+  'Cargo.toml',
+)
 
 version = meson.project_version()
 version_array = version.split('.')

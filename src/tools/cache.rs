@@ -1,6 +1,7 @@
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage};
 use egs_api::api::types::download_manifest::DownloadManifest;
 use egs_api::api::types::epic_asset::EpicAsset;
+use log::error;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;

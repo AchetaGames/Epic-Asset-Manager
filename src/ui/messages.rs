@@ -3,14 +3,14 @@ use egs_api::api::types::asset_info::{AssetInfo, KeyImage, ReleaseInfo};
 use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use egs_api::api::types::epic_asset::EpicAsset;
 use egs_api::api::UserData;
-use relm_derive::Msg;
+use gtk4::gio::File;
 use slab_tree::NodeId;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[derive(Msg, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub enum Msg {
-    Open(Vec<gio::File>, String),
+    Open(Vec<File>, String),
     Quit,
     PasswordLogin,
     AlternateLogin,
@@ -23,8 +23,10 @@ pub enum Msg {
     LoginOk(UserData),
     ProcessAssetList(HashMap<String, Vec<String>>, HashMap<String, EpicAsset>),
     ProcessAssetInfo(AssetInfo),
-    ProcessImage(Option<String>, Vec<u8>),
-    DownloadImage(Option<String>, KeyImage),
+    ProcessEpicAsset(EpicAsset),
+    ProcessAssetThumbnail(AssetInfo, Vec<u8>),
+    FlushAssetThumbnails,
+    DownloadImage(KeyImage, AssetInfo),
     LoadDownloadManifest(String, ReleaseInfo),
     ProcessDownloadManifest(String, DownloadManifest),
     ProcessAssetSelected,
@@ -70,8 +72,8 @@ impl fmt::Display for Msg {
             Msg::ProcessAssetInfo(_) => {
                 write!(f, "ProcessAssetInfo")
             }
-            Msg::ProcessImage(_, _) => {
-                write!(f, "ProcessImage")
+            Msg::ProcessAssetThumbnail(_, _) => {
+                write!(f, "ProcessAssetThumbnail")
             }
             Msg::LoadDownloadManifest(_, _) => {
                 write!(f, "LoadDownloadManifest")
@@ -162,6 +164,12 @@ impl fmt::Display for Msg {
             }
             Msg::Open(_, _) => {
                 write!(f, "Open")
+            }
+            Msg::FlushAssetThumbnails => {
+                write!(f, "FlushAssetThumbnails")
+            }
+            Msg::ProcessEpicAsset(_) => {
+                write!(f, "ProcessEpicAsset")
             }
         }
     }

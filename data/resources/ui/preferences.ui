@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="PreferencesWindow" parent="AdwPreferencesWindow">
+        <property name="default-width">820</property>
+        <property name="default-height">760</property>
+        <property name="can-swipe-back">True</property>
+        <child>
+            <object class="AdwPreferencesPage">
+                <property name="icon-name">applications-system-symbolic</property>
+                <property name="title" translatable="yes">General</property>
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Startup</property>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Default view</property>
+                                <property name="use-underline">True</property>
+                                <property name="activatable-widget">default_view_selection</property>
+                                <property name="subtitle" translatable="yes">What panel to open the application on</property>
+                                <child>
+                                    <object class="GtkComboBox" id="default_view_selection">
+                                        <property name="valign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="AdwPreferencesPage">
+                <property name="icon-name">folder-symbolic</property>
+                <property name="title" translatable="yes">Directories</property>
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Download Targets</property>
+                        <child>
+                            <object class="AdwActionRow" id="cache_directory_row">
+                                <property name="title" translatable="yes">_Cache Directory</property>
+                                <property name="use-underline">True</property>
+                                <property name="subtitle" translatable="yes">Where asset info files will be stored</property>
+                                <child>
+                                    <object class="GtkButton">
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="margin-bottom">6</property>
+                                        <property name="action-name">preferences.cache</property>
+                                        <child>
+                                            <object class="GtkBox">
+                                                <property name="spacing">5</property>
+                                                <child>
+                                                    <object class="GtkImage">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="icon-name">folder-templates</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkLabel">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="label" translatable="yes">Change</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwActionRow" id="temp_directory_row">
+                                <property name="title" translatable="yes">_Temporary download directory</property>
+                                <property name="use-underline">True</property>
+                                <property name="subtitle" translatable="yes">Temporary place for chunk downloads</property>
+                                <child>
+                                    <object class="GtkButton" id="default_view_selection">
+                                        <property name="margin-start">6</property>
+                                        <property name="margin-end">6</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="margin-bottom">6</property>
+                                        <property name="action-name">preferences.temp</property>
+                                        <child>
+                                            <object class="GtkBox">
+                                                <property name="spacing">5</property>
+                                                <child>
+                                                    <object class="GtkImage">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="icon-name">folder-download</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkLabel">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="label" translatable="yes">Change</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Unreal Directories</property>
+                        <child>
+                            <object class="AdwExpanderRow">
+                                <property name="expanded">1</property>
+                                <property name="title" translatable="yes">Unreal Vault Directories</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <property name="min-content-height">100</property>
+                                        <property name="max-content-height">100</property>
+                                        <child>
+                                            <object class="GtkBox" id="unreal_engine_vault_directories_box">
+                                                <property name="orientation">vertical</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="halign">end</property>
+                                        <child>
+                                            <object class="GtkButton">
+                                                <property name="action-name">preferences.add_vault</property>
+                                                <property name="label" translatable="yes">Add new</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow">
+                                <property name="title" translatable="yes">Unreal Engine Directories</property>
+                                <property name="expanded">1</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <property name="min-content-height">100</property>
+                                        <property name="max-content-height">100</property>
+                                        <child>
+                                            <object class="GtkBox" id="unreal_engine_directories_box">
+                                                <property name="orientation">vertical</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="halign">end</property>
+                                        <child>
+                                            <object class="GtkButton">
+                                                <property name="action-name">preferences.add_engine</property>
+                                                <property name="label" translatable="yes">Add new</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow">
+                                <property name="title" translatable="yes">Unreal Projects Directories</property>
+                                <property name="expanded">1</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <property name="min-content-height">100</property>
+                                        <property name="max-content-height">100</property>
+                                        <child>
+                                            <object class="GtkBox" id="unreal_engine_project_directories_box">
+                                                <property name="orientation">vertical</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="halign">end</property>
+                                        <child>
+                                            <object class="GtkButton">
+                                                <property name="action-name">preferences.add_project</property>
+                                                <property name="label" translatable="yes">Add new</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>
