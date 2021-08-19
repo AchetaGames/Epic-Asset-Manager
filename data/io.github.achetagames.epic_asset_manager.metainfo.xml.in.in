@@ -21,10 +21,7 @@
   <releases>
     <release version="2.0.1" date="2021-08-19">
        <description>
-              <p></p>
-              <ul>
-                  <li>Merge pull request #64 from AchetaGames/gtk4</li>
-</ul>
+              <p>Asset loading fix</p>
        </description>
     </release>
     <release version="2.0.0" date="2021-08-19">
