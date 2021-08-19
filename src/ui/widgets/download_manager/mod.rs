@@ -847,6 +847,7 @@ impl EpicDownloadManager {
             }
             if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                 if let Ok(b) = response.bytes() {
+                    std::fs::create_dir_all(cache_path.parent().unwrap().clone()).unwrap();
                     //TODO: Report downloaded size
                     match File::create(cache_path.as_path()) {
                         Ok(mut thumbnail) => {
@@ -888,6 +889,7 @@ impl EpicDownloadManager {
             debug!("Downloading image");
             if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                 if let Ok(b) = response.bytes() {
+                    std::fs::create_dir_all(cache_path.parent().unwrap().clone()).unwrap();
                     //TODO: Report downloaded size
                     match File::create(cache_path.as_path()) {
                         Ok(mut thumbnail) => {
