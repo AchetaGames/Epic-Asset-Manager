@@ -8,7 +8,7 @@
 A frontend to Assets purchased on Epic Games Store
 
 ## Current Screenshot
-![Screenshot from 2021-04-05 03-15-03](https://user-images.githubusercontent.com/252905/113527240-2bbb8800-95bd-11eb-8580-60711816fd21.png)
+![Screenshot from 2021-08-19 17-00-44](https://user-images.githubusercontent.com/252905/130092378-c6eee39f-024b-4f06-a6ab-5e73e39c23f9.png)
 
 ## Install
 ### Arch Linux
