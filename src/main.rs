@@ -15,7 +15,7 @@ use application::EpicAssetManager;
 use clap::{App, Arg};
 use env_logger::Env;
 use gettextrs::*;
-use gtk::gio;
+use gtk4::gio;
 use log::debug;
 use std::io::Write;
 use std::sync::Arc;
@@ -63,10 +63,10 @@ fn main() {
     bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).unwrap();
     textdomain(GETTEXT_PACKAGE).unwrap();
 
-    gtk::glib::set_application_name("Epic Asset Manager");
-    gtk::glib::set_prgname(Some("epic_asset_manager"));
+    gtk4::glib::set_application_name("Epic Asset Manager");
+    gtk4::glib::set_prgname(Some("epic_asset_manager"));
 
-    gtk::init().expect("Unable to start GTK4");
+    gtk4::init().expect("Unable to start GTK4");
     adw::init();
 
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");

@@ -3,9 +3,9 @@ mod download_item;
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
 use glib::clone;
-use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*};
-use gtk::{gio, glib, CompositeTemplate};
+use gtk4::subclass::prelude::*;
+use gtk4::{self, prelude::*};
+use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, info, warn};
 use reqwest::Url;
@@ -50,7 +50,7 @@ pub struct DownloadedFile {
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk::gio;
+    use gtk4::gio;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -64,9 +64,10 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_pool: ThreadPool,
         pub thumbnail_pool: ThreadPool,
+        pub image_pool: ThreadPool,
         pub file_pool: ThreadPool,
-        pub sender: gtk::glib::Sender<super::DownloadMsg>,
-        pub receiver: RefCell<Option<gtk::glib::Receiver<super::DownloadMsg>>>,
+        pub sender: gtk4::glib::Sender<super::DownloadMsg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::DownloadMsg>>>,
         pub download_items: RefCell<
             HashMap<String, crate::ui::widgets::download_manager::download_item::EpicDownloadItem>,
         >,
@@ -74,17 +75,17 @@ pub(crate) mod imp {
         pub downloaded_chunks: RefCell<HashMap<String, Vec<String>>>,
         pub asset_files: RefCell<HashMap<String, Vec<String>>>,
         #[template_child]
-        pub downloads: TemplateChild<gtk::Box>,
+        pub downloads: TemplateChild<gtk4::Box>,
     }
 
     #[glib::object_subclass]
     impl ObjectSubclass for EpicDownloadManager {
         const NAME: &'static str = "EpicDownloadManager";
         type Type = super::EpicDownloadManager;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk::glib::MainContext::channel(gtk::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
             Self {
                 actions: gio::SimpleActionGroup::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
@@ -98,6 +99,7 @@ pub(crate) mod imp {
                 asset_files: RefCell::new(HashMap::new()),
                 downloads: TemplateChild::default(),
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
+                image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
                 file_pool: ThreadPool::with_name("File Pool".to_string(), 1),
             }
         }
@@ -119,10 +121,10 @@ pub(crate) mod imp {
             obj.setup_messaging();
         }
 
-        fn signals() -> &'static [gtk::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk::glib::subclass::Signal>> =
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk::glib::subclass::Signal::builder(
+                    vec![gtk4::glib::subclass::Signal::builder(
                         "tick",
                         &[],
                         <()>::static_type().into(),
@@ -140,7 +142,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicDownloadManager(ObjectSubclass<imp::EpicDownloadManager>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicDownloadManager {
@@ -203,7 +205,7 @@ impl EpicDownloadManager {
                     None => return,
                     Some(i) => i,
                 };
-                let pixbuf_loader = gtk::gdk_pixbuf::PixbufLoader::new();
+                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(&image).unwrap();
                 pixbuf_loader.close().ok();
 
@@ -285,7 +287,7 @@ impl EpicDownloadManager {
                                 .expect("unable to read metadata");
                             let mut buffer = vec![0; metadata.len() as usize];
                             f.read_exact(&mut buffer).expect("buffer overflow");
-                            let pixbuf_loader = gtk::gdk_pixbuf::PixbufLoader::new();
+                            let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
                             pixbuf_loader.write(&buffer).unwrap();
                             pixbuf_loader.close().ok();
                             match pixbuf_loader.pixbuf() {
@@ -308,7 +310,7 @@ impl EpicDownloadManager {
                                             pb.scale_simple(
                                                 desired.0.round() as i32,
                                                 desired.1.round() as i32,
-                                                gtk::gdk_pixbuf::InterpType::Bilinear,
+                                                gtk4::gdk_pixbuf::InterpType::Bilinear,
                                             )
                                             .unwrap()
                                             .save_to_bufferv("png", &[])
@@ -827,7 +829,7 @@ impl EpicDownloadManager {
         &self,
         image: egs_api::api::types::asset_info::KeyImage,
         asset: egs_api::api::types::asset_info::AssetInfo,
-        sender: gtk::glib::Sender<crate::ui::messages::Msg>,
+        sender: gtk4::glib::Sender<crate::ui::messages::Msg>,
     ) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -856,6 +858,51 @@ impl EpicDownloadManager {
                     }
                     sender
                         .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                        .unwrap();
+                }
+            };
+        })
+    }
+
+    pub fn download_image(
+        &self,
+        image: egs_api::api::types::asset_info::KeyImage,
+        asset: String,
+        sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::image_stack::ImageMsg>,
+    ) {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let cache_dir = self_.settings.string("cache-directory").to_string();
+        let mut cache_path = PathBuf::from(cache_dir);
+        cache_path.push("images");
+        let name = Path::new(image.url.path())
+            .extension()
+            .and_then(OsStr::to_str);
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
+        let img = image.clone();
+        self_.image_pool.execute(move || {
+            if let Ok(w) = crate::RUNNING.read() {
+                if !*w {
+                    return;
+                }
+            }
+            debug!("Downloading image");
+            if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
+                if let Ok(b) = response.bytes() {
+                    //TODO: Report downloaded size
+                    match File::create(cache_path.as_path()) {
+                        Ok(mut thumbnail) => {
+                            thumbnail.write_all(&b).unwrap();
+                        }
+                        Err(e) => {
+                            error!("{:?}", e);
+                        }
+                    }
+                    sender
+                        .send(
+                            crate::ui::widgets::logged_in::image_stack::ImageMsg::LoadImage(
+                                asset, img,
+                            ),
+                        )
                         .unwrap();
                 }
             };

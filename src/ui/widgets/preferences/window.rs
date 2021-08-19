@@ -1,7 +1,7 @@
 use gettextrs::gettext;
-use gtk::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
-use gtk::glib::clone;
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk4::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
+use gtk4::glib::clone;
+use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error};
 use once_cell::sync::OnceCell;
@@ -29,17 +29,17 @@ pub mod imp {
                 )>,
             >,
         >,
-        pub file_chooser: RefCell<Option<gtk::FileChooserDialog>>,
+        pub file_chooser: RefCell<Option<gtk4::FileChooserDialog>>,
         #[template_child]
         pub cache_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
         pub temp_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
-        pub unreal_engine_project_directories_box: TemplateChild<gtk::Box>,
+        pub unreal_engine_project_directories_box: TemplateChild<gtk4::Box>,
         #[template_child]
-        pub unreal_engine_vault_directories_box: TemplateChild<gtk::Box>,
+        pub unreal_engine_vault_directories_box: TemplateChild<gtk4::Box>,
         #[template_child]
-        pub unreal_engine_directories_box: TemplateChild<gtk::Box>,
+        pub unreal_engine_directories_box: TemplateChild<gtk4::Box>,
     }
 
     #[glib::object_subclass]
@@ -90,7 +90,7 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct PreferencesWindow(ObjectSubclass<imp::PreferencesWindow>)
-        @extends gtk::Widget, gtk::Window, adw::Window, adw::PreferencesWindow;
+        @extends gtk4::Widget, gtk4::Window, adw::Window, adw::PreferencesWindow;
 }
 
 #[derive(PartialEq, Debug, Clone, Copy, Hash, Eq)]
@@ -188,9 +188,9 @@ impl PreferencesWindow {
             actions,
             "cache",
             clone!(@weak self as win => move |_, _| {
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Cache Directory");
+                let dialog: gtk4::FileChooserDialog = win.select_file(&[], "Cache Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
-                    if response == gtk::ResponseType::Accept {
+                    if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
                             win.set_directory(file, DirectoryConfigType::Cache);
                         }
@@ -204,9 +204,9 @@ impl PreferencesWindow {
             actions,
             "temp",
             clone!(@weak self as win => move |_, _| {
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Temporary Directory");
+                let dialog: gtk4::FileChooserDialog = win.select_file(&[], "Temporary Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
-                    if response == gtk::ResponseType::Accept {
+                    if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
                             win.set_directory(file, DirectoryConfigType::Temp);
                         }
@@ -219,9 +219,9 @@ impl PreferencesWindow {
             actions,
             "add_vault",
             clone!(@weak self as win => move |_, _| {
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Vault Directory");
+                let dialog: gtk4::FileChooserDialog = win.select_file(&[], "Vault Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
-                    if response == gtk::ResponseType::Accept {
+                    if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
                             win.set_directory(file, DirectoryConfigType::Vault);
                         }
@@ -234,9 +234,9 @@ impl PreferencesWindow {
             actions,
             "add_engine",
             clone!(@weak self as win => move |_, _| {
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], "Engine Directory");
+                let dialog: gtk4::FileChooserDialog = win.select_file(&[], "Engine Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
-                    if response == gtk::ResponseType::Accept {
+                    if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
                             win.set_directory(file, DirectoryConfigType::Engine);
                         }
@@ -249,9 +249,9 @@ impl PreferencesWindow {
             actions,
             "add_project",
             clone!(@weak self as win => move |_, _| {
-                let dialog: gtk::FileChooserDialog = win.select_file(&[], " Projects Directory");
+                let dialog: gtk4::FileChooserDialog = win.select_file(&[], " Projects Directory");
                 dialog.connect_response(clone!(@weak win => move |d, response| {
-                    if response == gtk::ResponseType::Accept {
+                    if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
                             win.set_directory(file, DirectoryConfigType::Projects);
                         }
@@ -264,7 +264,7 @@ impl PreferencesWindow {
 
     fn set_directory(&self, dir: File, kind: DirectoryConfigType) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-        match dir.query_file_type(FileQueryInfoFlags::NONE, gtk::gio::NONE_CANCELLABLE) {
+        match dir.query_file_type(FileQueryInfoFlags::NONE, gtk4::gio::NONE_CANCELLABLE) {
             FileType::Directory => {
                 debug!("Selected Directory")
             }
@@ -311,8 +311,8 @@ impl PreferencesWindow {
                             return;
                         }
                     };
-                    if !current.contains(&gtk::glib::GString::from(n.clone())) {
-                        current.push(gtk::glib::GString::from(n.clone()));
+                    if !current.contains(&gtk4::glib::GString::from(n.clone())) {
+                        current.push(gtk4::glib::GString::from(n.clone()));
                         self.add_directory_row(widget, n, kind);
                     }
                     let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
@@ -354,7 +354,7 @@ impl PreferencesWindow {
     fn setting_name_and_box_from_type(
         &self,
         kind: DirectoryConfigType,
-    ) -> Option<(&'static str, &gtk::Box)> {
+    ) -> Option<(&'static str, &gtk4::Box)> {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         match kind {
             DirectoryConfigType::Cache => None,
@@ -375,7 +375,7 @@ impl PreferencesWindow {
         }
     }
 
-    fn add_directory_row(&self, target_box: &gtk::Box, dir: String, kind: DirectoryConfigType) {
+    fn add_directory_row(&self, target_box: &gtk4::Box, dir: String, kind: DirectoryConfigType) {
         let row: super::dir_row::DirectoryRow =
             super::dir_row::DirectoryRow::new(dir.clone(), self);
 
@@ -517,16 +517,20 @@ impl PreferencesWindow {
         target_box.append(&row);
     }
 
-    fn select_file(&self, filters: &'static [&str], title: &'static str) -> gtk::FileChooserDialog {
+    fn select_file(
+        &self,
+        filters: &'static [&str],
+        title: &'static str,
+    ) -> gtk4::FileChooserDialog {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
 
-        let native = gtk::FileChooserDialog::new(
+        let native = gtk4::FileChooserDialog::new(
             Some(&gettext(title)),
             Some(self),
-            gtk::FileChooserAction::SelectFolder,
+            gtk4::FileChooserAction::SelectFolder,
             &[
-                (&gettext("Select"), gtk::ResponseType::Accept),
-                (&gettext("Cancel"), gtk::ResponseType::Cancel),
+                (&gettext("Select"), gtk4::ResponseType::Accept),
+                (&gettext("Cancel"), gtk4::ResponseType::Cancel),
             ],
         );
 
@@ -534,7 +538,7 @@ impl PreferencesWindow {
         native.set_transient_for(Some(self));
 
         filters.iter().for_each(|f| {
-            let filter = gtk::FileFilter::new();
+            let filter = gtk4::FileFilter::new();
             filter.add_mime_type(f);
             filter.set_name(Some(f));
             native.add_filter(&filter);

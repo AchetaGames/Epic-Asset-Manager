@@ -1,6 +1,6 @@
 use crate::window::EpicAssetManagerWindow;
 use chrono::{DateTime, Utc};
-use gtk::prelude::SettingsExt;
+use gtk4::prelude::SettingsExt;
 use log::{debug, error};
 use std::thread;
 use tokio::runtime::Runtime;
@@ -190,7 +190,7 @@ impl EpicAssetManagerWindow {
 //             connect_clicked(_),
 //             crate::ui::messages::Msg::Logout
 //         );
-//         let logged_in_box = Box::new(gtk::Orientation::Vertical, 0);
+//         let logged_in_box = Box::new(gtk4::Orientation::Vertical, 0);
 //         logged_in_box.add(&logout_button);
 //         let login_name = MenuButton::new();
 //         let logout_menu = PopoverMenu::new();

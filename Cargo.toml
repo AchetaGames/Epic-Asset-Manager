@@ -25,10 +25,9 @@ slab_tree = "0.3"
 log = "0.4"
 gtk-macros = "0.3"
 chrono = "0.4"
-egs-api = "0.3.3"
+egs-api = "0.3.4"
 
-[dependencies.gtk]
-package = "gtk4"
+[dependencies.gtk4]
 features = ["v4_2"]
 version = "0.2"
 

@@ -1,14 +1,14 @@
 use glib::clone;
-use gtk::subclass::prelude::*;
-use gtk::{self, gio, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk4::subclass::prelude::*;
+use gtk4::{self, gio, prelude::*};
+use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::error;
 
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk::gio;
+    use gtk4::gio;
     use once_cell::sync::OnceCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -16,7 +16,7 @@ pub(crate) mod imp {
     pub struct SidBox {
         pub actions: gio::SimpleActionGroup,
         #[template_child]
-        pub sid_entry: TemplateChild<gtk::Entry>,
+        pub sid_entry: TemplateChild<gtk4::Entry>,
         pub window: OnceCell<EpicAssetManagerWindow>,
     }
 
@@ -24,7 +24,7 @@ pub(crate) mod imp {
     impl ObjectSubclass for SidBox {
         const NAME: &'static str = "SidBox";
         type Type = super::SidBox;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
@@ -58,7 +58,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct SidBox(ObjectSubclass<imp::SidBox>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl SidBox {
@@ -107,7 +107,7 @@ impl SidBox {
                 let self_: &crate::ui::widgets::sid_login::imp::SidBox = imp::SidBox::from_instance(&sid_box);
                 let text = self_.sid_entry.text();
                 if let Some(window) = self_.window.get() {
-                    gtk::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));
+                    gtk4::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));
                 }
                 self_.sid_entry.set_text("");
             })

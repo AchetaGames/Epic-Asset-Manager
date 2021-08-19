@@ -4,12 +4,12 @@ use byte_unit::Byte;
 use egs_api::api::types::asset_info::ReleaseInfo;
 use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use glib::Cast;
-use gtk::prelude::ComboBoxExtManual;
-use gtk::traits::{
+use gtk4::prelude::ComboBoxExtManual;
+use gtk4::traits::{
     ButtonExt, ComboBoxExt, ComboBoxTextExt, ContainerExt, GridExt, ImageExt, LabelExt, OverlayExt,
     RevealerExt, StackExt, ToggleButtonExt, WidgetExt,
 };
-use gtk::{
+use gtk4::{
     Align, Box, Button, CheckButton, Expander, GridBuilder, IconSize, Label, Overlay, Widget,
 };
 use relm::{connect, Channel};
@@ -113,7 +113,7 @@ impl DownloadManifests for Win {
 
     fn process_download_manifest(&mut self, id: String, dm: DownloadManifest) {
         if self.model.selected_asset == Some(id.clone()) {
-            let size_box = Box::new(gtk::Orientation::Horizontal, 0);
+            let size_box = Box::new(gtk4::Orientation::Horizontal, 0);
             let size = dm.total_size();
             let size_label = Label::new(Some("Total Download Size: "));
             size_box.add(&size_label);
@@ -129,7 +129,7 @@ impl DownloadManifests for Win {
                 .asset_download_widgets
                 .asset_download_info_box
                 .add(&size_box);
-            let size_box = Box::new(gtk::Orientation::Horizontal, 0);
+            let size_box = Box::new(gtk4::Orientation::Horizontal, 0);
             let size_label = Label::new(Some("Selected files Size: "));
             size_box.add(&size_label);
             size_label.set_halign(Align::Start);
@@ -189,7 +189,7 @@ impl DownloadManifests for Win {
             }
 
             let scrolled_window =
-                gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+                gtk4::ScrolledWindow::new(gtk4::NONE_ADJUSTMENT, gtk4::NONE_ADJUSTMENT);
             let tr = tree.root();
             self.model.download_manifest_tree = TreeBuilder::new().with_root(None).build();
             self.model.download_manifest_handlers.clear();
@@ -536,7 +536,7 @@ impl Win {
         let chbox = CheckButton::new();
         let chbox_id = parent_check.append(Some(chbox.clone())).node_id();
         chbox.set_valign(Align::Start);
-        let hbox = Box::new(gtk::Orientation::Horizontal, 0);
+        let hbox = Box::new(gtk4::Orientation::Horizontal, 0);
         hbox.add(&chbox);
         hbox.set_hexpand(true);
         let mut size = 0u128;
@@ -545,7 +545,7 @@ impl Win {
             let overlay = Overlay::new();
             overlay.set_hexpand(true);
             let expander = Expander::new(Some(parent.data()));
-            let vbox = Box::new(gtk::Orientation::Vertical, 0);
+            let vbox = Box::new(gtk4::Orientation::Vertical, 0);
             vbox.set_margin_start(20);
             expander.add(&vbox);
             let mut should_check = true;
@@ -564,7 +564,7 @@ impl Win {
                     .to_string(),
             ));
             size_label.set_size_request(50, -1);
-            size_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            size_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
             size_label.set_xalign(1.0);
             size_label.set_valign(Align::Start);
             size_label.set_halign(Align::End);
@@ -631,7 +631,7 @@ impl Win {
             let label = Label::new(Some(parent.data()));
             label.set_halign(Align::Fill);
             label.set_hexpand(true);
-            label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+            label.set_ellipsize(gtk4::pango::EllipsizeMode::Middle);
             label.set_xalign(0.0);
             hbox.add(&label);
             let size_label = Label::new(Some(
@@ -640,7 +640,7 @@ impl Win {
                     .to_string(),
             ));
             size_label.set_size_request(50, -1);
-            size_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            size_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
             size_label.set_xalign(1.0);
             hbox.add(&size_label);
 
@@ -696,6 +696,6 @@ impl Win {
                 .download_manifest_handlers
                 .insert(chbox_id.clone(), handler);
         }
-        (hbox.upcast::<gtk::Widget>(), chbox.is_active(), size)
+        (hbox.upcast::<gtk4::Widget>(), chbox.is_active(), size)
     }
 }

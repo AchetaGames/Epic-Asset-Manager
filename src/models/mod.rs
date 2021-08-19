@@ -3,9 +3,9 @@ pub mod row_data;
 
 use crate::config::APP_ID;
 use egs_api::EpicGames;
-use gtk::gio;
-use gtk::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT};
-use gtk::prelude::*;
+use gtk4::gio;
+use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT};
+use gtk4::prelude::*;
 use log::{debug, info};
 use secret_service::{EncryptionType, SecretService};
 use std::cell::RefCell;
@@ -70,7 +70,7 @@ impl Model {
 
     fn load_defaults(&mut self) {
         if self.settings.string("cache-directory").is_empty() {
-            let mut dir = gtk::glib::user_cache_dir();
+            let mut dir = gtk4::glib::user_cache_dir();
             dir.push("epic_asset_manager");
             self.settings
                 .set_string("cache-directory", dir.to_str().unwrap())
@@ -82,7 +82,7 @@ impl Model {
             .string("temporary-download-directory")
             .is_empty()
         {
-            let mut dir = gtk::glib::tmp_dir();
+            let mut dir = gtk4::glib::tmp_dir();
             dir.push("epic_asset_manager");
             self.settings
                 .set_string("temporary-download-directory", dir.to_str().unwrap())
@@ -90,7 +90,7 @@ impl Model {
         }
 
         if self.settings.strv("unreal-projects-directories").is_empty() {
-            let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
+            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
             dir.push("Unreal Projects");
             self.settings
                 .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
@@ -98,7 +98,7 @@ impl Model {
         }
 
         if self.settings.strv("unreal-vault-directories").is_empty() {
-            let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
+            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
             dir.push("EpicVault");
             self.settings
                 .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
@@ -106,7 +106,7 @@ impl Model {
         }
 
         if self.settings.strv("unreal-engine-directories").is_empty() {
-            let mut dir = gtk::glib::user_special_dir(UserDirectory::Documents);
+            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
             dir.push("Unreal Engine");
             self.settings
                 .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])

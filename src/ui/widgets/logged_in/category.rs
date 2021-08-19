@@ -1,15 +1,15 @@
 use crate::models::category_data::CategoryData;
 use glib::clone;
-use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*, Label};
-use gtk::{gio, glib, CompositeTemplate};
+use gtk4::subclass::prelude::*;
+use gtk4::{self, prelude::*, Label};
+use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 
 pub(crate) mod imp {
     use super::*;
     use crate::models::category_data::CategoryData;
     use glib::ParamSpec;
-    use gtk::{gio, gio::ListStore, SingleSelection};
+    use gtk4::{gio, gio::ListStore, SingleSelection};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -23,9 +23,9 @@ pub(crate) mod imp {
         pub expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         #[template_child]
-        pub sub_revealer: TemplateChild<gtk::Revealer>,
+        pub sub_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub sub_box: TemplateChild<gtk::ListView>,
+        pub sub_box: TemplateChild<gtk4::ListView>,
         pub categories: ListStore,
         pub selection_model: SingleSelection,
     }
@@ -34,7 +34,7 @@ pub(crate) mod imp {
     impl ObjectSubclass for EpicSidebarCategory {
         const NAME: &'static str = "EpicSidebarCategory";
         type Type = super::EpicSidebarCategory;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
@@ -47,7 +47,7 @@ pub(crate) mod imp {
                 sub_revealer: TemplateChild::default(),
                 sub_box: TemplateChild::default(),
                 categories: ListStore::new(CategoryData::static_type()),
-                selection_model: SingleSelection::new(None::<&gtk::SortListModel>),
+                selection_model: SingleSelection::new(None::<&gtk4::SortListModel>),
             }
         }
 
@@ -150,7 +150,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicSidebarCategory(ObjectSubclass<imp::EpicSidebarCategory>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicSidebarCategory {
@@ -178,10 +178,10 @@ impl EpicSidebarCategory {
 
     pub fn setup_categories(&self) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
-        let factory = gtk::SignalListItemFactory::new();
+        let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = Label::new(None);
-            row.set_halign(gtk::Align::Fill);
+            row.set_halign(gtk4::Align::Fill);
             row.set_xalign(0.0);
             item.set_child(Some(&row));
         });
@@ -197,7 +197,7 @@ impl EpicSidebarCategory {
             child.set_label(&data.name());
             child.set_tooltip_text(Some(&data.filter()))
         });
-        let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
+        let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
                 .downcast_ref::<crate::models::category_data::CategoryData>()
                 .unwrap();
@@ -212,7 +212,7 @@ impl EpicSidebarCategory {
                 .into()
         });
 
-        let sorted_model = gtk::SortListModel::new(Some(&self_.categories), Some(&sorter));
+        let sorted_model = gtk4::SortListModel::new(Some(&self_.categories), Some(&sorter));
         self_.selection_model.set_model(Some(&sorted_model));
         self_.selection_model.set_autoselect(false);
         self_.selection_model.set_can_unselect(true);

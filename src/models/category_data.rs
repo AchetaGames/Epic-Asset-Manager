@@ -1,9 +1,9 @@
 use glib::ObjectExt;
-use gtk::{glib, subclass::prelude::*};
+use gtk4::{glib, subclass::prelude::*};
 
 mod imp {
     use super::*;
-    use gtk::glib::ToValue;
+    use gtk4::glib::ToValue;
     use std::cell::RefCell;
 
     #[derive(Debug, Default)]

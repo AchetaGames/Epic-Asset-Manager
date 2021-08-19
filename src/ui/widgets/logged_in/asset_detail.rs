@@ -1,8 +1,8 @@
 use adw::prelude::ActionRowExt;
-use gtk::glib::clone;
-use gtk::subclass::prelude::*;
-use gtk::{self, gio, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk4::glib::clone;
+use gtk4::subclass::prelude::*;
+use gtk4::{self, gio, prelude::*};
+use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
 use std::ops::Deref;
@@ -11,7 +11,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use gtk::glib::ParamSpec;
+    use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -21,19 +21,19 @@ pub(crate) mod imp {
         pub expanded: RefCell<bool>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         #[template_child]
-        pub detail_slider: TemplateChild<gtk::Revealer>,
+        pub detail_slider: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub details_revealer: TemplateChild<gtk::Revealer>,
+        pub details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub download_revealer: TemplateChild<gtk::Revealer>,
+        pub download_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub download_confirmation_revealer: TemplateChild<gtk::Revealer>,
+        pub download_confirmation_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub details: TemplateChild<gtk::Box>,
+        pub details: TemplateChild<gtk4::Box>,
         #[template_child]
-        pub details_box: TemplateChild<gtk::Box>,
+        pub details_box: TemplateChild<gtk4::Box>,
         #[template_child]
-        pub title: TemplateChild<gtk::Label>,
+        pub title: TemplateChild<gtk4::Label>,
         #[template_child]
         pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
         #[template_child]
@@ -48,7 +48,7 @@ pub(crate) mod imp {
     impl ObjectSubclass for EpicAssetDetails {
         const NAME: &'static str = "EpicAssetDetails";
         type Type = super::EpicAssetDetails;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
@@ -129,7 +129,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicAssetDetails(ObjectSubclass<imp::EpicAssetDetails>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicAssetDetails {
@@ -155,6 +155,7 @@ impl EpicAssetDetails {
 
         self_.download_manager.set(dm.clone()).unwrap();
         self_.download_details.set_download_manager(dm);
+        self_.images.set_download_manager(dm);
 
         self_
             .download_details
@@ -247,6 +248,10 @@ impl EpicAssetDetails {
                 return;
             }
         };
+        self_
+            .images
+            .set_property("asset", asset.id.clone())
+            .unwrap();
         self_.asset.replace(Some(asset.clone()));
         self_.download_details.set_asset(asset.clone());
         self_.details_revealer.set_reveal_child(true);
@@ -278,15 +283,15 @@ impl EpicAssetDetails {
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el)
         }
-        let size_group_labels = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
-        let size_group_prefix = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
+        let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+        let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
         if let Some(dev_name) = &asset.developer {
             let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk::LabelBuilder::new().label("Developer").build();
+            let title = gtk4::LabelBuilder::new().label("Developer").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk::LabelBuilder::new()
+            let label = gtk4::LabelBuilder::new()
                 .label(dev_name)
                 .wrap(true)
                 .xalign(0.0)
@@ -298,10 +303,10 @@ impl EpicAssetDetails {
 
         if let Some(platforms) = &asset.platforms() {
             let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk::LabelBuilder::new().label("Platforms").build();
+            let title = gtk4::LabelBuilder::new().label("Platforms").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk::LabelBuilder::new()
+            let label = gtk4::LabelBuilder::new()
                 .label(&platforms.join(", "))
                 .wrap(true)
                 .xalign(0.0)
@@ -313,10 +318,10 @@ impl EpicAssetDetails {
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
             let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk::LabelBuilder::new().label("Compatible with").build();
+            let title = gtk4::LabelBuilder::new().label("Compatible with").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk::LabelBuilder::new()
+            let label = gtk4::LabelBuilder::new()
                 .label(&compatible_apps.join(", ").replace("UE_", ""))
                 .wrap(true)
                 .xalign(0.0)
@@ -327,13 +332,13 @@ impl EpicAssetDetails {
         }
 
         if let Some(desc) = &asset.long_description {
-            let label = gtk::LabelBuilder::new().wrap(true).xalign(0.0).build();
+            let label = gtk4::LabelBuilder::new().wrap(true).xalign(0.0).build();
             label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
             self_.details_box.append(&label);
         }
 
         if let Some(desc) = &asset.technical_details {
-            let label = gtk::LabelBuilder::new().wrap(true).xalign(0.0).build();
+            let label = gtk4::LabelBuilder::new().wrap(true).xalign(0.0).build();
             label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
             self_.details_box.append(&label);
         }

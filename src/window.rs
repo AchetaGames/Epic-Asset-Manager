@@ -3,9 +3,9 @@ use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
 use glib::clone;
 use glib::signal::Inhibit;
-use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*};
-use gtk::{gio, glib, CompositeTemplate};
+use gtk4::subclass::prelude::*;
+use gtk4::{self, prelude::*};
+use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ pub(crate) mod imp;
 
 glib::wrapper! {
     pub struct EpicAssetManagerWindow(ObjectSubclass<imp::EpicAssetManagerWindow>)
-        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, gio::ActionMap, gio::ActionGroup;
+        @extends gtk4::Widget, gtk4::Window, gtk4::ApplicationWindow, gio::ActionMap, gio::ActionGroup;
 }
 
 impl EpicAssetManagerWindow {
@@ -23,7 +23,7 @@ impl EpicAssetManagerWindow {
         window.set_application(Some(app));
         // TODO: Set subwidget things here
         // Set icons for shell
-        gtk::Window::set_default_icon_name(APP_ID);
+        gtk4::Window::set_default_icon_name(APP_ID);
 
         window
     }

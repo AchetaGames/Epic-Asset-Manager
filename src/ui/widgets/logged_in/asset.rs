@@ -1,11 +1,11 @@
-use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk4::subclass::prelude::*;
+use gtk4::{self, prelude::*};
+use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
-    use gtk::gdk_pixbuf::prelude::StaticType;
-    use gtk::gdk_pixbuf::Pixbuf;
+    use gtk4::gdk_pixbuf::prelude::StaticType;
+    use gtk4::gdk_pixbuf::Pixbuf;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -15,14 +15,14 @@ pub(crate) mod imp {
         label: RefCell<Option<String>>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
-        pub image: TemplateChild<gtk::Image>,
+        pub image: TemplateChild<gtk4::Image>,
     }
 
     #[glib::object_subclass]
     impl ObjectSubclass for EpicAsset {
         const NAME: &'static str = "EpicAsset";
         type Type = super::EpicAsset;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
@@ -126,7 +126,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicAsset(ObjectSubclass<imp::EpicAsset>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicAsset {

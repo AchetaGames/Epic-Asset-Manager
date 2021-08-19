@@ -1,8 +1,9 @@
-use gtk::glib::{clone, MainContext, PRIORITY_DEFAULT};
-use gtk::subclass::prelude::*;
-use gtk::{self, gdk_pixbuf, gio, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk4::glib::{clone, MainContext, Receiver, Sender, PRIORITY_DEFAULT};
+use gtk4::subclass::prelude::*;
+use gtk4::{self, gdk_pixbuf, gio, prelude::*};
+use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
+use log::debug;
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::fs;
@@ -13,7 +14,10 @@ use std::path::PathBuf;
 
 pub(crate) mod imp {
     use super::*;
-    use gtk::gio;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use gtk4::gio;
+    use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -24,20 +28,29 @@ pub(crate) mod imp {
         pub stack: TemplateChild<adw::Carousel>,
         pub settings: gio::Settings,
         pub actions: gio::SimpleActionGroup,
+        pub download_manager: OnceCell<EpicDownloadManager>,
+        pub sender: Sender<super::ImageMsg>,
+        pub receiver: RefCell<Option<Receiver<super::ImageMsg>>>,
+        asset: RefCell<Option<String>>,
     }
 
     #[glib::object_subclass]
     impl ObjectSubclass for EpicImageOverlay {
         const NAME: &'static str = "EpicImageOverlay";
         type Type = super::EpicImageOverlay;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
+            let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
             Self {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 stack: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 actions: gio::SimpleActionGroup::new(),
+                download_manager: OnceCell::new(),
+                sender,
+                receiver: RefCell::new(Some(receiver)),
+                asset: RefCell::new(None),
             }
         }
 
@@ -55,6 +68,47 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+            obj.setup_receiver();
+        }
+
+        fn properties() -> &'static [glib::ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+                vec![glib::ParamSpec::new_string(
+                    "asset",
+                    "Asset",
+                    "Asset",
+                    None, // Default value
+                    glib::ParamFlags::READWRITE,
+                )]
+            });
+
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &glib::ParamSpec,
+        ) {
+            match pspec.name() {
+                "asset" => {
+                    let asset = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.asset.replace(asset);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "asset" => self.asset.borrow().to_value(),
+                _ => unimplemented!(),
+            }
         }
     }
 
@@ -64,13 +118,20 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicImageOverlay(ObjectSubclass<imp::EpicImageOverlay>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicImageOverlay {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum ImageMsg {
+    DownloadImage(String, egs_api::api::types::asset_info::KeyImage),
+    LoadImage(String, egs_api::api::types::asset_info::KeyImage),
+    ImageLoaded(Vec<u8>),
 }
 
 impl EpicImageOverlay {
@@ -86,6 +147,59 @@ impl EpicImageOverlay {
             }
         }
         self.check_actions();
+    }
+
+    pub fn set_download_manager(
+        &self,
+        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
+    ) {
+        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        // Do not run this twice
+        if self_.download_manager.get().is_some() {
+            return;
+        }
+
+        self_.download_manager.set(dm.clone()).unwrap();
+    }
+
+    pub fn setup_receiver(&self) {
+        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        self_.receiver.borrow_mut().take().unwrap().attach(
+            None,
+            clone!(@weak self as img => @default-panic, move |msg| {
+                img.update(msg);
+                glib::Continue(true)
+            }),
+        );
+    }
+
+    pub fn update(&self, msg: ImageMsg) {
+        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        match msg {
+            ImageMsg::DownloadImage(asset, image) => {
+                if let Some(dm) = self_.download_manager.get() {
+                    dm.download_image(image, asset, self_.sender.clone());
+                }
+            }
+            ImageMsg::LoadImage(asset, img) => {
+                debug!("Image downloaded");
+                if asset.eq(&self.asset()) {
+                    debug!("Adding image");
+                    self.add_image(&img);
+                }
+            }
+            ImageMsg::ImageLoaded(img) => {
+                debug!("Adding image to stack");
+                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+                pixbuf_loader.write(img.as_slice()).unwrap();
+                pixbuf_loader.close().ok();
+                let image = gtk4::Picture::for_pixbuf(pixbuf_loader.pixbuf().as_ref());
+                image.set_hexpand(true);
+                image.set_vexpand(true);
+                self_.stack.append(&image);
+                self.check_actions();
+            }
+        }
     }
 
     pub fn setup_actions(&self) {
@@ -137,7 +251,17 @@ impl EpicImageOverlay {
         );
     }
 
+    pub fn asset(&self) -> String {
+        if let Ok(value) = self.property("asset") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return id_opt;
+            }
+        };
+        "".to_string()
+    }
+
     pub fn add_image(&self, image: &egs_api::api::types::asset_info::KeyImage) {
+        debug!("Adding image: {}", image.url);
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
         let cache_dir = self_.settings.string("cache-directory").to_string();
         let mut cache_path = PathBuf::from(cache_dir);
@@ -147,22 +271,10 @@ impl EpicImageOverlay {
             .and_then(OsStr::to_str);
         cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
         // TODO Have just one sender&receiver per the widget
-        let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
-        receiver.attach(
-            None,
-            clone!(@weak self as image_stack => @default-panic, move |img: Vec<u8>| {
-                let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
-                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(img.as_slice()).unwrap();
-                pixbuf_loader.close().ok();
-                let image = gtk::Picture::for_pixbuf(pixbuf_loader.pixbuf().as_ref());
-                image.set_hexpand(true);
-                image.set_vexpand(true);
-                self_.stack.append(&image);
-                image_stack.check_actions();
-                glib::Continue(true)
-            }),
-        );
+        let sender = self_.sender.clone();
+
+        let asset = self.asset();
+        let img = image.clone();
 
         self_.image_load_pool.execute(move || {
             match File::open(cache_path.as_path()) {
@@ -177,12 +289,17 @@ impl EpicImageOverlay {
                     match pixbuf_loader.pixbuf() {
                         None => {}
                         Some(pb) => sender
-                            .send(pb.save_to_bufferv("png", &[]).unwrap())
+                            .send(ImageMsg::ImageLoaded(
+                                pb.save_to_bufferv("png", &[]).unwrap(),
+                            ))
                             .unwrap(),
                     };
                 }
                 Err(_) => {
-                    println!("Need to load image");
+                    debug!("Need to download image");
+                    sender
+                        .send(ImageMsg::DownloadImage(asset, img.clone()))
+                        .unwrap();
                 }
             };
         })

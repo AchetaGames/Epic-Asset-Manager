@@ -2,12 +2,12 @@ use crate::tools::asset_info::Search;
 use crate::Win;
 use egs_api::api::types::asset_info::AssetInfo;
 use glib::Cast;
-use gtk::gdk_pixbuf::traits::PixbufLoaderExt;
-use gtk::traits::{
+use gtk4::gdk_pixbuf::traits::PixbufLoaderExt;
+use gtk4::traits::{
     ButtonExt, ContainerExt, EntryExt, FlowBoxExt, GridExt, ImageExt, LabelExt, OverlayExt,
     RevealerExt, WidgetExt,
 };
-use gtk::{
+use gtk4::{
     Align, AspectFrame, Box, Button, FlowBoxChild, GridBuilder, Image, Justification, Label,
     Overlay, Separator,
 };
@@ -57,7 +57,7 @@ impl Assets for Win {
                 let data: AssetInfo = object.deserialize();
                 child.set_widget_name(&data.id);
                 let image = object.image();
-                let vbox = Box::new(gtk::Orientation::Vertical, 0);
+                let vbox = Box::new(gtk4::Orientation::Vertical, 0);
                 let gtkimage = Image::new();
                 if let Some(title) = &data.title {
                     gtkimage.set_tooltip_text(Some(title));
@@ -83,7 +83,7 @@ impl Assets for Win {
                     label.set_wrap(true);
                     label.set_expand(false);
                     label.set_max_width_chars(15);
-                    label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                    label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
                     label.set_tooltip_text(Some(title));
                     label.set_justify(Justification::Center);
                     vbox.add(&label);
@@ -97,7 +97,7 @@ impl Assets for Win {
                     thread::current().id(),
                     start.elapsed()
                 );
-                child.upcast::<gtk::Widget>()
+                child.upcast::<gtk4::Widget>()
             });
     }
 
@@ -112,18 +112,18 @@ impl Assets for Win {
                     info!("Showing details for {:?}", asset_info.title);
                     self.model.selected_asset = Some(asset_info.id.clone());
 
-                    let vbox = Box::new(gtk::Orientation::Vertical, 0);
+                    let vbox = Box::new(gtk4::Orientation::Vertical, 0);
 
                     if let Some(title) = &asset_info.title {
                         let name = Label::new(None);
                         name.set_markup(&format!("<b><u><big>{}</big></u></b>", title));
-                        name.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+                        name.set_ellipsize(gtk4::pango::EllipsizeMode::Middle);
                         name.set_line_wrap(true);
                         name.set_halign(Align::Start);
                         vbox.add(&name);
                     }
 
-                    vbox.add(&Separator::new(gtk::Orientation::Horizontal));
+                    vbox.add(&Separator::new(gtk4::Orientation::Horizontal));
                     self.widgets
                         .image_stack
                         .foreach(|el| self.widgets.image_stack.remove(el));
@@ -166,7 +166,7 @@ impl Assets for Win {
                                 .emit(crate::ui::messages::Msg::DownloadImage(None, image.clone()));
                         }
                     }
-                    let details_box = Box::new(gtk::Orientation::Vertical, 0);
+                    let details_box = Box::new(gtk4::Orientation::Vertical, 0);
                     details_box.set_vexpand(true);
                     details_box.set_valign(Align::Start);
                     vbox.add(&details_box);
@@ -206,7 +206,7 @@ impl Assets for Win {
                         table.attach(&compat, 1, 2, 1, 1);
                     }
                     details_box.add(&table);
-                    details_box.add(&Separator::new(gtk::Orientation::Horizontal));
+                    details_box.add(&Separator::new(gtk4::Orientation::Horizontal));
                     if let Some(desc) = &asset_info.long_description {
                         let description = Label::new(None);
                         description.set_line_wrap(true);

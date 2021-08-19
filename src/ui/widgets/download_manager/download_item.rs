@@ -1,14 +1,14 @@
-use gtk::glib::clone;
-use gtk::subclass::prelude::*;
-use gtk::{self, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk4::glib::clone;
+use gtk4::subclass::prelude::*;
+use gtk4::{self, prelude::*};
+use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use adw::subclass::action_row::ActionRowImpl;
-    use gtk::gdk_pixbuf::Pixbuf;
-    use gtk::gio;
+    use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::gio;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -25,13 +25,13 @@ pub(crate) mod imp {
         pub extracted_files: RefCell<u64>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
-        pub image: TemplateChild<gtk::Image>,
+        pub image: TemplateChild<gtk4::Image>,
         #[template_child]
-        pub stack: TemplateChild<gtk::Stack>,
+        pub stack: TemplateChild<gtk4::Stack>,
         #[template_child]
-        pub download_progress: TemplateChild<gtk::ProgressBar>,
+        pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]
-        pub extraction_progress: TemplateChild<gtk::ProgressBar>,
+        pub extraction_progress: TemplateChild<gtk4::ProgressBar>,
     }
 
     #[glib::object_subclass]
@@ -75,10 +75,10 @@ pub(crate) mod imp {
             obj.setup_messaging();
         }
 
-        fn signals() -> &'static [gtk::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk::glib::subclass::Signal>> =
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk::glib::subclass::Signal::builder(
+                    vec![gtk4::glib::subclass::Signal::builder(
                         "finished",
                         &[],
                         <()>::static_type().into(),
@@ -172,7 +172,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicDownloadItem(ObjectSubclass<imp::EpicDownloadItem>)
-        @extends gtk::Widget, gtk::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
+        @extends gtk4::Widget, gtk4::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
 }
 
 impl Default for EpicDownloadItem {

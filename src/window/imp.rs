@@ -5,15 +5,15 @@ use crate::models::Model;
 #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
 pub struct EpicAssetManagerWindow {
     #[template_child]
-    pub headerbar: TemplateChild<gtk::HeaderBar>,
+    pub headerbar: TemplateChild<gtk4::HeaderBar>,
     #[template_child]
-    pub main_stack: TemplateChild<gtk::Stack>,
+    pub main_stack: TemplateChild<gtk4::Stack>,
     #[template_child]
     pub logged_in_stack: TemplateChild<crate::ui::widgets::logged_in::EpicLoggedInBox>,
     #[template_child]
     pub sid_box: TemplateChild<crate::ui::widgets::sid_login::SidBox>,
     #[template_child]
-    pub progress_message: TemplateChild<gtk::Label>,
+    pub progress_message: TemplateChild<gtk4::Label>,
     #[template_child]
     pub download_manager: TemplateChild<crate::ui::widgets::download_manager::EpicDownloadManager>,
     pub model: Model,
@@ -23,7 +23,7 @@ pub struct EpicAssetManagerWindow {
 impl ObjectSubclass for EpicAssetManagerWindow {
     const NAME: &'static str = "EpicAssetManagerWindow";
     type Type = super::EpicAssetManagerWindow;
-    type ParentType = gtk::ApplicationWindow;
+    type ParentType = gtk4::ApplicationWindow;
 
     fn new() -> Self {
         Self {

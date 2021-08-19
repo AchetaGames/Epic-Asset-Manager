@@ -1,12 +1,12 @@
 use glib::clone;
-use gtk::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::{action, get_action};
 
 pub mod imp {
     use super::*;
     use adw::subclass::action_row::ActionRowImpl;
     use glib::subclass::{self};
-    use gtk::glib::subclass::Signal;
+    use gtk4::glib::subclass::Signal;
     use once_cell::sync::Lazy;
     use once_cell::sync::OnceCell;
 
@@ -68,7 +68,7 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct DirectoryRow(ObjectSubclass<imp::DirectoryRow>)
-        @extends gtk::Widget, gtk::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
+        @extends gtk4::Widget, gtk4::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
 }
 
 impl DirectoryRow {

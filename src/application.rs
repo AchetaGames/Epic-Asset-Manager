@@ -3,9 +3,9 @@ use crate::window::EpicAssetManagerWindow;
 use gio::ApplicationFlags;
 use glib::clone;
 use glib::WeakRef;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::{gdk, gio, glib};
+use gtk4::prelude::*;
+use gtk4::subclass::prelude::*;
+use gtk4::{gdk, gio, glib};
 use gtk_macros::action;
 use log::{debug, info};
 use once_cell::sync::OnceCell;
@@ -14,7 +14,7 @@ pub(crate) mod imp;
 
 glib::wrapper! {
     pub struct EpicAssetManager(ObjectSubclass<imp::EpicAssetManager>)
-        @extends gio::Application, gtk::Application, @implements gio::ActionMap, gio::ActionGroup;
+        @extends gio::Application, gtk4::Application, @implements gio::ActionMap, gio::ActionGroup;
 }
 
 impl Default for EpicAssetManager {
@@ -68,22 +68,22 @@ impl EpicAssetManager {
     }
 
     pub fn setup_css(&self) {
-        let provider = gtk::CssProvider::new();
+        let provider = gtk4::CssProvider::new();
         provider.load_from_resource("/io/github/achetagames/epic_asset_manager/style.css");
         if let Some(display) = gdk::Display::default() {
-            gtk::StyleContext::add_provider_for_display(
+            gtk4::StyleContext::add_provider_for_display(
                 &display,
                 &provider,
-                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+                gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
             );
         }
     }
 
     fn show_about_dialog(&self) {
-        let dialog = gtk::AboutDialogBuilder::new()
+        let dialog = gtk4::AboutDialogBuilder::new()
             .program_name("Epic Asset Manager")
             .logo_icon_name(config::APP_ID)
-            .license_type(gtk::License::MitX11)
+            .license_type(gtk4::License::MitX11)
             .website("https://github.com/AchetaGames/Epic-Asset-Manager")
             .version(config::VERSION)
             .transient_for(&self.main_window())

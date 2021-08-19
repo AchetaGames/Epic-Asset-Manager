@@ -1,8 +1,8 @@
 use crate::tools::or::Or;
-use gtk::glib::clone;
-use gtk::subclass::prelude::*;
-use gtk::{self, gio, prelude::*};
-use gtk::{glib, CompositeTemplate};
+use gtk4::glib::clone;
+use gtk4::subclass::prelude::*;
+use gtk4::{self, gio, prelude::*};
+use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use std::ops::Deref;
 
@@ -24,7 +24,7 @@ pub(crate) mod imp {
         #[template_child]
         pub version_row: TemplateChild<adw::ActionRow>,
         #[template_child]
-        pub select_download_version: TemplateChild<gtk::ComboBoxText>,
+        pub select_download_version: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
         pub supported_row: TemplateChild<adw::ActionRow>,
         #[template_child]
@@ -34,9 +34,9 @@ pub(crate) mod imp {
         #[template_child]
         pub release_notes_row: TemplateChild<adw::ActionRow>,
         #[template_child]
-        pub download_details_revealer: TemplateChild<gtk::Revealer>,
+        pub download_details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub download_details_button: TemplateChild<gtk::Button>,
+        pub download_details_button: TemplateChild<gtk4::Button>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
     }
@@ -45,7 +45,7 @@ pub(crate) mod imp {
     impl ObjectSubclass for EpicDownloadDetails {
         const NAME: &'static str = "EpicDownloadDetails";
         type Type = super::EpicDownloadDetails;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
@@ -85,10 +85,10 @@ pub(crate) mod imp {
             obj.setup_events();
         }
 
-        fn signals() -> &'static [gtk::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk::glib::subclass::Signal>> =
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk::glib::subclass::Signal::builder(
+                    vec![gtk4::glib::subclass::Signal::builder(
                         "start-download",
                         &[],
                         <()>::static_type().into(),
@@ -204,7 +204,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicDownloadDetails(ObjectSubclass<imp::EpicDownloadDetails>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicDownloadDetails {

@@ -1,14 +1,14 @@
 use glib::ObjectExt;
-use gtk::gdk_pixbuf::prelude::PixbufLoaderExt;
-use gtk::gdk_pixbuf::Pixbuf;
-use gtk::{gdk_pixbuf, glib, subclass::prelude::*};
+use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
+use gtk4::gdk_pixbuf::Pixbuf;
+use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
 
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk::gdk_pixbuf::prelude::StaticType;
-    use gtk::gdk_pixbuf::Pixbuf;
+    use gtk4::gdk_pixbuf::prelude::StaticType;
+    use gtk4::gdk_pixbuf::Pixbuf;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible

@@ -11,7 +11,7 @@ pub struct EpicAssetManager {
 impl ObjectSubclass for EpicAssetManager {
     const NAME: &'static str = "EpicAssetManager";
     type Type = super::EpicAssetManager;
-    type ParentType = gtk::Application;
+    type ParentType = gtk4::Application;
 
     fn new() -> Self {
         let settings = gio::Settings::new(config::APP_ID);

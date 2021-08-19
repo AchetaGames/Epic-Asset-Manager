@@ -2,13 +2,13 @@ mod asset;
 pub mod asset_detail;
 pub mod category;
 mod download_detail;
-mod image_stack;
+pub mod image_stack;
 
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::logged_in::asset::EpicAsset;
 use glib::clone;
-use gtk::{self, gdk_pixbuf, prelude::*};
-use gtk::{gio, glib, subclass::prelude::*, CompositeTemplate};
+use gtk4::{self, gdk_pixbuf, prelude::*};
+use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::debug;
 use std::ffi::OsStr;
@@ -23,9 +23,9 @@ pub(crate) mod imp {
     use crate::config;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use gtk::gio;
-    use gtk::gio::ListStore;
-    use gtk::glib::{Object, ParamSpec};
+    use gtk4::gio;
+    use gtk4::gio::ListStore;
+    use gtk4::glib::{Object, ParamSpec};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::{HashMap, HashSet};
@@ -56,24 +56,24 @@ pub(crate) mod imp {
         #[template_child]
         pub details: TemplateChild<crate::ui::widgets::logged_in::asset_detail::EpicAssetDetails>,
         #[template_child]
-        pub download_progress: TemplateChild<gtk::ProgressBar>,
+        pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]
-        pub expand_button: TemplateChild<gtk::Button>,
+        pub expand_button: TemplateChild<gtk4::Button>,
         #[template_child]
-        pub expand_image: TemplateChild<gtk::Image>,
+        pub expand_image: TemplateChild<gtk4::Image>,
         #[template_child]
-        pub expand_label: TemplateChild<gtk::Label>,
+        pub expand_label: TemplateChild<gtk4::Label>,
         #[template_child]
-        pub asset_grid: TemplateChild<gtk::GridView>,
+        pub asset_grid: TemplateChild<gtk4::GridView>,
         #[template_child]
-        pub asset_search: TemplateChild<gtk::SearchEntry>,
+        pub asset_search: TemplateChild<gtk4::SearchEntry>,
         pub sidebar_expanded: RefCell<bool>,
         pub filter: RefCell<Option<String>>,
         pub search: RefCell<Option<String>>,
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<EpicDownloadManager>,
-        pub filter_model: gtk::FilterListModel,
+        pub filter_model: gtk4::FilterListModel,
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub asset_load_pool: ThreadPool,
@@ -87,7 +87,7 @@ pub(crate) mod imp {
     impl ObjectSubclass for EpicLoggedInBox {
         const NAME: &'static str = "EpicLoggedInBox";
         type Type = super::EpicLoggedInBox;
-        type ParentType = gtk::Box;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
@@ -110,7 +110,7 @@ pub(crate) mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
-                filter_model: gtk::FilterListModel::new(gio::NONE_LIST_MODEL, gtk::NONE_FILTER),
+                filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
@@ -235,7 +235,7 @@ pub(crate) mod imp {
 
 glib::wrapper! {
     pub struct EpicLoggedInBox(ObjectSubclass<imp::EpicLoggedInBox>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicLoggedInBox {
@@ -282,7 +282,7 @@ impl EpicLoggedInBox {
         }
 
         self_.window.set(window.clone()).unwrap();
-        let factory = gtk::SignalListItemFactory::new();
+        let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
             item.set_child(Some(&row));
@@ -300,7 +300,7 @@ impl EpicLoggedInBox {
             child.set_property("thumbnail", &data.image()).unwrap();
         });
 
-        let sorter = gtk::CustomSorter::new(move |obj1, obj2| {
+        let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
                 .downcast_ref::<crate::models::row_data::RowData>()
                 .unwrap();
@@ -316,8 +316,8 @@ impl EpicLoggedInBox {
         });
 
         self_.filter_model.set_model(Some(&self_.grid_model));
-        let sorted_model = gtk::SortListModel::new(Some(&self_.filter_model), Some(&sorter));
-        let selection_model = gtk::SingleSelection::new(Some(&sorted_model));
+        let sorted_model = gtk4::SortListModel::new(Some(&self_.filter_model), Some(&sorter));
+        let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
         selection_model.set_autoselect(false);
         selection_model.set_can_unselect(true);
         self_.asset_grid.set_model(Some(&selection_model));
@@ -460,11 +460,11 @@ impl EpicLoggedInBox {
         let search = self.search();
         let filter_p = self.filter();
         if filter_p.is_none() && search.is_none() {
-            self_.filter_model.set_filter(None::<&gtk::CustomFilter>);
+            self_.filter_model.set_filter(None::<&gtk4::CustomFilter>);
             return;
         }
 
-        let filter = gtk::CustomFilter::new(move |object| {
+        let filter = gtk4::CustomFilter::new(move |object| {
             let asset = object
                 .downcast_ref::<crate::models::row_data::RowData>()
                 .unwrap();

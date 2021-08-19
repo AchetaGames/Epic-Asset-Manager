@@ -2,7 +2,7 @@ use crate::download::DownloadedFile;
 use crate::window::EpicAssetManagerWindow;
 use byte_unit::Byte;
 use egs_api::api::types::download_manifest::FileManifestList;
-use gtk::CheckButton;
+use gtk4::CheckButton;
 use log::{debug, error, info, warn};
 use reqwest::Url;
 use sha1::{Digest, Sha1};
