@@ -559,6 +559,7 @@ impl EpicLoggedInBox {
                         }
                         match File::open(cache_path.as_path()) {
                             Ok(mut f) => {
+                                fs::create_dir_all(cache_path.parent().unwrap().clone()).unwrap();
                                 let metadata = fs::metadata(&cache_path.as_path())
                                     .expect("unable to read metadata");
                                 let mut buffer = vec![0; metadata.len() as usize];
@@ -623,7 +624,9 @@ impl EpicLoggedInBox {
             let win_ = window.data();
             let cache_dir = win_.model.settings.string("cache-directory").to_string();
             let cache_path = PathBuf::from(cache_dir);
+            debug!("Fetching assets");
             if cache_path.is_dir() {
+                debug!("Checking cache");
                 for entry in std::fs::read_dir(cache_path).unwrap() {
                     let sender = win_.model.sender.clone();
                     self_.asset_load_pool.execute(move || {
@@ -652,19 +655,19 @@ impl EpicLoggedInBox {
                         }
                     });
                 }
-                let mut eg = win_.model.epic_games.clone();
-                let sender = win_.model.sender.clone();
-                self_.asset_load_pool.execute(move || {
-                    let assets = tokio::runtime::Runtime::new()
-                        .unwrap()
-                        .block_on(eg.list_assets());
-                    for asset in assets {
-                        sender
-                            .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-                            .unwrap();
-                    }
-                })
             };
+            let mut eg = win_.model.epic_games.clone();
+            let sender = win_.model.sender.clone();
+            self_.asset_load_pool.execute(move || {
+                let assets = tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(eg.list_assets());
+                for asset in assets {
+                    sender
+                        .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+                        .unwrap();
+                }
+            });
             glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
                 obj.flush_assets();
                 let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(&obj);
