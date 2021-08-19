@@ -21,9 +21,8 @@
   <releases>
     <release version="2.0.0" date="2021-08-19">
        <description>
-              <p></p>
+              <p>GTK4 Rewrite</p>
               <ul>
-                  <li>GTK4 Rewrite</li>
                   <li>Redesign</li>
                   <li>Add categories and subcategories to the side panel</li>
                   <li>Download progress</li>
