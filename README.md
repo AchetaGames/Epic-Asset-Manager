@@ -2,6 +2,7 @@
 <a href="https://discord.gg/dumxVnYe6n">
     <img alt="Discord" src="https://img.shields.io/discord/332629362094374913"></a>
     <img alt="Build Status" src="https://github.com/AchetaGames/Epic-Asset-Manager/actions/workflows/rust.yml/badge.svg">
+    <img alt="Flathub" src="https://img.shields.io/flathub/v/io.github.achetagames.epic_asset_manager">
 </p>
 
 # Epic-Asset-Manager
