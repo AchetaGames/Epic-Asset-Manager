@@ -1,8 +1,13 @@
 <p align="center">
-<a href="https://discord.gg/dumxVnYe6n">
-    <img alt="Discord" src="https://img.shields.io/discord/332629362094374913"></a>
-    <img alt="Build Status" src="https://github.com/AchetaGames/Epic-Asset-Manager/actions/workflows/rust.yml/badge.svg">
-    <img alt="Flathub" src="https://img.shields.io/flathub/v/io.github.achetagames.epic_asset_manager">
+    <a href="https://discord.gg/dumxVnYe6n">
+        <img alt="Discord" src="https://img.shields.io/discord/332629362094374913">
+    </a>
+    <a href="https://github.com/AchetaGames/Epic-Asset-Manager/actions/workflows/release.yml">    
+        <img alt="Build Status" src="https://github.com/AchetaGames/Epic-Asset-Manager/actions/workflows/release.yml/badge.svg">
+    </a>
+    <a href="https://flathub.org/apps/details/io.github.achetagames.epic_asset_manager">
+        <img alt="Flathub" src="https://img.shields.io/flathub/v/io.github.achetagames.epic_asset_manager">
+    </a>
 </p>
 
 # Epic-Asset-Manager
