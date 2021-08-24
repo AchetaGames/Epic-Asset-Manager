@@ -5,9 +5,9 @@
   <metadata_license>CC0</metadata_license>
   <project_license>MIT</project_license>
   <name>Epic Asset Manager</name>
-  <summary>Epic Asset Manager used to manage assets from Epic Games Store</summary>
+  <summary>Manage your Epic assets</summary>
   <description>
-    <p>An native GTK application to access Assets owned through Epic Games Store including Games and Unreal Engine assets.</p>
+    <p>A native GTK application to access Assets owned through Epic Games Store including Games and Unreal Engine assets.</p>
   </description>
   <screenshots>
     <screenshot type="default">
@@ -19,6 +19,11 @@
   <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="2.1.0" date="2021-08-24">
+       <description>
+              <p>Handle the com.epicgames.launcher urls </p>
+       </description>
+    </release>
     <release version="2.0.1" date="2021-08-19">
        <description>
               <p>Asset loading fix</p>
