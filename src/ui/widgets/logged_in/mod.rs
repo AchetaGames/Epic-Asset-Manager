@@ -76,11 +76,14 @@ pub(crate) mod imp {
         pub filter_model: gtk4::FilterListModel,
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
+        pub asset_product_names: RefCell<HashMap<String, String>>,
         pub asset_load_pool: ThreadPool,
         pub image_load_pool: ThreadPool,
         pub assets_pending: Arc<std::sync::RwLock<Vec<Object>>>,
         pub categories: RefCell<HashSet<String>>,
         pub settings: gio::Settings,
+        item: RefCell<Option<String>>,
+        product: RefCell<Option<String>>,
     }
 
     #[glib::object_subclass]
@@ -113,11 +116,14 @@ pub(crate) mod imp {
                 filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
                 grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
+                asset_product_names: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
                 categories: RefCell::new(HashSet::new()),
                 settings: gio::Settings::new(config::APP_ID),
+                item: RefCell::new(None),
+                product: RefCell::new(None),
             }
         }
 
@@ -154,6 +160,20 @@ pub(crate) mod imp {
                         "search",
                         "Search",
                         "Search",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "item",
+                        "item",
+                        "item",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "product",
+                        "product",
+                        "product",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -204,6 +224,18 @@ pub(crate) mod imp {
                     });
                     obj.apply_filter();
                 }
+                "item" => {
+                    let item = value.get().unwrap();
+                    self.product.replace(None);
+                    self.item.replace(item);
+                    obj.open_asset();
+                }
+                "product" => {
+                    let product = value.get().unwrap();
+                    self.item.replace(None);
+                    self.product.replace(product);
+                    obj.open_asset();
+                }
                 _ => unimplemented!(),
             }
         }
@@ -213,6 +245,8 @@ pub(crate) mod imp {
                 "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
                 "filter" => self.filter.borrow().to_value(),
                 "search" => self.search.borrow().to_value(),
+                "item" => self.item.borrow().to_value(),
+                "product" => self.product.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -335,6 +369,38 @@ impl EpicLoggedInBox {
         self.fetch_assets();
     }
 
+    fn open_asset(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        if let Some(id) = self.item() {
+            let assets = self_.loaded_assets.borrow();
+            if let Some(a) = assets.get(&id) {
+                self_.details.set_asset(a.clone())
+            }
+        } else if let Some(product) = self.product() {
+            let assets = self_.loaded_assets.borrow();
+            let products = self_.asset_product_names.borrow();
+            match products.get(&product) {
+                Some(id) => {
+                    if let Some(a) = assets.get(id) {
+                        self_.details.set_asset(a.clone())
+                    }
+                }
+                None => {
+                    for prod in products.keys() {
+                        if product.starts_with(prod) {
+                            if let Some(id) = products.get(prod) {
+                                if let Some(a) = assets.get(id) {
+                                    self_.details.set_asset(a.clone())
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn flush_assets(&self) {
         let start = std::time::Instant::now();
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
@@ -345,6 +411,7 @@ impl EpicLoggedInBox {
             self_.grid_model.splice(0, 0, vec.as_slice());
             vec.clear();
         }
+        self.open_asset();
         debug!("Finished flushing {:?}", start.elapsed());
     }
 
@@ -441,6 +508,24 @@ impl EpicLoggedInBox {
         None
     }
 
+    pub fn item(&self) -> Option<String> {
+        if let Ok(value) = self.property("item") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
+    }
+
+    pub fn product(&self) -> Option<String> {
+        if let Ok(value) = self.property("product") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
+    }
+
     pub fn unselect_categories_except(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         let filter = match self.filter() {
@@ -493,9 +578,19 @@ impl EpicLoggedInBox {
             }
         };
         let mut assets = self_.loaded_assets.borrow_mut();
+        let mut asset_products = self_.asset_product_names.borrow_mut();
         if match assets.get_mut(&asset.id) {
             None => {
                 assets.insert(asset.id.clone(), asset.clone());
+                if let Some(title) = asset.title.clone() {
+                    let title: String = title
+                        .chars()
+                        .filter(|c| c.is_ascii_alphanumeric() || c.is_ascii_whitespace())
+                        .collect();
+                    let title: String = title.to_lowercase().replace(" ", "-");
+                    asset_products.insert(title, asset.id.clone());
+                }
+
                 true
             }
             Some(a) => {
@@ -505,6 +600,14 @@ impl EpicLoggedInBox {
                     false
                 } else {
                     assets.insert(asset.id.clone(), asset.clone());
+                    if let Some(title) = asset.title.clone() {
+                        let title: String = title
+                            .chars()
+                            .filter(|c| c.is_ascii_alphanumeric() || c.is_ascii_whitespace())
+                            .collect();
+                        let title: String = title.to_lowercase().replace(" ", "-");
+                        asset_products.insert(title, asset.id.clone());
+                    }
                     true
                 }
             }
@@ -559,7 +662,7 @@ impl EpicLoggedInBox {
                         }
                         match File::open(cache_path.as_path()) {
                             Ok(mut f) => {
-                                fs::create_dir_all(cache_path.parent().unwrap().clone()).unwrap();
+                                fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
                                 let metadata = fs::metadata(&cache_path.as_path())
                                     .expect("unable to read metadata");
                                 let mut buffer = vec![0; metadata.len() as usize];

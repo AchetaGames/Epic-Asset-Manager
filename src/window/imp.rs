@@ -1,5 +1,6 @@
 use super::*;
 use crate::models::Model;
+use glib::ParamSpec;
 
 #[derive(CompositeTemplate)]
 #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
@@ -60,6 +61,43 @@ impl ObjectImpl for EpicAssetManagerWindow {
         obj.load_window_size();
         obj.setup_actions();
         obj.setup_receiver();
+    }
+
+    fn properties() -> &'static [ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+            vec![
+                ParamSpec::new_string("item", "item", "item", None, glib::ParamFlags::READWRITE),
+                ParamSpec::new_string(
+                    "product",
+                    "product",
+                    "product",
+                    None,
+                    glib::ParamFlags::READWRITE,
+                ),
+            ]
+        });
+        PROPERTIES.as_ref()
+    }
+
+    fn set_property(&self, _obj: &Self::Type, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
+        match pspec.name() {
+            "item" => {
+                let item = value.get::<String>().unwrap();
+                self.logged_in_stack.set_property("item", item).unwrap();
+            }
+            "product" => {
+                let product = value.get::<String>().unwrap();
+                self.logged_in_stack
+                    .set_property("product", product)
+                    .unwrap();
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn property(&self, _obj: &Self::Type, _id: usize, _pspec: &ParamSpec) -> glib::Value {
+        unimplemented!()
     }
 }
 
