@@ -19,7 +19,7 @@
   <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
   <content_rating type="oars-1.0" />
   <releases>
-    <release version="2.1.0" date="2021-08-24">
+    <release version="2.1.1" date="2021-08-24">
        <description>
               <p>Handle the com.epicgames.launcher urls </p>
        </description>
