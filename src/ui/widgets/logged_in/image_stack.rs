@@ -279,7 +279,7 @@ impl EpicImageOverlay {
         self_.image_load_pool.execute(move || {
             match File::open(cache_path.as_path()) {
                 Ok(mut f) => {
-                    fs::create_dir_all(cache_path.parent().unwrap().clone()).unwrap();
+                    fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
                     let metadata =
                         fs::metadata(&cache_path.as_path()).expect("unable to read metadata");
                     let mut buffer = vec![0; metadata.len() as usize];

@@ -27,7 +27,7 @@ impl EpicAssetManager {
     pub fn new() -> Self {
         glib::Object::new(&[
             ("application-id", &Some(config::APP_ID)),
-            ("flags", &ApplicationFlags::empty()),
+            ("flags", &ApplicationFlags::HANDLES_OPEN),
         ])
         .expect("Application initialization failed...")
     }
