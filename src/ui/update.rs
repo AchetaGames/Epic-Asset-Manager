@@ -15,18 +15,8 @@ impl Update for EpicAssetManagerWindow {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
 
         match event.clone() {
-            Msg::Open(_, _) => {}
-            Msg::Quit => {}
-            Msg::PasswordLogin => {}
-            Msg::AlternateLogin => {}
-            Msg::SidLogin => {}
-            Msg::OpenBrowserSid => {}
-            Msg::Login(_) => {}
-            Msg::Logout => {}
             Msg::ShowLogin => self.show_login(),
-            Msg::Relogin => {}
             Msg::LoginOk(ud) => self.show_assets(ud),
-            Msg::ProcessAssetList(_, _) => {}
             Msg::ProcessAssetInfo(a) => {
                 self_.logged_in_stack.load_thumbnail(a);
             }
@@ -38,28 +28,6 @@ impl Update for EpicAssetManagerWindow {
                     .download_manager
                     .download_thumbnail(image, asset, self_.model.sender.clone());
             }
-            Msg::LoadDownloadManifest(_, _) => {}
-            Msg::ProcessDownloadManifest(_, _) => {}
-            Msg::ProcessAssetSelected => {}
-            Msg::FilterAssets(_) => {}
-            Msg::SearchAssets => {}
-            Msg::BindAssetModel => {}
-            Msg::PulseProgress => {}
-            Msg::CloseDetails => {}
-            Msg::NextImage => {}
-            Msg::PrevImage => {}
-            Msg::ShowSettings(_) => {}
-            Msg::ShowAssetDownload(_) => {}
-            Msg::DownloadVersionSelected => {}
-            Msg::ToggleAssetDownloadDetails => {}
-            Msg::SelectForDownload(_, _, _, _, _) => {}
-            Msg::DownloadAssets(_, _, _) => {}
-            Msg::DownloadFileValidated(_, _, _, _) => {}
-            Msg::DownloadProgressReport(_, _, _) => {}
-            Msg::ExtractionFinished(_, _) => {}
-            Msg::ConfigurationDirectorySelectionChanged(_) => {}
-            Msg::ConfigurationAddUnrealEngineDir(_) => {}
-            Msg::ConfigurationRemoveUnrealEngineDir(_, _) => {}
             Msg::FlushAssetThumbnails => {
                 self_.logged_in_stack.flush_assets();
             }

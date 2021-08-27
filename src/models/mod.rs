@@ -10,26 +10,11 @@ use log::{debug, info};
 use secret_service::{EncryptionType, SecretService};
 use std::cell::RefCell;
 
-// pub mod asset_model;
-// pub mod row_data;
 pub struct Model {
     pub epic_games: EpicGames,
     pub secret_service: SecretService<'static>,
-    // asset_model: crate::models::asset_model::Model,
-    // selected_asset: Option<String>,
-    // selected_files: HashMap<String, HashMap<String, Vec<String>>>,
-    // download_pool: ThreadPool,
-    // thumbnail_pool: ThreadPool,
-    // image_pool: ThreadPool,
-    // file_pool: ThreadPool,
-    // downloaded_chunks: HashMap<String, Vec<String>>,
-    // downloaded_files: HashMap<String, DownloadedFile>,
-    // download_manifest_tree: Tree<Option<CheckButton>>,
-    // download_manifest_handlers: HashMap<NodeId, SignalHandlerId>,
-    // download_manifest_file_details: HashMap<NodeId, (String, String, String, u128)>,
     pub sender: Sender<crate::ui::messages::Msg>,
     pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
-    // selected_files_size: u128,
     pub settings: gio::Settings,
 }
 
