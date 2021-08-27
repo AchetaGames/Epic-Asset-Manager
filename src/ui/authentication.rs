@@ -6,22 +6,6 @@ use std::thread;
 use tokio::runtime::Runtime;
 
 impl EpicAssetManagerWindow {
-    // fn show_login(&self) {
-    //     self.widgets
-    //         .title_right_box
-    //         .foreach(|el| self.widgets.title_right_box.remove(el));
-    //     self.widgets.login_widgets.login_entry.set_text("");
-    //     self.widgets.login_widgets.password_entry.set_text("");
-    //     self.widgets.main_stack.set_visible_child_name("sid_box");
-    //     if let Some(ud) = &self.model.configuration.user_data {
-    //         ud.remove(self.model.configuration.path.clone());
-    //     };
-    //     self.model
-    //         .relm
-    //         .stream()
-    //         .emit(crate::ui::messages::Msg::AlternateLogin);
-    // }
-
     pub fn login(&self, sid: String) {
         let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         _self.main_stack.set_visible_child_name("progress");
