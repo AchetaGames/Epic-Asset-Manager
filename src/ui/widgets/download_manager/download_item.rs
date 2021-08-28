@@ -2,6 +2,7 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use gtk_macros::action;
 
 pub(crate) mod imp {
     use super::*;
@@ -19,6 +20,7 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         status: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
+        path: RefCell<Option<String>>,
         pub total_size: RefCell<u128>,
         pub downloaded_size: RefCell<u128>,
         pub total_files: RefCell<u64>,
@@ -46,6 +48,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 status: RefCell::new(None),
                 label: RefCell::new(None),
+                path: RefCell::new(None),
                 total_size: RefCell::new(0),
                 downloaded_size: RefCell::new(0),
                 total_files: RefCell::new(0),
@@ -101,6 +104,13 @@ pub(crate) mod imp {
                         glib::ParamFlags::READWRITE,
                     ),
                     glib::ParamSpec::new_string(
+                        "path",
+                        "Path",
+                        "Path",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpec::new_string(
                         "status",
                         "status",
                         "status",
@@ -136,6 +146,28 @@ pub(crate) mod imp {
 
                     self.label.replace(label);
                 }
+                "path" => {
+                    let init = self.path.borrow().is_none();
+                    let path = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`");
+
+                    self.path.replace(path.clone());
+                    if init {
+                        if let Some(p) = path {
+                            action!(self.actions, "open", move |_, _| {
+                                if gtk4::gio::AppInfo::launch_default_for_uri(
+                                    &format!("file://{}/data", p),
+                                    None::<&gtk4::gio::AppLaunchContext>,
+                                )
+                                .is_err()
+                                {
+                                    println!("Unable to open path")
+                                }
+                            });
+                        }
+                    }
+                }
                 "status" => {
                     let status = value
                         .get::<Option<String>>()
@@ -160,6 +192,7 @@ pub(crate) mod imp {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "status" => self.status.borrow().to_value(),
+                "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -211,6 +244,15 @@ impl EpicDownloadItem {
         self_.total_size.replace(size);
     }
 
+    pub fn path(&self) -> Option<String> {
+        if let Ok(value) = self.property("path") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
+    }
+
     pub fn set_total_files(&self, count: u64) {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
         self_.total_files.replace(count);
@@ -229,7 +271,7 @@ impl EpicDownloadItem {
         if new_count == total {
             self.set_property("status", "Finished".to_string()).unwrap();
             glib::timeout_add_seconds_local(
-                5,
+                15,
                 clone!(@weak self as obj => @default-panic, move || {
                     obj.emit_by_name("finished", &[]).unwrap();
                     glib::Continue(false)

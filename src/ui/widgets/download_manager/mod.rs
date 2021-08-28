@@ -236,7 +236,6 @@ impl EpicDownloadManager {
                     }
                     Some(i) => i,
                 };
-                debug!("Adding progress to the widget");
                 item.add_downloaded_size(progress);
                 self.emit_by_name("tick", &[]).unwrap();
                 self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
@@ -462,6 +461,9 @@ impl EpicDownloadManager {
             .unwrap();
         item.set_total_size(dm.total_download_size());
         item.set_total_files(dm.file_manifest_list.len() as u64);
+        println!("Setting up path");
+        item.set_property("path", target.as_path().display().to_string())
+            .unwrap();
 
         for (filename, manifest) in dm.files() {
             info!("Starting download of {}", filename);
@@ -751,11 +753,9 @@ impl EpicDownloadManager {
                 }
             }
         } else {
-            debug!("Got progress report from {}, current: {}", guid, progress);
             let chunks = self_.downloaded_chunks.borrow();
             if let Some(files) = chunks.get(&guid) {
                 for file in files {
-                    debug!("Affected files: {}", file);
                     if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
                         let item = match self.get_item(f.asset.clone()) {
                             None => {
@@ -763,7 +763,6 @@ impl EpicDownloadManager {
                             }
                             Some(i) => i,
                         };
-                        debug!("Adding progress to the widget");
                         item.add_downloaded_size(progress);
                         self.emit_by_name("tick", &[]).unwrap();
                         break;
