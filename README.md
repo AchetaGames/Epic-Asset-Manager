@@ -32,7 +32,7 @@ meson _build --prefix=/usr --reconfigure;
 rustup install stable
 rustup default stable
 ```
- - Install dependencies: **gtk3 libsoup**
+ - Install dependencies: **gtk4 libadwaita**
  - Clone the repository
 ```bash
 git clone git@github.com:AchetaGames/Epic-Asset-Manager.git
