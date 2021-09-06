@@ -19,6 +19,11 @@
   <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="2.2.1" date="2021-09-06">
+       <description>
+              <p>Fix EGS login issue</p>
+       </description>
+    </release>
     <release version="2.2.0" date="2021-08-28">
        <description>
               <p>Open directory button for downloads</p>

@@ -14,7 +14,7 @@
     "--filesystem=host",
     "--talk-name=org.freedesktop.secrets",
     "--device=dri",
-    "--env=RUST_LOG=epic_asset_manager=debug",
+    "--env=RUST_LOG=debug",
     "--env=RUST_BACKTRACE=1",
     "--env=G_MESSAGES_DEBUG=none"
   ],
