@@ -4,7 +4,7 @@
     <img alt="Build Status" src="https://github.com/AchetaGames/Epic-Asset-Manager/actions/workflows/rust.yml/badge.svg">
 </p>
 
-**This version is obsolete, kept only for those not able to use gtk4, please use the flatpak if at all posible**
+**This version is obsolete, kept only for those not able to use gtk4, please use the [flatpak](https://github.com/AchetaGames/Epic-Asset-Manager/releases/tag/v1.0.10) if at all posible**
 
 # Epic-Asset-Manager
 A frontend to Assets purchased on Epic Games Store
