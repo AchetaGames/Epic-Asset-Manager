@@ -7,14 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gtk = { git = "https://github.com/gtk-rs/gtk3-rs.git", features = ["v3_20"] }
-gtk-sys = { git = "https://github.com/gtk-rs/gtk3-rs.git", features = ["v3_20"] }
-gdk-pixbuf = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
-glib = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
-gio = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
+gtk = { version = "0.14", features = ["v3_20"] }
+gtk-sys = { version = "0.14", features = ["v3_20"] }
+gdk-pixbuf = "0.14"
+glib = "0.14"
+gio = "0.14"
 serde_json = "1.0.62"
-pango = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
-relm = { git = "https://github.com/AchetaGames/relm.git", branch = "git" }
+pango = "0.14"
+relm = "0.22"
 gettext-rs = { version = "0.6", features = ["gettext-system"] }
 relm-derive = "^0.21.0"
 threadpool = "1.8.1"
@@ -31,6 +31,7 @@ sha-1 = "0.9.4"
 html2pango = "0.4.1"
 byte-unit = "4.0.10"
 slab_tree = "0.3"
+egs-api = "0.3.5"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
@@ -38,11 +39,6 @@ winres = "0.1"
 [dependencies.serde]
 version = "1.0.123"
 features = ["derive"]
-
-[dependencies.egs-api]
-version = "0.3"
-#git = "https://github.com/AchetaGames/egs-api-rs"
-#path = "../egs-api-rs"
 
 [dependencies.tokio]
 version = "1.2.0"
