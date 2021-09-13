@@ -96,8 +96,20 @@ impl ObjectImpl for EpicAssetManagerWindow {
         }
     }
 
-    fn property(&self, _obj: &Self::Type, _id: usize, _pspec: &ParamSpec) -> glib::Value {
-        unimplemented!()
+    fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        match pspec.name() {
+            "item" => self
+                .logged_in_stack
+                .property("item")
+                .unwrap_or_else(|_| "".to_value())
+                .to_value(),
+            "product" => self
+                .logged_in_stack
+                .property("product")
+                .unwrap_or_else(|_| "".to_value())
+                .to_value(),
+            &_ => unimplemented!(),
+        }
     }
 }
 

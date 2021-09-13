@@ -115,13 +115,9 @@ impl EpicAssetManagerWindow {
 
     pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        self_.logged_in_stack.set_window(self);
-        self_.download_manager.set_window(self);
-        self_
-            .logged_in_stack
-            .set_download_manager(&self_.download_manager);
-        self.show_logged_in();
         let collection = self_.model.secret_service.get_default_collection().unwrap();
+        // TODO display user information from the UserData
+        // Store the new secrets
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);
@@ -170,5 +166,11 @@ impl EpicAssetManagerWindow {
                 }
             }
         }
+        self.show_logged_in();
+        self_.logged_in_stack.set_window(self);
+        self_.download_manager.set_window(self);
+        self_
+            .logged_in_stack
+            .set_download_manager(&self_.download_manager);
     }
 }

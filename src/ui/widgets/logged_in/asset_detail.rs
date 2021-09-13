@@ -140,7 +140,7 @@ impl Default for EpicAssetDetails {
 
 impl EpicAssetDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
+        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
     pub fn set_download_manager(

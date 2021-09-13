@@ -68,7 +68,7 @@
                 <child>
                     <object class="GtkStackPage">
                         <property name="name">download_manager</property>
-                        <property name="title" translatable="yes">sid_box</property>
+                        <property name="title" translatable="yes">download_manager</property>
                         <property name="child">
                             <object class="EpicDownloadManager" id="download_manager"/>
                         </property>

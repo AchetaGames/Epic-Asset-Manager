@@ -18,10 +18,10 @@ impl Update for EpicAssetManagerWindow {
             Msg::ShowLogin => self.show_login(),
             Msg::LoginOk(ud) => self.show_assets(ud),
             Msg::ProcessAssetInfo(a) => {
-                self_.logged_in_stack.load_thumbnail(a);
+                self_.logged_in_stack.load_thumbnail(&a);
             }
             Msg::ProcessAssetThumbnail(a, i) => {
-                self_.logged_in_stack.add_asset(a, i.as_slice());
+                self_.logged_in_stack.add_asset(&a, i.as_slice());
             }
             Msg::DownloadImage(image, asset) => {
                 self_
@@ -32,7 +32,7 @@ impl Update for EpicAssetManagerWindow {
                 self_.logged_in_stack.flush_assets();
             }
             Msg::ProcessEpicAsset(epic_asset) => {
-                self_.logged_in_stack.process_epic_asset(epic_asset);
+                self_.logged_in_stack.process_epic_asset(&epic_asset);
             }
         }
         debug!(

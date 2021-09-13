@@ -46,7 +46,7 @@
       "sources": [
         {
           "type": "git",
-          "url": "https://gitlab.gnome.org/exalm/libadwaita.git",
+          "url": "https://gitlab.gnome.org/GNOME/libadwaita.git",
           "branch": "main"
         }
       ]

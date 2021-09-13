@@ -215,7 +215,7 @@ impl Default for EpicDownloadDetails {
 
 impl EpicDownloadDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
+        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
     pub fn set_download_manager(

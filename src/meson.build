@@ -39,6 +39,7 @@ rust_sources = files(
     'ui/widgets/logged_in/asset_detail.rs',
     'ui/widgets/logged_in/image_stack.rs',
     'ui/widgets/logged_in/download_detail.rs',
+    'ui/widgets/logged_in/library.rs',
     'ui/widgets/mod.rs',
     'ui/widgets/sid_login/mod.rs',
     'ui/widgets/download_manager/mod.rs',
