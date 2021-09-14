@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicEnginesBox" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
+    </template>
+</interface>

@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <requires lib="gtk" version="4.0"/>
-    <template class="EpicEngineBox" parent="GtkBox">
+    <template class="EpicEngine" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkLabel" id="Version">
+                <property name="label" translatable="yes" bind-source="EpicEngine" bind-property="version" bind-flags="sync-create"/>
+                <property name="ellipsize">end</property>
+                <property name="halign">start</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicEngine" bind-property="version" bind-flags="sync-create"/>
+            </object>
+        </child>
+        <child>
+            <object class="GtkLabel" id="Path">
+                <property name="label" translatable="yes" bind-source="EpicEngine" bind-property="path" bind-flags="sync-create"/>
+                <property name="ellipsize">end</property>
+                <property name="halign">start</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicEngine" bind-property="path" bind-flags="sync-create"/>
+            </object>
+        </child>
     </template>
 </interface>

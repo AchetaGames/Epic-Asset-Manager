@@ -4,25 +4,33 @@ use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
+    use gtk4::glib::{Object, ParamSpec};
     use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/engine.ui")]
-    pub struct EpicEngineBox {
+    pub struct EpicEngine {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
+        version: RefCell<Option<String>>,
+        path: RefCell<Option<String>>,
+        updatable: RefCell<bool>,
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for EpicEngineBox {
-        const NAME: &'static str = "EpicEngineBox";
-        type Type = super::EpicEngineBox;
+    impl ObjectSubclass for EpicEngine {
+        const NAME: &'static str = "EpicEngine";
+        type Type = super::EpicEngine;
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
+                version: RefCell::new(None),
+                path: RefCell::new(None),
+                updatable: RefCell::new(false),
             }
         }
 
@@ -36,34 +44,99 @@ pub(crate) mod imp {
         }
     }
 
-    impl ObjectImpl for EpicEngineBox {
+    impl ObjectImpl for EpicEngine {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
         }
+
+        fn properties() -> &'static [ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![
+                    ParamSpec::new_boolean(
+                        "needs-update",
+                        "needs update",
+                        "Check if engine needs update",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "version",
+                        "Version",
+                        "Version",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "path",
+                        "Path",
+                        "Path",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
+            });
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &ParamSpec,
+        ) {
+            match pspec.name() {
+                "needs-update" => {
+                    let updatable = value.get().unwrap();
+                    self.updatable.replace(updatable);
+                }
+                "version" => {
+                    let version = value.get().unwrap();
+
+                    self.version.replace(version);
+                }
+                "path" => {
+                    let path = value.get().unwrap();
+
+                    self.path.replace(path);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "needs-update" => self.updatable.borrow().to_value(),
+                "version" => self.version.borrow().to_value(),
+                "path" => self.path.borrow().to_value(),
+                _ => unimplemented!(),
+            }
+        }
     }
 
-    impl WidgetImpl for EpicEngineBox {}
-    impl BoxImpl for EpicEngineBox {}
+    impl WidgetImpl for EpicEngine {}
+    impl BoxImpl for EpicEngine {}
 }
 
 glib::wrapper! {
-    pub struct EpicEngineBox(ObjectSubclass<imp::EpicEngineBox>)
+    pub struct EpicEngine(ObjectSubclass<imp::EpicEngine>)
         @extends gtk4::Widget, gtk4::Box;
 }
 
-impl Default for EpicEngineBox {
+impl Default for EpicEngine {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EpicEngineBox {
+impl EpicEngine {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicEngineBox = imp::EpicEngineBox::from_instance(self);
+        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -76,7 +149,7 @@ impl EpicEngineBox {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicEngineBox = imp::EpicEngineBox::from_instance(self);
+        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;

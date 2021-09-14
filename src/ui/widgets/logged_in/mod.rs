@@ -3,6 +3,7 @@ pub mod asset_detail;
 pub mod category;
 mod download_detail;
 mod engine;
+mod engines;
 pub mod image_stack;
 pub mod library;
 mod projects;
@@ -25,7 +26,7 @@ pub(crate) mod imp {
         #[template_child]
         pub library: TemplateChild<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         #[template_child]
-        pub engine: TemplateChild<crate::ui::widgets::logged_in::engine::EpicEngineBox>,
+        pub engine: TemplateChild<crate::ui::widgets::logged_in::engines::EpicEnginesBox>,
         #[template_child]
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
         #[template_child]

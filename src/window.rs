@@ -167,10 +167,10 @@ impl EpicAssetManagerWindow {
             }
         }
         self.show_logged_in();
-        self_.logged_in_stack.set_window(self);
-        self_.download_manager.set_window(self);
-        self_
-            .logged_in_stack
-            .set_download_manager(&self_.download_manager);
+        // self_.logged_in_stack.set_window(self);
+        // self_.download_manager.set_window(self);
+        // self_
+        //     .logged_in_stack
+        //     .set_download_manager(&self_.download_manager);
     }
 }

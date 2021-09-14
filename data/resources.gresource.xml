@@ -10,6 +10,7 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_category.ui">resources/ui/sidebar_category.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="asset.ui">resources/ui/asset.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="projects.ui">resources/ui/projects.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="engines.ui">resources/ui/engines.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="engine.ui">resources/ui/engine.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="asset_detail.ui">resources/ui/asset_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_detail.ui">resources/ui/download_detail.ui</file>
