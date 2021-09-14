@@ -1,10 +1,34 @@
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use log::{debug, info, warn};
+use serde::{Deserialize, Serialize};
+use std::io::Read;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct UnrealVersion {
+    #[serde(default)]
+    pub major_version: i64,
+    #[serde(default)]
+    pub minor_version: i64,
+    #[serde(default)]
+    pub patch_version: i64,
+    #[serde(default)]
+    pub changelist: i64,
+    #[serde(default)]
+    pub compatible_changelist: i64,
+    #[serde(default)]
+    pub is_licensee_version: i64,
+    #[serde(default)]
+    pub is_promoted_build: i64,
+    #[serde(default)]
+    pub branch_name: String,
+}
 
 pub(crate) mod imp {
     use super::*;
-    use gtk4::glib::{Object, ParamSpec};
+    use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -15,7 +39,9 @@ pub(crate) mod imp {
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         version: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
+        guid: RefCell<Option<String>>,
         updatable: RefCell<bool>,
+        pub ueversion: RefCell<Option<super::UnrealVersion>>,
     }
 
     #[glib::object_subclass]
@@ -30,7 +56,9 @@ pub(crate) mod imp {
                 download_manager: OnceCell::new(),
                 version: RefCell::new(None),
                 path: RefCell::new(None),
+                guid: RefCell::new(None),
                 updatable: RefCell::new(false),
+                ueversion: RefCell::new(None),
             }
         }
 
@@ -47,6 +75,7 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicEngine {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.init();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -74,6 +103,13 @@ pub(crate) mod imp {
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
+                    ParamSpec::new_string(
+                        "guid",
+                        "GUID",
+                        "GUID",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -93,13 +129,16 @@ pub(crate) mod imp {
                 }
                 "version" => {
                     let version = value.get().unwrap();
-
                     self.version.replace(version);
                 }
                 "path" => {
                     let path = value.get().unwrap();
-
                     self.path.replace(path);
+                    obj.init();
+                }
+                "guid" => {
+                    let guid = value.get().unwrap();
+                    self.guid.replace(guid);
                 }
                 _ => unimplemented!(),
             }
@@ -110,6 +149,7 @@ pub(crate) mod imp {
                 "needs-update" => self.updatable.borrow().to_value(),
                 "version" => self.version.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
+                "guid" => self.guid.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -135,6 +175,31 @@ impl EpicEngine {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
+    pub fn init(&self) {
+        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        if let Some(path) = self.path() {
+            let version = Self::read_engine_version(&path);
+            self_.ueversion.replace(Some(version.clone()));
+            self.set_property(
+                "version",
+                format!(
+                    "{}.{}.{}",
+                    version.major_version, version.minor_version, version.patch_version
+                ),
+            )
+            .unwrap();
+        }
+    }
+
+    pub fn path(&self) -> Option<String> {
+        if let Ok(value) = self.property("path") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
+    }
+
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
         // Do not run this twice
@@ -155,5 +220,104 @@ impl EpicEngine {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
+    }
+
+    fn needs_repo_update(path: String) -> bool {
+        if let Ok(repo) = git2::Repository::open(&path) {
+            let mut commit = git2::Oid::zero();
+            let mut branch = String::new();
+            if let Ok(head) = repo.head() {
+                if head.is_branch() {
+                    commit = head.target().unwrap();
+                    branch = head.name().unwrap().to_string();
+                }
+            }
+            let mut time = git2::Time::new(0, 0);
+            if let Ok(c) = repo.find_commit(commit) {
+                time = c.time();
+            }
+            if let Ok(remotes) = repo.remotes() {
+                for remote in remotes.iter().flatten() {
+                    if let Ok(mut r) = repo.find_remote(remote) {
+                        let cb = Self::git_callbacks();
+                        if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
+                            warn!("Unable to connect: {}", e)
+                        }
+                        // let mut fo = git2::FetchOptions::new();
+                        // let cb = EpicEnginesBox::git_callbacks();
+                        // fo.remote_callbacks(cb);
+                        // r.fetch(&[&branch], Some(&mut fo), None);
+                        if let Ok(list) = r.list() {
+                            for head in list {
+                                if branch.eq(&head.name()) {
+                                    if head.oid().eq(&commit) {
+                                        debug!("{} Up to date", path);
+                                        return false;
+                                    } else {
+                                        info!("{} needs updating", path);
+                                        debug!(
+                                            "{} Local commit {}({}), remote commit {}",
+                                            path,
+                                            commit,
+                                            time.seconds(),
+                                            head.oid()
+                                        );
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        false
+    }
+
+    fn git_callbacks() -> git2::RemoteCallbacks<'static> {
+        let git_config = git2::Config::open_default().unwrap();
+        let mut cb = git2::RemoteCallbacks::new();
+        cb.credentials(move |url, username, allowed| {
+            let mut cred_helper = git2::CredentialHelper::new(url);
+            cred_helper.config(&git_config);
+            let creds = if allowed.is_ssh_key() {
+                // TODO: Add configuration to specify the ssh key and password(if needed)
+                let mut key = gtk4::glib::home_dir();
+                key.push(".ssh");
+                key.push("id_rsa");
+
+                let user = username
+                    .map(|s| s.to_string())
+                    .or_else(|| cred_helper.username.clone())
+                    .unwrap_or_else(|| "git".to_string());
+                if key.exists() {
+                    git2::Cred::ssh_key(&user, None, key.as_path(), None)
+                } else {
+                    git2::Cred::ssh_key_from_agent(&user)
+                }
+            } else if allowed.is_user_pass_plaintext() {
+                git2::Cred::credential_helper(&git_config, url, username)
+            } else if allowed.is_default() {
+                git2::Cred::default()
+            } else {
+                Err(git2::Error::from_str("no authentication available"))
+            };
+            creds
+        });
+        cb
+    }
+
+    pub fn read_engine_version(path: &str) -> UnrealVersion {
+        let mut p = std::path::PathBuf::from(path);
+        p.push("Engine");
+        p.push("Build");
+        p.push("Build.version");
+        if let Ok(mut file) = std::fs::File::open(p) {
+            let mut contents = String::new();
+            if file.read_to_string(&mut contents).is_ok() {
+                return serde_json::from_str(&contents).unwrap_or_default();
+            }
+        }
+        UnrealVersion::default()
     }
 }

@@ -2,7 +2,7 @@ mod asset;
 pub mod asset_detail;
 pub mod category;
 mod download_detail;
-mod engine;
+pub mod engine;
 mod engines;
 pub mod image_stack;
 pub mod library;
@@ -156,6 +156,7 @@ impl EpicLoggedInBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.library.set_window(&window.clone());
+        self_.engine.set_window(&window.clone());
     }
 
     pub fn set_download_manager(

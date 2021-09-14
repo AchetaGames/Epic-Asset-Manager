@@ -1,33 +1,10 @@
 use crate::ui::widgets::logged_in::engine::EpicEngine;
-use git2::{Cred, Direction, Oid, RemoteCallbacks, Repository};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use log::{debug, info, warn};
-use serde::{Deserialize, Serialize};
+use log::{debug, warn};
 use std::collections::HashMap;
-use std::io::Read;
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct UnrealVersion {
-    #[serde(default)]
-    pub major_version: i64,
-    #[serde(default)]
-    pub minor_version: i64,
-    #[serde(default)]
-    pub patch_version: i64,
-    #[serde(default)]
-    pub changelist: i64,
-    #[serde(default)]
-    pub compatible_changelist: i64,
-    #[serde(default)]
-    pub is_licensee_version: i64,
-    #[serde(default)]
-    pub is_promoted_build: i64,
-    #[serde(default)]
-    pub branch_name: String,
-}
+use version_compare::{CompOp, VersionCompare};
 
 pub(crate) mod imp {
     use super::*;
@@ -38,6 +15,9 @@ pub(crate) mod imp {
     pub struct EpicEnginesBox {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
+        #[template_child]
+        pub engine_grid: TemplateChild<gtk4::GridView>,
+        pub grid_model: gtk4::gio::ListStore,
     }
 
     #[glib::object_subclass]
@@ -50,6 +30,10 @@ pub(crate) mod imp {
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
+                engine_grid: TemplateChild::default(),
+                grid_model: gtk4::gio::ListStore::new(
+                    crate::models::engine_data::EngineData::static_type(),
+                ),
             }
         }
 
@@ -66,7 +50,6 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicEnginesBox {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
-            obj.load_engines();
         }
     }
 
@@ -98,6 +81,52 @@ impl EpicEnginesBox {
         }
 
         self_.window.set(window.clone()).unwrap();
+
+        let factory = gtk4::SignalListItemFactory::new();
+        factory.connect_setup(move |_factory, item| {
+            let row = EpicEngine::new();
+            item.set_child(Some(&row));
+        });
+
+        factory.connect_bind(move |_factory, list_item| {
+            let data = list_item
+                .item()
+                .unwrap()
+                .downcast::<crate::models::engine_data::EngineData>()
+                .unwrap();
+
+            let child = list_item.child().unwrap().downcast::<EpicEngine>().unwrap();
+            child.set_property("path", &data.path()).unwrap();
+            child.set_property("guid", &data.guid()).unwrap();
+        });
+
+        let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
+            let info1 = obj1
+                .downcast_ref::<crate::models::engine_data::EngineData>()
+                .unwrap();
+            let info2 = obj2
+                .downcast_ref::<crate::models::engine_data::EngineData>()
+                .unwrap();
+
+            match VersionCompare::compare(&info1.version(), &info2.version()) {
+                Ok(comp) => match comp {
+                    CompOp::Eq => gtk4::Ordering::Equal,
+                    CompOp::Lt => gtk4::Ordering::Larger,
+                    CompOp::Le => gtk4::Ordering::Equal,
+                    CompOp::Ge => gtk4::Ordering::Equal,
+                    CompOp::Gt => gtk4::Ordering::Smaller,
+                    CompOp::Ne => gtk4::Ordering::Smaller,
+                },
+                Err(_) => gtk4::Ordering::Equal,
+            }
+        });
+        let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
+        let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
+        selection_model.set_autoselect(false);
+        selection_model.set_can_unselect(true);
+        self_.engine_grid.set_model(Some(&selection_model));
+        self_.engine_grid.set_factory(Some(&factory));
+        self.load_engines();
     }
 
     pub fn set_download_manager(
@@ -113,18 +142,11 @@ impl EpicEnginesBox {
     }
 
     pub fn load_engines(&self) {
+        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
         for (guid, path) in Self::read_engines_ini() {
-            let version = Self::read_engine_version(path.to_string());
-            let engine = EpicEngine::new();
-            engine.set_property("path", path.clone());
-            engine.set_property(
-                "version",
-                format!(
-                    "{}.{}.{}",
-                    version.major_version, version.minor_version, version.patch_version
-                ),
-            );
-            self.append(&engine);
+            let version = EpicEngine::read_engine_version(&path);
+            let data = crate::models::engine_data::EngineData::new(path, guid, version);
+            self_.grid_model.append(&data);
         }
     }
 
@@ -151,106 +173,5 @@ impl EpicEnginesBox {
             }
         }
         result
-    }
-
-    fn read_engine_version(path: String) -> UnrealVersion {
-        let mut p = std::path::PathBuf::from(path);
-        p.push("Engine");
-        p.push("Build");
-        p.push("Build.version");
-        if let Ok(mut file) = std::fs::File::open(p) {
-            let mut contents = String::new();
-            if file.read_to_string(&mut contents).is_ok() {
-                return serde_json::from_str(&contents).unwrap_or_default();
-            }
-        }
-        UnrealVersion::default()
-    }
-
-    fn needs_repo_update(path: String) -> bool {
-        if let Ok(repo) = Repository::open(&path) {
-            let mut commit = Oid::zero();
-            let mut branch = String::new();
-            if let Ok(head) = repo.head() {
-                if head.is_branch() {
-                    commit = head.target().unwrap().into();
-                    branch = head.name().unwrap().to_string();
-                }
-            }
-            let mut time = git2::Time::new(0, 0);
-            if let Ok(c) = repo.find_commit(commit) {
-                time = c.time();
-            }
-            if let Ok(remotes) = repo.remotes() {
-                for remote in remotes.iter() {
-                    if let Some(rem) = remote {
-                        if let Ok(mut r) = repo.find_remote(rem) {
-                            let cb = EpicEnginesBox::git_callbacks();
-                            if let Err(e) = r.connect_auth(Direction::Fetch, Some(cb), None) {
-                                warn!("Unable to connect: {}", e)
-                            }
-                            // let mut fo = git2::FetchOptions::new();
-                            // let cb = EpicEnginesBox::git_callbacks();
-                            // fo.remote_callbacks(cb);
-                            // r.fetch(&[&branch], Some(&mut fo), None);
-                            if let Ok(list) = r.list() {
-                                for head in list {
-                                    if branch.eq(&head.name()) {
-                                        if head.oid().eq(&commit) {
-                                            debug!("{} Up to date", path);
-                                            return false;
-                                        } else {
-                                            info!("{} needs updating", path);
-                                            debug!(
-                                                "{} Local commit {}({}), remote commit {}",
-                                                path,
-                                                commit,
-                                                time.seconds(),
-                                                head.oid()
-                                            );
-                                            return true;
-                                        }
-                                    }
-                                }
-                            }
-                        };
-                    }
-                }
-            }
-        };
-        false
-    }
-
-    fn git_callbacks() -> RemoteCallbacks<'static> {
-        let git_config = git2::Config::open_default().unwrap();
-        let mut cb = git2::RemoteCallbacks::new();
-        cb.credentials(move |url, username, allowed| {
-            let mut cred_helper = git2::CredentialHelper::new(url);
-            cred_helper.config(&git_config);
-            let creds = if allowed.is_ssh_key() {
-                // TODO: Add configuration to specify the ssh key and password(if needed)
-                let mut key = gtk4::glib::home_dir();
-                key.push(".ssh");
-                key.push("id_rsa");
-
-                let user = username
-                    .map(|s| s.to_string())
-                    .or_else(|| cred_helper.username.clone())
-                    .unwrap_or("git".to_string());
-                if key.exists() {
-                    Cred::ssh_key(&user, None, key.as_path(), None)
-                } else {
-                    git2::Cred::ssh_key_from_agent(&user)
-                }
-            } else if allowed.is_user_pass_plaintext() {
-                git2::Cred::credential_helper(&git_config, url, username)
-            } else if allowed.is_default() {
-                git2::Cred::default()
-            } else {
-                Err(git2::Error::from_str("no authentication available"))
-            };
-            creds
-        });
-        cb
     }
 }

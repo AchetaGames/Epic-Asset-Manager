@@ -461,7 +461,6 @@ impl EpicDownloadManager {
             .unwrap();
         item.set_total_size(dm.total_download_size());
         item.set_total_files(dm.file_manifest_list.len() as u64);
-        println!("Setting up path");
         item.set_property("path", target.as_path().display().to_string())
             .unwrap();
 

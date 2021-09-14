@@ -108,7 +108,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
-                grid_model: gio::ListStore::new(crate::models::row_data::RowData::static_type()),
+                grid_model: gio::ListStore::new(crate::models::asset_data::RowData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
@@ -320,7 +320,7 @@ impl EpicLibraryBox {
             let data = list_item
                 .item()
                 .unwrap()
-                .downcast::<crate::models::row_data::RowData>()
+                .downcast::<crate::models::asset_data::RowData>()
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
@@ -330,10 +330,10 @@ impl EpicLibraryBox {
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
-                .downcast_ref::<crate::models::row_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::RowData>()
                 .unwrap();
             let info2 = obj2
-                .downcast_ref::<crate::models::row_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::RowData>()
                 .unwrap();
 
             info1
@@ -354,7 +354,7 @@ impl EpicLibraryBox {
         selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
             if let Some(a) = model.selected_item() {
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&loggedin);
-                let asset = a.downcast::<crate::models::row_data::RowData>().unwrap();
+                let asset = a.downcast::<crate::models::asset_data::RowData>().unwrap();
                 let assets = self_.loaded_assets.borrow();
                 if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a.clone()) }
             }
@@ -545,7 +545,7 @@ impl EpicLibraryBox {
 
         let filter = gtk4::CustomFilter::new(move |object| {
             let asset = object
-                .downcast_ref::<crate::models::row_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::RowData>()
                 .unwrap();
             (match &search {
                 None => true,
@@ -606,7 +606,7 @@ impl EpicLibraryBox {
                 }
             }
         } {
-            let data = crate::models::row_data::RowData::new(asset, image);
+            let data = crate::models::asset_data::RowData::new(asset, image);
             if let Ok(mut vec) = self_.assets_pending.write() {
                 vec.push(data.upcast());
             }
