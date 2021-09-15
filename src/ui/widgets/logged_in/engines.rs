@@ -193,13 +193,15 @@ impl EpicEnginesBox {
         self_.engine_grid.set_model(Some(&selection_model));
         self_.engine_grid.set_factory(Some(&factory));
 
-        selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
-            if let Some(a) = model.selected_item() {
-                let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
-                engines.set_property("selected", engine.path()).unwrap();
-                engines.set_property("expanded", true).unwrap();
-            }
-        }));
+        self_.grid_model.selection_model.connect_selected_notify(
+            clone!(@weak self as engines => move |model| {
+                if let Some(a) = model.selected_item() {
+                    let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
+                    engines.set_property("selected", engine.path()).unwrap();
+                    engines.set_property("expanded", true).unwrap();
+                }
+            }),
+        );
         self.load_engines();
     }
 
