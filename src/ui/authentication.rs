@@ -7,12 +7,12 @@ use tokio::runtime::Runtime;
 
 impl EpicAssetManagerWindow {
     pub fn login(&self, sid: String) {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        _self.main_stack.set_visible_child_name("progress");
-        _self.progress_message.set_text("Authenticating");
-        let sender = _self.model.sender.clone();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.main_stack.set_visible_child_name("progress");
+        self_.progress_message.set_text("Authenticating");
+        let sender = self_.model.borrow().sender.clone();
         let s = sid;
-        let mut eg = _self.model.epic_games.clone();
+        let mut eg = self_.model.borrow().epic_games.borrow().clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
             if let Some(exchange_token) = Runtime::new().unwrap().block_on(eg.auth_sid(s.as_str()))
@@ -35,22 +35,26 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn token_time(&self, key: &str) -> Option<DateTime<Utc>> {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        match chrono::DateTime::parse_from_rfc3339(_self.model.settings.string(key).as_str()) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        match chrono::DateTime::parse_from_rfc3339(
+            self_.model.borrow().settings.string(key).as_str(),
+        ) {
             Ok(d) => Some(d.with_timezone(&chrono::Utc)),
             Err(_) => None,
         }
     }
 
     pub fn can_relogin(&self) -> bool {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         let now = chrono::Utc::now();
         if let Some(te) = self.token_time("token-expiration") {
             let td = te - now;
             if td.num_seconds() > 600
-                && _self
+                && self_
                     .model
+                    .borrow()
                     .epic_games
+                    .borrow()
                     .user_details()
                     .access_token()
                     .is_some()
@@ -62,9 +66,11 @@ impl EpicAssetManagerWindow {
         if let Some(rte) = self.token_time("refresh-token-expiration") {
             let td = rte - now;
             if td.num_seconds() > 600
-                && _self
+                && self_
                     .model
+                    .borrow()
                     .epic_games
+                    .borrow()
                     .user_details()
                     .refresh_token()
                     .is_some()
@@ -77,9 +83,9 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn relogin(&mut self) {
-        let _self: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        let sender = _self.model.sender.clone();
-        let mut eg = _self.model.epic_games.clone();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let sender = self_.model.borrow().sender.clone();
+        let mut eg = self_.model.borrow().epic_games.borrow().clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
             if Runtime::new().unwrap().block_on(eg.login()) {
