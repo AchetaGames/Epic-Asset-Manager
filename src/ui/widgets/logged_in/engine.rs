@@ -1,9 +1,12 @@
+use glib::clone;
+use gtk4::cairo::glib::Sender;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
+use std::thread;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -26,6 +29,12 @@ pub struct UnrealVersion {
     pub branch_name: String,
 }
 
+#[derive(Debug, Clone)]
+pub enum EngineMsg {
+    Update(bool),
+    Branch(String),
+}
+
 pub(crate) mod imp {
     use super::*;
     use gtk4::glib::ParamSpec;
@@ -40,7 +49,11 @@ pub(crate) mod imp {
         version: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         guid: RefCell<Option<String>>,
+        branch: RefCell<Option<String>>,
         updatable: RefCell<bool>,
+        has_branch: RefCell<bool>,
+        pub sender: gtk4::glib::Sender<super::EngineMsg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::EngineMsg>>>,
         pub ueversion: RefCell<Option<super::UnrealVersion>>,
     }
 
@@ -51,13 +64,18 @@ pub(crate) mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
+            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 version: RefCell::new(None),
                 path: RefCell::new(None),
                 guid: RefCell::new(None),
+                branch: RefCell::new(None),
                 updatable: RefCell::new(false),
+                has_branch: RefCell::new(false),
+                sender,
+                receiver: RefCell::new(Some(receiver)),
                 ueversion: RefCell::new(None),
             }
         }
@@ -75,6 +93,7 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicEngine {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.setup_messaging();
             obj.init();
         }
 
@@ -104,6 +123,20 @@ pub(crate) mod imp {
                         glib::ParamFlags::READWRITE,
                     ),
                     ParamSpec::new_string(
+                        "branch",
+                        "Branch",
+                        "Branch",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_boolean(
+                        "has-branch",
+                        "Has Branch",
+                        "Has Branch",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
                         "guid",
                         "GUID",
                         "GUID",
@@ -128,13 +161,27 @@ pub(crate) mod imp {
                     self.updatable.replace(updatable);
                 }
                 "version" => {
-                    let version = value.get().unwrap();
+                    let version = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`")
+                        .map(|l| format!("<span size=\"xx-large\"><b><u>{}</u></b></span>", l));
                     self.version.replace(version);
                 }
                 "path" => {
                     let path = value.get().unwrap();
                     self.path.replace(path);
                     obj.init();
+                }
+                "branch" => {
+                    let branch = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`")
+                        .map(|l| format!("<i><b>Branch:</b> {}</i>", l));
+                    self.branch.replace(branch);
+                }
+                "has-branch" => {
+                    let has_branch = value.get().unwrap();
+                    self.has_branch.replace(has_branch);
                 }
                 "guid" => {
                     let guid = value.get().unwrap();
@@ -149,6 +196,8 @@ pub(crate) mod imp {
                 "needs-update" => self.updatable.borrow().to_value(),
                 "version" => self.version.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
+                "branch" => self.branch.borrow().to_value(),
+                "has-branch" => self.has_branch.borrow().to_value(),
                 "guid" => self.guid.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -188,6 +237,35 @@ impl EpicEngine {
                 ),
             )
             .unwrap();
+            let p = path.clone();
+            let sender = self_.sender.clone();
+            thread::spawn(move || {
+                Self::needs_repo_update(p, Some(sender));
+            });
+        }
+    }
+
+    pub fn setup_messaging(&self) {
+        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let receiver = self_.receiver.borrow_mut().take().unwrap();
+        receiver.attach(
+            None,
+            clone!(@weak self as engine => @default-panic, move |msg| {
+                engine.update(msg);
+                glib::Continue(true)
+            }),
+        );
+    }
+    pub fn update(&self, msg: EngineMsg) {
+        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        match msg {
+            EngineMsg::Update(waiting) => {
+                self.set_property("needs-update", waiting).unwrap();
+            }
+            EngineMsg::Branch(branch) => {
+                self.set_property("has-branch", !branch.is_empty()).unwrap();
+                self.set_property("branch", branch).unwrap();
+            }
         }
     }
 
@@ -222,7 +300,7 @@ impl EpicEngine {
         self_.download_manager.set(dm.clone()).unwrap();
     }
 
-    fn needs_repo_update(path: String) -> bool {
+    fn needs_repo_update(path: String, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {
         if let Ok(repo) = git2::Repository::open(&path) {
             let mut commit = git2::Oid::zero();
             let mut branch = String::new();
@@ -230,6 +308,11 @@ impl EpicEngine {
                 if head.is_branch() {
                     commit = head.target().unwrap();
                     branch = head.name().unwrap().to_string();
+                    if let Some(s) = sender.clone() {
+                        s.send(EngineMsg::Branch(
+                            head.shorthand().unwrap_or_default().to_string(),
+                        ));
+                    }
                 }
             }
             let mut time = git2::Time::new(0, 0);
@@ -252,6 +335,9 @@ impl EpicEngine {
                                 if branch.eq(&head.name()) {
                                     if head.oid().eq(&commit) {
                                         debug!("{} Up to date", path);
+                                        if let Some(s) = sender.clone() {
+                                            s.send(EngineMsg::Update(false));
+                                        }
                                         return false;
                                     } else {
                                         info!("{} needs updating", path);
@@ -262,6 +348,9 @@ impl EpicEngine {
                                             time.seconds(),
                                             head.oid()
                                         );
+                                        if let Some(s) = sender.clone() {
+                                            s.send(EngineMsg::Update(true));
+                                        }
                                         return true;
                                     }
                                 }

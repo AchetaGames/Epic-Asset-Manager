@@ -1,14 +1,22 @@
 use crate::ui::widgets::logged_in::engine::EpicEngine;
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*};
+use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use log::{debug, warn};
+use gtk_macros::action;
+use log::{debug, error, warn};
 use std::collections::HashMap;
+use std::convert::Infallible;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::str::FromStr;
 use version_compare::{CompOp, VersionCompare};
 
 pub(crate) mod imp {
     use super::*;
+    use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/engines.ui")]
@@ -18,6 +26,9 @@ pub(crate) mod imp {
         #[template_child]
         pub engine_grid: TemplateChild<gtk4::GridView>,
         pub grid_model: gtk4::gio::ListStore,
+        pub expanded: RefCell<bool>,
+        selected: RefCell<Option<String>>,
+        pub actions: gtk4::gio::SimpleActionGroup,
     }
 
     #[glib::object_subclass]
@@ -34,6 +45,9 @@ pub(crate) mod imp {
                 grid_model: gtk4::gio::ListStore::new(
                     crate::models::engine_data::EngineData::static_type(),
                 ),
+                expanded: RefCell::new(false),
+                selected: RefCell::new(None),
+                actions: gtk4::gio::SimpleActionGroup::new(),
             }
         }
 
@@ -50,6 +64,58 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicEnginesBox {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.setup_actions();
+        }
+
+        fn properties() -> &'static [ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![
+                    ParamSpec::new_boolean(
+                        "expanded",
+                        "expanded",
+                        "Is expanded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "selected",
+                        "Selected",
+                        "Selected",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
+            });
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &ParamSpec,
+        ) {
+            match pspec.name() {
+                "expanded" => {
+                    let expanded = value.get().unwrap();
+                    self.expanded.replace(expanded);
+                }
+                "selected" => {
+                    let selected = value.get().unwrap();
+                    self.selected.replace(selected);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "expanded" => self.expanded.borrow().to_value(),
+                "selected" => self.selected.borrow().to_value(),
+                _ => unimplemented!(),
+            }
         }
     }
 
@@ -126,7 +192,76 @@ impl EpicEnginesBox {
         selection_model.set_can_unselect(true);
         self_.engine_grid.set_model(Some(&selection_model));
         self_.engine_grid.set_factory(Some(&factory));
+
+        selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
+            if let Some(a) = model.selected_item() {
+                let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
+                engines.set_property("selected", engine.path()).unwrap();
+                engines.set_property("expanded", true).unwrap();
+            }
+        }));
         self.load_engines();
+    }
+
+    fn get_engine_binary_path(path: &str) -> Option<OsString> {
+        if let Ok(mut p) = std::path::PathBuf::from_str(path) {
+            p.push("Engine");
+            p.push("Binaries");
+            p.push("Linux");
+            let mut test = p.clone();
+            test.push("UE4Editor");
+            if test.exists() {
+                return Some(test.into_os_string());
+            } else {
+                let mut test = p.clone();
+                test.push("UnrealEditor");
+                if test.exists() {
+                    return Some(test.into_os_string());
+                } else {
+                    error!("Unable to launch the engine")
+                }
+            }
+        };
+        None
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        self.insert_action_group("engines", Some(&self_.actions));
+
+        action!(
+            self_.actions,
+            "launch",
+            clone!(@weak self as engines => move |_, _| {
+                let path = engines.selected();
+                println!("Launching: {:?}", path);
+                if let Some(path) = path {
+                    match Self::get_engine_binary_path(&path) {
+                        None => { println!("No path");}
+                        Some(p) => {
+                            println!("{:?}", p);
+                            let context = gtk4::gio::AppLaunchContext::new();
+                            context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
+                            let app = gtk4::gio::AppInfo::create_from_commandline(
+                                p,
+                                Some("Unreal Engine"),
+                                gtk4::gio::AppInfoCreateFlags::NONE,
+                            ).unwrap();
+                            app.launch(&[], Some(&context));
+                        }
+                    }
+                };
+            })
+        );
+    }
+
+    pub fn selected(&self) -> Option<String> {
+        if let Ok(value) = self.property("selected") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
     }
 
     pub fn set_download_manager(

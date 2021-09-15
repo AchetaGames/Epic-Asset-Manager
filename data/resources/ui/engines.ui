@@ -4,6 +4,7 @@
     <template class="EpicEnginesBox" parent="GtkBox">
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
+        <property name="orientation">vertical</property>
         <child>
             <object class="GtkScrolledWindow">
                 <property name="hexpand">true</property>
@@ -15,6 +16,40 @@
                         <property name="max-columns">255</property>
                     </object>
                 </property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkRevealer" id="detail_slider">
+                <property name="hexpand" bind-source="EpicEnginesBox" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="reveal-child" bind-source="EpicEnginesBox" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="transition-type">slide-up</property>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="halign">end</property>
+                        <child>
+                            <object class="GtkButton">
+                                <property name="action-name">engines.launch</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">media-playback-start</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel" id="expand_label">
+                                                <property name="label" translatable="yes">Launch</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
             </object>
         </child>
     </template>
