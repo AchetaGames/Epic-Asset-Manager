@@ -43,7 +43,7 @@
                                                             </object>
                                                         </child>
                                                         <child>
-                                                            <object class="GtkLabel" id="expand_label">
+                                                            <object class="GtkLabel">
                                                                 <property name="label" translatable="yes">Details</property>
                                                             </object>
                                                         </child>
@@ -65,7 +65,7 @@
                                                             </object>
                                                         </child>
                                                         <child>
-                                                            <object class="GtkLabel" id="expand_label">
+                                                            <object class="GtkLabel">
                                                                 <property name="label" translatable="yes">Download</property>
                                                             </object>
                                                         </child>
