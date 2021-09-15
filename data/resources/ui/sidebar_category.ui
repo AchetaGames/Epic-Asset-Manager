@@ -21,7 +21,7 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkRevealer" id="revealer">
+                            <object class="GtkRevealer">
                                 <property name="transition-type">slide-right</property>
                                 <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
                                 <child>
@@ -37,7 +37,7 @@
             </object>
         </child>
         <child>
-            <object class="GtkRevealer" id="revealer">
+            <object class="GtkRevealer">
                 <property name="reveal-child" bind-source="EpicSidebarCategory" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="transition-type">slide-right</property>
                 <child>
