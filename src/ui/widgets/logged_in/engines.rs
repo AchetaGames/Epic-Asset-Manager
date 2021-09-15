@@ -6,9 +6,7 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::ffi::OsString;
-use std::path::PathBuf;
 use std::str::FromStr;
 use version_compare::{CompOp, VersionCompare};
 
@@ -193,15 +191,13 @@ impl EpicEnginesBox {
         self_.engine_grid.set_model(Some(&selection_model));
         self_.engine_grid.set_factory(Some(&factory));
 
-        self_.grid_model.selection_model.connect_selected_notify(
-            clone!(@weak self as engines => move |model| {
-                if let Some(a) = model.selected_item() {
-                    let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
-                    engines.set_property("selected", engine.path()).unwrap();
-                    engines.set_property("expanded", true).unwrap();
-                }
-            }),
-        );
+        selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
+            if let Some(a) = model.selected_item() {
+                let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
+                engines.set_property("selected", engine.path()).unwrap();
+                engines.set_property("expanded", true).unwrap();
+            }
+        }));
         self.load_engines();
     }
 
@@ -249,7 +245,7 @@ impl EpicEnginesBox {
                                 Some("Unreal Engine"),
                                 gtk4::gio::AppInfoCreateFlags::NONE,
                             ).unwrap();
-                            app.launch(&[], Some(&context));
+                            app.launch(&[], Some(&context)).expect("Failed to launch application");
                         }
                     }
                 };

@@ -8,23 +8,21 @@ pub(crate) mod imp {
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
-    pub struct EpicProjectsBox {
+    pub struct EpicProject {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
-        pub settings: gtk4::gio::Settings,
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for EpicProjectsBox {
-        const NAME: &'static str = "EpicProjectsBox";
-        type Type = super::EpicProjectsBox;
+    impl ObjectSubclass for EpicProject {
+        const NAME: &'static str = "EpicProject";
+        type Type = super::EpicProject;
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
-                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
         }
 
@@ -38,35 +36,34 @@ pub(crate) mod imp {
         }
     }
 
-    impl ObjectImpl for EpicProjectsBox {
+    impl ObjectImpl for EpicProject {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
-            obj.load_projects();
         }
     }
 
-    impl WidgetImpl for EpicProjectsBox {}
-    impl BoxImpl for EpicProjectsBox {}
+    impl WidgetImpl for EpicProject {}
+    impl BoxImpl for EpicProject {}
 }
 
 glib::wrapper! {
-    pub struct EpicProjectsBox(ObjectSubclass<imp::EpicProjectsBox>)
+    pub struct EpicProject(ObjectSubclass<imp::EpicProject>)
         @extends gtk4::Widget, gtk4::Box;
 }
 
-impl Default for EpicProjectsBox {
+impl Default for EpicProject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EpicProjectsBox {
+impl EpicProject {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -75,34 +72,11 @@ impl EpicProjectsBox {
         self_.window.set(window.clone()).unwrap();
     }
 
-    pub fn load_projects(&self) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
-        for dir in self_.settings.strv("unreal-projects-directories") {
-            info!("Checking directory {}", dir);
-            let path = std::path::PathBuf::from(dir.into_string());
-            match path.read_dir() {
-                Ok(rd) => {
-                    for d in rd {
-                        match d {
-                            Ok(entry) => {
-                                let path = entry.path();
-                            }
-                            Err(_) => {
-                                continue;
-                            }
-                        }
-                    }
-                }
-                Err(_) => {}
-            }
-        }
-    }
-
     pub fn set_download_manager(
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;

@@ -1,5 +1,4 @@
 use glib::clone;
-use gtk4::cairo::glib::Sender;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -237,10 +236,9 @@ impl EpicEngine {
                 ),
             )
             .unwrap();
-            let p = path.clone();
             let sender = self_.sender.clone();
             thread::spawn(move || {
-                Self::needs_repo_update(p, Some(sender));
+                Self::needs_repo_update(path, Some(sender));
             });
         }
     }
@@ -257,7 +255,6 @@ impl EpicEngine {
         );
     }
     pub fn update(&self, msg: EngineMsg) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
         match msg {
             EngineMsg::Update(waiting) => {
                 self.set_property("needs-update", waiting).unwrap();
@@ -311,7 +308,8 @@ impl EpicEngine {
                     if let Some(s) = sender.clone() {
                         s.send(EngineMsg::Branch(
                             head.shorthand().unwrap_or_default().to_string(),
-                        ));
+                        ))
+                        .unwrap();
                     }
                 }
             }
@@ -335,8 +333,8 @@ impl EpicEngine {
                                 if branch.eq(&head.name()) {
                                     if head.oid().eq(&commit) {
                                         debug!("{} Up to date", path);
-                                        if let Some(s) = sender.clone() {
-                                            s.send(EngineMsg::Update(false));
+                                        if let Some(s) = sender {
+                                            s.send(EngineMsg::Update(false)).unwrap();
                                         }
                                         return false;
                                     } else {
@@ -348,8 +346,8 @@ impl EpicEngine {
                                             time.seconds(),
                                             head.oid()
                                         );
-                                        if let Some(s) = sender.clone() {
-                                            s.send(EngineMsg::Update(true));
+                                        if let Some(s) = sender {
+                                            s.send(EngineMsg::Update(true)).unwrap();
                                         }
                                         return true;
                                     }
