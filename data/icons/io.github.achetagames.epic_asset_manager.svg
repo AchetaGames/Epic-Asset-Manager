@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="128px"
    height="128px"
    viewBox="0 0 128 128"
    version="1.1"
    id="svg163"
    sodipodi:docname="io.github.achetagames.epic_asset_manager.svg"
-   inkscape:version="1.0.2 (e86c870879, 2021-01-15, custom)">
+   inkscape:version="1.1 (c4e8f9ed74, 2021-05-24)"
+   inkscape:export-filename="/home/stastny/repos/Epic-Asset-Manager/data/icons/io.github.achetagames.epic_asset_manager.png"
+   inkscape:export-xdpi="192"
+   inkscape:export-ydpi="192"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <metadata
      id="metadata167">
     <rdf:RDF>
@@ -36,27 +39,28 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1934"
-     inkscape:window-height="1059"
+     inkscape:window-width="5120"
+     inkscape:window-height="1371"
      id="namedview165"
      showgrid="false"
-     inkscape:zoom="2"
-     inkscape:cx="254.57564"
-     inkscape:cy="165.03606"
-     inkscape:window-x="2238"
-     inkscape:window-y="352"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg163"
-     inkscape:document-rotation="0" />
+     inkscape:zoom="8"
+     inkscape:cx="97.625"
+     inkscape:cy="81"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g357"
+     inkscape:document-rotation="0"
+     inkscape:pagecheckerboard="0" />
   <defs
      id="defs146">
     <filter
        id="alpha"
        filterUnits="objectBoundingBox"
-       x="0%"
-       y="0%"
-       width="100%"
-       height="100%">
+       x="0"
+       y="0"
+       width="1"
+       height="1">
       <feColorMatrix
          type="matrix"
          in="SourceGraphic"
@@ -1236,98 +1240,6 @@
          style="fill:#ffffff;stroke-width:0.0846667"
          d="m 38.617044,26.354057 c -3.58977,-4.770901 -6.526852,-8.695201 -6.526852,-8.720666 0,-0.02547 5.924552,-0.0463 13.165661,-0.0463 7.24112,0 13.16567,0.02062 13.16567,0.04583 0,0.09004 -13.1395,17.395503 -13.20787,17.395503 -0.0384,0 -3.00684,-3.903466 -6.596609,-8.674367 z"
          id="path444" />
-    </g>
-    <g
-       id="layer2"
-       inkscape:label="Unreal">
-      <g
-         id="ue_logo"
-         inkscape:label="Unreal_Engine_White"
-         transform="matrix(0.1397,0,0,-0.1397,21.053377,51.486679)"
-         style="display:inline;fill:#000000">
-        <g
-           id="g570"
-           style="fill:#000000">
-          <g
-             id="g572"
-             clip-path="url(#clipPath576-3)"
-             style="fill:#000000">
-            <path
-               d="m 88.126,236.391 h 117.29 V 133.258 H 88.126 Z"
-               style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-               id="path578" />
-          </g>
-        </g>
-        <g
-           id="g580"
-           style="fill:#000000">
-          <g
-             id="g582"
-             clip-path="url(#clipPath586-7)"
-             style="fill:#000000">
-            <path
-               d="M 65.76,269.51 H 234.01 V 99.852 H 65.76 Z"
-               style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-               id="path588" />
-          </g>
-        </g>
-        <g
-           id="g590"
-           transform="translate(90.2673,48.267)"
-           style="fill:#000000" />
-        <g
-           id="g594"
-           transform="translate(127.413,48.267)"
-           style="fill:#000000" />
-        <g
-           id="g598"
-           style="fill:#000000">
-          <g
-             id="g600"
-             clip-path="url(#clipPath604-3)"
-             style="fill:#000000" />
-        </g>
-        <g
-           id="g608"
-           transform="translate(184.212,48.1401)"
-           style="fill:#000000" />
-        <g
-           id="g612"
-           transform="translate(192.6576,48.1401)"
-           style="fill:#000000" />
-        <g
-           id="g616"
-           style="fill:#000000">
-          <g
-             id="g618"
-             clip-path="url(#clipPath622-6)"
-             style="fill:#000000" />
-        </g>
-        <g
-           id="g626"
-           transform="translate(106.2486,85.7448)"
-           style="fill:#000000" />
-        <g
-           id="g630"
-           style="fill:#000000">
-          <g
-             id="g632"
-             clip-path="url(#clipPath636-9)"
-             style="fill:#000000" />
-        </g>
-        <g
-           id="g640"
-           transform="translate(159.3567,85.7448)"
-           style="fill:#000000" />
-        <g
-           id="g644"
-           transform="translate(207.4284,85.7448)"
-           style="fill:#000000" />
-        <g
-           id="g648"
-           transform="translate(236.1375,85.7448)"
-           style="fill:#000000" />
-      </g>
     </g>
   </g>
 </svg>
