@@ -74,7 +74,7 @@
                                 <property name="use-underline">True</property>
                                 <property name="subtitle" translatable="yes">Temporary place for chunk downloads</property>
                                 <child>
-                                    <object class="GtkButton" id="default_view_selection">
+                                    <object class="GtkButton">
                                         <property name="margin-start">6</property>
                                         <property name="margin-end">6</property>
                                         <property name="margin-top">6</property>
