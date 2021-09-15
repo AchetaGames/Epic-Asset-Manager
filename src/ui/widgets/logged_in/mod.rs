@@ -637,8 +637,8 @@ impl EpicLoggedInBox {
     pub fn load_thumbnail(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if let Some(window) = self.main_window() {
-            let win_ = window.data();
-            let sender = win_.model.sender.clone();
+            let win_: &crate::window::imp::EpicAssetManagerWindow = window.data();
+            let sender = win_.model.borrow().sender.clone();
             match asset.thumbnail() {
                 None => {
                     sender
@@ -649,7 +649,7 @@ impl EpicLoggedInBox {
                         .unwrap();
                 }
                 Some(t) => {
-                    let cache_dir = win_.model.settings.string("cache-directory").to_string();
+                    let cache_dir = self_.settings.string("cache-directory").to_string();
                     let mut cache_path = PathBuf::from(cache_dir);
                     cache_path.push("images");
                     let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
@@ -724,14 +724,14 @@ impl EpicLoggedInBox {
     pub fn fetch_assets(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if let Some(window) = self.main_window() {
-            let win_ = window.data();
-            let cache_dir = win_.model.settings.string("cache-directory").to_string();
+            let win_: &crate::window::imp::EpicAssetManagerWindow = window.data();
+            let cache_dir = self_.settings.string("cache-directory").to_string();
             let cache_path = PathBuf::from(cache_dir);
             debug!("Fetching assets");
             if cache_path.is_dir() {
                 debug!("Checking cache");
                 for entry in std::fs::read_dir(cache_path).unwrap() {
-                    let sender = win_.model.sender.clone();
+                    let sender = win_.model.borrow().sender.clone();
                     self_.asset_load_pool.execute(move || {
                         // Load assets from cache
 
@@ -759,8 +759,8 @@ impl EpicLoggedInBox {
                     });
                 }
             };
-            let mut eg = win_.model.epic_games.clone();
-            let sender = win_.model.sender.clone();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
             self_.asset_load_pool.execute(move || {
                 let assets = tokio::runtime::Runtime::new()
                     .unwrap()
@@ -803,7 +803,7 @@ impl EpicLoggedInBox {
     ) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if let Some(window) = self.main_window() {
-            let win_ = window.data();
+            let win_: &crate::window::imp::EpicAssetManagerWindow = window.data();
             let mut cache_dir = PathBuf::from(self_.settings.string("cache-directory").to_string());
             cache_dir.push(&epic_asset.catalog_item_id);
             let mut cache_dir_c = cache_dir.clone();
@@ -819,8 +819,8 @@ impl EpicLoggedInBox {
                 }
             });
 
-            let mut eg = win_.model.epic_games.clone();
-            let sender = win_.model.sender.clone();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
             let mut cache_dir_c = cache_dir;
             self_.asset_load_pool.execute(move || {
                 if let Ok(w) = crate::RUNNING.read() {
