@@ -9,6 +9,7 @@ use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
 use std::collections::HashMap;
+use std::ops::Deref;
 
 pub(crate) mod imp;
 
@@ -33,7 +34,9 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn save_window_size(&self) -> Result<(), glib::BoolError> {
-        let settings = &(*self).data().model.settings;
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+
+        let settings = &self_.model.borrow().settings;
 
         let size = self.default_size();
 
@@ -46,7 +49,9 @@ impl EpicAssetManagerWindow {
     }
 
     fn load_window_size(&self) {
-        let settings = &(*self).data().model.settings;
+        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+
+        let settings = &self_.model.borrow().settings;
 
         let width = settings.int("window-width");
         let height = settings.int("window-height");
@@ -61,13 +66,21 @@ impl EpicAssetManagerWindow {
 
     pub fn setup_receiver(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        self_.model.receiver.borrow_mut().take().unwrap().attach(
-            None,
-            clone!(@weak self as window => @default-panic, move |msg| {
-                window.update(msg);
-                glib::Continue(true)
-            }),
-        );
+        self_
+            .model
+            .borrow()
+            .deref()
+            .receiver
+            .borrow_mut()
+            .take()
+            .unwrap()
+            .attach(
+                None,
+                clone!(@weak self as window => @default-panic, move |msg| {
+                    window.update(msg);
+                    glib::Continue(true)
+                }),
+            );
     }
 
     pub fn setup_actions(&self) {
@@ -114,10 +127,21 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
-        let collection = self_.model.secret_service.get_default_collection().unwrap();
         // TODO display user information from the UserData
-        // Store the new secrets
+        let self_: &crate::window::imp::EpicAssetManagerWindow =
+            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        self_
+            .model
+            .borrow_mut()
+            .epic_games
+            .borrow_mut()
+            .set_user_details(ud.clone());
+        self_.logged_in_stack.set_window(self);
+        self_.download_manager.set_window(self);
+        self_
+            .logged_in_stack
+            .set_download_manager(&self_.download_manager);
+        self.show_logged_in();
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);
@@ -126,18 +150,26 @@ impl EpicAssetManagerWindow {
                 let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
                 self_
                     .model
+                    .borrow()
                     .settings
                     .set_string("token-expiration", d.as_str())
                     .unwrap();
                 if let Some(at) = ud.access_token() {
                     debug!("Saving token secret");
-                    if let Err(e) = collection.create_item(
-                        "eam_epic_games_token",
-                        attributes.clone(),
-                        at.as_bytes(),
-                        true,
-                        "text/plain",
-                    ) {
+                    if let Err(e) = self_
+                        .model
+                        .borrow()
+                        .secret_service
+                        .get_default_collection()
+                        .unwrap()
+                        .create_item(
+                            "eam_epic_games_token",
+                            attributes.clone(),
+                            at.as_bytes(),
+                            true,
+                            "text/plain",
+                        )
+                    {
                         error!("Failed to save secret {}", e)
                     };
                 }
@@ -149,18 +181,26 @@ impl EpicAssetManagerWindow {
                 let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
                 self_
                     .model
+                    .borrow()
                     .settings
                     .set_string("refresh-token-expiration", d.as_str())
                     .unwrap();
                 if let Some(rt) = ud.refresh_token() {
                     debug!("Saving refresh token secret");
-                    if let Err(e) = collection.create_item(
-                        "eam_epic_games_refresh_token",
-                        attributes,
-                        rt.as_bytes(),
-                        true,
-                        "text/plain",
-                    ) {
+                    if let Err(e) = self_
+                        .model
+                        .borrow()
+                        .secret_service
+                        .get_default_collection()
+                        .unwrap()
+                        .create_item(
+                            "eam_epic_games_refresh_token",
+                            attributes,
+                            rt.as_bytes(),
+                            true,
+                            "text/plain",
+                        )
+                    {
                         error!("Failed to save secret {}", e)
                     };
                 }

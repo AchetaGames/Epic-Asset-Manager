@@ -24,9 +24,11 @@ impl Update for EpicAssetManagerWindow {
                 self_.logged_in_stack.add_asset(&a, i.as_slice());
             }
             Msg::DownloadImage(image, asset) => {
-                self_
-                    .download_manager
-                    .download_thumbnail(image, asset, self_.model.sender.clone());
+                self_.download_manager.download_thumbnail(
+                    image,
+                    asset,
+                    self_.model.borrow().sender.clone(),
+                );
             }
             Msg::FlushAssetThumbnails => {
                 self_.logged_in_stack.flush_assets();

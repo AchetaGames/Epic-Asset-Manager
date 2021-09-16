@@ -12,7 +12,7 @@ use secret_service::{EncryptionType, SecretService};
 use std::cell::RefCell;
 
 pub struct Model {
-    pub epic_games: EpicGames,
+    pub epic_games: RefCell<EpicGames>,
     pub secret_service: SecretService<'static>,
     pub sender: Sender<crate::ui::messages::Msg>,
     pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
@@ -29,25 +29,12 @@ impl Model {
     pub fn new() -> Self {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         let mut obj = Self {
-            epic_games: EpicGames::new(),
+            epic_games: RefCell::new(EpicGames::new()),
             secret_service: SecretService::new(EncryptionType::Dh)
                 .expect("A running secret-service is required"),
             sender,
             receiver: RefCell::new(Some(receiver)),
             settings: gio::Settings::new(APP_ID),
-            // asset_model: crate::models::asset_model::Model::new(),
-            // selected_asset: None,
-            // selected_files: HashMap::new(),
-            // download_pool: ThreadPool::with_name("Download Pool".to_string(), 5),
-            // thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
-            // image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
-            // file_pool: ThreadPool::with_name("File Pool".to_string(), 5),
-            // downloaded_chunks: HashMap::new(),
-            // downloaded_files: HashMap::new(),
-            // download_manifest_tree: TreeBuilder::new().with_root(None).build(),
-            // download_manifest_handlers: HashMap::new(),
-            // download_manifest_file_details: HashMap::new(),
-            // selected_files_size: 0,
         };
         obj.load_secrets();
         obj.load_defaults();
@@ -185,7 +172,7 @@ impl Model {
                         }
                     }
                 }
-                self.epic_games.set_user_details(ud);
+                self.epic_games.borrow_mut().set_user_details(ud);
             };
         };
     }

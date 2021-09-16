@@ -1,6 +1,7 @@
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use log::info;
 
 pub(crate) mod imp {
     use super::*;
@@ -79,13 +80,14 @@ impl EpicProjectsBox {
         let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
-            let path = std::path::PathBuf::from(dir.into_string());
+            let path = std::path::PathBuf::from(dir.to_string());
             match path.read_dir() {
                 Ok(rd) => {
                     for d in rd {
                         match d {
                             Ok(entry) => {
                                 let path = entry.path();
+                                println!("got path: {:?}", path.into_os_string());
                             }
                             Err(_) => {
                                 continue;

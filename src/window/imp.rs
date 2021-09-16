@@ -1,6 +1,7 @@
 use super::*;
 use crate::models::Model;
 use glib::ParamSpec;
+use std::cell::RefCell;
 
 #[derive(CompositeTemplate)]
 #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
@@ -17,7 +18,7 @@ pub struct EpicAssetManagerWindow {
     pub progress_message: TemplateChild<gtk4::Label>,
     #[template_child]
     pub download_manager: TemplateChild<crate::ui::widgets::download_manager::EpicDownloadManager>,
-    pub model: Model,
+    pub model: RefCell<Model>,
 }
 
 #[glib::object_subclass]
@@ -34,7 +35,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             sid_box: TemplateChild::default(),
             progress_message: TemplateChild::default(),
             download_manager: TemplateChild::default(),
-            model: Model::new(),
+            model: RefCell::new(Model::new()),
         }
     }
 

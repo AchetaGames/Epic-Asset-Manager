@@ -632,7 +632,7 @@ impl EpicLibraryBox {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         if let Some(window) = self.main_window() {
             let win_ = window.data();
-            let sender = win_.model.sender.clone();
+            let sender = win_.model.borrow().sender.clone();
             match asset.thumbnail() {
                 None => {
                     sender
@@ -643,7 +643,7 @@ impl EpicLibraryBox {
                         .unwrap();
                 }
                 Some(t) => {
-                    let cache_dir = win_.model.settings.string("cache-directory").to_string();
+                    let cache_dir = self_.settings.string("cache-directory").to_string();
                     let mut cache_path = PathBuf::from(cache_dir);
                     cache_path.push("images");
                     let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
@@ -720,13 +720,13 @@ impl EpicLibraryBox {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         if let Some(window) = self.main_window() {
             let win_ = window.data();
-            let cache_dir = win_.model.settings.string("cache-directory").to_string();
+            let cache_dir = self_.settings.string("cache-directory").to_string();
             let cache_path = PathBuf::from(cache_dir);
             debug!("Fetching assets");
             if cache_path.is_dir() {
                 debug!("Checking cache");
                 for entry in std::fs::read_dir(cache_path).unwrap() {
-                    let sender = win_.model.sender.clone();
+                    let sender = win_.model.borrow().sender.clone();
                     self_.asset_load_pool.execute(move || {
                         // Load assets from cache
 
@@ -754,8 +754,8 @@ impl EpicLibraryBox {
                     });
                 }
             };
-            let mut eg = win_.model.epic_games.clone();
-            let sender = win_.model.sender.clone();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
             self_.asset_load_pool.execute(move || {
                 let assets = tokio::runtime::Runtime::new()
                     .unwrap()
@@ -814,8 +814,8 @@ impl EpicLibraryBox {
                 }
             });
 
-            let mut eg = win_.model.epic_games.clone();
-            let sender = win_.model.sender.clone();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
             let mut cache_dir_c = cache_dir;
             let epic_asset = epic_asset.clone();
             self_.asset_load_pool.execute(move || {
