@@ -27,7 +27,7 @@ gtk-macros = "0.3"
 chrono = "0.4"
 egs-api = "0.3.5"
 git2 = "0.13.22"
-version-compare = "0.0.11"
+version-compare = "0.0.13"
 
 [dependencies.gtk4]
 features = ["v4_2"]

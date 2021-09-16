@@ -1,101 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Milan Stastny 2019 <milan@acheta.games> -->
 <component type="desktop-application">
-  <id>@app-id@</id>
-  <metadata_license>CC0</metadata_license>
-  <project_license>MIT</project_license>
-  <name>Epic Asset Manager</name>
-  <summary>Manage your Epic assets</summary>
-  <description>
-    <p>A native GTK application to access Assets owned through Epic Games Store including Games and Unreal Engine assets.</p>
-  </description>
-  <screenshots>
-    <screenshot type="default">
-      <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/screenshot2.png</image>
-      <caption>Main Window</caption>
-    </screenshot>
-  </screenshots>
-  <url type="homepage">https://github.com/AchetaGames/Epic-Asset-Manager</url>
-  <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
-  <content_rating type="oars-1.0" />
-  <releases>
-    <release version="2.2.2" date="2021-09-16">
-       <description>
-              <p>Initial asset load fix</p>
-              <ul>
-                  <li>Fix the issue of the assets not loading after the initial login</li>
-                  <li>Remove unreal logo from the icon</li>
-	      </ul>
-       </description>
-    </release>
-    <release version="2.2.1" date="2021-09-06">
-       <description>
-              <p>Fix EGS login issue</p>
-       </description>
-    </release>
-    <release version="2.2.0" date="2021-08-28">
-       <description>
-              <p>Open directory button for downloads</p>
-       </description>
-    </release>
-    <release version="2.1.1" date="2021-08-24">
-       <description>
-              <p>Handle the com.epicgames.launcher urls </p>
-       </description>
-    </release>
-    <release version="2.0.1" date="2021-08-19">
-       <description>
-              <p>Asset loading fix</p>
-       </description>
-    </release>
-    <release version="2.0.0" date="2021-08-19">
-       <description>
-              <p>GTK4 Rewrite</p>
-              <ul>
-                  <li>Redesign</li>
-                  <li>Add categories and subcategories to the side panel</li>
-                  <li>Download progress</li>
-                  <li>Improve image display</li>
-                  <li>Move credentials from file to secret storage</li>
-                  <li>Move settings to gsettings instead of file</li>
-                  <li>Due to compatibility issues remove the webkit2gtk login screen and replace it by SID login</li>
-              </ul>
-       </description>
-    </release>
-    <release version="1.0.10" date="2021-04-21">
-       <description>
-              <p>Added configuration for Unreal Engine directories and projects</p>
-              <ul>
-                  <li>Quote</li>
-                  <li>Fix up the script</li>
-                  <li>Add release script and bump version</li>
-                  <li>Fix build and run</li>
-                  <li>Update the build environment</li>
-                  <li>Update manifest and add po</li>
-                  <li>Fix dependency version</li>
-                  <li>Fix dependency version</li>
-                  <li>Add dependencies and build</li>
-                  <li>Switch to meson build system</li>
-                  <li>Remove the Version from desktop</li>
-                  <li>Ditch AppImage and create metainfo and update the application</li>
-                  <li>remove cairo add glib</li>
-                  <li>Add cair2-dev</li>
-                  <li>Add brsvg dependency</li>
-                  <li>Add settings for engine and project directories, try building appimage</li>
-</ul>
-       </description>
-    </release>
-  </releases>
-  <kudos>
-     <!--
-       GNOME Software kudos:
-       https://gitlab.gnome.org/GNOME/gnome-software/blob/master/doc/kudos.md
-     -->
-     <kudo>ModernToolkit</kudo>
-     <kudo>HiDpiIcon</kudo>
-  </kudos>
-  <developer_name>Milan Stastny</developer_name>
-  <update_contact>milan@acheta.games</update_contact>
-  <translation type="gettext">@gettext-package@</translation>
-  <launchable type="desktop-id">@app-id@.desktop</launchable>
+    <id>@app-id@</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>MIT</project_license>
+    <name>Epic Asset Manager</name>
+    <summary>Manage your Epic assets</summary>
+    <icon type="remote" height="256" width="256">https://github.com/AchetaGames/Epic-Asset-Manager/raw/main/data/icons/io.github.achetagames.epic_asset_manager.png</icon>
+    <description>
+        <p>A native GTK application to access Assets owned through Epic Games Store including Games and Unreal Engine assets.</p>
+    </description>
+    <categories>
+        <category>Development</category>
+        <category>Utility</category>
+        <category>Network</category>
+        <category>Game</category>
+        <category>GTK</category>
+        <category>FileTools</category>
+    </categories>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/screenshot2.png</image>
+            <caption>Main Window</caption>
+        </screenshot>
+    </screenshots>
+    <url type="homepage">https://github.com/AchetaGames/Epic-Asset-Manager</url>
+    <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
+    <content_rating type="oars-1.0"/>
+    <releases>
+        <release version="2.2.2" date="2021-09-16">
+            <description>
+                <p>Initial asset load fix</p>
+                <ul>
+                    <li>Fix the issue of the assets not loading after the initial login</li>
+                    <li>Remove unreal logo from the icon</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.2.1" date="2021-09-06">
+            <description>
+                <p>Fix EGS login issue</p>
+            </description>
+        </release>
+        <release version="2.2.0" date="2021-08-28">
+            <description>
+                <p>Open directory button for downloads</p>
+            </description>
+        </release>
+        <release version="2.1.1" date="2021-08-24">
+            <description>
+                <p>Handle the com.epicgames.launcher urls</p>
+            </description>
+        </release>
+        <release version="2.0.1" date="2021-08-19">
+            <description>
+                <p>Asset loading fix</p>
+            </description>
+        </release>
+        <release version="2.0.0" date="2021-08-19">
+            <description>
+                <p>GTK4 Rewrite</p>
+                <ul>
+                    <li>Redesign</li>
+                    <li>Add categories and subcategories to the side panel</li>
+                    <li>Download progress</li>
+                    <li>Improve image display</li>
+                    <li>Move credentials from file to secret storage</li>
+                    <li>Move settings to gsettings instead of file</li>
+                    <li>Due to compatibility issues remove the webkit2gtk login screen and replace it by SID login</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.0.10" date="2021-04-21">
+            <description>
+                <p>Added configuration for Unreal Engine directories and projects</p>
+                <ul>
+                    <li>Quote</li>
+                    <li>Fix up the script</li>
+                    <li>Add release script and bump version</li>
+                    <li>Fix build and run</li>
+                    <li>Update the build environment</li>
+                    <li>Update manifest and add po</li>
+                    <li>Fix dependency version</li>
+                    <li>Fix dependency version</li>
+                    <li>Add dependencies and build</li>
+                    <li>Switch to meson build system</li>
+                    <li>Remove the Version from desktop</li>
+                    <li>Ditch AppImage and create metainfo and update the application</li>
+                    <li>remove cairo add glib</li>
+                    <li>Add cair2-dev</li>
+                    <li>Add brsvg dependency</li>
+                    <li>Add settings for engine and project directories, try building appimage</li>
+                </ul>
+            </description>
+        </release>
+    </releases>
+    <kudos>
+        <!--
+          GNOME Software kudos:
+          https://gitlab.gnome.org/GNOME/gnome-software/blob/master/doc/kudos.md
+        -->
+        <kudo>ModernToolkit</kudo>
+        <kudo>HiDpiIcon</kudo>
+    </kudos>
+    <developer_name>Acheta Games</developer_name>
+    <update_contact>eam@acheta.games</update_contact>
+    <translation type="gettext">@gettext-package@</translation>
+    <launchable type="desktop-id">@app-id@.desktop</launchable>
 </component>

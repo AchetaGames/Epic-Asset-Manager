@@ -2,6 +2,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use log::info;
+use std::path::PathBuf;
 
 pub(crate) mod imp {
     use super::*;
@@ -81,23 +82,43 @@ impl EpicProjectsBox {
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
             let path = std::path::PathBuf::from(dir.to_string());
-            match path.read_dir() {
-                Ok(rd) => {
-                    for d in rd {
-                        match d {
-                            Ok(entry) => {
-                                let path = entry.path();
-                                println!("got path: {:?}", path.into_os_string());
-                            }
-                            Err(_) => {
+            if let Ok(rd) = path.read_dir() {
+                for d in rd {
+                    match d {
+                        Ok(entry) => {
+                            let p = entry.path();
+                            if p.is_dir() {
+                                println!("got path: {:?}", p.file_name());
+                                EpicProjectsBox::uproject_path(p);
+                            } else {
                                 continue;
+                            }
+                        }
+                        Err(_) => {
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn uproject_path(p: PathBuf) -> Option<PathBuf> {
+        if let Ok(r) = p.read_dir() {
+            for f in r {
+                if let Ok(file_entry) = f {
+                    let file = file_entry.path();
+                    if file.is_file() {
+                        if let Some(ext) = file.extension() {
+                            if ext.eq("uproject") {
+                                return Some(file);
                             }
                         }
                     }
                 }
-                Err(_) => {}
             }
-        }
+        };
+        None
     }
 
     pub fn set_download_manager(
