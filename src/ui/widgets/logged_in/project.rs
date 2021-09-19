@@ -4,13 +4,16 @@ use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
+    use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
-    #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
+    #[template(resource = "/io/github/achetagames/epic_asset_manager/project.ui")]
     pub struct EpicProject {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
+        name: RefCell<Option<String>>,
     }
 
     #[glib::object_subclass]
@@ -23,6 +26,7 @@ pub(crate) mod imp {
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
+                name: RefCell::new(None),
             }
         }
 
@@ -39,6 +43,46 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicProject {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+        }
+
+        fn properties() -> &'static [ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![ParamSpec::new_string(
+                    "name",
+                    "Name",
+                    "Name",
+                    None,
+                    glib::ParamFlags::READWRITE,
+                )]
+            });
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &ParamSpec,
+        ) {
+            match pspec.name() {
+                "name" => {
+                    let name = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`")
+                        .map(|l| format!("<span size=\"xx-large\"><b><u>{}</u></b></span>", l));
+                    self.name.replace(name);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "name" => self.name.borrow().to_value(),
+                _ => unimplemented!(),
+            }
         }
     }
 

@@ -1,3 +1,4 @@
+use crate::ui::widgets::logged_in::project::EpicProject;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -14,6 +15,9 @@ pub(crate) mod imp {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub settings: gtk4::gio::Settings,
+        #[template_child]
+        pub projects_grid: TemplateChild<gtk4::GridView>,
+        pub grid_model: gtk4::gio::ListStore,
     }
 
     #[glib::object_subclass]
@@ -27,6 +31,10 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
+                projects_grid: TemplateChild::default(),
+                grid_model: gtk4::gio::ListStore::new(
+                    crate::models::project_data::ProjectData::static_type(),
+                ),
             }
         }
 
@@ -75,6 +83,47 @@ impl EpicProjectsBox {
         }
 
         self_.window.set(window.clone()).unwrap();
+
+        let factory = gtk4::SignalListItemFactory::new();
+        factory.connect_setup(move |_factory, item| {
+            let row = EpicProject::new();
+            item.set_child(Some(&row));
+        });
+
+        factory.connect_bind(move |_factory, list_item| {
+            let data = list_item
+                .item()
+                .unwrap()
+                .downcast::<crate::models::project_data::ProjectData>()
+                .unwrap();
+
+            let child = list_item
+                .child()
+                .unwrap()
+                .downcast::<EpicProject>()
+                .unwrap();
+            child.set_property("name", &data.name()).unwrap();
+        });
+
+        let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
+            let info1 = obj1
+                .downcast_ref::<crate::models::project_data::ProjectData>()
+                .unwrap();
+            let info2 = obj2
+                .downcast_ref::<crate::models::project_data::ProjectData>()
+                .unwrap();
+            info1
+                .name()
+                .to_lowercase()
+                .cmp(&info2.name().to_lowercase())
+                .into()
+        });
+        let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
+        let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
+        selection_model.set_autoselect(false);
+        selection_model.set_can_unselect(true);
+        self_.projects_grid.set_model(Some(&selection_model));
+        self_.projects_grid.set_factory(Some(&factory));
     }
 
     pub fn load_projects(&self) {
@@ -89,7 +138,19 @@ impl EpicProjectsBox {
                             let p = entry.path();
                             if p.is_dir() {
                                 println!("got path: {:?}", p.file_name());
-                                EpicProjectsBox::uproject_path(p);
+                                if let Some(uproject_file) = EpicProjectsBox::uproject_path(p) {
+                                    self_.grid_model.append(
+                                        &crate::models::project_data::ProjectData::new(
+                                            uproject_file.to_str().unwrap().to_string(),
+                                            uproject_file
+                                                .file_stem()
+                                                .unwrap()
+                                                .to_str()
+                                                .unwrap()
+                                                .to_string(),
+                                        ),
+                                    )
+                                };
                             } else {
                                 continue;
                             }

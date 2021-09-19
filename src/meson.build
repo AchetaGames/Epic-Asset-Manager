@@ -28,6 +28,7 @@ rust_sources = files(
     'models/asset_data.rs',
     'models/engine_data.rs',
     'models/category_data.rs',
+    'models/project_data.rs',
     'models/mod.rs',
     'ui/update.rs',
     'ui/authentication.rs',

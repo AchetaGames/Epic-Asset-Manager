@@ -1,6 +1,7 @@
 pub mod asset_data;
 pub mod category_data;
 pub mod engine_data;
+pub mod project_data;
 
 use crate::config::APP_ID;
 use egs_api::EpicGames;
