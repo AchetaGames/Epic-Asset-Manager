@@ -166,14 +166,12 @@ impl EpicProjectsBox {
 
     fn uproject_path(p: PathBuf) -> Option<PathBuf> {
         if let Ok(r) = p.read_dir() {
-            for f in r {
-                if let Ok(file_entry) = f {
-                    let file = file_entry.path();
-                    if file.is_file() {
-                        if let Some(ext) = file.extension() {
-                            if ext.eq("uproject") {
-                                return Some(file);
-                            }
+            for file_entry in r.flatten() {
+                let file = file_entry.path();
+                if file.is_file() {
+                    if let Some(ext) = file.extension() {
+                        if ext.eq("uproject") {
+                            return Some(file);
                         }
                     }
                 }

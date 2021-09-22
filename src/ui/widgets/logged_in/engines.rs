@@ -162,6 +162,14 @@ impl EpicEnginesBox {
             let child = list_item.child().unwrap().downcast::<EpicEngine>().unwrap();
             child.set_property("path", &data.path()).unwrap();
             child.set_property("guid", &data.guid()).unwrap();
+            child.set_property("version", &data.version()).unwrap();
+            child.set_property("branch", &data.branch()).unwrap();
+            child
+                .set_property("has-branch", &data.has_branch().unwrap_or(false))
+                .unwrap();
+            child
+                .set_property("needs-update", &data.needs_update().unwrap_or(false))
+                .unwrap();
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -172,7 +180,10 @@ impl EpicEnginesBox {
                 .downcast_ref::<crate::models::engine_data::EngineData>()
                 .unwrap();
 
-            match VersionCompare::compare(&info1.version(), &info2.version()) {
+            match VersionCompare::compare(
+                &info1.version().unwrap_or_default(),
+                &info2.version().unwrap_or_default(),
+            ) {
                 Ok(comp) => match comp {
                     CompOp::Eq => gtk4::Ordering::Equal,
                     CompOp::Lt => gtk4::Ordering::Larger,
@@ -277,8 +288,7 @@ impl EpicEnginesBox {
     pub fn load_engines(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
         for (guid, path) in Self::read_engines_ini() {
-            let version = EpicEngine::read_engine_version(&path);
-            let data = crate::models::engine_data::EngineData::new(path, guid, version);
+            let data = crate::models::engine_data::EngineData::new(path, guid, &self_.grid_model);
             self_.grid_model.append(&data);
         }
     }

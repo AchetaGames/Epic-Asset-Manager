@@ -1,5 +1,45 @@
 use glib::ObjectExt;
 use gtk4::{glib, subclass::prelude::*};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Uproject {
+    pub file_version: i64,
+    pub engine_association: String,
+    pub category: String,
+    pub description: String,
+    pub modules: Option<Vec<Module>>,
+    pub plugins: Option<Vec<Plugin>>,
+    pub disable_engine_plugins_by_default: Option<bool>,
+    pub enterprise: Option<bool>,
+    pub additional_plugin_directories: Option<Vec<String>>,
+    pub additional_root_directories: Option<Vec<String>>,
+    pub target_platforms: Option<Vec<String>>,
+    pub epic_sample_name_hash: Option<String>,
+    pub pre_build_steps: Option<HashMap<String, Vec<String>>>,
+    pub post_build_steps: Option<HashMap<String, Vec<String>>>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Module {
+    pub name: String,
+    #[serde(rename = "Type")]
+    pub type_field: String,
+    pub loading_phase: String,
+    pub additional_dependencies: Vec<String>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Plugin {
+    pub name: String,
+    pub enabled: bool,
+    pub marketplace_url: Option<String>,
+    pub supported_target_platforms: Option<Vec<String>>,
+}
 
 // Implementation sub-module of the GObject
 mod imp {
