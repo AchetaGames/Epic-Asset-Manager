@@ -590,7 +590,20 @@ impl EpicDownloadManager {
                 p
             );
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-            let mut client = reqwest::blocking::get(link).unwrap();
+            let mut client = match reqwest::blocking::get(link) {
+                Ok(c) => c,
+                Err(e) => {
+                    //TODO: This has the potential to loop forever
+                    error!("Failed to start chunk download, trying again later: {}", e);
+                    sender
+                        .send(DownloadMsg::PerformChunkDownload(
+                            link.clone(),
+                            p.clone(),
+                            g.clone(),
+                        ))
+                        .unwrap();
+                }
+            };
             let mut buffer: [u8; 1024] = [0; 1024];
             let mut downloaded: u128 = 0;
             let mut file = File::create(p).unwrap();
