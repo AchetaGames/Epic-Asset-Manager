@@ -160,9 +160,8 @@ impl EpicEnginesBox {
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<EpicEngine>().unwrap();
-            child.set_property("path", &data.path()).unwrap();
-            child.set_property("guid", &data.guid()).unwrap();
-            child.set_property("version", &data.version()).unwrap();
+            child.set_data(&data);
+
             child.set_property("branch", &data.branch()).unwrap();
             child
                 .set_property("has-branch", &data.has_branch().unwrap_or(false))
@@ -243,12 +242,10 @@ impl EpicEnginesBox {
             "launch",
             clone!(@weak self as engines => move |_, _| {
                 let path = engines.selected();
-                println!("Launching: {:?}", path);
                 if let Some(path) = path {
                     match Self::get_engine_binary_path(&path) {
-                        None => { println!("No path");}
+                        None => { warn!("No path");}
                         Some(p) => {
-                            println!("{:?}", p);
                             let context = gtk4::gio::AppLaunchContext::new();
                             context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
                             let app = gtk4::gio::AppInfo::create_from_commandline(

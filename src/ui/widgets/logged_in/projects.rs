@@ -137,7 +137,6 @@ impl EpicProjectsBox {
                         Ok(entry) => {
                             let p = entry.path();
                             if p.is_dir() {
-                                println!("got path: {:?}", p.file_name());
                                 if let Some(uproject_file) = EpicProjectsBox::uproject_path(p) {
                                     self_.grid_model.append(
                                         &crate::models::project_data::ProjectData::new(

@@ -1,7 +1,5 @@
 use gtk4::glib::clone;
-use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*};
-use gtk4::{glib, CompositeTemplate};
+use gtk4::{glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::warn;
 

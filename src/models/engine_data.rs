@@ -1,7 +1,6 @@
 use glib::clone;
 use glib::ObjectExt;
-use gtk4::gio::prelude::ListModelExt;
-use gtk4::{glib, subclass::prelude::*};
+use gtk4::{glib, prelude::*, subclass::prelude::*};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::io::Read;
@@ -94,6 +93,20 @@ mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_messaging();
+        }
+
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk4::glib::subclass::Signal::builder(
+                        "finished",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -211,8 +224,7 @@ impl EngineData {
     pub fn new(path: String, guid: String, model: &gtk4::gio::ListStore) -> EngineData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create EngineData");
         let self_: &imp::EngineData = imp::EngineData::from_instance(&data);
-        println!("{}", model.n_items());
-        // self_.position.set(model.n_items()).unwrap();
+        self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
         data.set_property("path", &path).unwrap();
         data.set_property("guid", &guid).unwrap();
@@ -226,12 +238,12 @@ impl EngineData {
             ),
         )
         .unwrap();
-        // if let Some(path) = data.path() {
-        //     let sender = self_.sender.clone();
-        //     thread::spawn(move || {
-        //         Self::needs_repo_update(path, Some(sender));
-        //     });
-        // }
+        if let Some(path) = data.path() {
+            let sender = self_.sender.clone();
+            thread::spawn(move || {
+                Self::needs_repo_update(path, Some(sender));
+            });
+        }
         data
     }
 
@@ -262,7 +274,6 @@ impl EngineData {
     }
 
     pub fn update(&self, msg: EngineMsg) {
-        let self_: &imp::EngineData = imp::EngineData::from_instance(self);
         match msg {
             EngineMsg::Update(waiting) => {
                 self.set_property("needs-update", waiting).unwrap();
@@ -272,16 +283,7 @@ impl EngineData {
                 self.set_property("branch", branch).unwrap();
             }
         };
-        // if let Some(model) = self_.model.get() {
-        //     model.items_changed(
-        //         match self_.position.get() {
-        //             None => 0,
-        //             Some(v) => v.clone(),
-        //         },
-        //         0,
-        //         0,
-        //     )
-        // }
+        self.emit_by_name("finished", &[]).unwrap();
     }
 
     fn needs_repo_update(path: String, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {

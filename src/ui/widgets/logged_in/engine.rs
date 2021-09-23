@@ -1,6 +1,4 @@
-use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*};
-use gtk4::{glib, CompositeTemplate};
+use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
@@ -20,6 +18,7 @@ pub(crate) mod imp {
         updatable: RefCell<bool>,
         has_branch: RefCell<bool>,
         pub ueversion: RefCell<Option<crate::models::engine_data::UnrealVersion>>,
+        pub data: RefCell<Option<crate::models::engine_data::EngineData>>,
     }
 
     #[glib::object_subclass]
@@ -39,6 +38,7 @@ pub(crate) mod imp {
                 updatable: RefCell::new(false),
                 has_branch: RefCell::new(false),
                 ueversion: RefCell::new(None),
+                data: RefCell::new(None),
             }
         }
 
@@ -212,5 +212,28 @@ impl EpicEngine {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
+    }
+
+    pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
+        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        self_.data.replace(Some(data.clone()));
+        self.set_property("path", &data.path()).unwrap();
+        self.set_property("guid", &data.guid()).unwrap();
+        self.set_property("version", &data.version()).unwrap();
+        data.connect_local(
+            "finished",
+            false,
+            clone!(@weak self as engine, @weak data => @default-return None, move |_| {
+                engine.set_property("branch", &data.branch()).unwrap();
+                engine
+                    .set_property("has-branch", &data.has_branch().unwrap_or(false))
+                    .unwrap();
+                engine
+                    .set_property("needs-update", &data.needs_update().unwrap_or(false))
+                    .unwrap();
+                None
+            }),
+        )
+        .unwrap();
     }
 }

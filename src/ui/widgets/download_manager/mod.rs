@@ -590,7 +590,7 @@ impl EpicDownloadManager {
                 p
             );
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-            let mut client = match reqwest::blocking::get(link) {
+            let mut client = match reqwest::blocking::get(link.clone()) {
                 Ok(c) => c,
                 Err(e) => {
                     //TODO: This has the potential to loop forever
@@ -602,6 +602,7 @@ impl EpicDownloadManager {
                             g.clone(),
                         ))
                         .unwrap();
+                    return;
                 }
             };
             let mut buffer: [u8; 1024] = [0; 1024];
