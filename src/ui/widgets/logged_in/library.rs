@@ -274,9 +274,7 @@ impl Default for EpicLibraryBox {
 
 impl EpicLibraryBox {
     pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicLibraryBox");
-
-        stack
+        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
     pub fn set_download_manager(
@@ -741,7 +739,7 @@ impl EpicLibraryBox {
                             if let Ok(mut f) = std::fs::File::open(asset_file.as_path()) {
                                 let mut buffer = String::new();
                                 f.read_to_string(&mut buffer).unwrap();
-                                if let Ok(asset) = serde_json::from_str::<
+                                if let Ok(asset) = json5::from_str::<
                                     egs_api::api::types::asset_info::AssetInfo,
                                 >(&buffer)
                                 {
@@ -809,7 +807,7 @@ impl EpicLibraryBox {
                 fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
                 if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
                     asset_file
-                        .write_all(serde_json::to_string(&ea).unwrap().as_bytes().as_ref())
+                        .write_all(json5::to_string(&ea).unwrap().as_bytes().as_ref())
                         .unwrap();
                 }
             });
@@ -833,7 +831,7 @@ impl EpicLibraryBox {
                     fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
                     if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
                         asset_file
-                            .write_all(serde_json::to_string(&asset).unwrap().as_bytes().as_ref())
+                            .write_all(json5::to_string(&asset).unwrap().as_bytes().as_ref())
                             .unwrap();
                     }
                     sender

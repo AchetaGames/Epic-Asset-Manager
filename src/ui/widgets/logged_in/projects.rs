@@ -1,13 +1,15 @@
+use crate::ui::widgets::logged_in::engines::UnrealEngine;
 use crate::ui::widgets::logged_in::project::EpicProject;
-use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*};
-use gtk4::{glib, CompositeTemplate};
-use log::info;
+use gtk4::{self, gio, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk_macros::action;
+use log::{debug, info};
 use std::path::PathBuf;
 
 pub(crate) mod imp {
     use super::*;
+    use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
@@ -17,7 +19,14 @@ pub(crate) mod imp {
         pub settings: gtk4::gio::Settings,
         #[template_child]
         pub projects_grid: TemplateChild<gtk4::GridView>,
+        #[template_child]
+        pub details:
+            TemplateChild<crate::ui::widgets::logged_in::project_detail::UnrealProjectDetails>,
         pub grid_model: gtk4::gio::ListStore,
+        pub expanded: RefCell<bool>,
+        selected: RefCell<Option<String>>,
+        pub selected_uproject: RefCell<Option<crate::models::project_data::Uproject>>,
+        pub actions: gtk4::gio::SimpleActionGroup,
     }
 
     #[glib::object_subclass]
@@ -32,9 +41,14 @@ pub(crate) mod imp {
                 download_manager: OnceCell::new(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
                 projects_grid: TemplateChild::default(),
+                details: TemplateChild::default(),
                 grid_model: gtk4::gio::ListStore::new(
                     crate::models::project_data::ProjectData::static_type(),
                 ),
+                expanded: RefCell::new(false),
+                selected: RefCell::new(None),
+                selected_uproject: RefCell::new(None),
+                actions: gtk4::gio::SimpleActionGroup::new(),
             }
         }
 
@@ -51,7 +65,59 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicProjectsBox {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            obj.setup_actions();
             obj.load_projects();
+        }
+
+        fn properties() -> &'static [ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![
+                    ParamSpec::new_boolean(
+                        "expanded",
+                        "expanded",
+                        "Is expanded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "selected",
+                        "Selected",
+                        "Selected",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
+            });
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &ParamSpec,
+        ) {
+            match pspec.name() {
+                "expanded" => {
+                    let expanded = value.get().unwrap();
+                    self.expanded.replace(expanded);
+                }
+                "selected" => {
+                    let selected = value.get().unwrap();
+                    self.selected.replace(selected);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "expanded" => self.expanded.borrow().to_value(),
+                "selected" => self.selected.borrow().to_value(),
+                _ => unimplemented!(),
+            }
         }
     }
 
@@ -122,8 +188,41 @@ impl EpicProjectsBox {
         let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
         selection_model.set_autoselect(false);
         selection_model.set_can_unselect(true);
+
+        selection_model.connect_selected_notify(clone!(@weak self as projects => move |model| {
+            if let Some(a) = model.selected_item() {
+                let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(&projects);
+                let project = a.downcast::<crate::models::project_data::ProjectData>().unwrap();
+                if let Some(uproject) = project.uproject() {
+                    self_.details.set_project(uproject, project.path());
+                }
+                projects.set_property("selected", project.path()).unwrap();
+                self_.selected_uproject.replace(project.uproject());
+                projects.set_property("expanded", true).unwrap();
+            }
+        }));
         self_.projects_grid.set_model(Some(&selection_model));
         self_.projects_grid.set_factory(Some(&factory));
+    }
+
+    pub fn setup_actions(&self) {
+        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        self.insert_action_group("projects", Some(&self_.actions));
+
+        action!(
+            self_.actions,
+            "launch",
+            clone!(@weak self as projects => move |_, _| {
+                let path = projects.selected();
+                let engine = projects.selected_engine();
+                // TODO: Try to figure out the engine from association
+                match engine {
+                    Some(eng) => { debug!("Want to launch project: {:?} with {:?}", path, eng); }
+                    None => { debug!("Need to let user decide how to launch {:?}", path); }
+                }
+
+            })
+        );
     }
 
     pub fn load_projects(&self) {
@@ -176,6 +275,32 @@ impl EpicProjectsBox {
                 }
             }
         };
+        None
+    }
+
+    pub fn selected(&self) -> Option<String> {
+        if let Ok(value) = self.property("selected") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
+    }
+
+    pub fn selected_engine(&self) -> Option<UnrealEngine> {
+        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        if let Some(uproject) = self_.selected_uproject.borrow().clone() {
+            if let Some(w) = self_.window.get() {
+                let w_: &crate::window::imp::EpicAssetManagerWindow =
+                    crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                let l = w_.logged_in_stack.clone();
+                let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
+                    &crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+                return l_
+                    .engine
+                    .engine_from_assoociation(uproject.engine_association);
+            }
+        }
         None
     }
 

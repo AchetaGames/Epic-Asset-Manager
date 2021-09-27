@@ -1,3 +1,4 @@
+use gtk4::cairo::glib::SignalHandlerId;
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 pub(crate) mod imp {
@@ -19,6 +20,7 @@ pub(crate) mod imp {
         has_branch: RefCell<bool>,
         pub ueversion: RefCell<Option<crate::models::engine_data::UnrealVersion>>,
         pub data: RefCell<Option<crate::models::engine_data::EngineData>>,
+        pub handler: RefCell<Option<SignalHandlerId>>,
     }
 
     #[glib::object_subclass]
@@ -39,6 +41,7 @@ pub(crate) mod imp {
                 has_branch: RefCell::new(false),
                 ueversion: RefCell::new(None),
                 data: RefCell::new(None),
+                handler: RefCell::new(None),
             }
         }
 
@@ -216,11 +219,16 @@ impl EpicEngine {
 
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
         let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
         self_.data.replace(Some(data.clone()));
         self.set_property("path", &data.path()).unwrap();
         self.set_property("guid", &data.guid()).unwrap();
         self.set_property("version", &data.version()).unwrap();
-        data.connect_local(
+        if let Ok(id) = data.connect_local(
             "finished",
             false,
             clone!(@weak self as engine, @weak data => @default-return None, move |_| {
@@ -233,7 +241,8 @@ impl EpicEngine {
                     .unwrap();
                 None
             }),
-        )
-        .unwrap();
+        ) {
+            self_.handler.replace(Some(id));
+        }
     }
 }

@@ -436,12 +436,7 @@ impl EpicDownloadManager {
             match File::create(t.as_path().join("manifest.json")) {
                 Ok(mut json_manifest_file) => {
                     json_manifest_file
-                        .write_all(
-                            serde_json::to_string(&manifest)
-                                .unwrap()
-                                .as_bytes()
-                                .as_ref(),
-                        )
+                        .write_all(json5::to_string(&manifest).unwrap().as_bytes().as_ref())
                         .unwrap();
                 }
                 Err(e) => {

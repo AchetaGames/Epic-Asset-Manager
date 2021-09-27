@@ -221,14 +221,18 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl EngineData {
-    pub fn new(path: String, guid: String, model: &gtk4::gio::ListStore) -> EngineData {
+    pub fn new(
+        path: String,
+        guid: String,
+        version: UnrealVersion,
+        model: &gtk4::gio::ListStore,
+    ) -> EngineData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create EngineData");
         let self_: &imp::EngineData = imp::EngineData::from_instance(&data);
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
         data.set_property("path", &path).unwrap();
         data.set_property("guid", &guid).unwrap();
-        let version = Self::read_engine_version(&path);
         self_.ueversion.replace(Some(version.clone()));
         data.set_property(
             "version",
@@ -255,7 +259,7 @@ impl EngineData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return serde_json::from_str(&contents).unwrap_or_default();
+                return json5::from_str(&contents).unwrap_or_default();
             }
         }
         UnrealVersion::default()
@@ -309,6 +313,7 @@ impl EngineData {
             if let Ok(remotes) = repo.remotes() {
                 for remote in remotes.iter().flatten() {
                     if let Ok(mut r) = repo.find_remote(remote) {
+                        // TODO: Filter remote and only consider upstream Epic Games repo(if multiple available)
                         let cb = Self::git_callbacks();
                         if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
                             warn!("Unable to connect: {}", e)

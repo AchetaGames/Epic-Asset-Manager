@@ -2,13 +2,18 @@ use glib::ObjectExt;
 use gtk4::{glib, subclass::prelude::*};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::Read;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Uproject {
+    #[serde(default)]
     pub file_version: i64,
+    #[serde(default)]
     pub engine_association: String,
+    #[serde(default)]
     pub category: String,
+    #[serde(default)]
     pub description: String,
     pub modules: Option<Vec<Module>>,
     pub plugins: Option<Vec<Plugin>>,
@@ -26,18 +31,23 @@ pub struct Uproject {
 #[serde(rename_all = "PascalCase")]
 pub struct Module {
     pub name: String,
-    #[serde(rename = "Type")]
+    #[serde(rename = "Type", default)]
     pub type_field: String,
+    #[serde(default)]
     pub loading_phase: String,
-    pub additional_dependencies: Vec<String>,
+    pub additional_dependencies: Option<Vec<String>>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Plugin {
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub enabled: bool,
+    #[serde(default)]
     pub marketplace_url: Option<String>,
+    #[serde(default)]
     pub supported_target_platforms: Option<Vec<String>>,
 }
 
@@ -55,6 +65,7 @@ mod imp {
         guid: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
+        pub uproject: RefCell<Option<super::Uproject>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -69,6 +80,7 @@ mod imp {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
                 name: RefCell::new(None),
+                uproject: RefCell::new(None),
             }
         }
     }
@@ -156,9 +168,16 @@ glib::wrapper! {
 impl ProjectData {
     pub fn new(path: String, name: String) -> ProjectData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create ProjectData");
-
+        let self_: &imp::ProjectData = imp::ProjectData::from_instance(&data);
         data.set_property("path", &path).unwrap();
         data.set_property("name", &name).unwrap();
+        let mut uproject = Self::read_uproject(&path);
+        uproject.engine_association = uproject
+            .engine_association
+            .chars()
+            .filter(|c| c != &'{' && c != &'}')
+            .collect();
+        self_.uproject.replace(Some(uproject));
 
         data
     }
@@ -188,5 +207,21 @@ impl ProjectData {
             }
         };
         "".to_string()
+    }
+
+    pub fn read_uproject(path: &str) -> Uproject {
+        let p = std::path::PathBuf::from(path);
+        if let Ok(mut file) = std::fs::File::open(p) {
+            let mut contents = String::new();
+            if file.read_to_string(&mut contents).is_ok() {
+                return json5::from_str(&contents).unwrap();
+            }
+        }
+        Uproject::default()
+    }
+
+    pub fn uproject(&self) -> Option<Uproject> {
+        let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
+        self_.uproject.borrow().clone()
     }
 }

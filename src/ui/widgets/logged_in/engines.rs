@@ -10,6 +10,13 @@ use std::ffi::OsString;
 use std::str::FromStr;
 use version_compare::{CompOp, VersionCompare};
 
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct UnrealEngine {
+    version: crate::models::engine_data::UnrealVersion,
+    path: String,
+    guid: Option<String>,
+}
+
 pub(crate) mod imp {
     use super::*;
     use gtk4::glib::ParamSpec;
@@ -27,6 +34,7 @@ pub(crate) mod imp {
         pub expanded: RefCell<bool>,
         selected: RefCell<Option<String>>,
         pub actions: gtk4::gio::SimpleActionGroup,
+        pub engines: RefCell<HashMap<String, super::UnrealEngine>>,
     }
 
     #[glib::object_subclass]
@@ -46,6 +54,7 @@ pub(crate) mod imp {
                 expanded: RefCell::new(false),
                 selected: RefCell::new(None),
                 actions: gtk4::gio::SimpleActionGroup::new(),
+                engines: RefCell::new(HashMap::new()),
             }
         }
 
@@ -285,7 +294,19 @@ impl EpicEnginesBox {
     pub fn load_engines(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
         for (guid, path) in Self::read_engines_ini() {
-            let data = crate::models::engine_data::EngineData::new(path, guid, &self_.grid_model);
+            let mut engines = self_.engines.borrow_mut();
+            let version = crate::models::engine_data::EngineData::read_engine_version(&path);
+            engines.insert(
+                guid.clone(),
+                UnrealEngine {
+                    version: version.clone(),
+                    path: path.clone(),
+                    guid: Some(guid.clone()),
+                },
+            );
+            let data =
+                crate::models::engine_data::EngineData::new(path, guid, version, &self_.grid_model);
+
             self_.grid_model.append(&data);
         }
     }
@@ -307,11 +328,28 @@ impl EpicEnginesBox {
         if let Ok(keys) = ini.keys("Installations") {
             for item in keys.0 {
                 if let Ok(path) = ini.value("Installations", &item) {
-                    debug!("Got engine install: {} in {}", item, path);
-                    result.insert(item.to_string(), path.to_string());
+                    let guid: String = item.chars().filter(|c| c != &'{' && c != &'}').collect();
+                    debug!("Got engine install: {} in {}", guid, path);
+                    result.insert(guid.to_string(), path.to_string());
                 }
             }
         }
         result
+    }
+
+    pub fn engine_from_assoociation(&self, engine_association: String) -> Option<UnrealEngine> {
+        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        if let Some(engine) = self_.engines.borrow().get(&engine_association) {
+            return Some(engine.clone());
+        };
+        for engine in self_.engines.borrow().values() {
+            if engine_association.eq(&format!(
+                "{}.{}",
+                engine.version.major_version, engine.version.minor_version
+            )) {
+                return Some(engine.clone());
+            }
+        }
+        None
     }
 }

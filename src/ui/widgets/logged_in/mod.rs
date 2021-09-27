@@ -7,6 +7,7 @@ mod engines;
 pub mod image_stack;
 pub mod library;
 mod project;
+mod project_detail;
 mod projects;
 
 use gtk4::subclass::prelude::*;
@@ -156,7 +157,7 @@ impl EpicLoggedInBox {
         }
 
         self_.window.set(window.clone()).unwrap();
-        // self_.library.set_window(&window.clone());
+        self_.library.set_window(&window.clone());
         self_.engine.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
     }

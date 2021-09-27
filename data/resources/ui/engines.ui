@@ -19,7 +19,7 @@
             </object>
         </child>
         <child>
-            <object class="GtkRevealer" id="detail_slider">
+            <object class="GtkRevealer">
                 <property name="hexpand" bind-source="EpicEnginesBox" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="reveal-child" bind-source="EpicEnginesBox" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="transition-type">slide-up</property>
@@ -40,7 +40,7 @@
                                             </object>
                                         </child>
                                         <child>
-                                            <object class="GtkLabel" id="expand_label">
+                                            <object class="GtkLabel">
                                                 <property name="label" translatable="yes">Launch</property>
                                             </object>
                                         </child>

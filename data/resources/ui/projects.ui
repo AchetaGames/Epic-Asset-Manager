@@ -4,7 +4,6 @@
     <template class="EpicProjectsBox" parent="GtkBox">
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
-        <property name="orientation">vertical</property>
         <child>
             <object class="GtkScrolledWindow">
                 <property name="hexpand">true</property>
@@ -17,6 +16,9 @@
                     </object>
                 </property>
             </object>
+        </child>
+        <child>
+            <object class="UnrealProjectDetails" id="details"/>
         </child>
     </template>
 </interface>
