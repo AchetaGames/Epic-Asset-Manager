@@ -1,8 +1,6 @@
-use crate::ui::widgets::logged_in::engines::UnrealEngine;
 use crate::ui::widgets::logged_in::project::EpicProject;
-use gtk4::{self, gio, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::action;
-use log::{debug, info};
+use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
+use log::info;
 use std::path::PathBuf;
 
 pub(crate) mod imp {
@@ -149,6 +147,7 @@ impl EpicProjectsBox {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.details.set_window(&window.clone());
 
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
@@ -209,20 +208,20 @@ impl EpicProjectsBox {
         let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
         self.insert_action_group("projects", Some(&self_.actions));
 
-        action!(
-            self_.actions,
-            "launch",
-            clone!(@weak self as projects => move |_, _| {
-                let path = projects.selected();
-                let engine = projects.selected_engine();
-                // TODO: Try to figure out the engine from association
-                match engine {
-                    Some(eng) => { debug!("Want to launch project: {:?} with {:?}", path, eng); }
-                    None => { debug!("Need to let user decide how to launch {:?}", path); }
-                }
-
-            })
-        );
+        // action!(
+        //     self_.actions,
+        //     "launch",
+        //     clone!(@weak self as projects => move |_, _| {
+        //         let path = projects.selected();
+        //         let engine = projects.selected_engine();
+        //         // TODO: Try to figure out the engine from association
+        //         match engine {
+        //             Some(eng) => { debug!("Want to launch project: {:?} with {:?}", path, eng); }
+        //             None => { debug!("Need to let user decide how to launch {:?}", path); }
+        //         }
+        //
+        //     })
+        // );
     }
 
     pub fn load_projects(&self) {
@@ -285,34 +284,5 @@ impl EpicProjectsBox {
             }
         };
         None
-    }
-
-    pub fn selected_engine(&self) -> Option<UnrealEngine> {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
-        if let Some(uproject) = self_.selected_uproject.borrow().clone() {
-            if let Some(w) = self_.window.get() {
-                let w_: &crate::window::imp::EpicAssetManagerWindow =
-                    crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-                let l = w_.logged_in_stack.clone();
-                let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
-                    &crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
-                return l_
-                    .engine
-                    .engine_from_assoociation(uproject.engine_association);
-            }
-        }
-        None
-    }
-
-    pub fn set_download_manager(
-        &self,
-        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
-    ) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
-        // Do not run this twice
-        if self_.download_manager.get().is_some() {
-            return;
-        }
-        self_.download_manager.set(dm.clone()).unwrap();
     }
 }

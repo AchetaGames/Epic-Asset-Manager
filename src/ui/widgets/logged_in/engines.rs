@@ -12,9 +12,9 @@ use version_compare::{CompOp, VersionCompare};
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct UnrealEngine {
-    version: crate::models::engine_data::UnrealVersion,
-    path: String,
-    guid: Option<String>,
+    pub version: crate::models::engine_data::UnrealVersion,
+    pub path: String,
+    pub guid: Option<String>,
 }
 
 pub(crate) mod imp {
@@ -337,9 +337,9 @@ impl EpicEnginesBox {
         result
     }
 
-    pub fn engine_from_assoociation(&self, engine_association: String) -> Option<UnrealEngine> {
+    pub fn engine_from_assoociation(&self, engine_association: &str) -> Option<UnrealEngine> {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
-        if let Some(engine) = self_.engines.borrow().get(&engine_association) {
+        if let Some(engine) = self_.engines.borrow().get(engine_association) {
             return Some(engine.clone());
         };
         for engine in self_.engines.borrow().values() {
@@ -351,5 +351,15 @@ impl EpicEnginesBox {
             }
         }
         None
+    }
+
+    pub fn engines(&self) -> Vec<UnrealEngine> {
+        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let mut result: Vec<UnrealEngine> = Vec::new();
+        for engine in self_.engines.borrow().values() {
+            result.push(engine.clone());
+        }
+        result.sort_by(|a, b| a.version.compare(&b.version));
+        result
     }
 }

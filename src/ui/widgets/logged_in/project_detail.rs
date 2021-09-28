@@ -1,3 +1,6 @@
+use crate::models::project_data::Uproject;
+use crate::ui::widgets::logged_in::engines::UnrealEngine;
+use adw::traits::ActionRowExt;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -134,6 +137,16 @@ impl UnrealProjectDetails {
         );
     }
 
+    pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
+        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        // Do not run this twice
+        if self_.window.get().is_some() {
+            return;
+        }
+
+        self_.window.set(window.clone()).unwrap();
+    }
+
     pub fn set_project(&self, project: crate::models::project_data::Uproject, path: String) {
         let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
         let pathbuf = PathBuf::from(path);
@@ -142,9 +155,95 @@ impl UnrealProjectDetails {
             pathbuf.file_stem().unwrap().to_str().unwrap().to_string()
         ));
 
+        while let Some(el) = self_.details_box.first_child() {
+            self_.details_box.remove(&el)
+        }
+
+        let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+        let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+
+        // Engine
+        let row = adw::ActionRowBuilder::new().activatable(true).build();
+        let title = gtk4::LabelBuilder::new().label("Engine").build();
+        size_group_prefix.add_widget(&title);
+        row.add_prefix(&title);
+        let combo = gtk4::ComboBoxText::new();
+        let associated = self.associated_engine(&project);
+        for engine in self.available_engines() {
+            combo.append(
+                Some(&engine.path),
+                &format!(
+                    "{}.{}.{}{}",
+                    engine.version.major_version,
+                    engine.version.minor_version,
+                    engine.version.patch_version,
+                    match associated.clone() {
+                        None => {
+                            ""
+                        }
+                        Some(eng) => {
+                            if eng.path.eq(&engine.path) {
+                                " (Current)"
+                            } else {
+                                ""
+                            }
+                        }
+                    }
+                ),
+            )
+        }
+        if let Some(engine) = associated {
+            combo.set_active_id(Some(&engine.path));
+        };
+        size_group_labels.add_widget(&combo);
+        row.add_suffix(&combo);
+        self_.details_box.append(&row);
+
+        // Path
+        let row = adw::ActionRowBuilder::new().activatable(true).build();
+        let title = gtk4::LabelBuilder::new().label("Path").build();
+        size_group_prefix.add_widget(&title);
+        row.add_prefix(&title);
+        let label = gtk4::LabelBuilder::new()
+            .label(&pathbuf.parent().unwrap().to_str().unwrap())
+            .wrap(true)
+            .xalign(0.0)
+            .build();
+        size_group_labels.add_widget(&label);
+        row.add_suffix(&label);
+        self_.details_box.append(&row);
+
         if !self.is_expanded() {
             self.set_property("expanded", true).unwrap();
         }
+    }
+
+    pub fn associated_engine(&self, uproject: &Uproject) -> Option<UnrealEngine> {
+        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        if let Some(w) = self_.window.get() {
+            let w_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+            let l = w_.logged_in_stack.clone();
+            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
+                &crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+            return l_
+                .engine
+                .engine_from_assoociation(&uproject.engine_association);
+        }
+        None
+    }
+
+    pub fn available_engines(&self) -> Vec<UnrealEngine> {
+        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        if let Some(w) = self_.window.get() {
+            let w_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+            let l = w_.logged_in_stack.clone();
+            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
+                &crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+            return l_.engine.engines();
+        }
+        Vec::new()
     }
 
     pub fn is_expanded(&self) -> bool {

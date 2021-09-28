@@ -3,6 +3,7 @@ use glib::ObjectExt;
 use gtk4::{glib, prelude::*, subclass::prelude::*};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::io::Read;
 use std::thread;
 
@@ -25,6 +26,24 @@ pub struct UnrealVersion {
     pub is_promoted_build: i64,
     #[serde(default)]
     pub branch_name: String,
+}
+
+impl UnrealVersion {
+    pub fn compare(&self, other: &UnrealVersion) -> Ordering {
+        match self.major_version.cmp(&other.major_version) {
+            Ordering::Less => return Ordering::Less,
+            Ordering::Equal => match self.minor_version.cmp(&other.minor_version) {
+                Ordering::Less => return Ordering::Less,
+                Ordering::Equal => match self.patch_version.cmp(&other.patch_version) {
+                    Ordering::Less => return Ordering::Less,
+                    Ordering::Equal => return Ordering::Equal,
+                    Ordering::Greater => return Ordering::Greater,
+                },
+                Ordering::Greater => return Ordering::Greater,
+            },
+            Ordering::Greater => return Ordering::Greater,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
