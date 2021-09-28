@@ -167,7 +167,7 @@ impl EpicProjectsBox {
                 .unwrap()
                 .downcast::<EpicProject>()
                 .unwrap();
-            child.set_property("name", &data.name()).unwrap();
+            child.set_data(&data);
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -177,11 +177,20 @@ impl EpicProjectsBox {
             let info2 = obj2
                 .downcast_ref::<crate::models::project_data::ProjectData>()
                 .unwrap();
-            info1
-                .name()
-                .to_lowercase()
-                .cmp(&info2.name().to_lowercase())
-                .into()
+            match info1.name() {
+                None => {
+                    return gtk4::Ordering::Larger;
+                }
+                Some(a) => a
+                    .to_lowercase()
+                    .cmp(&match info2.name() {
+                        None => {
+                            return gtk4::Ordering::Smaller;
+                        }
+                        Some(b) => b.to_lowercase().into(),
+                    })
+                    .into(),
+            }
         });
         let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
         let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));

@@ -17,6 +17,30 @@ pub struct UnrealEngine {
     pub guid: Option<String>,
 }
 
+impl UnrealEngine {
+    pub fn get_engine_binary_path(&self) -> Option<OsString> {
+        if let Ok(mut p) = std::path::PathBuf::from_str(&self.path) {
+            p.push("Engine");
+            p.push("Binaries");
+            p.push("Linux");
+            let mut test = p.clone();
+            test.push("UE4Editor");
+            if test.exists() {
+                return Some(test.into_os_string());
+            } else {
+                let mut test = p.clone();
+                test.push("UnrealEditor");
+                if test.exists() {
+                    return Some(test.into_os_string());
+                } else {
+                    error!("Unable to launch the engine")
+                }
+            }
+        };
+        None
+    }
+}
+
 pub(crate) mod imp {
     use super::*;
     use gtk4::glib::ParamSpec;

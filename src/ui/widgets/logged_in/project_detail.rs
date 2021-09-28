@@ -5,7 +5,8 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
+use log::debug;
 use std::path::PathBuf;
 
 pub(crate) mod imp {
@@ -29,6 +30,8 @@ pub(crate) mod imp {
         pub title: TemplateChild<gtk4::Label>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
+        path: RefCell<Option<String>>,
+        pub uproject: RefCell<Option<super::Uproject>>,
     }
 
     #[glib::object_subclass]
@@ -46,6 +49,8 @@ pub(crate) mod imp {
                 title: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
+                path: RefCell::new(None),
+                uproject: RefCell::new(None),
             }
         }
 
@@ -68,13 +73,22 @@ pub(crate) mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpec::new_boolean(
-                    "expanded",
-                    "expanded",
-                    "Is expanded",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
+                vec![
+                    ParamSpec::new_boolean(
+                        "expanded",
+                        "expanded",
+                        "Is expanded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "path",
+                        "Path",
+                        "Path",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
             });
             PROPERTIES.as_ref()
         }
@@ -91,6 +105,10 @@ pub(crate) mod imp {
                     let expanded = value.get().unwrap();
                     self.expanded.replace(expanded);
                 }
+                "path" => {
+                    let path = value.get().unwrap();
+                    self.path.replace(path);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -98,6 +116,7 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
+                "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -135,6 +154,29 @@ impl UnrealProjectDetails {
                 details.set_property("expanded", false).unwrap();
             })
         );
+
+        action!(
+            actions,
+            "launch_project",
+            clone!(@weak self as details => move |_, _| {
+                let path = details.path().unwrap();
+                let project = details.uproject().unwrap();
+                let engine = details.associated_engine(&project);
+                // TODO: Try to figure out the engine from association
+                if let Some(eng) = engine {
+                    if let Some(p) = eng.get_engine_binary_path() {
+                        let context = gtk4::gio::AppLaunchContext::new();
+                        context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
+                        let app = gtk4::gio::AppInfo::create_from_commandline(
+                                format!("\"{:?}\" \"{}\"", p, path ),
+                                Some("Unreal Engine"),
+                                gtk4::gio::AppInfoCreateFlags::NONE,
+                            ).unwrap();
+                            app.launch(&[], Some(&context)).expect("Failed to launch application");
+                    }
+                };
+            })
+        );
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -147,17 +189,31 @@ impl UnrealProjectDetails {
         self_.window.set(window.clone()).unwrap();
     }
 
-    pub fn set_project(&self, project: crate::models::project_data::Uproject, path: String) {
+    pub fn set_launch_enabled(&self, enabled: bool) {
         let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
-        let pathbuf = PathBuf::from(path);
+        get_action!(self_.actions, @launch_project).set_enabled(enabled);
+    }
+
+    pub fn set_project(
+        &self,
+        project: crate::models::project_data::Uproject,
+        path: Option<String>,
+    ) {
+        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        self.set_property("path", &path).unwrap();
+        self_.uproject.replace(Some(project.clone()));
+        while let Some(el) = self_.details_box.first_child() {
+            self_.details_box.remove(&el)
+        }
+        if let None = path {
+            return;
+        }
+
+        let pathbuf = PathBuf::from(path.unwrap());
         self_.title.set_markup(&format!(
             "<b><u><big>{}</big></u></b>",
             pathbuf.file_stem().unwrap().to_str().unwrap().to_string()
         ));
-
-        while let Some(el) = self_.details_box.first_child() {
-            self_.details_box.remove(&el)
-        }
 
         let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
         let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
@@ -169,6 +225,7 @@ impl UnrealProjectDetails {
         row.add_prefix(&title);
         let combo = gtk4::ComboBoxText::new();
         let associated = self.associated_engine(&project);
+        self.set_launch_enabled(false);
         for engine in self.available_engines() {
             combo.append(
                 Some(&engine.path),
@@ -183,6 +240,7 @@ impl UnrealProjectDetails {
                         }
                         Some(eng) => {
                             if eng.path.eq(&engine.path) {
+                                self.set_launch_enabled(true);
                                 " (Current)"
                             } else {
                                 ""
@@ -195,6 +253,7 @@ impl UnrealProjectDetails {
         if let Some(engine) = associated {
             combo.set_active_id(Some(&engine.path));
         };
+        // TODO:
         size_group_labels.add_widget(&combo);
         row.add_suffix(&combo);
         self_.details_box.append(&row);
@@ -253,5 +312,19 @@ impl UnrealProjectDetails {
             }
         };
         false
+    }
+
+    pub fn uproject(&self) -> Option<Uproject> {
+        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        self_.uproject.borrow().clone()
+    }
+
+    pub fn path(&self) -> Option<String> {
+        if let Ok(value) = self.property("path") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
+        None
     }
 }

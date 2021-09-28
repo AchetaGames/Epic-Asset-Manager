@@ -1,8 +1,14 @@
 use glib::ObjectExt;
-use gtk4::{glib, subclass::prelude::*};
+use gtk4::gdk_pixbuf::Pixbuf;
+use gtk4::glib::clone;
+use gtk4::{self, glib, prelude::*, subclass::prelude::*};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs::File;
 use std::io::Read;
+use std::path::PathBuf;
+use std::thread;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -51,21 +57,31 @@ pub struct Plugin {
     pub supported_target_platforms: Option<Vec<String>>,
 }
 
+#[derive(Debug, Clone)]
+pub enum ProjectMsg {
+    Thumbnail(Vec<u8>),
+}
+
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
     use glib::ToValue;
+    use gtk4::gdk_pixbuf::prelude::StaticType;
+    use gtk4::gdk_pixbuf::Pixbuf;
     use gtk4::glib::ParamSpec;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     pub struct ProjectData {
         guid: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
         pub uproject: RefCell<Option<super::Uproject>>,
+        thumbnail: RefCell<Option<Pixbuf>>,
+        pub sender: gtk4::glib::Sender<super::ProjectMsg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::ProjectMsg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -76,11 +92,15 @@ mod imp {
         type ParentType = glib::Object;
 
         fn new() -> Self {
+            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
                 name: RefCell::new(None),
                 uproject: RefCell::new(None),
+                thumbnail: RefCell::new(None),
+                sender,
+                receiver: RefCell::new(Some(receiver)),
             }
         }
     }
@@ -92,6 +112,25 @@ mod imp {
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
     impl ObjectImpl for ProjectData {
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+            obj.setup_messaging();
+        }
+
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk4::glib::subclass::Signal::builder(
+                        "finished",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
+        }
+
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
@@ -115,6 +154,13 @@ mod imp {
                         "Name",
                         "Name",
                         None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpec::new_object(
+                        "thumbnail",
+                        "Thumbnail",
+                        "Thumbnail",
+                        Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -142,6 +188,12 @@ mod imp {
                     let name = value.get().unwrap();
                     self.name.replace(name);
                 }
+                "thumbnail" => {
+                    let thumbnail = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.thumbnail.replace(thumbnail);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -151,6 +203,7 @@ mod imp {
                 "guid" => self.guid.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
                 "name" => self.name.borrow().to_value(),
+                "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -178,35 +231,49 @@ impl ProjectData {
             .filter(|c| c != &'{' && c != &'}')
             .collect();
         self_.uproject.replace(Some(uproject));
-
+        if let Some(path) = data.path() {
+            let sender = self_.sender.clone();
+            thread::spawn(move || {
+                Self::load_thumbnail(path, sender);
+            });
+        }
         data
     }
 
-    pub fn guid(&self) -> String {
+    pub fn guid(&self) -> Option<String> {
         if let Ok(value) = self.property("guid") {
             if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
+                return Some(id_opt);
             }
         };
-        "".to_string()
+        None
     }
 
-    pub fn path(&self) -> String {
+    pub fn path(&self) -> Option<String> {
         if let Ok(value) = self.property("path") {
             if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
+                return Some(id_opt);
             }
         };
-        "".to_string()
+        None
     }
 
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> Option<String> {
         if let Ok(value) = self.property("name") {
             if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
+                return Some(id_opt);
             }
         };
-        "".to_string()
+        None
+    }
+
+    pub fn image(&self) -> Option<Pixbuf> {
+        if let Ok(value) = self.property("thumbnail") {
+            if let Ok(id_opt) = value.get::<Pixbuf>() {
+                return Some(id_opt);
+            }
+        };
+        None
     }
 
     pub fn read_uproject(path: &str) -> Uproject {
@@ -223,5 +290,83 @@ impl ProjectData {
     pub fn uproject(&self) -> Option<Uproject> {
         let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
         self_.uproject.borrow().clone()
+    }
+
+    pub fn setup_messaging(&self) {
+        let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
+        let receiver = self_.receiver.borrow_mut().take().unwrap();
+        receiver.attach(
+            None,
+            clone!(@weak self as project => @default-panic, move |msg| {
+                project.update(msg);
+                glib::Continue(true)
+            }),
+        );
+    }
+
+    pub fn update(&self, msg: ProjectMsg) {
+        match msg {
+            ProjectMsg::Thumbnail(image) => {
+                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
+                pixbuf_loader.write(&image).unwrap();
+                pixbuf_loader.close().ok();
+
+                if let Some(pix) = pixbuf_loader.pixbuf() {
+                    self.set_property("thumbnail", &pix).unwrap();
+                };
+            }
+        };
+        self.emit_by_name("finished", &[]).unwrap();
+    }
+
+    pub fn load_thumbnail(path: String, sender: gtk4::glib::Sender<ProjectMsg>) {
+        let mut pathbuf = match PathBuf::from(&path).parent() {
+            None => return,
+            Some(p) => p.to_path_buf(),
+        };
+        pathbuf.push("Saved");
+        pathbuf.push("AutoScreenshot.png");
+        match File::open(pathbuf.as_path()) {
+            Ok(mut f) => {
+                let metadata =
+                    std::fs::metadata(&pathbuf.as_path()).expect("unable to read metadata");
+                let mut buffer = vec![0; metadata.len() as usize];
+                f.read_exact(&mut buffer).expect("buffer overflow");
+                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
+                pixbuf_loader.write(&buffer).unwrap();
+                pixbuf_loader.close().ok();
+                match pixbuf_loader.pixbuf() {
+                    None => {}
+                    Some(pb) => {
+                        let width = pb.width();
+                        let height = pb.height();
+
+                        let width_percent = 128.0 / width as f64;
+                        let height_percent = 128.0 / height as f64;
+                        let percent = if height_percent < width_percent {
+                            height_percent
+                        } else {
+                            width_percent
+                        };
+                        let desired = (width as f64 * percent, height as f64 * percent);
+                        sender
+                            .send(ProjectMsg::Thumbnail(
+                                pb.scale_simple(
+                                    desired.0.round() as i32,
+                                    desired.1.round() as i32,
+                                    gtk4::gdk_pixbuf::InterpType::Bilinear,
+                                )
+                                .unwrap()
+                                .save_to_bufferv("png", &[])
+                                .unwrap(),
+                            ))
+                            .unwrap()
+                    }
+                };
+            }
+            Err(_) => {
+                info!("No project file exists for {}", path);
+            }
+        }
     }
 }

@@ -25,6 +25,34 @@
                                         <property name="icon-name">go-next-symbolic</property>
                                     </object>
                                 </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="hexpand">true</property>
+                                        <property name="halign">end</property>
+                                        <child>
+                                            <object class="GtkButton" id="launch_button">
+                                                <property name="name">project_launch_button</property>
+                                                <property name="action-name">project_details.launch_project</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="valign">center</property>
+                                                        <property name="halign">center</property>
+                                                        <child>
+                                                            <object class="GtkImage">
+                                                                <property name="icon-name">media-playback-start-symbolic</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="label" translatable="yes">Launch</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                         <child>

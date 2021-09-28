@@ -1,10 +1,11 @@
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, SignalHandlerId};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -14,6 +15,10 @@ pub(crate) mod imp {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         name: RefCell<Option<String>>,
+        pub data: RefCell<Option<crate::models::project_data::ProjectData>>,
+        pub handler: RefCell<Option<SignalHandlerId>>,
+        #[template_child]
+        pub thumbnail: TemplateChild<gtk4::Image>,
     }
 
     #[glib::object_subclass]
@@ -27,6 +32,9 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 name: RefCell::new(None),
+                data: RefCell::new(None),
+                handler: RefCell::new(None),
+                thumbnail: TemplateChild::default(),
             }
         }
 
@@ -126,5 +134,33 @@ impl EpicProject {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
+    }
+
+    pub fn set_data(&self, data: &crate::models::project_data::ProjectData) {
+        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+        self_.data.replace(Some(data.clone()));
+        self.set_property("name", &data.name()).unwrap();
+        if let Some(pix) = data.image() {
+            self_.thumbnail.set_from_pixbuf(Some(&pix))
+        }
+
+        if let Ok(id) = data.connect_local(
+            "finished",
+            false,
+            clone!(@weak self as project, @weak data => @default-return None, move |_| {
+                let self_: &imp::EpicProject = imp::EpicProject::from_instance(&project);
+                if let Some(pix) = data.image() {
+                    self_.thumbnail.set_from_pixbuf(Some(&pix))
+                }
+                None
+            }),
+        ) {
+            self_.handler.replace(Some(id));
+        }
     }
 }
