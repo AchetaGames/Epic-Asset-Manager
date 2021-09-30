@@ -330,17 +330,20 @@ impl EngineData {
                 time = c.time();
             }
             if let Ok(remotes) = repo.remotes() {
+                let num_remotes = remotes.len();
                 for remote in remotes.iter().flatten() {
                     if let Ok(mut r) = repo.find_remote(remote) {
-                        // TODO: Filter remote and only consider upstream Epic Games repo(if multiple available)
+                        if num_remotes > 1 {
+                            if let Some(url) = r.url() {
+                                if !url.contains("EpicGames/UnrealEngine.git") {
+                                    continue;
+                                }
+                            }
+                        }
                         let cb = Self::git_callbacks();
                         if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
                             warn!("Unable to connect: {}", e)
                         }
-                        // let mut fo = git2::FetchOptions::new();
-                        // let cb = EpicEnginesBox::git_callbacks();
-                        // fo.remote_callbacks(cb);
-                        // r.fetch(&[&branch], Some(&mut fo), None);
                         if let Ok(list) = r.list() {
                             for head in list {
                                 if branch.eq(&head.name()) {
