@@ -31,17 +31,17 @@ pub struct UnrealVersion {
 impl UnrealVersion {
     pub fn compare(&self, other: &UnrealVersion) -> Ordering {
         match self.major_version.cmp(&other.major_version) {
-            Ordering::Less => return Ordering::Less,
+            Ordering::Less => Ordering::Less,
             Ordering::Equal => match self.minor_version.cmp(&other.minor_version) {
-                Ordering::Less => return Ordering::Less,
+                Ordering::Less => Ordering::Less,
                 Ordering::Equal => match self.patch_version.cmp(&other.patch_version) {
-                    Ordering::Less => return Ordering::Less,
-                    Ordering::Equal => return Ordering::Equal,
-                    Ordering::Greater => return Ordering::Greater,
+                    Ordering::Less => Ordering::Less,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Greater,
                 },
-                Ordering::Greater => return Ordering::Greater,
+                Ordering::Greater => Ordering::Greater,
             },
-            Ordering::Greater => return Ordering::Greater,
+            Ordering::Greater => Ordering::Greater,
         }
     }
 }

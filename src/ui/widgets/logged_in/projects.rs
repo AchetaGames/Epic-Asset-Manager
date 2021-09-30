@@ -178,16 +178,12 @@ impl EpicProjectsBox {
                 .downcast_ref::<crate::models::project_data::ProjectData>()
                 .unwrap();
             match info1.name() {
-                None => {
-                    return gtk4::Ordering::Larger;
-                }
+                None => gtk4::Ordering::Larger,
                 Some(a) => a
                     .to_lowercase()
                     .cmp(&match info2.name() {
-                        None => {
-                            return gtk4::Ordering::Smaller;
-                        }
-                        Some(b) => b.to_lowercase().into(),
+                        None => return gtk4::Ordering::Smaller,
+                        Some(b) => b.to_lowercase(),
                     })
                     .into(),
             }
@@ -233,7 +229,7 @@ impl EpicProjectsBox {
         // );
     }
 
-    pub fn load_projects(&self) {
+    fn load_projects(&self) {
         let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
@@ -281,15 +277,6 @@ impl EpicProjectsBox {
                         }
                     }
                 }
-            }
-        };
-        None
-    }
-
-    pub fn selected(&self) -> Option<String> {
-        if let Ok(value) = self.property("selected") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
             }
         };
         None
