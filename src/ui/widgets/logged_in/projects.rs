@@ -212,21 +212,6 @@ impl EpicProjectsBox {
     pub fn setup_actions(&self) {
         let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
         self.insert_action_group("projects", Some(&self_.actions));
-
-        // action!(
-        //     self_.actions,
-        //     "launch",
-        //     clone!(@weak self as projects => move |_, _| {
-        //         let path = projects.selected();
-        //         let engine = projects.selected_engine();
-        //         // TODO: Try to figure out the engine from association
-        //         match engine {
-        //             Some(eng) => { debug!("Want to launch project: {:?} with {:?}", path, eng); }
-        //             None => { debug!("Need to let user decide how to launch {:?}", path); }
-        //         }
-        //
-        //     })
-        // );
     }
 
     fn load_projects(&self) {

@@ -178,7 +178,7 @@ impl UnrealProjectDetails {
                 let project_engines: Option<HashMap<String, String>> =
                     HashMap::from_variant(&self_.settings.value("unreal-project-latest-engine"));
                 if let Some(mut engines) = project_engines {
-                    engines.insert(path.clone(), eng.path.clone());
+                    engines.insert(path.clone(), eng.path);
                     self_
                         .settings
                         .set_value("unreal-project-latest-engine", &engines.to_variant())

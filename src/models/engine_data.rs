@@ -270,7 +270,7 @@ impl EngineData {
         data
     }
 
-    pub fn read_engine_version(path: &str) -> UnrealVersion {
+    pub fn read_engine_version(path: &str) -> Option<UnrealVersion> {
         let mut p = std::path::PathBuf::from(path);
         p.push("Engine");
         p.push("Build");
@@ -278,10 +278,10 @@ impl EngineData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return json5::from_str(&contents).unwrap_or_default();
+                return Some(json5::from_str(&contents).unwrap_or_default());
             }
         }
-        UnrealVersion::default()
+        None
     }
 
     pub fn setup_messaging(&self) {
