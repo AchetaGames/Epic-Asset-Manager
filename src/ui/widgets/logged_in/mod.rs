@@ -157,7 +157,7 @@ impl EpicLoggedInBox {
         }
 
         self_.window.set(window.clone()).unwrap();
-        self_.library.set_window(&window.clone());
+        // self_.library.set_window(&window.clone());
         self_.engine.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
     }

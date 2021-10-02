@@ -29,6 +29,15 @@ pub struct UnrealVersion {
 }
 
 impl UnrealVersion {
+    pub fn format(&self) -> String {
+        format!(
+            "{}.{}.{}",
+            self.major_version, self.minor_version, self.patch_version
+        )
+    }
+}
+
+impl UnrealVersion {
     pub fn compare(&self, other: &UnrealVersion) -> Ordering {
         match self.major_version.cmp(&other.major_version) {
             Ordering::Less => Ordering::Less,
@@ -253,14 +262,7 @@ impl EngineData {
         data.set_property("path", &path).unwrap();
         data.set_property("guid", &guid).unwrap();
         self_.ueversion.replace(Some(version.clone()));
-        data.set_property(
-            "version",
-            format!(
-                "{}.{}.{}",
-                version.major_version, version.minor_version, version.patch_version
-            ),
-        )
-        .unwrap();
+        data.set_property("version", version.format()).unwrap();
         if let Some(path) = data.path() {
             let sender = self_.sender.clone();
             thread::spawn(move || {

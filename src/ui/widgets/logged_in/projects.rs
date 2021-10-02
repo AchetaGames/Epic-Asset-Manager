@@ -150,8 +150,10 @@ impl EpicProjectsBox {
         self_.details.set_window(&window.clone());
 
         let factory = gtk4::SignalListItemFactory::new();
+        let w = window.clone();
         factory.connect_setup(move |_factory, item| {
             let row = EpicProject::new();
+            row.set_window(&w);
             item.set_child(Some(&row));
         });
 

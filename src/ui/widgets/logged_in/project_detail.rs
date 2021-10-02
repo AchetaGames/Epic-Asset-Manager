@@ -257,10 +257,8 @@ impl UnrealProjectDetails {
             combo.append(
                 Some(&engine.path),
                 &format!(
-                    "{}.{}.{}{}",
-                    engine.version.major_version,
-                    engine.version.minor_version,
-                    engine.version.patch_version,
+                    "{}{}",
+                    engine.version.format(),
                     match associated.clone() {
                         None => {
                             if let Some(last) = last_engine.clone() {
@@ -312,6 +310,22 @@ impl UnrealProjectDetails {
         row.add_prefix(&title);
         let label = gtk4::LabelBuilder::new()
             .label(pathbuf.parent().unwrap().to_str().unwrap())
+            .wrap(true)
+            .xalign(0.0)
+            .build();
+        size_group_labels.add_widget(&label);
+        row.add_suffix(&label);
+        self_.details_box.append(&row);
+
+        // Engine Association
+        let row = adw::ActionRowBuilder::new().activatable(true).build();
+        let title = gtk4::LabelBuilder::new()
+            .label("Engine Association")
+            .build();
+        size_group_prefix.add_widget(&title);
+        row.add_prefix(&title);
+        let label = gtk4::LabelBuilder::new()
+            .label(&project.engine_association)
             .wrap(true)
             .xalign(0.0)
             .build();

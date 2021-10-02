@@ -1,7 +1,10 @@
-use gtk4::glib::clone;
+use crate::models::project_data::Uproject;
+use crate::ui::widgets::logged_in::engines::UnrealEngine;
+use gtk4::glib::{clone, FromVariant};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use std::collections::HashMap;
 
 pub(crate) mod imp {
     use super::*;
@@ -15,10 +18,12 @@ pub(crate) mod imp {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         name: RefCell<Option<String>>,
+        engine: RefCell<Option<String>>,
         pub data: RefCell<Option<crate::models::project_data::ProjectData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
         #[template_child]
-        pub thumbnail: TemplateChild<gtk4::Image>,
+        pub thumbnail: TemplateChild<adw::Avatar>,
+        pub settings: gtk4::gio::Settings,
     }
 
     #[glib::object_subclass]
@@ -32,9 +37,11 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 name: RefCell::new(None),
+                engine: RefCell::new(None),
                 data: RefCell::new(None),
                 handler: RefCell::new(None),
                 thumbnail: TemplateChild::default(),
+                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
         }
 
@@ -56,13 +63,22 @@ pub(crate) mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpec::new_string(
-                    "name",
-                    "Name",
-                    "Name",
-                    None,
-                    glib::ParamFlags::READWRITE,
-                )]
+                vec![
+                    ParamSpec::new_string(
+                        "name",
+                        "Name",
+                        "Name",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpec::new_string(
+                        "engine",
+                        "Engine",
+                        "Engine",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
             });
             PROPERTIES.as_ref()
         }
@@ -82,6 +98,13 @@ pub(crate) mod imp {
                         .map(|l| format!("<span size=\"xx-large\"><b><u>{}</u></b></span>", l));
                     self.name.replace(name);
                 }
+                "engine" => {
+                    let engine = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`")
+                        .map(|l| format!("<i>{}</i>", l));
+                    self.engine.replace(engine);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -89,6 +112,7 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "name" => self.name.borrow().to_value(),
+                "engine" => self.engine.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -145,8 +169,59 @@ impl EpicProject {
         }
         self_.data.replace(Some(data.clone()));
         self.set_property("name", &data.name()).unwrap();
+        self.set_property("tooltip-text", &data.path()).unwrap();
+        match data.uproject() {
+            None => {
+                self.set_property("engine", "").unwrap();
+            }
+            Some(uproject) => match self.associated_engine(&uproject) {
+                None => {
+                    let project_engines: Option<HashMap<String, String>> = HashMap::from_variant(
+                        &self_.settings.value("unreal-project-latest-engine"),
+                    );
+                    let mut last_engine: Option<String> = None;
+                    if let Some(engines) = project_engines {
+                        if let Some(last) = engines.get(&data.path().unwrap()) {
+                            last_engine = Some(last.clone());
+                        }
+                    }
+                    match last_engine {
+                        None => {
+                            self.set_property("engine", uproject.engine_association)
+                                .unwrap();
+                        }
+                        Some(eng) => {
+                            match crate::models::engine_data::EngineData::read_engine_version(&eng)
+                            {
+                                None => {
+                                    self.set_property("engine", eng).unwrap();
+                                }
+                                Some(version) => {
+                                    self.set_property("engine", version.format()).unwrap();
+                                }
+                            }
+                        }
+                    }
+                }
+                Some(eng) => {
+                    self.set_property("engine", eng.version.format()).unwrap();
+                }
+            },
+        };
+
         if let Some(pix) = data.image() {
-            self_.thumbnail.set_from_pixbuf(Some(&pix))
+            self_
+                .thumbnail
+                .set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)))
+        }
+
+        match data.path() {
+            None => {
+                self_.thumbnail.set_text(None);
+            }
+            Some(path) => {
+                self_.thumbnail.set_text(Some(&path));
+            }
         }
 
         if let Ok(id) = data.connect_local(
@@ -155,12 +230,27 @@ impl EpicProject {
             clone!(@weak self as project, @weak data => @default-return None, move |_| {
                 let self_: &imp::EpicProject = imp::EpicProject::from_instance(&project);
                 if let Some(pix) = data.image() {
-                    self_.thumbnail.set_from_pixbuf(Some(&pix))
+                    self_.thumbnail.set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)))
                 }
                 None
             }),
         ) {
             self_.handler.replace(Some(id));
         }
+    }
+
+    fn associated_engine(&self, uproject: &Uproject) -> Option<UnrealEngine> {
+        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
+        if let Some(w) = self_.window.get() {
+            let w_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+            let l = w_.logged_in_stack.clone();
+            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
+                crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+            return l_
+                .engine
+                .engine_from_assoociation(&uproject.engine_association);
+        }
+        None
     }
 }
