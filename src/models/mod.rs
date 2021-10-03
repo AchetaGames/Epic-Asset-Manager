@@ -30,8 +30,6 @@ impl Default for Model {
 impl Model {
     pub fn new() -> Self {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
-        let data_dir = gtk4::glib::user_data_dir();
-        println!("datadir: {:?}", data_dir.to_str());
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
             secret_service: SecretService::new(EncryptionType::Dh)

@@ -32,7 +32,7 @@ serde = { version = "1", features = ["derive"] }
 sha-1 = "0.9"
 slab_tree = "0.3"
 threadpool = "1.8"
-tokio = { version = "1", features = ["full"] }
+tokio = "1"
 version-compare = "0.0.13"
 
 [target.'cfg(windows)'.build-dependencies]

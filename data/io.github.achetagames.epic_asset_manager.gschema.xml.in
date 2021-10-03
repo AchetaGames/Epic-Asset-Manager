@@ -43,9 +43,5 @@
       <default>[]</default>
       <summary>Unreal Projects Directories</summary>
     </key>
-    <key name="unreal-project-latest-engine" type="a{ss}">
-      <default>{}</default>
-      <summary>Unreal Projects Directories</summary>
-    </key>
   </schema>
 </schemalist>

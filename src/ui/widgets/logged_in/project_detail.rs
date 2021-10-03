@@ -1,12 +1,13 @@
 use crate::models::project_data::Uproject;
+use crate::schema::unreal_project_latest_engine;
 use crate::ui::widgets::logged_in::engines::UnrealEngine;
 use adw::traits::ActionRowExt;
-use gtk4::glib::{clone, FromVariant};
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub(crate) mod imp {
@@ -173,17 +174,17 @@ impl UnrealProjectDetails {
         let engine = self.engine();
         if let Some(eng) = engine {
             if let Some(p) = eng.get_engine_binary_path() {
-                let self_: &imp::UnrealProjectDetails =
-                    imp::UnrealProjectDetails::from_instance(self);
-                let project_engines: Option<HashMap<String, String>> =
-                    HashMap::from_variant(&self_.settings.value("unreal-project-latest-engine"));
-                if let Some(mut engines) = project_engines {
-                    engines.insert(path.clone(), eng.path);
-                    self_
-                        .settings
-                        .set_value("unreal-project-latest-engine", &engines.to_variant())
-                        .unwrap();
-                }
+                let db = crate::models::database::connection();
+                if let Ok(conn) = db.get() {
+                    diesel::replace_into(unreal_project_latest_engine::table)
+                        .values((
+                            crate::schema::unreal_project_latest_engine::project.eq(path.clone()),
+                            crate::schema::unreal_project_latest_engine::engine
+                                .eq(eng.path.clone()),
+                        ))
+                        .execute(&conn)
+                        .expect("Unable to insert last engine to the DB");
+                };
                 let context = gtk4::gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
                 let app = gtk4::gio::AppInfo::create_from_commandline(
@@ -245,14 +246,21 @@ impl UnrealProjectDetails {
         let combo = gtk4::ComboBoxText::new();
         let associated = self.associated_engine(&project);
         self.set_launch_enabled(false);
-        let project_engines: Option<HashMap<String, String>> =
-            HashMap::from_variant(&self_.settings.value("unreal-project-latest-engine"));
+        let db = crate::models::database::connection();
         let mut last_engine: Option<String> = None;
-        if let Some(engines) = project_engines {
-            if let Some(last) = engines.get(&self.path().unwrap()) {
+        if let Ok(conn) = db.get() {
+            let engines: Result<String, diesel::result::Error> =
+                unreal_project_latest_engine::table
+                    .filter(
+                        crate::schema::unreal_project_latest_engine::project
+                            .eq(&self.path().unwrap()),
+                    )
+                    .select(crate::schema::unreal_project_latest_engine::engine)
+                    .first(&conn);
+            if let Ok(last) = engines {
                 last_engine = Some(last.clone());
             }
-        }
+        };
         for engine in self.available_engines() {
             combo.append(
                 Some(&engine.path),

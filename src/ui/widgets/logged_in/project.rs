@@ -1,10 +1,11 @@
 use crate::models::project_data::Uproject;
+use crate::schema::unreal_project_latest_engine;
 use crate::ui::widgets::logged_in::engines::UnrealEngine;
-use gtk4::glib::{clone, FromVariant};
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use std::collections::HashMap;
 
 pub(crate) mod imp {
     use super::*;
@@ -176,15 +177,21 @@ impl EpicProject {
             }
             Some(uproject) => match self.associated_engine(&uproject) {
                 None => {
-                    let project_engines: Option<HashMap<String, String>> = HashMap::from_variant(
-                        &self_.settings.value("unreal-project-latest-engine"),
-                    );
+                    let db = crate::models::database::connection();
                     let mut last_engine: Option<String> = None;
-                    if let Some(engines) = project_engines {
-                        if let Some(last) = engines.get(&data.path().unwrap()) {
+                    if let Ok(conn) = db.get() {
+                        let engines: Result<String, diesel::result::Error> =
+                            unreal_project_latest_engine::table
+                                .filter(
+                                    crate::schema::unreal_project_latest_engine::project
+                                        .eq(&data.path().unwrap()),
+                                )
+                                .select(crate::schema::unreal_project_latest_engine::engine)
+                                .first(&conn);
+                        if let Ok(last) = engines {
                             last_engine = Some(last.clone());
                         }
-                    }
+                    };
                     match last_engine {
                         None => {
                             self.set_property("engine", uproject.engine_association)
