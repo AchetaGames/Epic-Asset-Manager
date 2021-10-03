@@ -112,16 +112,19 @@ impl EpicAssetManagerWindow {
     pub fn show_login(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.sid_box.set_window(self);
+        self_.logged_in_stack.activate(false);
         self_.main_stack.set_visible_child_name("sid_box")
     }
 
     pub fn show_download_manager(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.logged_in_stack.activate(false);
         self_.main_stack.set_visible_child_name("download_manager")
     }
 
     pub fn show_logged_in(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.logged_in_stack.activate(true);
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 

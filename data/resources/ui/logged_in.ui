@@ -5,7 +5,7 @@
         <property name="vexpand">1</property>
         <property name="orientation">vertical</property>
         <child>
-            <object class="AdwViewStack" id="stack">
+            <object class="AdwViewStack" id="adwstack">
                 <child>
                     <object class="AdwViewStackPage">
                         <property name="name">library</property>
@@ -36,17 +36,6 @@
                         </property>
                     </object>
                 </child>
-            </object>
-        </child>
-        <child>
-            <object class="GtkSeparator">
-                <property name="orientation">horizontal</property>
-            </object>
-        </child>
-        <child>
-            <object class="AdwViewSwitcher">
-                <property name="halign">center</property>
-                <property name="stack">stack</property>
             </object>
         </child>
     </template>

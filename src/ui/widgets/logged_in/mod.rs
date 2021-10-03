@@ -32,7 +32,8 @@ pub(crate) mod imp {
         #[template_child]
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
         #[template_child]
-        pub stack: TemplateChild<adw::ViewStack>,
+        pub adwstack: TemplateChild<adw::ViewStack>,
+        stack: RefCell<Option<adw::ViewStack>>,
         item: RefCell<Option<String>>,
         product: RefCell<Option<String>>,
     }
@@ -50,7 +51,8 @@ pub(crate) mod imp {
                 library: TemplateChild::default(),
                 engine: TemplateChild::default(),
                 projects: TemplateChild::default(),
-                stack: TemplateChild::default(),
+                adwstack: TemplateChild::default(),
+                stack: RefCell::new(None),
                 item: RefCell::new(None),
                 product: RefCell::new(None),
             }
@@ -89,6 +91,13 @@ pub(crate) mod imp {
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
+                    glib::ParamSpec::new_object(
+                        "stack",
+                        "Stack",
+                        "Stack",
+                        adw::ViewStack::static_type(),
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -110,6 +119,12 @@ pub(crate) mod imp {
                     let product: Option<String> = value.get().unwrap();
                     self.library.set_property("product", product).unwrap();
                 }
+                "stack" => {
+                    let stack = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.stack.replace(stack);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -124,6 +139,7 @@ pub(crate) mod imp {
                     .library
                     .property("product")
                     .unwrap_or_else(|_| "".to_value()),
+                "stack" => self.stack.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -157,7 +173,7 @@ impl EpicLoggedInBox {
         }
 
         self_.window.set(window.clone()).unwrap();
-        // self_.library.set_window(&window.clone());
+        self_.library.set_window(&window.clone());
         self_.engine.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
     }
@@ -196,5 +212,14 @@ impl EpicLoggedInBox {
     pub fn flush_assets(&self) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         self_.library.flush_assets();
+    }
+
+    pub fn activate(&self, active: bool) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        if active {
+            self.set_property("stack", &*self_.adwstack).unwrap();
+        } else {
+            self.set_property("stack", None::<adw::ViewStack>).unwrap();
+        }
     }
 }
