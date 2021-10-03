@@ -1,10 +1,12 @@
 use adw::prelude::ActionRowExt;
+use gtk4::cairo::glib::GString;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
+use sha1::digest::generic_array::typenum::private::IsEqualPrivate;
 use std::ops::Deref;
 
 pub(crate) mod imp {
@@ -35,6 +37,8 @@ pub(crate) mod imp {
         #[template_child]
         pub title: TemplateChild<gtk4::Label>,
         #[template_child]
+        pub favorite: TemplateChild<gtk4::Button>,
+        #[template_child]
         pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
         #[template_child]
         pub download_details:
@@ -61,6 +65,7 @@ pub(crate) mod imp {
                 details: TemplateChild::default(),
                 details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
+                favorite: TemplateChild::default(),
                 images: TemplateChild::default(),
                 download_details: TemplateChild::default(),
                 window: OnceCell::new(),
@@ -141,6 +146,16 @@ impl Default for EpicAssetDetails {
 impl EpicAssetDetails {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+    }
+
+    pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        // Do not run this twice
+        if self_.window.get().is_some() {
+            return;
+        }
+
+        self_.window.set(window.clone()).unwrap();
     }
 
     pub fn set_download_manager(
@@ -237,6 +252,21 @@ impl EpicAssetDetails {
                 self_.download_confirmation_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(true);
                 get_action!(self_.actions, @show_asset_details).set_enabled(false);
+            })
+        );
+
+        action!(
+            actions,
+            "toggle_favorite",
+            clone!(@weak self as details => move |btn, _| {
+                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                if let Some(fav) = self_.favorite.icon_name() {
+                    if fav.eq("starred") {
+                        self_.favorite.set_icon_name("non-starred-symbolic")
+                    } else {
+                        self_.favorite.set_icon_name("starred")
+                    }
+                };
             })
         );
     }

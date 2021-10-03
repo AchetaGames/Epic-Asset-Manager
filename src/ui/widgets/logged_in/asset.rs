@@ -13,6 +13,7 @@ pub(crate) mod imp {
     pub struct EpicAsset {
         id: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
+        favorite: RefCell<bool>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
@@ -28,6 +29,7 @@ pub(crate) mod imp {
             Self {
                 id: RefCell::new(None),
                 label: RefCell::new(None),
+                favorite: RefCell::new(false),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
             }
@@ -73,6 +75,13 @@ pub(crate) mod imp {
                         Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
+                    glib::ParamSpec::new_boolean(
+                        "favorite",
+                        "favorite",
+                        "Is favorite",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
 
@@ -99,13 +108,26 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.id.replace(id);
                 }
+                "favorite" => {
+                    let favorite = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.favorite.replace(favorite);
+                }
                 "thumbnail" => {
                     let thumbnail: Option<Pixbuf> = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
 
-                    self.image.set_from_pixbuf(thumbnail.as_ref());
-                    self.thumbnail.replace(thumbnail);
+                    self.thumbnail.replace(thumbnail.clone());
+                    match thumbnail {
+                        None => {
+                            self.image.set_icon_name(Some("ue-logo-symbolic"));
+                        }
+                        Some(t) => {
+                            self.image.set_from_pixbuf(Some(t.as_ref()));
+                        }
+                    }
                 }
                 _ => unimplemented!(),
             }
@@ -115,6 +137,8 @@ pub(crate) mod imp {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
+                "favorite" => self.favorite.borrow().to_value(),
+                "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }

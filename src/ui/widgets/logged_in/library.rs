@@ -108,7 +108,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
-                grid_model: gio::ListStore::new(crate::models::asset_data::RowData::static_type()),
+                grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
@@ -308,6 +308,7 @@ impl EpicLibraryBox {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.details.set_window(&window.clone());
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
@@ -318,20 +319,21 @@ impl EpicLibraryBox {
             let data = list_item
                 .item()
                 .unwrap()
-                .downcast::<crate::models::asset_data::RowData>()
+                .downcast::<crate::models::asset_data::AssetData>()
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
             child.set_property("label", &data.name()).unwrap();
             child.set_property("thumbnail", &data.image()).unwrap();
+            child.set_property("favorite", &data.favorite()).unwrap();
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
-                .downcast_ref::<crate::models::asset_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
             let info2 = obj2
-                .downcast_ref::<crate::models::asset_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
 
             info1
@@ -352,7 +354,7 @@ impl EpicLibraryBox {
         selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
             if let Some(a) = model.selected_item() {
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&loggedin);
-                let asset = a.downcast::<crate::models::asset_data::RowData>().unwrap();
+                let asset = a.downcast::<crate::models::asset_data::AssetData>().unwrap();
                 let assets = self_.loaded_assets.borrow();
                 if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a.clone()) }
             }
@@ -361,6 +363,7 @@ impl EpicLibraryBox {
         self.fetch_assets();
     }
 
+    /// Open asset based on a name from xdg-open
     fn open_asset(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         if let Some(id) = self.item() {
@@ -543,7 +546,7 @@ impl EpicLibraryBox {
 
         let filter = gtk4::CustomFilter::new(move |object| {
             let asset = object
-                .downcast_ref::<crate::models::asset_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
             (match &search {
                 None => true,
@@ -604,7 +607,7 @@ impl EpicLibraryBox {
                 }
             }
         } {
-            let data = crate::models::asset_data::RowData::new(asset, image);
+            let data = crate::models::asset_data::AssetData::new(asset, image);
             if let Ok(mut vec) = self_.assets_pending.write() {
                 vec.push(data.upcast());
             }
@@ -754,16 +757,16 @@ impl EpicLibraryBox {
             };
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = win_.model.borrow().sender.clone();
-            self_.asset_load_pool.execute(move || {
-                let assets = tokio::runtime::Runtime::new()
-                    .unwrap()
-                    .block_on(eg.list_assets());
-                for asset in assets {
-                    sender
-                        .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-                        .unwrap();
-                }
-            });
+            // self_.asset_load_pool.execute(move || {
+            //     let assets = tokio::runtime::Runtime::new()
+            //         .unwrap()
+            //         .block_on(eg.list_assets());
+            //     for asset in assets {
+            //         sender
+            //             .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+            //             .unwrap();
+            //     }
+            // });
             glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
                 obj.flush_assets();
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);

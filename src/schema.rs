@@ -4,3 +4,9 @@ table! {
         engine -> Text,
     }
 }
+
+table! {
+    favorite_asset (asset) {
+        asset -> Text,
+    }
+}
