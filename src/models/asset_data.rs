@@ -126,13 +126,13 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl RowData {
-    pub fn new(asset: egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> RowData {
+    pub fn new(asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> RowData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create RowData");
         let self_: &imp::RowData = imp::RowData::from_instance(&data);
 
         data.set_property("id", &asset.id).unwrap();
         data.set_property("name", &asset.title).unwrap();
-        self_.asset.replace(Some(asset));
+        self_.asset.replace(Some(asset.clone()));
 
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
         pixbuf_loader.write(image).unwrap();

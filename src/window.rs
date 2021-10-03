@@ -22,8 +22,7 @@ impl EpicAssetManagerWindow {
     pub fn new(app: &EpicAssetManager) -> Self {
         let window: Self = glib::Object::new(&[]).expect("Failed to create EpicAssetManagerWindow");
         window.set_application(Some(app));
-        // TODO: Set subwidget things here
-        // Set icons for shell
+
         gtk4::Window::set_default_icon_name(APP_ID);
 
         window
@@ -113,20 +112,24 @@ impl EpicAssetManagerWindow {
     pub fn show_login(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.sid_box.set_window(self);
+        self_.logged_in_stack.activate(false);
         self_.main_stack.set_visible_child_name("sid_box")
     }
 
     pub fn show_download_manager(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.logged_in_stack.activate(false);
         self_.main_stack.set_visible_child_name("download_manager")
     }
 
     pub fn show_logged_in(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        self_.logged_in_stack.activate(true);
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 
     pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
+        // TODO display user information from the UserData
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
         self_
@@ -205,5 +208,11 @@ impl EpicAssetManagerWindow {
                 }
             }
         }
+        self.show_logged_in();
+        self_.logged_in_stack.set_window(self);
+        self_.download_manager.set_window(self);
+        self_
+            .logged_in_stack
+            .set_download_manager(&self_.download_manager);
     }
 }

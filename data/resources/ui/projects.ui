@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicProjectsBox" parent="GtkBox">
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
+        <child>
+            <object class="GtkScrolledWindow">
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
+                <property name="child">
+                    <object class="GtkGridView" id="projects_grid">
+                        <property name="halign">fill</property>
+                        <property name="valign">fill</property>
+                        <property name="max-columns">255</property>
+                    </object>
+                </property>
+            </object>
+        </child>
+        <child>
+            <object class="UnrealProjectDetails" id="details"/>
+        </child>
+    </template>
+</interface>

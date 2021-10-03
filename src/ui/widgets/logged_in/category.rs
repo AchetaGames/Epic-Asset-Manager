@@ -19,7 +19,7 @@ pub(crate) mod imp {
         pub tooltip_text: RefCell<Option<String>>,
         pub icon_name: RefCell<Option<String>>,
         pub filter: RefCell<Option<String>>,
-        pub loggedin: OnceCell<crate::ui::widgets::logged_in::EpicLoggedInBox>,
+        pub loggedin: OnceCell<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         pub expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         #[template_child]
@@ -166,7 +166,7 @@ impl EpicSidebarCategory {
         stack
     }
 
-    pub fn set_logged_in(&self, loggedin: &crate::ui::widgets::logged_in::EpicLoggedInBox) {
+    pub fn set_logged_in(&self, loggedin: &crate::ui::widgets::logged_in::library::EpicLibraryBox) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
         // Do not run this twice
         if self_.loggedin.get().is_some() {

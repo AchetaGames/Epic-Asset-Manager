@@ -137,6 +137,6 @@ impl Default for EpicAsset {
 
 impl EpicAsset {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
+        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 }

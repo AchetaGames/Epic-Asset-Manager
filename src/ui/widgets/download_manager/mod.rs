@@ -436,12 +436,7 @@ impl EpicDownloadManager {
             match File::create(t.as_path().join("manifest.json")) {
                 Ok(mut json_manifest_file) => {
                     json_manifest_file
-                        .write_all(
-                            serde_json::to_string(&manifest)
-                                .unwrap()
-                                .as_bytes()
-                                .as_ref(),
-                        )
+                        .write_all(json5::to_string(&manifest).unwrap().as_bytes().as_ref())
                         .unwrap();
                 }
                 Err(e) => {
@@ -461,7 +456,6 @@ impl EpicDownloadManager {
             .unwrap();
         item.set_total_size(dm.total_download_size());
         item.set_total_files(dm.file_manifest_list.len() as u64);
-        println!("Setting up path");
         item.set_property("path", target.as_path().display().to_string())
             .unwrap();
 
@@ -591,7 +585,21 @@ impl EpicDownloadManager {
                 p
             );
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-            let mut client = reqwest::blocking::get(link).unwrap();
+            let mut client = match reqwest::blocking::get(link.clone()) {
+                Ok(c) => c,
+                Err(e) => {
+                    //TODO: This has the potential to loop forever
+                    error!("Failed to start chunk download, trying again later: {}", e);
+                    sender
+                        .send(DownloadMsg::PerformChunkDownload(
+                            link.clone(),
+                            p.clone(),
+                            g.clone(),
+                        ))
+                        .unwrap();
+                    return;
+                }
+            };
             let mut buffer: [u8; 1024] = [0; 1024];
             let mut downloaded: u128 = 0;
             let mut file = File::create(p).unwrap();

@@ -28,6 +28,10 @@ impl EpicAssetManager {
         glib::Object::new(&[
             ("application-id", &Some(config::APP_ID)),
             ("flags", &ApplicationFlags::HANDLES_OPEN),
+            (
+                "resource-base-path",
+                &Some("/io/github/achetagames/epic_asset_manager/"),
+            ),
         ])
         .expect("Application initialization failed...")
     }

@@ -136,7 +136,7 @@ pub enum ImageMsg {
 
 impl EpicImageOverlay {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLoggedInBox")
+        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
     pub fn clear(&self) {

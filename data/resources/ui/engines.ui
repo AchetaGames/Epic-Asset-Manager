@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicEnginesBox" parent="GtkBox">
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkScrolledWindow">
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
+                <property name="child">
+                    <object class="GtkGridView" id="engine_grid">
+                        <property name="halign">fill</property>
+                        <property name="valign">fill</property>
+                        <property name="max-columns">255</property>
+                    </object>
+                </property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkRevealer">
+                <property name="hexpand" bind-source="EpicEnginesBox" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="reveal-child" bind-source="EpicEnginesBox" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="transition-type">slide-up</property>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="halign">end</property>
+                        <child>
+                            <object class="GtkButton">
+                                <property name="action-name">engines.launch</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">media-playback-start</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Launch</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicProject" parent="GtkBox">
+        <property name="valign">center</property>
+        <property name="width-request">300</property>
+        <child>
+            <object class="AdwAvatar" id="thumbnail">
+                <property name="icon-name">ue-logo-symbolic</property>
+                <property name="width-request">128</property>
+                <property name="height-request">128</property>
+                <property name="size">128</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="GtkLabel" id="version">
+                        <property name="label" translatable="yes" bind-source="EpicProject" bind-property="name" bind-flags="sync-create"/>
+                        <property name="use-markup">true</property>
+                        <property name="halign">start</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel" id="engine">
+                        <property name="label" translatable="yes" bind-source="EpicProject" bind-property="engine" bind-flags="sync-create"/>
+                        <property name="use-markup">true</property>
+                        <property name="halign">start</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>
