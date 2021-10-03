@@ -28,6 +28,21 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.3.0" date="2021-10-03">
+       <description>
+              <p>Add Engine and Project sections</p>
+              <ul>
+                  <li>FIX: Redownload chunk if the download fails</li> 
+                  <li>FIX: assets not loading after the initial login</li>
+                  <li>Discover engines and check if they can be updated</li>
+                  <li>Load engines from configured directories</li>
+                  <li>Load projects and display them</li>
+                  <li>Launch a project if able</li> 
+                  <li>Remember last used engine</li> 
+                  <li>Remove the Unreal logo from the icon</li> 
+              </ul>
+       </description>
+    </release>
         <release version="2.2.2" date="2021-09-16">
             <description>
                 <p>Initial asset load fix</p>
