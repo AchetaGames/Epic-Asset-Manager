@@ -1,6 +1,5 @@
-use crate::models::project_data::Uproject;
-use crate::schema::unreal_project_latest_engine;
-use crate::ui::widgets::logged_in::engines::UnrealEngine;
+use std::path::PathBuf;
+
 use adw::traits::ActionRowExt;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use gtk4::glib::clone;
@@ -8,14 +7,21 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use std::path::PathBuf;
+
+use crate::models::project_data::Uproject;
+use crate::schema::unreal_project_latest_engine;
+use crate::ui::widgets::logged_in::engines::UnrealEngine;
 
 pub(crate) mod imp {
-    use super::*;
-    use crate::window::EpicAssetManagerWindow;
+    use std::cell::RefCell;
+
     use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
+
+    use crate::models::project_data::Uproject;
+    use crate::window::EpicAssetManagerWindow;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/project_detail.ui")]
@@ -32,7 +38,7 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         path: RefCell<Option<String>>,
-        pub uproject: RefCell<Option<super::Uproject>>,
+        pub uproject: RefCell<Option<Uproject>>,
         pub engine: RefCell<Option<UnrealEngine>>,
         pub settings: gio::Settings,
     }

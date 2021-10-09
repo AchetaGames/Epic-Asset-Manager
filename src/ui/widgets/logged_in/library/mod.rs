@@ -1,10 +1,3 @@
-use crate::tools::asset_info::Search;
-use crate::ui::widgets::logged_in::asset::EpicAsset;
-use glib::clone;
-use gtk4::{self, gdk_pixbuf, prelude::*};
-use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::action;
-use log::debug;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -12,43 +5,63 @@ use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use glib::clone;
+use gtk4::{self, gdk_pixbuf, prelude::*};
+use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
+use gtk_macros::action;
+use log::debug;
+
+use asset::EpicAsset;
+
+use crate::tools::asset_info::Search;
+
+mod asset;
+pub mod asset_detail;
+pub mod category;
+mod download_detail;
+pub mod image_stack;
+
 pub(crate) mod imp {
-    use super::*;
-    use crate::config;
-    use crate::ui::widgets::download_manager::EpicDownloadManager;
-    use crate::window::EpicAssetManagerWindow;
+    use std::cell::RefCell;
+    use std::collections::{HashMap, HashSet};
+    use std::sync::Arc;
+
     use gtk4::gio;
     use gtk4::gio::ListStore;
     use gtk4::glib::{Object, ParamSpec};
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
-    use std::collections::{HashMap, HashSet};
-    use std::sync::Arc;
     use threadpool::ThreadPool;
+
+    use crate::config;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use crate::window::EpicAssetManagerWindow;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/library.ui")]
     pub struct EpicLibraryBox {
         #[template_child]
         pub home_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub assets_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub plugins_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub games_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub other_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub projects_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
-        pub details: TemplateChild<crate::ui::widgets::logged_in::asset_detail::EpicAssetDetails>,
+        pub details:
+            TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
         #[template_child]
         pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]

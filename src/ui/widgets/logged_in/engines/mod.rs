@@ -1,14 +1,18 @@
-use crate::ui::widgets::logged_in::engine::EpicEngine;
+use std::collections::HashMap;
+use std::ffi::OsString;
+use std::str::FromStr;
+
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
-use std::collections::HashMap;
-use std::ffi::OsString;
-use std::str::FromStr;
 use version_compare::{CompOp, VersionCompare};
+
+use engine::EpicEngine;
+
+pub mod engine;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct UnrealEngine {
@@ -42,10 +46,12 @@ impl UnrealEngine {
 }
 
 pub(crate) mod imp {
-    use super::*;
+    use std::cell::RefCell;
+
     use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/engines.ui")]

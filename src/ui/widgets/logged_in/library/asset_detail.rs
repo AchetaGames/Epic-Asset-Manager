@@ -39,10 +39,12 @@ pub(crate) mod imp {
         #[template_child]
         pub favorite: TemplateChild<gtk4::Button>,
         #[template_child]
-        pub images: TemplateChild<crate::ui::widgets::logged_in::image_stack::EpicImageOverlay>,
+        pub images:
+            TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
         #[template_child]
-        pub download_details:
-            TemplateChild<crate::ui::widgets::logged_in::download_detail::EpicDownloadDetails>,
+        pub download_details: TemplateChild<
+            crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
+        >,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,

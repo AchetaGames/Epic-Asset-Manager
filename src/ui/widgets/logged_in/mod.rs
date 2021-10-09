@@ -1,24 +1,18 @@
-mod asset;
-pub mod asset_detail;
-pub mod category;
-mod download_detail;
-pub mod engine;
-mod engines;
-pub mod image_stack;
-pub mod library;
-mod project;
-mod project_detail;
-mod projects;
-
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
+mod engines;
+pub mod library;
+mod projects;
+
 pub(crate) mod imp {
-    use super::*;
+    use std::cell::RefCell;
+
     use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/logged_in.ui")]
