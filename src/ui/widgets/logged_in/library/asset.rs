@@ -1,3 +1,4 @@
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -6,6 +7,7 @@ pub(crate) mod imp {
     use super::*;
     use gtk4::gdk_pixbuf::prelude::StaticType;
     use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::glib::SignalHandlerId;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -17,6 +19,8 @@ pub(crate) mod imp {
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
+        pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
+        pub handler: RefCell<Option<SignalHandlerId>>,
     }
 
     #[glib::object_subclass]
@@ -32,6 +36,8 @@ pub(crate) mod imp {
                 favorite: RefCell::new(false),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
+                data: RefCell::new(None),
+                handler: RefCell::new(None),
             }
         }
 
@@ -162,5 +168,28 @@ impl Default for EpicAsset {
 impl EpicAsset {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+    }
+
+    pub fn set_data(&self, data: &crate::models::asset_data::AssetData) {
+        let self_: &imp::EpicAsset = imp::EpicAsset::from_instance(self);
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+        self_.data.replace(Some(data.clone()));
+        self.set_property("label", &data.name()).unwrap();
+        self.set_property("thumbnail", &data.image()).unwrap();
+        self.set_property("favorite", &data.favorite()).unwrap();
+        if let Ok(id) = data.connect_local(
+            "refreshed",
+            false,
+            clone!(@weak self as asset, @weak data => @default-return None, move |_| {
+                asset.set_property("favorite", &data.favorite()).unwrap();
+                None
+            }),
+        ) {
+            self_.handler.replace(Some(id));
+        }
     }
 }

@@ -49,6 +49,20 @@ mod imp {
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
     impl ObjectImpl for AssetData {
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk4::glib::subclass::Signal::builder(
+                        "refreshed",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
+        }
+
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -201,21 +215,25 @@ impl AssetData {
 
     pub fn check_category(&self, cat: String) -> bool {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
-        match self_.asset.borrow().as_ref() {
-            None => false,
-            Some(b) => {
-                for category in b.categories.as_ref().unwrap() {
-                    for split in cat.split('|') {
-                        if category
-                            .path
-                            .to_ascii_lowercase()
-                            .contains(&split.to_ascii_lowercase())
-                        {
-                            return true;
+        if cat.eq("favorites") {
+            return self.favorite();
+        } else {
+            match self_.asset.borrow().as_ref() {
+                None => false,
+                Some(b) => {
+                    for category in b.categories.as_ref().unwrap() {
+                        for split in cat.split('|') {
+                            if category
+                                .path
+                                .to_ascii_lowercase()
+                                .contains(&split.to_ascii_lowercase())
+                            {
+                                return true;
+                            }
                         }
                     }
+                    false
                 }
-                false
             }
         }
     }
@@ -234,5 +252,10 @@ impl AssetData {
             }
         }
         self.set_property("favorite", false).unwrap();
+    }
+
+    pub fn refresh(&self) {
+        self.check_favorite();
+        self.emit_by_name("refreshed", &[]).unwrap();
     }
 }

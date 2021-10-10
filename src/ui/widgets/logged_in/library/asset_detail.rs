@@ -1,12 +1,13 @@
 use adw::prelude::ActionRowExt;
-use gtk4::cairo::glib::GString;
+use diesel::dsl::exists;
+use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
+use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
-use sha1::digest::generic_array::typenum::private::IsEqualPrivate;
 use std::ops::Deref;
 
 pub(crate) mod imp {
@@ -260,15 +261,8 @@ impl EpicAssetDetails {
         action!(
             actions,
             "toggle_favorite",
-            clone!(@weak self as details => move |btn, _| {
-                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
-                if let Some(fav) = self_.favorite.icon_name() {
-                    if fav.eq("starred") {
-                        self_.favorite.set_icon_name("non-starred-symbolic")
-                    } else {
-                        self_.favorite.set_icon_name("starred")
-                    }
-                };
+            clone!(@weak self as details => move |_, _| {
+                details.toggle_favorites()
             })
         );
     }
@@ -378,6 +372,8 @@ impl EpicAssetDetails {
         if !self.is_expanded() {
             self.set_property("expanded", true).unwrap();
         }
+
+        self.check_favorite();
     }
 
     pub fn is_expanded(&self) -> bool {
@@ -387,5 +383,74 @@ impl EpicAssetDetails {
             }
         };
         false
+    }
+
+    pub fn asset(&self) -> Option<AssetInfo> {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        self_.asset.borrow().clone()
+    }
+
+    pub fn toggle_favorites(&self) {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let db = crate::models::database::connection();
+        if let Some(asset) = self.asset() {
+            if let Ok(conn) = db.get() {
+                if let Some(fav) = self_.favorite.icon_name() {
+                    if fav.eq("starred") {
+                        diesel::delete(
+                            crate::schema::favorite_asset::table
+                                .filter(crate::schema::favorite_asset::asset.eq(asset.id.clone())),
+                        )
+                        .execute(&conn)
+                        .expect("Unable to delete favorite from DB");
+                        self_.favorite.set_icon_name("non-starred-symbolic")
+                    } else {
+                        diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
+                            .values(crate::schema::favorite_asset::asset.eq(asset.id.clone()))
+                            .execute(&conn)
+                            .expect("Unable to insert favorite to the DB");
+                        self_.favorite.set_icon_name("starred")
+                    };
+                    match self_.window.get() {
+                        None => {}
+                        Some(w) => {
+                            let w_: &crate::window::imp::EpicAssetManagerWindow =
+                                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                            let l = w_.logged_in_stack.clone();
+                            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
+                                crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(
+                                    &l,
+                                );
+                            l_.library.refresh_asset(asset.id);
+                        }
+                    }
+                };
+            }
+        }
+    }
+
+    pub fn check_favorite(&self) {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let db = crate::models::database::connection();
+        if let Ok(conn) = db.get() {
+            match self.asset() {
+                None => {}
+                Some(asset) => {
+                    let ex: Result<bool, diesel::result::Error> = select(exists(
+                        crate::schema::favorite_asset::table
+                            .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
+                    ))
+                    .get_result(&conn);
+                    if let Ok(fav) = ex {
+                        match fav {
+                            true => self_.favorite.set_icon_name("starred"),
+                            false => self_.favorite.set_icon_name("non-starred-symbolic"),
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+        self_.favorite.set_icon_name("non-starred-symbolic")
     }
 }
