@@ -876,7 +876,7 @@ impl EpicDownloadManager {
         &self,
         image: egs_api::api::types::asset_info::KeyImage,
         asset: String,
-        sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::image_stack::ImageMsg>,
+        sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::library::image_stack::ImageMsg>,
     ) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -908,7 +908,7 @@ impl EpicDownloadManager {
                     }
                     sender
                         .send(
-                            crate::ui::widgets::logged_in::image_stack::ImageMsg::LoadImage(
+                            crate::ui::widgets::logged_in::library::image_stack::ImageMsg::LoadImage(
                                 asset, img,
                             ),
                         )

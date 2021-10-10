@@ -1,13 +1,20 @@
-use crate::ui::widgets::logged_in::project::EpicProject;
-use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
-use log::info;
 use std::path::PathBuf;
 
+use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
+use log::info;
+
+use project::EpicProject;
+
+mod project;
+mod project_detail;
+
 pub(crate) mod imp {
-    use super::*;
+    use std::cell::RefCell;
+
     use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
@@ -18,8 +25,9 @@ pub(crate) mod imp {
         #[template_child]
         pub projects_grid: TemplateChild<gtk4::GridView>,
         #[template_child]
-        pub details:
-            TemplateChild<crate::ui::widgets::logged_in::project_detail::UnrealProjectDetails>,
+        pub details: TemplateChild<
+            crate::ui::widgets::logged_in::projects::project_detail::UnrealProjectDetails,
+        >,
         pub grid_model: gtk4::gio::ListStore,
         pub expanded: RefCell<bool>,
         selected: RefCell<Option<String>>,

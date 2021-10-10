@@ -3,10 +3,17 @@ mod application;
 mod config;
 // mod download;
 mod models;
+mod schema;
 mod tools;
 mod ui;
 mod window;
 
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
 #[macro_use]
 extern crate lazy_static;
 

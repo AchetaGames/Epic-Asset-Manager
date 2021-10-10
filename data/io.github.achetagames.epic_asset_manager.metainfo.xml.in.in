@@ -28,6 +28,15 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.4.0" date="2021-10-10">
+       <description>
+              <p>Add favorites functionality</p>
+              <ul>
+                  <li>Better code organisation</li>
+                  <li>Add database</li>
+</ul>
+       </description>
+    </release>
     <release version="2.3.0" date="2021-10-03">
        <description>
               <p>Add Engine and Project sections</p>

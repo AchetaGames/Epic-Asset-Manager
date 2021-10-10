@@ -1,10 +1,3 @@
-use crate::tools::asset_info::Search;
-use crate::ui::widgets::logged_in::asset::EpicAsset;
-use glib::clone;
-use gtk4::{self, gdk_pixbuf, prelude::*};
-use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::action;
-use log::debug;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -12,43 +5,61 @@ use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::tools::asset_info::Search;
+use asset::EpicAsset;
+use glib::clone;
+use gtk4::{self, gdk_pixbuf, prelude::*};
+use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
+use gtk_macros::action;
+use log::debug;
+
+mod asset;
+pub mod asset_detail;
+pub mod category;
+mod download_detail;
+pub mod image_stack;
+
 pub(crate) mod imp {
-    use super::*;
-    use crate::config;
-    use crate::ui::widgets::download_manager::EpicDownloadManager;
-    use crate::window::EpicAssetManagerWindow;
+    use std::cell::RefCell;
+    use std::collections::{HashMap, HashSet};
+    use std::sync::Arc;
+
     use gtk4::gio;
     use gtk4::gio::ListStore;
     use gtk4::glib::{Object, ParamSpec};
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
-    use std::collections::{HashMap, HashSet};
-    use std::sync::Arc;
     use threadpool::ThreadPool;
+
+    use crate::config;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use crate::window::EpicAssetManagerWindow;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/library.ui")]
     pub struct EpicLibraryBox {
         #[template_child]
         pub home_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub assets_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub plugins_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub games_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub other_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
         pub projects_category:
-            TemplateChild<crate::ui::widgets::logged_in::category::EpicSidebarCategory>,
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
-        pub details: TemplateChild<crate::ui::widgets::logged_in::asset_detail::EpicAssetDetails>,
+        pub details:
+            TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
         #[template_child]
         pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]
@@ -70,6 +81,7 @@ pub(crate) mod imp {
         pub filter_model: gtk4::FilterListModel,
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
+        pub loaded_data: RefCell<HashMap<String, crate::models::asset_data::AssetData>>,
         pub asset_product_names: RefCell<HashMap<String, String>>,
         pub asset_load_pool: ThreadPool,
         pub image_load_pool: ThreadPool,
@@ -108,8 +120,9 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
-                grid_model: gio::ListStore::new(crate::models::asset_data::RowData::static_type()),
+                grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
+                loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
@@ -308,30 +321,30 @@ impl EpicLibraryBox {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.details.set_window(&window.clone());
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
             item.set_child(Some(&row));
         });
 
-        factory.connect_bind(move |_factory, list_item| {
+        factory.connect_bind(clone!(@weak self as library => move |_factory, list_item| {
             let data = list_item
                 .item()
                 .unwrap()
-                .downcast::<crate::models::asset_data::RowData>()
+                .downcast::<crate::models::asset_data::AssetData>()
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
-            child.set_property("label", &data.name()).unwrap();
-            child.set_property("thumbnail", &data.image()).unwrap();
-        });
+            child.set_data(&data);
+        }));
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
-                .downcast_ref::<crate::models::asset_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
             let info2 = obj2
-                .downcast_ref::<crate::models::asset_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
 
             info1
@@ -352,7 +365,7 @@ impl EpicLibraryBox {
         selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
             if let Some(a) = model.selected_item() {
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&loggedin);
-                let asset = a.downcast::<crate::models::asset_data::RowData>().unwrap();
+                let asset = a.downcast::<crate::models::asset_data::AssetData>().unwrap();
                 let assets = self_.loaded_assets.borrow();
                 if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a.clone()) }
             }
@@ -361,12 +374,13 @@ impl EpicLibraryBox {
         self.fetch_assets();
     }
 
+    /// Open asset based on a name from xdg-open
     fn open_asset(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         if let Some(id) = self.item() {
             let assets = self_.loaded_assets.borrow();
             if let Some(a) = assets.get(&id) {
-                self_.details.set_asset(a.clone())
+                self_.details.set_asset(a.clone());
             }
         } else if let Some(product) = self.product() {
             let assets = self_.loaded_assets.borrow();
@@ -543,7 +557,7 @@ impl EpicLibraryBox {
 
         let filter = gtk4::CustomFilter::new(move |object| {
             let asset = object
-                .downcast_ref::<crate::models::asset_data::RowData>()
+                .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
             (match &search {
                 None => true,
@@ -604,7 +618,9 @@ impl EpicLibraryBox {
                 }
             }
         } {
-            let data = crate::models::asset_data::RowData::new(asset, image);
+            let data = crate::models::asset_data::AssetData::new(asset, image);
+            let mut data_hash = self_.loaded_data.borrow_mut();
+            data_hash.insert(data.id(), data.clone());
             if let Ok(mut vec) = self_.assets_pending.write() {
                 vec.push(data.upcast());
             }
@@ -840,5 +856,13 @@ impl EpicLibraryBox {
                 }
             });
         }
+    }
+
+    pub fn refresh_asset(&self, id: String) {
+        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        if let Some(data) = self_.loaded_data.borrow().get(&id) {
+            data.refresh()
+        }
+        self.apply_filter()
     }
 }

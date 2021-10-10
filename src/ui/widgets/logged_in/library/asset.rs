@@ -1,3 +1,4 @@
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -6,6 +7,7 @@ pub(crate) mod imp {
     use super::*;
     use gtk4::gdk_pixbuf::prelude::StaticType;
     use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::glib::SignalHandlerId;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -13,9 +15,12 @@ pub(crate) mod imp {
     pub struct EpicAsset {
         id: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
+        favorite: RefCell<bool>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
+        pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
+        pub handler: RefCell<Option<SignalHandlerId>>,
     }
 
     #[glib::object_subclass]
@@ -28,8 +33,11 @@ pub(crate) mod imp {
             Self {
                 id: RefCell::new(None),
                 label: RefCell::new(None),
+                favorite: RefCell::new(false),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
+                data: RefCell::new(None),
+                handler: RefCell::new(None),
             }
         }
 
@@ -73,6 +81,13 @@ pub(crate) mod imp {
                         Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
+                    glib::ParamSpec::new_boolean(
+                        "favorite",
+                        "favorite",
+                        "Is favorite",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
 
@@ -99,13 +114,26 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.id.replace(id);
                 }
+                "favorite" => {
+                    let favorite = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.favorite.replace(favorite);
+                }
                 "thumbnail" => {
                     let thumbnail: Option<Pixbuf> = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
 
-                    self.image.set_from_pixbuf(thumbnail.as_ref());
-                    self.thumbnail.replace(thumbnail);
+                    self.thumbnail.replace(thumbnail.clone());
+                    match thumbnail {
+                        None => {
+                            self.image.set_icon_name(Some("ue-logo-symbolic"));
+                        }
+                        Some(t) => {
+                            self.image.set_from_pixbuf(Some(t.as_ref()));
+                        }
+                    }
                 }
                 _ => unimplemented!(),
             }
@@ -115,6 +143,8 @@ pub(crate) mod imp {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
+                "favorite" => self.favorite.borrow().to_value(),
+                "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -138,5 +168,28 @@ impl Default for EpicAsset {
 impl EpicAsset {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+    }
+
+    pub fn set_data(&self, data: &crate::models::asset_data::AssetData) {
+        let self_: &imp::EpicAsset = imp::EpicAsset::from_instance(self);
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+        self_.data.replace(Some(data.clone()));
+        self.set_property("label", &data.name()).unwrap();
+        self.set_property("thumbnail", &data.image()).unwrap();
+        self.set_property("favorite", &data.favorite()).unwrap();
+        if let Ok(id) = data.connect_local(
+            "refreshed",
+            false,
+            clone!(@weak self as asset, @weak data => @default-return None, move |_| {
+                asset.set_property("favorite", &data.favorite()).unwrap();
+                None
+            }),
+        ) {
+            self_.handler.replace(Some(id));
+        }
     }
 }
