@@ -13,12 +13,6 @@
                         <property name="halign">start</property>
                     </object>
                 </child>
-                <child>
-                    <object class="GtkButton">
-                        <property name="action-name">download_manager.close</property>
-                        <property name="icon-name">window-close</property>
-                    </object>
-                </child>
             </object>
         </child>
         <child>
@@ -27,15 +21,9 @@
             </object>
         </child>
         <child>
-            <object class="GtkScrolledWindow">
-                <property name="vexpand">true</property>
-                <property name="hscrollbar-policy">never</property>
-                <child>
-                    <object class="GtkBox" id="downloads">
-                        <property name="orientation">vertical</property>
-                        <property name="hexpand">false</property>
-                    </object>
-                </child>
+            <object class="GtkBox" id="downloads">
+                <property name="orientation">vertical</property>
+                <property name="hexpand">false</property>
             </object>
         </child>
     </template>

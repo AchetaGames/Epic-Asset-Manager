@@ -10,7 +10,7 @@
                     <object class="AdwViewStackPage">
                         <property name="name">library</property>
                         <property name="title">Library</property>
-                        <property name="icon-name">applications-other</property>
+                        <property name="icon-name">document-open-symbolic</property>
                         <property name="child">
                             <object class="EpicLibraryBox" id="library"/>
                         </property>
@@ -20,7 +20,7 @@
                     <object class="AdwViewStackPage">
                         <property name="name">projects</property>
                         <property name="title">Projects</property>
-                        <property name="icon-name">applications-development</property>
+                        <property name="icon-name">applications-engineering-symbolic</property>
                         <property name="child">
                             <object class="EpicProjectsBox" id="projects"/>
                         </property>
@@ -29,8 +29,8 @@
                 <child>
                     <object class="AdwViewStackPage">
                         <property name="name">engine</property>
-                        <property name="title">Engine</property>
-                        <property name="icon-name">system-run</property>
+                        <property name="title">Engines</property>
+                        <property name="icon-name">system-run-symbolic</property>
                         <property name="child">
                             <object class="EpicEnginesBox" id="engine"/>
                         </property>

@@ -51,6 +51,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
+    use gtk4::glib::ParamSpec;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -76,6 +77,7 @@ pub(crate) mod imp {
         pub asset_files: RefCell<HashMap<String, Vec<String>>>,
         #[template_child]
         pub downloads: TemplateChild<gtk4::Box>,
+        has_children: RefCell<bool>,
     }
 
     #[glib::object_subclass]
@@ -101,6 +103,7 @@ pub(crate) mod imp {
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
                 image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
                 file_pool: ThreadPool::with_name("File Pool".to_string(), 1),
+                has_children: RefCell::new(false),
             }
         }
 
@@ -133,6 +136,43 @@ pub(crate) mod imp {
                     .build()]
                 });
             SIGNALS.as_ref()
+        }
+
+        fn properties() -> &'static [ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+                vec![ParamSpec::new_boolean(
+                    "has-items",
+                    "has items",
+                    "Has Items",
+                    false,
+                    glib::ParamFlags::READWRITE,
+                )]
+            });
+            PROPERTIES.as_ref()
+        }
+
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &ParamSpec,
+        ) {
+            match pspec.name() {
+                "has-items" => {
+                    let has_children = value.get().unwrap();
+                    self.has_children.replace(has_children);
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "has-items" => self.has_children.borrow().to_value(),
+                _ => unimplemented!(),
+            }
         }
     }
 
@@ -356,12 +396,16 @@ impl EpicDownloadManager {
 
         self_.downloads.append(&item);
 
+        self.set_property("has-items", self_.downloads.first_child().is_some())
+            .unwrap();
+
         item.connect_local(
             "finished",
             false,
             clone!(@weak self as edm, @weak item => @default-return None, move |_| {
                 let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&edm);
                 self_.downloads.remove(&item);
+                edm.set_property("has-items", self_.downloads.first_child().is_some()).unwrap();
                 edm.emit_by_name("tick", &[]).unwrap();
                 None
             }),

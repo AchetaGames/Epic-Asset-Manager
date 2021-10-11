@@ -61,8 +61,6 @@ pub(crate) mod imp {
         pub details:
             TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
         #[template_child]
-        pub download_progress: TemplateChild<gtk4::ProgressBar>,
-        #[template_child]
         pub expand_button: TemplateChild<gtk4::Button>,
         #[template_child]
         pub expand_image: TemplateChild<gtk4::Image>,
@@ -72,6 +70,8 @@ pub(crate) mod imp {
         pub asset_grid: TemplateChild<gtk4::GridView>,
         #[template_child]
         pub asset_search: TemplateChild<gtk4::SearchEntry>,
+        #[template_child]
+        pub search_toggle: TemplateChild<gtk4::ToggleButton>,
         pub sidebar_expanded: RefCell<bool>,
         pub filter: RefCell<Option<String>>,
         pub search: RefCell<Option<String>>,
@@ -107,12 +107,12 @@ pub(crate) mod imp {
                 other_category: TemplateChild::default(),
                 projects_category: TemplateChild::default(),
                 details: TemplateChild::default(),
-                download_progress: TemplateChild::default(),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
                 expand_label: TemplateChild::default(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
+                search_toggle: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
                 filter: RefCell::new(None),
                 search: RefCell::new(None),
@@ -300,15 +300,6 @@ impl EpicLibraryBox {
             return;
         }
 
-        dm.connect_local(
-            "tick",
-            false,
-            clone!(@weak self as obj, @weak dm => @default-return None, move |_| {
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);
-                self_.download_progress.set_fraction(dm.progress());
-                None}),
-        )
-        .unwrap();
         self_.download_manager.set(dm.clone()).unwrap();
         self_.details.set_download_manager(dm);
     }
@@ -322,6 +313,9 @@ impl EpicLibraryBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.details.set_window(&window.clone());
+        self_
+            .asset_search
+            .set_key_capture_widget(Some(&window.clone()));
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
@@ -456,6 +450,13 @@ impl EpicLibraryBox {
         self_.other_category.set_logged_in(self);
         self_.games_category.set_logged_in(self);
         self_.home_category.set_logged_in(self);
+
+        self_
+            .asset_search
+            .connect_search_changed(clone!(@weak self as win => move |_| {
+                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
+                self_.search_toggle.set_active(true);
+            }));
     }
 
     pub fn setup_actions(&self) {
@@ -770,16 +771,16 @@ impl EpicLibraryBox {
             };
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = win_.model.borrow().sender.clone();
-            self_.asset_load_pool.execute(move || {
-                let assets = tokio::runtime::Runtime::new()
-                    .unwrap()
-                    .block_on(eg.list_assets());
-                for asset in assets {
-                    sender
-                        .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-                        .unwrap();
-                }
-            });
+            // self_.asset_load_pool.execute(move || {
+            //     let assets = tokio::runtime::Runtime::new()
+            //         .unwrap()
+            //         .block_on(eg.list_assets());
+            //     for asset in assets {
+            //         sender
+            //             .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+            //             .unwrap();
+            //     }
+            // });
             glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
                 obj.flush_assets();
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);

@@ -1,6 +1,7 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
+use crate::ui::widgets::progress_icon::ProgressIconExt;
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk4::subclass::prelude::*;
@@ -95,6 +96,17 @@ impl EpicAssetManagerWindow {
                 }
             })
         );
+        let self_: &imp::EpicAssetManagerWindow = imp::EpicAssetManagerWindow::from_instance(self);
+
+        self_.download_manager.connect_local(
+            "tick",
+            false,
+            clone!(@weak self as obj => @default-return None, move |_| {
+                let self_: &imp::EpicAssetManagerWindow = imp::EpicAssetManagerWindow::from_instance(&obj);
+                self_.progress_icon.set_fraction(self_.download_manager.progress());
+                None}),
+        )
+            .unwrap();
     }
 
     pub fn check_login(&mut self) {
@@ -119,7 +131,7 @@ impl EpicAssetManagerWindow {
     pub fn show_download_manager(&self) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.logged_in_stack.activate(false);
-        self_.main_stack.set_visible_child_name("download_manager")
+        // self_.main_stack.set_visible_child_name("download_manager")
     }
 
     pub fn show_logged_in(&self) {
