@@ -18,6 +18,8 @@ pub struct EpicAssetManagerWindow {
     pub progress_message: TemplateChild<gtk4::Label>,
     #[template_child]
     pub download_manager: TemplateChild<crate::ui::widgets::download_manager::EpicDownloadManager>,
+    #[template_child]
+    pub progress_icon: TemplateChild<crate::ui::widgets::progress_icon::ProgressIcon>,
     pub model: RefCell<Model>,
 }
 
@@ -35,6 +37,7 @@ impl ObjectSubclass for EpicAssetManagerWindow {
             sid_box: TemplateChild::default(),
             progress_message: TemplateChild::default(),
             download_manager: TemplateChild::default(),
+            progress_icon: TemplateChild::default(),
             model: RefCell::new(Model::new()),
         }
     }

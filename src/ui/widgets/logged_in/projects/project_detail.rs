@@ -185,8 +185,7 @@ impl UnrealProjectDetails {
                     diesel::replace_into(unreal_project_latest_engine::table)
                         .values((
                             crate::schema::unreal_project_latest_engine::project.eq(path.clone()),
-                            crate::schema::unreal_project_latest_engine::engine
-                                .eq(eng.path.clone()),
+                            crate::schema::unreal_project_latest_engine::engine.eq(eng.path),
                         ))
                         .execute(&conn)
                         .expect("Unable to insert last engine to the DB");
@@ -264,7 +263,7 @@ impl UnrealProjectDetails {
                     .select(crate::schema::unreal_project_latest_engine::engine)
                     .first(&conn);
             if let Ok(last) = engines {
-                last_engine = Some(last.clone());
+                last_engine = Some(last);
             }
         };
         for engine in self.available_engines() {

@@ -216,7 +216,7 @@ impl AssetData {
     pub fn check_category(&self, cat: String) -> bool {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
         if cat.eq("favorites") {
-            return self.favorite();
+            self.favorite()
         } else {
             match self_.asset.borrow().as_ref() {
                 None => false,

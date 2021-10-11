@@ -189,7 +189,7 @@ impl EpicProject {
                                 .select(crate::schema::unreal_project_latest_engine::engine)
                                 .first(&conn);
                         if let Ok(last) = engines {
-                            last_engine = Some(last.clone());
+                            last_engine = Some(last);
                         }
                     };
                     match last_engine {
