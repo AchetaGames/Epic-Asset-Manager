@@ -516,8 +516,8 @@ impl EpicDownloadManager {
         // consolidate manifests
 
         for manifest in &dm {
-            for (filename, m) in manifest.files() {
-                for chunk in m.file_chunk_parts {
+            for m in manifest.files().values() {
+                for chunk in m.file_chunk_parts.clone() {
                     match chunk.link {
                         None => {}
                         Some(url) => {
@@ -633,7 +633,6 @@ impl EpicDownloadManager {
             match chunks.get_mut(&chunk.guid) {
                 None => {
                     chunks.insert(chunk.guid.clone(), vec![full_filename.clone()]);
-                    let link = chunk.link.unwrap();
                     let mut p = target.clone();
                     let g = chunk.guid.clone();
                     p.push(format!("{}.chunk", g));
@@ -660,7 +659,7 @@ impl EpicDownloadManager {
                 sender
                     .send(DownloadMsg::PerformChunkDownload(
                         link.clone(),
-                        p.clone(),
+                        p,
                         g.clone(),
                     ))
                     .unwrap();
@@ -687,7 +686,7 @@ impl EpicDownloadManager {
                         sender
                             .send(DownloadMsg::PerformChunkDownload(
                                 link.clone(),
-                                p.clone(),
+                                p,
                                 g.clone(),
                             ))
                             .unwrap();
@@ -695,11 +694,7 @@ impl EpicDownloadManager {
                     Some(u) => {
                         // Using new url to redownload the chunk
                         sender
-                            .send(DownloadMsg::PerformChunkDownload(
-                                u.clone(),
-                                p.clone(),
-                                g.clone(),
-                            ))
+                            .send(DownloadMsg::PerformChunkDownload(u.clone(), p, g.clone()))
                             .unwrap();
                     }
                 }
