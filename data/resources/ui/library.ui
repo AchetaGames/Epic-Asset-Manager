@@ -141,10 +141,16 @@
                                 <property name="margin-top">5</property>
                                 <property name="valign">start</property>
                                 <child>
-                                    <object class="GtkToggleButton" id="search_toggle">
-                                        <property name="halign">start</property>
-                                        <property name="valign">start</property>
-                                        <property name="icon-name">edit-find-symbolic</property>
+                                    <object class="GtkBox">
+                                        <property name="css-classes">background</property>
+                                        <child>
+                                            <object class="GtkToggleButton" id="search_toggle">
+                                                <property name="css-classes">background</property>
+                                                <property name="halign">start</property>
+                                                <property name="valign">start</property>
+                                                <property name="icon-name">edit-find-symbolic</property>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                                 <child>
@@ -157,50 +163,54 @@
                                         <property name="margin-start">5</property>
                                         <property name="margin-end">5</property>
                                         <child>
-                                            <object class="GtkSearchEntry" id="asset_search"/>
+                                            <object class="GtkSearchEntry" id="asset_search">
+                                                <property name="css-classes">background</property>
+                                            </object>
                                         </child>
                                     </object>
                                 </child>
                                 <child>
-                                    <object class="GtkMenuButton" id="progress_button">
-                                        <property name="always-show-arrow">false</property>
-                                        <property name="direction">none</property>
-                                        <property name="popover">
-                                            <object class="GtkPopover">
-                                                <child>
-                                                    <object class="GtkBox">
+                                    <object class="GtkBox">
+                                        <property name="css-classes">background</property>
+                                        <child>
+                                            <object class="GtkComboBoxText" id="select_order_by">
+                                                <property name="active-id">name</property>
+                                                <items>
+                                                    <item translatable="yes" id="name">Name</item>
+                                                    <item translatable="yes" id="updated">Updated</item>
+                                                    <item translatable="yes" id="released">Released</item>
+                                                </items>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkButton" id="order">
+                                                <property name="action-name">library.order</property>
+                                                <property name="icon-name">view-sort-ascending-symbolic</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="css-classes">background</property>
+                                        <property name="margin-start">5</property>
+                                        <child>
+                                            <object class="GtkMenuButton" id="progress_button">
+                                                <property name="always-show-arrow">false</property>
+                                                <property name="direction">none</property>
+                                                <property name="popover">
+                                                    <object class="GtkPopover">
                                                         <child>
-                                                            <object class="AdwActionRow" id="cache_directory_row">
-                                                                <property name="title">Ordering</property>
-                                                                <child type="suffix">
-                                                                    <object class="GtkBox">
-                                                                        <child>
-                                                                            <object class="GtkComboBoxText" id="select_order_by">
-                                                                                <property name="active-id">name</property>
-                                                                                <items>
-                                                                                    <item translatable="yes" id="name">Name</item>
-                                                                                    <item translatable="yes" id="updated">Updated</item>
-                                                                                    <item translatable="yes" id="released">Released</item>
-                                                                                </items>
-                                                                            </object>
-                                                                        </child>
-                                                                        <child>
-                                                                            <object class="GtkButton" id="order">
-                                                                                <property name="action-name">library.order</property>
-                                                                                <property name="icon-name">view-sort-ascending-symbolic</property>
-                                                                            </object>
-                                                                        </child>
-                                                                    </object>
-                                                                </child>
+                                                            <object class="GtkBox">
+
                                                             </object>
                                                         </child>
                                                     </object>
-                                                </child>
+                                                </property>
                                             </object>
-                                        </property>
+                                        </child>
                                     </object>
                                 </child>
-
                             </object>
                         </child>
                     </object>
