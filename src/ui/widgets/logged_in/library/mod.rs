@@ -879,16 +879,16 @@ impl EpicLibraryBox {
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = win_.model.borrow().sender.clone();
             // Start loading assets from the API
-            // self_.asset_load_pool.execute(move || {
-            //     let assets = tokio::runtime::Runtime::new()
-            //         .unwrap()
-            //         .block_on(eg.list_assets());
-            //     for asset in assets {
-            //         sender
-            //             .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-            //             .unwrap();
-            //     }
-            // });
+            self_.asset_load_pool.execute(move || {
+                let assets = tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(eg.list_assets());
+                for asset in assets {
+                    sender
+                        .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+                        .unwrap();
+                }
+            });
             glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
                 obj.flush_assets();
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);
