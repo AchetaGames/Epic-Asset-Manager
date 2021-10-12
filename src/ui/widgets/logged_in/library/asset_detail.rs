@@ -342,6 +342,21 @@ impl EpicAssetDetails {
             self_.details_box.append(&row)
         }
 
+        if let Some(updated) = &asset.last_modified_date {
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
+            let title = gtk4::LabelBuilder::new().label("Updated").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            let label = gtk4::LabelBuilder::new()
+                .label(&updated.to_rfc3339())
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details_box.append(&row)
+        }
+
         if let Some(compatible_apps) = &asset.compatible_apps() {
             let row = adw::ActionRowBuilder::new().activatable(true).build();
             let title = gtk4::LabelBuilder::new().label("Compatible with").build();
@@ -427,6 +442,11 @@ impl EpicAssetDetails {
                 };
             }
         }
+    }
+
+    pub fn has_asset(&self) -> bool {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        self_.asset.borrow().is_some()
     }
 
     pub fn check_favorite(&self) {

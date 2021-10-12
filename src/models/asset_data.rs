@@ -1,9 +1,13 @@
+use chrono::{DateTime, Utc};
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
+use egs_api::api::types::asset_info::{AssetInfo, ReleaseInfo};
 use glib::ObjectExt;
 use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
+use std::cell::Ref;
+use std::ops::Deref;
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -202,6 +206,25 @@ impl AssetData {
             }
         };
         false
+    }
+
+    pub fn release(&self) -> Option<DateTime<Utc>> {
+        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        match self_.asset.borrow().deref() {
+            Some(a) => match a.latest_release() {
+                None => a.last_modified_date,
+                Some(ri) => ri.date_added,
+            },
+            None => None,
+        }
+    }
+
+    pub fn last_modified(&self) -> Option<DateTime<Utc>> {
+        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        match self_.asset.borrow().deref() {
+            Some(a) => a.last_modified_date,
+            None => None,
+        }
     }
 
     pub fn image(&self) -> Option<Pixbuf> {

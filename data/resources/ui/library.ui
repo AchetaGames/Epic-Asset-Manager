@@ -77,7 +77,7 @@
                                 <child>
                                     <object class="GtkButton" id="expand_button">
                                         <property name="name">category_button</property>
-                                        <property name="action-name">loggedin.expand</property>
+                                        <property name="action-name">library.expand</property>
                                         <property name="halign">fill</property>
                                         <property name="hexpand">true</property>
                                         <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
@@ -159,6 +159,22 @@
                                         <child>
                                             <object class="GtkSearchEntry" id="asset_search"/>
                                         </child>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkComboBoxText" id="select_order_by">
+                                        <property name="active-id">name</property>
+                                        <items>
+                                            <item translatable="yes" id="name">Name</item>
+                                            <item translatable="yes" id="updated">Updated</item>
+                                            <item translatable="yes" id="released">Released</item>
+                                        </items>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkButton" id="order">
+                                        <property name="action-name">library.order</property>
+                                        <property name="icon-name">view-sort-ascending-symbolic</property>
                                     </object>
                                 </child>
                             </object>

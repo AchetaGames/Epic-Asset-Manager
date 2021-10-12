@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 use crate::tools::asset_info::Search;
 use asset::EpicAsset;
 use glib::clone;
-use gtk4::{self, gdk_pixbuf, prelude::*};
+use gtk4::cairo::glib::GString;
+use gtk4::{self, gdk_pixbuf, prelude::*, Adjustment, CustomSorter};
 use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::debug;
@@ -72,6 +73,10 @@ pub(crate) mod imp {
         pub asset_search: TemplateChild<gtk4::SearchEntry>,
         #[template_child]
         pub search_toggle: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
+        pub select_order_by: TemplateChild<gtk4::ComboBoxText>,
+        #[template_child]
+        pub order: TemplateChild<gtk4::Button>,
         pub sidebar_expanded: RefCell<bool>,
         pub filter: RefCell<Option<String>>,
         pub search: RefCell<Option<String>>,
@@ -79,6 +84,7 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub filter_model: gtk4::FilterListModel,
+        pub sorter_model: gtk4::SortListModel,
         pub grid_model: ListStore,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub loaded_data: RefCell<HashMap<String, crate::models::asset_data::AssetData>>,
@@ -113,6 +119,8 @@ pub(crate) mod imp {
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
                 search_toggle: TemplateChild::default(),
+                select_order_by: TemplateChild::default(),
+                order: Default::default(),
                 sidebar_expanded: RefCell::new(false),
                 filter: RefCell::new(None),
                 search: RefCell::new(None),
@@ -120,6 +128,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
+                sorter_model: gtk4::SortListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_SORTER),
                 grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
@@ -317,11 +326,13 @@ impl EpicLibraryBox {
             .asset_search
             .set_key_capture_widget(Some(&window.clone()));
         let factory = gtk4::SignalListItemFactory::new();
+        // Create the children
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
             item.set_child(Some(&row));
         });
 
+        // Populate children
         factory.connect_bind(clone!(@weak self as library => move |_factory, list_item| {
             let data = list_item
                 .item()
@@ -333,32 +344,20 @@ impl EpicLibraryBox {
             child.set_data(&data);
         }));
 
-        let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
-            let info1 = obj1
-                .downcast_ref::<crate::models::asset_data::AssetData>()
-                .unwrap();
-            let info2 = obj2
-                .downcast_ref::<crate::models::asset_data::AssetData>()
-                .unwrap();
-
-            info1
-                .name()
-                .to_lowercase()
-                .cmp(&info2.name().to_lowercase())
-                .into()
-        });
-
         self_.filter_model.set_model(Some(&self_.grid_model));
-        let sorted_model = gtk4::SortListModel::new(Some(&self_.filter_model), Some(&sorter));
-        let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
+        self_.sorter_model.set_model(Some(&self_.filter_model));
+        self_
+            .sorter_model
+            .set_sorter(Some(&Self::sorter("name", true)));
+        let selection_model = gtk4::SingleSelection::new(Some(&self_.sorter_model));
         selection_model.set_autoselect(false);
         selection_model.set_can_unselect(true);
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
 
-        selection_model.connect_selected_notify(clone!(@weak self as loggedin => move |model| {
+        selection_model.connect_selected_notify(clone!(@weak self as library => move |model| {
             if let Some(a) = model.selected_item() {
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&loggedin);
+                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&library);
                 let asset = a.downcast::<crate::models::asset_data::AssetData>().unwrap();
                 let assets = self_.loaded_assets.borrow();
                 if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a.clone()) }
@@ -366,6 +365,69 @@ impl EpicLibraryBox {
         }));
 
         self.fetch_assets();
+    }
+
+    fn sorter(by: &str, asc: bool) -> CustomSorter {
+        match by {
+            "released" => gtk4::CustomSorter::new(move |obj1, obj2| {
+                let info1 = obj1
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap()
+                    .release();
+                let info2 = obj2
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap()
+                    .release();
+                if info1.is_none() {
+                    return gtk4::Ordering::Smaller;
+                } else if info2.is_none() {
+                    return gtk4::Ordering::Larger;
+                }
+                match asc {
+                    true => info1.unwrap().cmp(&info2.unwrap()).into(),
+                    false => info2.unwrap().cmp(&info1.unwrap()).into(),
+                }
+            }),
+            "updated" => gtk4::CustomSorter::new(move |obj1, obj2| {
+                let info1 = obj1
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap()
+                    .last_modified();
+                let info2 = obj2
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap()
+                    .last_modified();
+                if info1.is_none() {
+                    return gtk4::Ordering::Smaller;
+                } else if info2.is_none() {
+                    return gtk4::Ordering::Larger;
+                }
+                match asc {
+                    true => info1.unwrap().cmp(&info2.unwrap()).into(),
+                    false => info2.unwrap().cmp(&info1.unwrap()).into(),
+                }
+            }),
+            _ => gtk4::CustomSorter::new(move |obj1, obj2| {
+                let info1 = obj1
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap();
+                let info2 = obj2
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap();
+                match asc {
+                    true => info1
+                        .name()
+                        .to_lowercase()
+                        .cmp(&info2.name().to_lowercase())
+                        .into(),
+                    false => info2
+                        .name()
+                        .to_lowercase()
+                        .cmp(&info1.name().to_lowercase())
+                        .into(),
+                }
+            }),
+        }
     }
 
     /// Open asset based on a name from xdg-open
@@ -411,6 +473,13 @@ impl EpicLibraryBox {
             self_.grid_model.splice(0, 0, vec.as_slice());
             vec.clear();
         }
+        // Scroll to top if nothing is selected
+        if !self_.details.has_asset() {
+            match self_.asset_grid.vadjustment() {
+                None => {}
+                Some(adj) => adj.set_value(0.0),
+            };
+        }
         self.open_asset();
         debug!("Finished flushing {:?}", start.elapsed());
     }
@@ -452,11 +521,32 @@ impl EpicLibraryBox {
         self_.home_category.set_logged_in(self);
 
         self_
+            .select_order_by
+            .connect_changed(clone!(@weak self as library => move |_| {
+                library.order_changed();
+            }));
+
+        self_
             .asset_search
             .connect_search_changed(clone!(@weak self as win => move |_| {
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
                 self_.search_toggle.set_active(true);
             }));
+    }
+
+    pub fn order_changed(&self) {
+        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let asc = if let Some(name) = self_.order.icon_name() {
+            match name.as_str() {
+                "view-sort-ascending-symbolic" => true,
+                _ => false,
+            }
+        } else {
+            false
+        };
+        if let Some(by) = self_.select_order_by.active_id() {
+            self_.sorter_model.set_sorter(Some(&Self::sorter(&by, asc)));
+        };
     }
 
     pub fn setup_actions(&self) {
@@ -494,7 +584,24 @@ impl EpicLibraryBox {
             })
         );
 
-        self.insert_action_group("loggedin", Some(&self_.actions));
+        action!(
+            self_.actions,
+            "order",
+            clone!(@weak self as library => move |_, _| {
+                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&library);
+                if let Some(name) = self_.order.icon_name() {
+                    match name.as_str() {
+                        "view-sort-ascending-symbolic" => {
+                            self_.order.set_icon_name("view-sort-descending-symbolic")
+                        }
+                        _ => self_.order.set_icon_name("view-sort-ascending-symbolic"),
+                    }
+                };
+                library.order_changed();
+            })
+        );
+
+        self.insert_action_group("library", Some(&self_.actions));
     }
 
     pub fn filter(&self) -> Option<String> {
@@ -771,16 +878,17 @@ impl EpicLibraryBox {
             };
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = win_.model.borrow().sender.clone();
-            self_.asset_load_pool.execute(move || {
-                let assets = tokio::runtime::Runtime::new()
-                    .unwrap()
-                    .block_on(eg.list_assets());
-                for asset in assets {
-                    sender
-                        .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-                        .unwrap();
-                }
-            });
+            // Start loading assets from the API
+            // self_.asset_load_pool.execute(move || {
+            //     let assets = tokio::runtime::Runtime::new()
+            //         .unwrap()
+            //         .block_on(eg.list_assets());
+            //     for asset in assets {
+            //         sender
+            //             .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+            //             .unwrap();
+            //     }
+            // });
             glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
                 obj.flush_assets();
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);
