@@ -28,6 +28,11 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.6.0" date="2021-10-13">
+       <description>
+              <p>Asset Sorting</p>
+       </description>
+    </release>
     <release version="2.5.1" date="2021-10-12">
        <description>
               <p>UI Improvements</p>
