@@ -190,27 +190,6 @@
                                         </child>
                                     </object>
                                 </child>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="css-classes">background</property>
-                                        <property name="margin-start">5</property>
-                                        <child>
-                                            <object class="GtkMenuButton" id="progress_button">
-                                                <property name="always-show-arrow">false</property>
-                                                <property name="direction">none</property>
-                                                <property name="popover">
-                                                    <object class="GtkPopover">
-                                                        <child>
-                                                            <object class="GtkBox">
-
-                                                            </object>
-                                                        </child>
-                                                    </object>
-                                                </property>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
                             </object>
                         </child>
                     </object>

@@ -1,12 +1,10 @@
 use chrono::{DateTime, Utc};
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
-use egs_api::api::types::asset_info::{AssetInfo, ReleaseInfo};
 use glib::ObjectExt;
 use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
-use std::cell::Ref;
 use std::ops::Deref;
 
 // Implementation sub-module of the GObject
