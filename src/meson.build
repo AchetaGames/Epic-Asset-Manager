@@ -55,8 +55,6 @@ rust_sources = files(
     'ui/widgets/download_manager/download_item.rs',
     'ui/mod.rs',
     'ui/messages.rs',
-    'application/imp.rs',
-    'window/imp.rs',
     'config.rs',
 )
 
