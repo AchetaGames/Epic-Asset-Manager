@@ -463,7 +463,7 @@ impl EpicLibraryBox {
     }
 
     pub fn flush_assets(&self) {
-        let start = std::time::Instant::now();
+        // let start = std::time::Instant::now();
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         if let Ok(mut vec) = self_.assets_pending.write() {
             if vec.is_empty() {
@@ -480,7 +480,7 @@ impl EpicLibraryBox {
             };
         }
         self.open_asset();
-        debug!("Finished flushing {:?}", start.elapsed());
+        // debug!("Finished flushing {:?}", start.elapsed());
     }
 
     pub fn bind_properties(&self) {
@@ -926,6 +926,7 @@ impl EpicLibraryBox {
             let mut cache_dir_c = cache_dir.clone();
             let ea = epic_asset.clone();
 
+            // Write the Epic Asset file
             self_.asset_load_pool.execute(move || {
                 cache_dir_c.push("epic_asset.json");
                 fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();

@@ -1,7 +1,7 @@
 use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
-use log::debug;
-use std::thread;
+// use log::debug;
+// use std::thread;
 
 pub(crate) trait Update {
     fn update(&self, _event: Msg) {
@@ -11,7 +11,7 @@ pub(crate) trait Update {
 
 impl Update for EpicAssetManagerWindow {
     fn update(&self, event: Msg) {
-        let start = std::time::Instant::now();
+        // let start = std::time::Instant::now();
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
 
         match event.clone() {
@@ -37,11 +37,11 @@ impl Update for EpicAssetManagerWindow {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }
         }
-        debug!(
-            "{:?} - {} took {:?}",
-            thread::current().id(),
-            event,
-            start.elapsed()
-        );
+        // debug!(
+        //     "{:?} - {} took {:?}",
+        //     thread::current().id(),
+        //     event,
+        //     start.elapsed()
+        // );
     }
 }

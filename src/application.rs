@@ -178,11 +178,17 @@ impl EpicAssetManager {
     }
 
     pub fn main_window(&self) -> &EpicAssetManagerWindow {
-        let priv_ = crate::application::imp::EpicAssetManager::from_instance(self);
-        priv_.window.get().unwrap()
+        let self_ = crate::application::imp::EpicAssetManager::from_instance(self);
+        self_.window.get().unwrap()
     }
 
     pub fn setup_gactions(&self) {
+        self.connect_shutdown(|_| {
+            if let Ok(mut w) = crate::RUNNING.write() {
+                *w = false
+            }
+        });
+
         // Quit
         action!(
             self,
