@@ -71,5 +71,5 @@ fn main() {
     app.run();
     if let Ok(mut w) = crate::RUNNING.write() {
         *w = false
-    }
+    };
 }
