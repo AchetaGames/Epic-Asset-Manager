@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct EpicAssetManager {
-    pub window: OnceCell<WeakRef<EpicAssetManagerWindow>>,
+    pub window: OnceCell<EpicAssetManagerWindow>,
     pub settings: gio::Settings,
     item: RefCell<Option<String>>,
     product: RefCell<Option<String>>,
@@ -79,7 +79,6 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
 
         let priv_ = EpicAssetManager::from_instance(app);
         if let Some(window) = priv_.window.get() {
-            let window = window.upgrade().unwrap();
             window.show();
 
             if let Ok(item) = self.item.borrow().to_value().get::<String>() {
@@ -94,7 +93,7 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
             return;
         }
 
-        let window = EpicAssetManagerWindow::new(app);
+        let mut window = EpicAssetManagerWindow::new(app);
 
         if let Ok(item) = self.item.borrow().to_value().get::<String>() {
             window.set_property("item", item).unwrap();
@@ -106,11 +105,11 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
         self.item.replace(None);
 
         self.window
-            .set(window.downgrade())
+            .set(window.clone())
             .expect("Window already set.");
 
-        app.main_window().check_login();
-        app.main_window().present();
+        window.check_login();
+        window.present();
     }
 
     fn startup(&self, app: &Self::Type) {
@@ -128,7 +127,7 @@ impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
             "preferences",
             clone!(@weak app as app => move |_,_| {
                 let preferences = PreferencesWindow::new();
-                preferences.set_transient_for(Some(&app.main_window()));
+                preferences.set_transient_for(Some(app.main_window()));
                 preferences.set_window(&app.main_window());
                 preferences.show();
             })

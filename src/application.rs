@@ -2,7 +2,6 @@ use crate::config;
 use crate::window::EpicAssetManagerWindow;
 use gio::ApplicationFlags;
 use glib::clone;
-use glib::WeakRef;
 use gtk4::prelude::*;
 use gtk4::subclass::prelude::*;
 use gtk4::{gdk, gio, glib};
@@ -36,9 +35,9 @@ impl EpicAssetManager {
         .expect("Application initialization failed...")
     }
 
-    pub fn main_window(&self) -> EpicAssetManagerWindow {
+    pub fn main_window(&self) -> &EpicAssetManagerWindow {
         let priv_ = crate::application::imp::EpicAssetManager::from_instance(self);
-        priv_.window.get().unwrap().upgrade().unwrap()
+        priv_.window.get().unwrap()
     }
 
     pub fn setup_gactions(&self) {
@@ -90,7 +89,7 @@ impl EpicAssetManager {
             .license_type(gtk4::License::MitX11)
             .website("https://github.com/AchetaGames/Epic-Asset-Manager")
             .version(config::VERSION)
-            .transient_for(&self.main_window())
+            .transient_for(self.main_window())
             .modal(true)
             .authors(vec!["Milan Stastny".into()])
             .build();
