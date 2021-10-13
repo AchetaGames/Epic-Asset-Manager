@@ -55,4 +55,4 @@ meson install -C _build
 ```
 
 ## Action video 
-[![Youtube Video](https://img.youtube.com/vi/mF0RGK5LglE/maxresdefault.jpg)](https://youtu.be/mF0RGK5LglE)
+[![Youtube Video](https://img.youtube.com/vi/vgy3j03sZns/maxresdefault.jpg)](https://www.youtube.com/watch?v=vgy3j03sZns)
