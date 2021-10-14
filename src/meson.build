@@ -41,6 +41,7 @@ rust_sources = files(
     'ui/widgets/logged_in/library/asset.rs',
     'ui/widgets/logged_in/engines/mod.rs',
     'ui/widgets/logged_in/engines/engine.rs',
+    'ui/widgets/logged_in/engines/engine_detail.rs',
     'ui/widgets/logged_in/projects/mod.rs',
     'ui/widgets/logged_in/projects/project.rs',
     'ui/widgets/logged_in/projects/project_detail.rs',

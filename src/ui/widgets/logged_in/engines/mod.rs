@@ -13,6 +13,7 @@ use version_compare::{CompOp, VersionCompare};
 use engine::EpicEngine;
 
 pub mod engine;
+pub mod engine_detail;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct UnrealEngine {
@@ -60,6 +61,9 @@ pub(crate) mod imp {
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         #[template_child]
         pub engine_grid: TemplateChild<gtk4::GridView>,
+        #[template_child]
+        pub details:
+            TemplateChild<crate::ui::widgets::logged_in::engines::engine_detail::EpicEngineDetails>,
         pub grid_model: gtk4::gio::ListStore,
         pub expanded: RefCell<bool>,
         selected: RefCell<Option<String>>,
@@ -79,6 +83,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 engine_grid: TemplateChild::default(),
+                details: Default::default(),
                 grid_model: gtk4::gio::ListStore::new(
                     crate::models::engine_data::EngineData::static_type(),
                 ),
@@ -243,62 +248,28 @@ impl EpicEnginesBox {
         self_.engine_grid.set_factory(Some(&factory));
 
         selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
+            let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
             if let Some(a) = model.selected_item() {
                 let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
                 engines.set_property("selected", engine.path()).unwrap();
-                engines.set_property("expanded", true).unwrap();
+                self_.details.set_property("expanded", true).unwrap();
+                self_.details.set_data(engine);
             }
         }));
         self.load_engines();
         self.load_engines_from_fs();
     }
 
-    fn get_engine_binary_path(path: &str) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(path) {
-            p.push("Engine");
-            p.push("Binaries");
-            p.push("Linux");
-            let mut test = p.clone();
-            test.push("UE4Editor");
-            if test.exists() {
-                return Some(test.into_os_string());
-            } else {
-                let mut test = p.clone();
-                test.push("UnrealEditor");
-                if test.exists() {
-                    return Some(test.into_os_string());
-                } else {
-                    error!("Unable to launch the engine")
-                }
-            }
-        };
-        None
-    }
-
     pub fn setup_actions(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
         self.insert_action_group("engines", Some(&self_.actions));
-
         action!(
             self_.actions,
-            "launch",
+            "add",
             clone!(@weak self as engines => move |_, _| {
-                let path = engines.selected();
-                if let Some(path) = path {
-                    match Self::get_engine_binary_path(&path) {
-                        None => { warn!("No path");}
-                        Some(p) => {
-                            let context = gtk4::gio::AppLaunchContext::new();
-                            context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                            let app = gtk4::gio::AppInfo::create_from_commandline(
-                                p,
-                                Some("Unreal Engine"),
-                                gtk4::gio::AppInfoCreateFlags::NONE,
-                            ).unwrap();
-                            app.launch(&[], Some(&context)).expect("Failed to launch application");
-                        }
-                    }
-                };
+                let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
+                self_.details.set_property("expanded", true).unwrap();
+                self_.details.add_engine();
             })
         );
     }

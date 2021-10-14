@@ -36,6 +36,8 @@ pub(crate) mod imp {
             TemplateChild<crate::ui::widgets::download_manager::EpicDownloadManager>,
         #[template_child]
         pub progress_icon: TemplateChild<crate::ui::widgets::progress_icon::ProgressIcon>,
+        #[template_child]
+        pub appmenu_button: TemplateChild<gtk4::MenuButton>,
         pub model: RefCell<Model>,
     }
 
@@ -54,6 +56,7 @@ pub(crate) mod imp {
                 progress_message: TemplateChild::default(),
                 download_manager: TemplateChild::default(),
                 progress_icon: TemplateChild::default(),
+                appmenu_button: Default::default(),
                 model: RefCell::new(Model::new()),
             }
         }
@@ -302,6 +305,9 @@ impl EpicAssetManagerWindow {
             .logged_in_stack
             .set_download_manager(&self_.download_manager);
         self.show_logged_in();
+        if let Some(id) = &ud.display_name {
+            self_.appmenu_button.set_label(id)
+        }
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);

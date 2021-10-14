@@ -40,6 +40,8 @@ pub mod imp {
         pub unreal_engine_vault_directories_box: TemplateChild<gtk4::Box>,
         #[template_child]
         pub unreal_engine_directories_box: TemplateChild<gtk4::Box>,
+        #[template_child]
+        pub github_token: TemplateChild<gtk4::PasswordEntry>,
     }
 
     #[glib::object_subclass]
@@ -62,6 +64,7 @@ pub mod imp {
                 unreal_engine_project_directories_box: TemplateChild::default(),
                 unreal_engine_vault_directories_box: TemplateChild::default(),
                 unreal_engine_directories_box: TemplateChild::default(),
+                github_token: Default::default(),
             }
         }
 
@@ -119,6 +122,7 @@ impl PreferencesWindow {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         self_.window.set(window.clone()).unwrap();
+        self.load_secrets();
     }
 
     pub fn imp(&self) -> &imp::PreferencesWindow {
@@ -141,15 +145,27 @@ impl PreferencesWindow {
             )
             .flags(SettingsBindFlags::DEFAULT)
             .build();
-    }
 
-    // fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
-    //     let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-    //     match self_.window.get() {
-    //         Some(window) => Some(&(*window)),
-    //         None => None,
-    //     }
-    // }
+        self_
+            .github_token
+            .connect_changed(clone!(@weak self as preferences => move |_| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                if let Some(w) = self_.window.get() {
+                    let mut attributes = HashMap::new();
+                    attributes.insert("application", crate::config::APP_ID);
+                    let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                    if let Err(e) = win_.model.borrow().secret_service.get_default_collection().unwrap().create_item(
+                        "eam_github_token",
+                        attributes.clone(),
+                        self_.github_token.text().as_bytes(),
+                        true,
+                        "text/plain",
+                    ) {
+                        error!("Failed to save secret {}", e)
+                    };
+                }
+            }));
+    }
 
     pub fn load_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
@@ -175,6 +191,43 @@ impl PreferencesWindow {
                 dir.to_string(),
                 DirectoryConfigType::Engine,
             );
+        }
+    }
+
+    fn load_secrets(&self) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        if let Some(w) = self_.window.get() {
+            let win_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+            if let Ok(collection) = win_.model.borrow().secret_service.get_default_collection() {
+                if let Ok(items) = collection.search_items(
+                    [("application", crate::config::APP_ID)]
+                        .iter()
+                        .cloned()
+                        .collect(),
+                ) {
+                    for item in items {
+                        let label = match item.get_label() {
+                            Ok(l) => l,
+                            Err(_) => {
+                                debug!("No label skipping");
+                                continue;
+                            }
+                        };
+                        debug!("Loading: {}", label);
+                        match label.as_str() {
+                            "eam_github_token" => {
+                                if let Ok(d) = item.get_secret() {
+                                    if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                        self_.github_token.set_text(s);
+                                    }
+                                };
+                            }
+                            &_ => {}
+                        }
+                    }
+                };
+            };
         }
     }
 

@@ -228,6 +228,7 @@ impl EpicEngine {
         self.set_property("path", &data.path()).unwrap();
         self.set_property("guid", &data.guid()).unwrap();
         self.set_property("version", &data.version()).unwrap();
+        self.set_property("tooltip-text", &data.path()).unwrap();
         if let Ok(id) = data.connect_local(
             "finished",
             false,
