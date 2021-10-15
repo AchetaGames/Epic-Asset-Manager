@@ -15,7 +15,7 @@
     "--talk-name=org.freedesktop.secrets",
     "--device=dri",
     "--env=RUST_LOG=debug",
-    "--env=RUST_BACKTRACE=1",
+    "--env=RUST_BACKTRACE=full",
     "--env=G_MESSAGES_DEBUG=none"
   ],
   "build-options": {

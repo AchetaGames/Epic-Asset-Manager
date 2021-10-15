@@ -14,7 +14,7 @@ chrono = "0.4"
 clap = "2.33"
 diesel = { version = "1.4", features = ["sqlite", "r2d2"] }
 diesel_migrations = { version = "1.4", features = ["sqlite"] }
-dkregistry = "0.5.0"
+dkregistry = {git ="https://github.com/AchetaGames/dkregistry-rs"}
 egs-api = "0.4"
 env_logger = "0.9"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
@@ -35,8 +35,8 @@ serde_json = "1"
 sha-1 = "0.9"
 slab_tree = "0.3"
 threadpool = "1.8"
-tokio = "1"
-version-compare = "0.0.13"
+tokio = { version = "1", features = ["full"] }
+version-compare = "0.1"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"

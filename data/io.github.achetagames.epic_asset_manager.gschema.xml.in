@@ -27,6 +27,10 @@
       <default>""</default>
       <summary>Cache directory</summary>
     </key>
+    <key name="github-user" type="s">
+      <default>""</default>
+      <summary>Github User</summary>
+    </key>
     <key name="temporary-download-directory" type="s">
       <default>""</default>
       <summary>Temporary download directory</summary>

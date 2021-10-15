@@ -42,6 +42,8 @@ pub mod imp {
         pub unreal_engine_directories_box: TemplateChild<gtk4::Box>,
         #[template_child]
         pub github_token: TemplateChild<gtk4::PasswordEntry>,
+        #[template_child]
+        pub github_user: TemplateChild<gtk4::Entry>,
     }
 
     #[glib::object_subclass]
@@ -65,6 +67,7 @@ pub mod imp {
                 unreal_engine_vault_directories_box: TemplateChild::default(),
                 unreal_engine_directories_box: TemplateChild::default(),
                 github_token: Default::default(),
+                github_user: Default::default(),
             }
         }
 
@@ -121,6 +124,9 @@ impl PreferencesWindow {
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        if self_.window.get().is_some() {
+            return;
+        }
         self_.window.set(window.clone()).unwrap();
         self.load_secrets();
     }
@@ -147,23 +153,20 @@ impl PreferencesWindow {
             .build();
 
         self_
-            .github_token
+            .settings
+            .bind("github-user", &*self_.github_user, "text")
+            .flags(SettingsBindFlags::DEFAULT)
+            .build();
+
+        self_
+            .github_user
             .connect_changed(clone!(@weak self as preferences => move |_| {
                 let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
                 if let Some(w) = self_.window.get() {
-                    let mut attributes = HashMap::new();
-                    attributes.insert("application", crate::config::APP_ID);
                     let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-                    if let Err(e) = win_.model.borrow().secret_service.get_default_collection().unwrap().create_item(
-                        "eam_github_token",
-                        attributes.clone(),
-                        self_.github_token.text().as_bytes(),
-                        true,
-                        "text/plain",
-                    ) {
-                        error!("Failed to save secret {}", e)
-                    };
-                }
+                    let model = win_.model.borrow();
+                    model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
+                };
             }));
     }
 
@@ -228,7 +231,29 @@ impl PreferencesWindow {
                     }
                 };
             };
-        }
+        };
+        self_
+            .github_token
+            .connect_changed(clone!(@weak self as preferences => move |_| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                if let Some(w) = self_.window.get() {
+                    let mut attributes = HashMap::new();
+                    attributes.insert("application", crate::config::APP_ID);
+                    attributes.insert("type", "token");
+                    let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                    let model = win_.model.borrow();
+                    if let Err(e) = model.secret_service.get_default_collection().unwrap().create_item(
+                        "eam_github_token",
+                        attributes.clone(),
+                        self_.github_token.text().as_bytes(),
+                        true,
+                        "text/plain",
+                    ) {
+                        error!("Failed to save secret {}", e)
+                    };
+                    model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
+                }
+            }));
     }
 
     pub fn setup_actions(&self) {

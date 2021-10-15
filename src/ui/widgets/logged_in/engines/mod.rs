@@ -8,9 +8,9 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
-use version_compare::{CompOp, VersionCompare};
 
 use engine::EpicEngine;
+use version_compare::Cmp;
 
 pub mod engine;
 pub mod engine_detail;
@@ -225,17 +225,17 @@ impl EpicEnginesBox {
                 .downcast_ref::<crate::models::engine_data::EngineData>()
                 .unwrap();
 
-            match VersionCompare::compare(
+            match version_compare::compare(
                 &info1.version().unwrap_or_default(),
                 &info2.version().unwrap_or_default(),
             ) {
                 Ok(comp) => match comp {
-                    CompOp::Eq => gtk4::Ordering::Equal,
-                    CompOp::Lt => gtk4::Ordering::Larger,
-                    CompOp::Le => gtk4::Ordering::Equal,
-                    CompOp::Ge => gtk4::Ordering::Equal,
-                    CompOp::Gt => gtk4::Ordering::Smaller,
-                    CompOp::Ne => gtk4::Ordering::Smaller,
+                    Cmp::Eq => gtk4::Ordering::Equal,
+                    Cmp::Lt => gtk4::Ordering::Larger,
+                    Cmp::Le => gtk4::Ordering::Equal,
+                    Cmp::Ge => gtk4::Ordering::Equal,
+                    Cmp::Gt => gtk4::Ordering::Smaller,
+                    Cmp::Ne => gtk4::Ordering::Smaller,
                 },
                 Err(_) => gtk4::Ordering::Equal,
             }

@@ -36,6 +36,9 @@ impl Update for EpicAssetManagerWindow {
             Msg::ProcessEpicAsset(epic_asset) => {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }
+            Msg::DockerClient(dclient) => {
+                self_.model.borrow_mut().dclient.replace(Some(dclient));
+            }
         }
         // debug!(
         //     "{:?} - {} took {:?}",

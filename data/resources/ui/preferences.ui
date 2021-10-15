@@ -208,6 +208,17 @@
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Secrets</property>
                         <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Username</property>
+                                <property name="use-underline">True</property>
+                                <child>
+                                    <object class="GtkEntry" id="github_user">
+                                        <property name="valign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
                             <object class="AdwExpanderRow">
                                 <property name="title" translatable="yes">_Token</property>
                                 <property name="use-underline">True</property>
@@ -220,12 +231,12 @@
                                 <child>
                                     <object class="GtkLabel">
                                         <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;How to obtain the token&lt;/big&gt;&lt;/b&gt;
-1. Validate you have access to the &lt;a href="https://github.com/EpicGames/UnrealEngine"&gt;Unreal Engine&lt;/a&gt; repository. (&lt;a href="https://www.unrealengine.com/en-US/ue4-on-github"&gt;How to obtain?&lt;/a&gt;)
-2. Go to your GitHub Settings → Developer settings → &lt;a href="https://github.com/settings/tokens"&gt;Personal access tokens&lt;/a&gt;
-3. Generate new token
-4. Set expiration to something reasonable
-5. You only need the &lt;u&gt;read:packages&lt;/u&gt; scope for our use
-6. Copy the generated token into the field above
+                                            1. Validate you have access to the &lt;a href="https://github.com/EpicGames/UnrealEngine"&gt;Unreal Engine&lt;/a&gt; repository. (&lt;a href="https://www.unrealengine.com/en-US/ue4-on-github"&gt;How to obtain?&lt;/a&gt;)
+                                            2. Go to your GitHub Settings → Developer settings → &lt;a href="https://github.com/settings/tokens"&gt;Personal access tokens&lt;/a&gt;
+                                            3. Generate new token
+                                            4. Set expiration to something reasonable
+                                            5. You only need the &lt;u&gt;read:packages&lt;/u&gt; scope for our use
+                                            6. Copy the generated token into the field above
                                         </property>
                                         <property name="use-markup">true</property>
                                     </object>
