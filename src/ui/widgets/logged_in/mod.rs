@@ -182,7 +182,8 @@ impl EpicLoggedInBox {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
-        self_.library.set_download_manager(&dm.clone());
+        self_.library.set_download_manager(dm);
+        self_.engine.set_download_manager(dm);
     }
 
     pub fn update_docker(&self) {

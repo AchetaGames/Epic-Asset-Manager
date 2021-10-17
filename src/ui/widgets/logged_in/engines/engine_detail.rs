@@ -1,5 +1,7 @@
+use crate::ui::widgets::download_manager::EpicDownloadManager;
 use adw::prelude::ActionRowExt;
 use futures::stream::StreamExt;
+use gtk4::cairo::glib::{BoolError, Value};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -48,6 +50,7 @@ pub(crate) mod imp {
         #[template_child]
         pub details: TemplateChild<gtk4::Box>,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
         pub settings: gio::Settings,
         pub data: RefCell<Option<crate::models::engine_data::EngineData>>,
@@ -73,6 +76,7 @@ pub(crate) mod imp {
                 install_button: Default::default(),
                 details: Default::default(),
                 window: OnceCell::new(),
+                download_manager: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 sender,
@@ -172,6 +176,18 @@ impl EpicEngineDetails {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
+    pub fn set_download_manager(
+        &self,
+        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
+    ) {
+        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        // Do not run this twice
+        if self_.download_manager.get().is_some() {
+            return;
+        }
+        self_.download_manager.set(dm.clone()).unwrap();
+    }
+
     pub fn setup_actions(&self) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
         let actions = &self_.actions;
@@ -182,6 +198,19 @@ impl EpicEngineDetails {
             "close",
             clone!(@weak self as details => move |_, _| {
                 details.set_property("expanded", false).unwrap();
+            })
+        );
+
+        action!(
+            actions,
+            "install",
+            clone!(@weak self as details => move |_, _| {
+                let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&details);
+                if let Some(ver) = details.selected() {
+                    if let Some(dm) = self_.download_manager.get() {
+                        dm.download_engine_from_docker(ver)
+                    }
+                }
             })
         );
 
@@ -436,6 +465,15 @@ impl EpicEngineDetails {
         if let Some(d) = self_.data.borrow().deref() {
             return d.path();
         }
+        None
+    }
+
+    pub fn selected(&self) -> Option<String> {
+        if let Ok(value) = self.property("selected") {
+            if let Ok(id_opt) = value.get::<String>() {
+                return Some(id_opt);
+            }
+        };
         None
     }
 

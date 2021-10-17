@@ -293,6 +293,7 @@ impl EpicEnginesBox {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
+        self_.details.set_download_manager(dm);
     }
 
     pub fn load_engines(&self) {

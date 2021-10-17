@@ -1054,4 +1054,8 @@ impl EpicDownloadManager {
             };
         })
     }
+
+    pub fn download_engine_from_docker(&self, version: String) {
+        debug!("Initializing docker engine download of {}", version);
+    }
 }
