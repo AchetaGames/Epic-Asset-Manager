@@ -56,6 +56,28 @@
                                                 </child>
                                             </object>
                                         </child>
+                                        <child>
+                                            <object class="GtkButton" id="install_button">
+                                                <property name="name">engine_install_button</property>
+                                                <property name="action-name">engine_details.install</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="valign">center</property>
+                                                        <property name="halign">center</property>
+                                                        <child>
+                                                            <object class="GtkImage">
+                                                                <property name="icon-name">system-software-install-symbolic</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel">
+                                                                <property name="label" translatable="yes">Install</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
@@ -63,6 +85,11 @@
                         <child>
                             <object class="GtkSeparator">
                                 <property name="orientation">horizontal</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox" id="details">
+                                <property name="orientation">vertical</property>
                             </object>
                         </child>
                     </object>

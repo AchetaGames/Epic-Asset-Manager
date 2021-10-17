@@ -14,7 +14,7 @@ impl Update for EpicAssetManagerWindow {
         // let start = std::time::Instant::now();
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
 
-        match event.clone() {
+        match event {
             Msg::ShowLogin => self.show_login(),
             Msg::LoginOk(ud) => self.show_assets(ud),
             Msg::ProcessAssetInfo(a) => {
@@ -38,6 +38,7 @@ impl Update for EpicAssetManagerWindow {
             }
             Msg::DockerClient(dclient) => {
                 self_.model.borrow_mut().dclient.replace(Some(dclient));
+                self_.logged_in_stack.update_docker();
             }
         }
         // debug!(

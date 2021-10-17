@@ -14,9 +14,10 @@ chrono = "0.4"
 clap = "2.33"
 diesel = { version = "1.4", features = ["sqlite", "r2d2"] }
 diesel_migrations = { version = "1.4", features = ["sqlite"] }
-dkregistry = {git ="https://github.com/AchetaGames/dkregistry-rs"}
+dkregistry = { git = "https://github.com/AchetaGames/dkregistry-rs" }
 egs-api = "0.4"
 env_logger = "0.9"
+futures = "0.3"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
 git2 = "0.13"
 gtk4 = { version = "0.3", features = ["v4_4"] }
@@ -28,6 +29,7 @@ lazy_static = "1.4"
 log = "0.4"
 once_cell = "1.8"
 rand = "0.8"
+regex = "1"
 reqwest = { version = "0.11", features = ["json", "cookies", "blocking"] }
 secret-service = "2.0"
 serde = { version = "1", features = ["derive"] }

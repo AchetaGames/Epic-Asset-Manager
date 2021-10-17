@@ -185,6 +185,11 @@ impl EpicLoggedInBox {
         self_.library.set_download_manager(&dm.clone());
     }
 
+    pub fn update_docker(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        self_.engine.update_docker();
+    }
+
     pub(crate) fn process_epic_asset(
         &self,
         epic_asset: &egs_api::api::types::epic_asset::EpicAsset,

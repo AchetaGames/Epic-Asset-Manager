@@ -140,7 +140,7 @@ pub(crate) mod imp {
                 clone!(@weak app as app => move |_,_| {
                     let preferences = PreferencesWindow::new();
                     preferences.set_transient_for(Some(app.main_window()));
-                    preferences.set_window(&app.main_window());
+                    preferences.set_window(app.main_window());
                     preferences.show();
                 })
             );

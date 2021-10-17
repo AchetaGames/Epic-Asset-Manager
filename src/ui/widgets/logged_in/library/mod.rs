@@ -536,10 +536,7 @@ impl EpicLibraryBox {
     pub fn order_changed(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         let asc = if let Some(name) = self_.order.icon_name() {
-            match name.as_str() {
-                "view-sort-ascending-symbolic" => true,
-                _ => false,
-            }
+            matches!(name.as_str(), "view-sort-ascending-symbolic")
         } else {
             false
         };
@@ -839,6 +836,7 @@ impl EpicLibraryBox {
 
     pub fn fetch_assets(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        return;
         if let Some(window) = self.main_window() {
             let win_ = window.data();
             let cache_dir = self_.settings.string("cache-directory").to_string();

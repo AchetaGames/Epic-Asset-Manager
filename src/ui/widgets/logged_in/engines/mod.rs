@@ -189,7 +189,7 @@ impl EpicEnginesBox {
         if self_.window.get().is_some() {
             return;
         }
-
+        self_.details.set_window(window);
         self_.window.set(window.clone()).unwrap();
 
         let factory = gtk4::SignalListItemFactory::new();
@@ -416,6 +416,11 @@ impl EpicEnginesBox {
             }
         }
         result
+    }
+
+    pub fn update_docker(&self) {
+        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        self_.details.update_docker();
     }
 
     pub fn engine_from_assoociation(&self, engine_association: &str) -> Option<UnrealEngine> {
