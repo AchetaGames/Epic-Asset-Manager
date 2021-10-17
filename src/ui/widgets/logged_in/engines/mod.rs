@@ -32,15 +32,13 @@ impl UnrealEngine {
             test.push("UE4Editor");
             if test.exists() {
                 return Some(test.into_os_string());
-            } else {
-                let mut test = p.clone();
-                test.push("UnrealEditor");
-                if test.exists() {
-                    return Some(test.into_os_string());
-                } else {
-                    error!("Unable to launch the engine")
-                }
             }
+            let mut test = p.clone();
+            test.push("UnrealEditor");
+            if test.exists() {
+                return Some(test.into_os_string());
+            }
+            error!("Unable to launch the engine");
         };
         None
     }
@@ -312,9 +310,9 @@ impl EpicEnginesBox {
                     },
                 );
                 let data = crate::models::engine_data::EngineData::new(
-                    path,
-                    guid,
-                    version,
+                    &path,
+                    &guid,
+                    &version,
                     &self_.grid_model,
                 );
 
@@ -353,9 +351,9 @@ impl EpicEnginesBox {
                                         },
                                     );
                                     let data = crate::models::engine_data::EngineData::new(
-                                        p.to_str().unwrap().to_string(),
-                                        p.to_str().unwrap().to_string(),
-                                        version,
+                                        p.to_str().unwrap(),
+                                        p.to_str().unwrap(),
+                                        &version,
                                         &self_.grid_model,
                                     );
 
@@ -381,9 +379,9 @@ impl EpicEnginesBox {
                         },
                     );
                     let data = crate::models::engine_data::EngineData::new(
-                        dir.to_string(),
-                        dir.to_string(),
-                        version,
+                        &dir,
+                        &dir,
+                        &version,
                         &self_.grid_model,
                     );
 

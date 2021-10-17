@@ -91,7 +91,7 @@ glib::wrapper! {
 }
 
 impl CategoryData {
-    pub fn new(name: String, filter: String) -> CategoryData {
+    pub fn new(name: &str, filter: &str) -> CategoryData {
         let data: Self = glib::Object::new(&[("name", &name), ("filter", &filter)])
             .expect("Failed to create CategoryData");
         data

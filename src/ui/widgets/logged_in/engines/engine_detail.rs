@@ -1,7 +1,5 @@
-use crate::ui::widgets::download_manager::EpicDownloadManager;
 use adw::prelude::ActionRowExt;
 use futures::stream::StreamExt;
-use gtk4::cairo::glib::{BoolError, Value};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -309,7 +307,7 @@ impl EpicEngineDetails {
                                 if label.contains("slim") {
                                     check.set_sensitive(true);
                                 } else {
-                                    detail.set_property("selected", label);
+                                    detail.set_property("selected", label).unwrap();
                                 }
                             }
                         }
@@ -323,11 +321,10 @@ impl EpicEngineDetails {
                     if let Some(ver) = self_.docker_versions.borrow().deref() {
                         if let Some(v) = ver.get(selected.as_str()) {
                             for label in v {
-                                if label.contains("slim") && !c.is_active() {
-                                    detail.set_property("selected", label);
-                                    return;
-                                } else if !label.contains("slim") && c.is_active() {
-                                    detail.set_property("selected", label);
+                                if (label.contains("slim") && !c.is_active())
+                                    || (!label.contains("slim") && c.is_active())
+                                {
+                                    detail.set_property("selected", label).unwrap();
                                     return;
                                 }
                             }
@@ -447,15 +444,13 @@ impl EpicEngineDetails {
             test.push("UE4Editor");
             if test.exists() {
                 return Some(test.into_os_string());
-            } else {
-                let mut test = p.clone();
-                test.push("UnrealEditor");
-                if test.exists() {
-                    return Some(test.into_os_string());
-                } else {
-                    error!("Unable to launch the engine")
-                }
             }
+            let mut test = p.clone();
+            test.push("UnrealEditor");
+            if test.exists() {
+                return Some(test.into_os_string());
+            }
+            error!("Unable to launch the engine");
         };
         None
     }

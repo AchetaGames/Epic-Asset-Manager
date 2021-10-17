@@ -109,15 +109,15 @@ impl Model {
                 .expect("Unable to create tokio runtime")
                 .block_on(client.authenticate(&[login_scope]))
             {
-                Ok(dclient) => {
+                Ok(docker_client) => {
                     match Runtime::new()
                         .expect("Unable to create tokio runtime")
-                        .block_on(dclient.is_auth())
+                        .block_on(docker_client.is_auth())
                     {
                         Ok(auth) => {
                             if auth {
                                 sender
-                                    .send(crate::ui::messages::Msg::DockerClient(dclient))
+                                    .send(crate::ui::messages::Msg::DockerClient(docker_client))
                                     .unwrap();
                                 info!("Docker Authenticated");
                             }
@@ -139,17 +139,16 @@ impl Model {
             if let Ok(items) = collection.search_items(
                 [("application", crate::config::APP_ID)]
                     .iter()
-                    .cloned()
+                    .copied()
                     .collect(),
             ) {
                 let mut ud = egs_api::api::UserData::new();
                 for item in items {
-                    let label = match item.get_label() {
-                        Ok(l) => l,
-                        Err(_) => {
-                            debug!("No label skipping");
-                            continue;
-                        }
+                    let label = if let Ok(l) = item.get_label() {
+                        l
+                    } else {
+                        debug!("No label skipping");
+                        continue;
                     };
                     debug!("Loading: {}", label);
                     if let Ok(attributes) = item.get_attributes() {
@@ -183,7 +182,7 @@ impl Model {
                                 if let Ok(d) = item.get_secret() {
                                     if let Ok(s) = std::str::from_utf8(d.as_slice()) {
                                         debug!("Loaded access token");
-                                        ud.set_access_token(Some(s.to_string()))
+                                        ud.set_access_token(Some(s.to_string()));
                                     }
                                 };
                             }
@@ -211,7 +210,7 @@ impl Model {
                                 if let Ok(d) = item.get_secret() {
                                     if let Ok(s) = std::str::from_utf8(d.as_slice()) {
                                         debug!("Loaded refresh token");
-                                        ud.set_refresh_token(Some(s.to_string()))
+                                        ud.set_refresh_token(Some(s.to_string()));
                                     }
                                 };
                             }

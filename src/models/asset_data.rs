@@ -5,7 +5,6 @@ use glib::ObjectExt;
 use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
-use std::ops::Deref;
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -208,7 +207,7 @@ impl AssetData {
 
     pub fn release(&self) -> Option<DateTime<Utc>> {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
-        match self_.asset.borrow().deref() {
+        match &*self_.asset.borrow() {
             Some(a) => match a.latest_release() {
                 None => a.last_modified_date,
                 Some(ri) => ri.date_added,
@@ -219,7 +218,7 @@ impl AssetData {
 
     pub fn last_modified(&self) -> Option<DateTime<Utc>> {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
-        match self_.asset.borrow().deref() {
+        match &*self_.asset.borrow() {
             Some(a) => a.last_modified_date,
             None => None,
         }
@@ -234,7 +233,7 @@ impl AssetData {
         None
     }
 
-    pub fn check_category(&self, cat: String) -> bool {
+    pub fn check_category(&self, cat: &str) -> bool {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
         if cat.eq("favorites") {
             self.favorite()

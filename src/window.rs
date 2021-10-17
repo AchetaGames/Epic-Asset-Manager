@@ -306,7 +306,7 @@ impl EpicAssetManagerWindow {
             .set_download_manager(&self_.download_manager);
         self.show_logged_in();
         if let Some(id) = &ud.display_name {
-            self_.appmenu_button.set_label(id)
+            self_.appmenu_button.set_label(id);
         }
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
@@ -336,7 +336,7 @@ impl EpicAssetManagerWindow {
                             "text/plain",
                         )
                     {
-                        error!("Failed to save secret {}", e)
+                        error!("Failed to save secret {}", e);
                     };
                 }
             }
@@ -367,7 +367,7 @@ impl EpicAssetManagerWindow {
                             "text/plain",
                         )
                     {
-                        error!("Failed to save secret {}", e)
+                        error!("Failed to save secret {}", e);
                     };
                 }
             }

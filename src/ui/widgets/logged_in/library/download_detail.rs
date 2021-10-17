@@ -345,11 +345,11 @@ impl EpicDownloadDetails {
                         self_.release_date_row.get().set_visible(false);
                     }
                     if let Some(ref note) = release.release_note {
-                        if !note.is_empty() {
+                        if note.is_empty() {
+                            self_.release_notes_row.get().set_visible(false);
+                        } else {
                             self_.release_notes_row.get().set_visible(true);
                             self.set_property("release-notes", &note).unwrap();
-                        } else {
-                            self_.release_notes_row.get().set_visible(false);
                         }
                     } else {
                         self_.release_notes_row.get().set_visible(false);

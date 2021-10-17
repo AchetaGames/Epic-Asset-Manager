@@ -671,7 +671,7 @@ impl EpicLibraryBox {
                     .contains(&se.to_ascii_lowercase()),
             }) && (match &filter_p {
                 None => true,
-                Some(f) => asset.check_category(f.clone()),
+                Some(f) => asset.check_category(&f),
             })
         });
         self_.filter_model.set_filter(Some(&filter));

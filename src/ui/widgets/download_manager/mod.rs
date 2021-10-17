@@ -221,7 +221,7 @@ impl EpicDownloadManager {
             clone!(@weak self as details => move |_, _| {
                 let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&details);
                 if let Some(w) = self_.window.get() {
-                   w.show_logged_in()
+                   w.show_logged_in();
                 }
             })
         );
@@ -369,7 +369,7 @@ impl EpicDownloadManager {
                             warn!("Need to load image");
                         }
                     };
-                })
+                });
             }
         }
     }
@@ -565,18 +565,18 @@ impl EpicDownloadManager {
                             }
                         }
                         let hash = hasher.finalize();
-                        if !m.file_hash.eq(&hash
+                        if m.file_hash.eq(&hash
                             .iter()
                             .map(|b| format!("{:02x}", b))
                             .collect::<String>())
                         {
+                            sender
+                                .send(DownloadMsg::FileAlreadyDownloaded(r_id, m.size()))
+                                .unwrap();
+                        } else {
                             warn!("Hashes do not match, downloading again: {:?}", full_path);
                             sender
                                 .send(DownloadMsg::PerformAssetDownload(r_id, r_name, f_name, m))
-                                .unwrap();
-                        } else {
-                            sender
-                                .send(DownloadMsg::FileAlreadyDownloaded(r_id, m.size()))
                                 .unwrap();
                         };
                     }
@@ -872,20 +872,20 @@ impl EpicDownloadManager {
                                             debug!("chunk: {:?}", chunk);
                                         }
                                         let hash = hasher.finalize();
-                                        if !finished.hash.eq(&hash
+                                        if finished.hash.eq(&hash
                                             .iter()
                                             .map(|b| format!("{:02x}", b))
                                             .collect::<String>())
                                         {
-                                            error!("Failed to validate hash on: {:?}", vault);
-                                            // TODO: Try to download this file again
-                                        } else {
                                             sender
                                                 .send(DownloadMsg::FinalizeFileDownload(
                                                     file_c.clone(),
                                                     f_c.clone(),
                                                 ))
                                                 .unwrap();
+                                        } else {
+                                            error!("Failed to validate hash on: {:?}", vault);
+                                            // TODO: Try to download this file again
                                         };
                                     }
                                     Err(e) => {

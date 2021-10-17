@@ -70,6 +70,6 @@ fn main() {
     debug!("{}", VERSION);
     app.run();
     if let Ok(mut w) = crate::RUNNING.write() {
-        *w = false
+        *w = false;
     };
 }

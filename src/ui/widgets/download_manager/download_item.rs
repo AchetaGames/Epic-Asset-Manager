@@ -296,15 +296,15 @@ impl EpicDownloadItem {
         let total = *self_.total_size.borrow();
         let new_count = *self_.extracted_files.borrow();
         let total_count = *self_.total_files.borrow();
-        ((if total != 0 {
-            new_size as f64 / total as f64
-        } else {
+        ((if total == 0 {
             0.0
+        } else {
+            new_size as f64 / total as f64
         }) / 2.0)
-            + ((if total_count != 0 {
-                new_count as f64 / total_count as f64
-            } else {
+            + ((if total_count == 0 {
                 0.0
+            } else {
+                new_count as f64 / total_count as f64
             }) / 2.0)
     }
 }

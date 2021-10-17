@@ -265,8 +265,8 @@ impl EpicSidebarCategory {
     pub fn add_category(&self, name: String, filter: String) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
         self_.categories.append(&CategoryData::new(
-            EpicSidebarCategory::capitalize_first_letter(&name),
-            filter,
+            &EpicSidebarCategory::capitalize_first_letter(&name),
+            &filter,
         ))
     }
 
