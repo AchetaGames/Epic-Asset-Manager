@@ -236,10 +236,13 @@ impl EpicImageOverlay {
 
     pub fn check_actions(&self) {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
-        get_action!(self_.actions, @prev).set_enabled(!matches!(
-            self_.stack.position().partial_cmp(&1.0),
-            None | Some(Ordering::Less)
-        ));
+        get_action!(self_.actions, @prev).set_enabled(
+            match self_.stack.position().partial_cmp(&1.0) {
+                None | Some(Ordering::Less) => false,
+                _ => self_.stack.first_child().is_some(),
+            },
+        );
+
         get_action!(self_.actions, @next).set_enabled(
             !matches!(
                 self_
