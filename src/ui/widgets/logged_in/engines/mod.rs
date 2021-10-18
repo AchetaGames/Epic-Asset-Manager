@@ -81,7 +81,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 engine_grid: TemplateChild::default(),
-                details: Default::default(),
+                details: TemplateChild::default(),
                 grid_model: gtk4::gio::ListStore::new(
                     crate::models::engine_data::EngineData::static_type(),
                 ),
@@ -228,12 +228,9 @@ impl EpicEnginesBox {
                 &info2.version().unwrap_or_default(),
             ) {
                 Ok(comp) => match comp {
-                    Cmp::Eq => gtk4::Ordering::Equal,
                     Cmp::Lt => gtk4::Ordering::Larger,
-                    Cmp::Le => gtk4::Ordering::Equal,
-                    Cmp::Ge => gtk4::Ordering::Equal,
-                    Cmp::Gt => gtk4::Ordering::Smaller,
-                    Cmp::Ne => gtk4::Ordering::Smaller,
+                    Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
+                    Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
                 },
                 Err(_) => gtk4::Ordering::Equal,
             }

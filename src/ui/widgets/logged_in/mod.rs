@@ -201,7 +201,7 @@ impl EpicLoggedInBox {
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        self_.library.load_thumbnail(asset)
+        self_.library.load_thumbnail(asset);
     }
 
     pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {

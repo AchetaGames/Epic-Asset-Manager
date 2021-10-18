@@ -8,7 +8,6 @@ use gtk_macros::action;
 use regex::Regex;
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::thread;
 use tokio::runtime::Runtime;
@@ -70,9 +69,9 @@ pub(crate) mod imp {
                 expanded: RefCell::new(false),
                 detail_slider: TemplateChild::default(),
                 title: TemplateChild::default(),
-                launch_button: Default::default(),
-                install_button: Default::default(),
-                details: Default::default(),
+                launch_button: TemplateChild::default(),
+                install_button: TemplateChild::default(),
+                details: TemplateChild::default(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
@@ -206,7 +205,7 @@ impl EpicEngineDetails {
                 let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&details);
                 if let Some(ver) = details.selected() {
                     if let Some(dm) = self_.download_manager.get() {
-                        dm.download_engine_from_docker(ver)
+                        dm.download_engine_from_docker(&ver);
                     }
                 }
             })
@@ -257,10 +256,10 @@ impl EpicEngineDetails {
             .title
             .set_markup("<b><u><big>Add Engine</big></u></b>");
 
-        if let Some(versions) = self_.docker_versions.borrow().deref() {
+        if let Some(versions) = &*self_.docker_versions.borrow() {
             // remove old details
             while let Some(el) = self_.details.first_child() {
-                self_.details.remove(&el)
+                self_.details.remove(&el);
             }
             let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
             let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
@@ -300,7 +299,7 @@ impl EpicEngineDetails {
                 let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&detail);
                 check.set_sensitive(false);
                 if let Some(selected) = c.active_id() {
-                    if let Some(ver) = self_.docker_versions.borrow().deref() {
+                    if let Some(ver) = &*self_.docker_versions.borrow() {
                         if let Some(v) = ver.get(selected.as_str()) {
                             check.set_active(true);
                             for label in v {
@@ -318,7 +317,7 @@ impl EpicEngineDetails {
             check.connect_toggled(clone!(@weak self as detail, @weak combo as combo => move |c| {
                 let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&detail);
                 if let Some(selected) = combo.active_id() {
-                    if let Some(ver) = self_.docker_versions.borrow().deref() {
+                    if let Some(ver) = &*self_.docker_versions.borrow() {
                         if let Some(v) = ver.get(selected.as_str()) {
                             for label in v {
                                 if (label.contains("slim") && !c.is_active())
@@ -336,11 +335,8 @@ impl EpicEngineDetails {
             let mut version: Vec<&String> = versions.keys().into_iter().collect();
             version.sort_by(|a, b| match version_compare::compare(b, a) {
                 Ok(cmp) => match cmp {
-                    Cmp::Eq => std::cmp::Ordering::Equal,
-                    Cmp::Ne => std::cmp::Ordering::Less,
-                    Cmp::Lt => std::cmp::Ordering::Less,
-                    Cmp::Le => std::cmp::Ordering::Equal,
-                    Cmp::Ge => std::cmp::Ordering::Equal,
+                    Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
+                    Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
                     Cmp::Gt => std::cmp::Ordering::Greater,
                 },
                 Err(_) => std::cmp::Ordering::Equal,
@@ -397,7 +393,7 @@ impl EpicEngineDetails {
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
                 crate::window::imp::EpicAssetManagerWindow::from_instance(window);
-            if let Some(dclient) = win_.model.borrow().dclient.borrow().deref() {
+            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                 let client = dclient.clone();
                 let sender = self_.sender.clone();
                 thread::spawn(move || {
@@ -457,7 +453,7 @@ impl EpicEngineDetails {
 
     fn path(&self) -> Option<String> {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
-        if let Some(d) = self_.data.borrow().deref() {
+        if let Some(d) = &*self_.data.borrow() {
             return d.path();
         }
         None

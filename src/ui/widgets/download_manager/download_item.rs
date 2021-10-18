@@ -161,7 +161,7 @@ pub(crate) mod imp {
                                 )
                                 .is_err()
                                 {
-                                    warn!("Unable to open path")
+                                    warn!("Unable to open path");
                                 }
                             });
                         }

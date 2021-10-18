@@ -16,7 +16,7 @@ impl Update for EpicAssetManagerWindow {
 
         match event {
             Msg::ShowLogin => self.show_login(),
-            Msg::LoginOk(ud) => self.show_assets(ud),
+            Msg::LoginOk(ud) => self.show_assets(&ud),
             Msg::ProcessAssetInfo(a) => {
                 self_.logged_in_stack.load_thumbnail(&a);
             }

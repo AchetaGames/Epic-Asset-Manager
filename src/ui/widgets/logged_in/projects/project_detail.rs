@@ -221,14 +221,14 @@ impl UnrealProjectDetails {
 
     pub fn set_project(
         &self,
-        project: crate::models::project_data::Uproject,
+        project: &crate::models::project_data::Uproject,
         path: Option<String>,
     ) {
         let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
         self.set_property("path", &path).unwrap();
         self_.uproject.replace(Some(project.clone()));
         while let Some(el) = self_.details_box.first_child() {
-            self_.details_box.remove(&el)
+            self_.details_box.remove(&el);
         }
         if path.is_none() {
             return;
@@ -249,7 +249,7 @@ impl UnrealProjectDetails {
         size_group_prefix.add_widget(&title);
         row.add_prefix(&title);
         let combo = gtk4::ComboBoxText::new();
-        let associated = self.associated_engine(&project);
+        let associated = self.associated_engine(project);
         self.set_launch_enabled(false);
         let db = crate::models::database::connection();
         let mut last_engine: Option<String> = None;
@@ -274,15 +274,13 @@ impl UnrealProjectDetails {
                     engine.version.format(),
                     match associated.clone() {
                         None => {
-                            if let Some(last) = last_engine.clone() {
+                            last_engine.clone().map_or("", |last| {
                                 if engine.path.eq(&last) {
                                     " (last)"
                                 } else {
                                     ""
                                 }
-                            } else {
-                                ""
-                            }
+                            })
                         }
                         Some(eng) => {
                             if eng.path.eq(&engine.path) {
@@ -299,11 +297,11 @@ impl UnrealProjectDetails {
                         }
                     }
                 ),
-            )
+            );
         }
 
         combo.connect_changed(clone!(@weak self as detail => move |c| {
-            if let Some(com) = c.active_id() { detail.engine_selected(com.to_string()); }
+            if let Some(com) = c.active_id() { detail.engine_selected(&com); }
 
         }));
         if let Some(engine) = associated {
@@ -351,10 +349,10 @@ impl UnrealProjectDetails {
         }
     }
 
-    fn engine_selected(&self, path: String) {
+    fn engine_selected(&self, path: &str) {
         let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
         for engine in self.available_engines() {
-            if engine.path.eq(&path) {
+            if engine.path.eq(path) {
                 self.set_launch_enabled(true);
                 self_.engine.replace(Some(engine));
             }

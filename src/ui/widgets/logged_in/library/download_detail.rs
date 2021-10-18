@@ -4,7 +4,6 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
-use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
@@ -259,7 +258,7 @@ impl EpicDownloadDetails {
             clone!(@weak self as download_details => move |_, _| {
                 let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(&download_details);
                 if let Some(dm) = self_.download_manager.get() {
-                    if let Some(asset_info) = self_.asset.borrow().deref() {
+                    if let Some(asset_info) = &*self_.asset.borrow() {
                         dm.add_asset_download(download_details.selected_version(), asset_info.clone());
                         download_details.emit_by_name("start-download", &[]).unwrap();
                     }
@@ -278,7 +277,7 @@ impl EpicDownloadDetails {
         );
     }
 
-    pub fn set_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
+    pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
         self_.asset.replace(Some(asset.clone()));
         self_.select_download_version.remove_all();
@@ -295,7 +294,7 @@ impl EpicDownloadDetails {
                             .or(release.app_id.as_ref().unwrap_or(&"".to_string())),
                         if id == 0 { " (latest)" } else { "" }
                     ),
-                )
+                );
             }
             self_.select_download_version.set_active(Some(0));
         }
@@ -315,7 +314,7 @@ impl EpicDownloadDetails {
         if let Some(id) = self_.select_download_version.active_id() {
             self.set_property("selected-version", id.to_string())
                 .unwrap();
-            if let Some(asset_info) = self_.asset.borrow().deref() {
+            if let Some(asset_info) = &*self_.asset.borrow() {
                 if let Some(release) = asset_info.release_info(&id.to_string()) {
                     if let Some(ref compatible) = release.compatible_apps {
                         self.set_property(

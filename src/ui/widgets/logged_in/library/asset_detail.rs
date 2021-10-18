@@ -8,7 +8,6 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
-use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
@@ -262,14 +261,14 @@ impl EpicAssetDetails {
             actions,
             "toggle_favorite",
             clone!(@weak self as details => move |_, _| {
-                details.toggle_favorites()
+                details.toggle_favorites();
             })
         );
     }
 
-    pub fn set_asset(&self, asset: egs_api::api::types::asset_info::AssetInfo) {
+    pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
-        if let Some(a) = self_.asset.borrow().deref() {
+        if let Some(a) = &*self_.asset.borrow() {
             if asset.id.eq(&a.id) {
                 return;
             }
@@ -279,7 +278,7 @@ impl EpicAssetDetails {
             .set_property("asset", asset.id.clone())
             .unwrap();
         self_.asset.replace(Some(asset.clone()));
-        self_.download_details.set_asset(asset.clone());
+        self_.download_details.set_asset(asset);
         self_.details_revealer.set_reveal_child(true);
         self_.details_revealer.set_vexpand_set(false);
         self_.download_revealer.set_reveal_child(false);
@@ -307,7 +306,7 @@ impl EpicAssetDetails {
         }
 
         while let Some(el) = self_.details_box.first_child() {
-            self_.details_box.remove(&el)
+            self_.details_box.remove(&el);
         }
         let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
         let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
@@ -324,7 +323,7 @@ impl EpicAssetDetails {
                 .build();
             size_group_labels.add_widget(&label);
             row.add_suffix(&label);
-            self_.details_box.append(&row)
+            self_.details_box.append(&row);
         }
 
         if let Some(platforms) = &asset.platforms() {
@@ -339,7 +338,7 @@ impl EpicAssetDetails {
                 .build();
             size_group_labels.add_widget(&label);
             row.add_suffix(&label);
-            self_.details_box.append(&row)
+            self_.details_box.append(&row);
         }
 
         if let Some(updated) = &asset.last_modified_date {
@@ -354,7 +353,7 @@ impl EpicAssetDetails {
                 .build();
             size_group_labels.add_widget(&label);
             row.add_suffix(&label);
-            self_.details_box.append(&row)
+            self_.details_box.append(&row);
         }
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
@@ -369,7 +368,7 @@ impl EpicAssetDetails {
                 .build();
             size_group_labels.add_widget(&label);
             row.add_suffix(&label);
-            self_.details_box.append(&row)
+            self_.details_box.append(&row);
         }
 
         if let Some(desc) = &asset.long_description {
@@ -418,13 +417,13 @@ impl EpicAssetDetails {
                         )
                         .execute(&conn)
                         .expect("Unable to delete favorite from DB");
-                        self_.favorite.set_icon_name("non-starred-symbolic")
+                        self_.favorite.set_icon_name("non-starred-symbolic");
                     } else {
                         diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
                             .values(crate::schema::favorite_asset::asset.eq(asset.id.clone()))
                             .execute(&conn)
                             .expect("Unable to insert favorite to the DB");
-                        self_.favorite.set_icon_name("starred")
+                        self_.favorite.set_icon_name("starred");
                     };
                     match self_.window.get() {
                         None => {}
@@ -436,7 +435,7 @@ impl EpicAssetDetails {
                                 crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(
                                     &l,
                                 );
-                            l_.library.refresh_asset(asset.id);
+                            l_.library.refresh_asset(&asset.id);
                         }
                     }
                 };
@@ -462,15 +461,16 @@ impl EpicAssetDetails {
                     ))
                     .get_result(&conn);
                     if let Ok(fav) = ex {
-                        match fav {
-                            true => self_.favorite.set_icon_name("starred"),
-                            false => self_.favorite.set_icon_name("non-starred-symbolic"),
+                        if fav {
+                            self_.favorite.set_icon_name("starred");
+                        } else {
+                            self_.favorite.set_icon_name("non-starred-symbolic");
                         }
                         return;
                     }
                 }
             }
         }
-        self_.favorite.set_icon_name("non-starred-symbolic")
+        self_.favorite.set_icon_name("non-starred-symbolic");
     }
 }

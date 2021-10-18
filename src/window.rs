@@ -56,7 +56,7 @@ pub(crate) mod imp {
                 progress_message: TemplateChild::default(),
                 download_manager: TemplateChild::default(),
                 progress_icon: TemplateChild::default(),
-                appmenu_button: Default::default(),
+                appmenu_button: TemplateChild::default(),
                 model: RefCell::new(Model::new()),
             }
         }
@@ -274,7 +274,7 @@ impl EpicAssetManagerWindow {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.sid_box.set_window(self);
         self_.logged_in_stack.activate(false);
-        self_.main_stack.set_visible_child_name("sid_box")
+        self_.main_stack.set_visible_child_name("sid_box");
     }
 
     pub fn show_download_manager(&self) {
@@ -289,7 +289,7 @@ impl EpicAssetManagerWindow {
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 
-    pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
+    pub fn show_assets(&self, ud: &egs_api::api::UserData) {
         // TODO display user information from the UserData
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
