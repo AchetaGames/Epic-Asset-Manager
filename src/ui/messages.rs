@@ -12,7 +12,7 @@ pub enum Msg {
     ProcessAssetThumbnail(AssetInfo, Vec<u8>),
     FlushAssetThumbnails,
     DownloadImage(KeyImage, AssetInfo),
-    DockerClient(dkregistry::v2::Client),
+    DockerClient(ghregistry::Client),
 }
 
 impl fmt::Display for Msg {

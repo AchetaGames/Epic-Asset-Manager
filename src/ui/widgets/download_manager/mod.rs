@@ -305,7 +305,6 @@ impl EpicDownloadManager {
                 self.emit_by_name("tick", &[]).unwrap();
             }
             DownloadMsg::PerformDockerEngineDownload(version, size, digests) => {
-                println!("Trying to download {}, digests: {:?}", version, digests);
                 self.perform_docker_blob_downloads(&version, size, digests);
             }
             DownloadMsg::DockerDownloadProgress(version, progress) => {
@@ -1109,21 +1108,29 @@ impl EpicDownloadManager {
                     let client = dclient.clone();
                     let sender = self_.sender.clone();
                     let pool = self_.download_pool.clone();
+                    let mut target = std::path::PathBuf::from(
+                        self_
+                            .settings
+                            .string("temporary-download-directory")
+                            .to_string(),
+                    );
+                    target.push("docker");
+                    println!("Going to download to {:?}", target);
                     thread::spawn(move || {
                         let (tx, rx): (Sender<u64>, Receiver<u64>) = mpsc::channel();
                         pool.execute(move || {
-                            Runtime::new()
-                                .expect("Unable to create tokio runtime")
-                                .block_on(client.get_blob_with_progress(
+                            client
+                                .get_blob_with_progress_file(
                                     "epicgames/unreal-engine",
                                     &digest,
                                     Some(tx),
-                                ));
+                                    target.as_path(),
+                                )
+                                .unwrap();
                         });
                         loop {
                             match rx.recv() {
                                 Ok(progress) => {
-                                    println!("progress: {}", progress);
                                     sender
                                         .send(DownloadMsg::DockerDownloadProgress(
                                             ver.clone(),
@@ -1199,10 +1206,7 @@ impl EpicDownloadManager {
                 let sender = self_.sender.clone();
                 let v = version.to_string();
                 self_.download_pool.execute(move || {
-                    match Runtime::new()
-                        .expect("Unable to create tokio runtime")
-                        .block_on(client.get_manifest("epicgames/unreal-engine", &v))
-                    {
+                    match client.get_manifest("epicgames/unreal-engine", &v) {
                         Ok(manifest) => match manifest.layers_digests(None) {
                             Ok(digests) => {
                                 sender

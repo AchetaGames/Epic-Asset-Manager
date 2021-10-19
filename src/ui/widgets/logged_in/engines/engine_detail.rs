@@ -407,10 +407,7 @@ impl EpicEngineDetails {
                 let version = version.unwrap();
                 let sender = self_.sender.clone();
                 thread::spawn(move || {
-                    match Runtime::new()
-                        .expect("Unable to create tokio runtime")
-                        .block_on(client.get_manifest("epicgames/unreal-engine", &version))
-                    {
+                    match client.get_manifest("epicgames/unreal-engine", &version) {
                         Ok(manifest) => match manifest.download_size() {
                             Ok(size) => {
                                 sender.send(DockerMsg::DockerManifestSize(size)).unwrap();
@@ -440,15 +437,11 @@ impl EpicEngineDetails {
                 thread::spawn(move || {
                     let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
                     let mut result: HashMap<String, Vec<String>> = HashMap::new();
-                    Runtime::new()
-                        .expect("Unable to create tokio runtime")
-                        .block_on(
-                            client
-                                .get_tags("epicgames/unreal-engine", None)
-                                .collect::<Vec<_>>(),
-                        )
+
+                    client
+                        .get_tags("epicgames/unreal-engine", None)
+                        .unwrap()
                         .into_iter()
-                        .map(Result::unwrap)
                         .for_each(|tag| {
                             if re.is_match(&tag) {
                                 for cap in re.captures_iter(&tag) {

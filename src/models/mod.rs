@@ -21,7 +21,7 @@ pub struct Model {
     pub sender: Sender<crate::ui::messages::Msg>,
     pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
     pub settings: gio::Settings,
-    pub dclient: RefCell<Option<dkregistry::v2::Client>>,
+    pub dclient: RefCell<Option<ghregistry::Client>>,
 }
 
 impl Default for Model {
@@ -95,7 +95,7 @@ impl Model {
 
     pub fn validate_registry_login(&self, user: String, token: String) {
         debug!("Trying to validate token for {}", user);
-        let client = dkregistry::v2::Client::configure()
+        let client = ghregistry::Client::configure()
             .registry("ghcr.io")
             .insecure_registry(false)
             .username(Some(user))
@@ -105,28 +105,20 @@ impl Model {
         let sender = self.sender.clone();
         thread::spawn(move || {
             let login_scope = "repository:epicgames/unreal-engine:pull";
-            match Runtime::new()
-                .expect("Unable to create tokio runtime")
-                .block_on(client.authenticate(&[login_scope]))
-            {
-                Ok(docker_client) => {
-                    match Runtime::new()
-                        .expect("Unable to create tokio runtime")
-                        .block_on(docker_client.is_auth())
-                    {
-                        Ok(auth) => {
-                            if auth {
-                                sender
-                                    .send(crate::ui::messages::Msg::DockerClient(docker_client))
-                                    .unwrap();
-                                info!("Docker Authenticated");
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed authentication verification {:?}", e);
+            match client.authenticate(&[login_scope]) {
+                Ok(docker_client) => match docker_client.is_auth() {
+                    Ok(auth) => {
+                        if auth {
+                            sender
+                                .send(crate::ui::messages::Msg::DockerClient(docker_client))
+                                .unwrap();
+                            info!("Docker Authenticated");
                         }
                     }
-                }
+                    Err(e) => {
+                        error!("Failed authentication verification {:?}", e);
+                    }
+                },
                 Err(e) => {
                     error!("Failed authentication {:?}", e);
                 }
