@@ -16,6 +16,7 @@ use version_compare::Cmp;
 #[derive(Debug, Clone)]
 pub enum DockerMsg {
     DockerEngineVersions(HashMap<String, Vec<String>>),
+    DockerManifestSize(u64),
 }
 
 // [11:18 AM] Adam Rehn: @Acheta I just remembered that you were talking about incorporating the container images for downloading the engine through EAM. Here's some details that might be relevant:
@@ -307,6 +308,7 @@ impl EpicEngineDetails {
                                     check.set_sensitive(true);
                                 } else {
                                     detail.set_property("selected", label).unwrap();
+                                    detail.docker_manifest();
                                 }
                             }
                         }
@@ -324,6 +326,7 @@ impl EpicEngineDetails {
                                     || (!label.contains("slim") && c.is_active())
                                 {
                                     detail.set_property("selected", label).unwrap();
+                                    detail.docker_manifest();
                                     return;
                                 }
                             }
@@ -379,12 +382,50 @@ impl EpicEngineDetails {
             DockerMsg::DockerEngineVersions(ver) => {
                 self.updated_docker_versions(&ver);
             }
+            DockerMsg::DockerManifestSize(size) => {
+                println!("Manifest: {:?}", size);
+            }
         };
     }
 
     fn updated_docker_versions(&self, versions: &HashMap<String, Vec<String>>) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
         self_.docker_versions.replace(Some(versions.clone()));
+    }
+
+    pub fn docker_manifest(&self) {
+        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        if let Some(window) = self_.window.get() {
+            let win_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
+                let client = dclient.clone();
+                let version = self.selected();
+                if version.is_none() {
+                    return;
+                }
+                let version = version.unwrap();
+                let sender = self_.sender.clone();
+                thread::spawn(move || {
+                    match Runtime::new()
+                        .expect("Unable to create tokio runtime")
+                        .block_on(client.get_manifest("epicgames/unreal-engine", &version))
+                    {
+                        Ok(manifest) => match manifest.download_size() {
+                            Ok(size) => {
+                                sender.send(DockerMsg::DockerManifestSize(size)).unwrap();
+                            }
+                            Err(e) => {
+                                error!("Unable to get manifest size: {:?}", e);
+                            }
+                        },
+                        Err(e) => {
+                            error!("Unable to get docker manifest {:?}", e);
+                        }
+                    };
+                });
+            }
+        }
     }
 
     pub fn update_docker(&self) {

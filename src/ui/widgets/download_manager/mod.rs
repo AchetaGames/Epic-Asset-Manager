@@ -3,18 +3,24 @@ mod download_item;
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
 use glib::clone;
+use gtk4::cairo::glib::Error;
+use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, info, warn};
 use rand::Rng;
+use regex::Regex;
 use reqwest::Url;
 use sha1::{Digest, Sha1};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, RecvError, Sender};
+use std::thread;
 use tokio::runtime::Runtime;
 
 #[derive(Debug, Clone)]
@@ -37,6 +43,8 @@ pub enum DownloadMsg {
     FinalizeFileDownload(String, DownloadedFile),
     FileAlreadyDownloaded(String, u128),
     FileExtracted(String),
+    PerformDockerEngineDownload(String, u64, Vec<String>),
+    DockerDownloadProgress(String, u64),
 }
 
 #[derive(Default, Debug, Clone)]
@@ -295,6 +303,13 @@ impl EpicDownloadManager {
                 };
                 item.file_processed();
                 self.emit_by_name("tick", &[]).unwrap();
+            }
+            DownloadMsg::PerformDockerEngineDownload(version, size, digests) => {
+                println!("Trying to download {}, digests: {:?}", version, digests);
+                self.perform_docker_blob_downloads(&version, size, digests);
+            }
+            DownloadMsg::DockerDownloadProgress(version, progress) => {
+                self.docker_download_progress(&version, progress);
             }
         }
     }
@@ -1072,7 +1087,142 @@ impl EpicDownloadManager {
         });
     }
 
+    pub fn perform_docker_blob_downloads(&self, version: &str, size: u64, digests: Vec<String>) {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let item = match self.get_item(version) {
+            None => {
+                return;
+            }
+            Some(i) => i,
+        };
+        item.set_property("status", "waiting for download slot".to_string())
+            .unwrap();
+        item.set_total_size(size as u128);
+        item.set_total_files(digests.len() as u64);
+        if let Some(window) = self_.window.get() {
+            let win_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
+                let v = version.to_string();
+                for digest in digests {
+                    let ver = v.clone();
+                    let client = dclient.clone();
+                    let sender = self_.sender.clone();
+                    let pool = self_.download_pool.clone();
+                    thread::spawn(move || {
+                        let (tx, rx): (Sender<u64>, Receiver<u64>) = mpsc::channel();
+                        pool.execute(move || {
+                            Runtime::new()
+                                .expect("Unable to create tokio runtime")
+                                .block_on(client.get_blob_with_progress(
+                                    "epicgames/unreal-engine",
+                                    &digest,
+                                    Some(tx),
+                                ));
+                        });
+                        loop {
+                            match rx.recv() {
+                                Ok(progress) => {
+                                    println!("progress: {}", progress);
+                                    sender
+                                        .send(DownloadMsg::DockerDownloadProgress(
+                                            ver.clone(),
+                                            progress,
+                                        ))
+                                        .unwrap();
+                                }
+                                Err(_) => {
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    pub fn docker_download_progress(&self, version: &str, progress: u64) {
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let item = match self.get_item(version) {
+            None => {
+                return;
+            }
+            Some(i) => i,
+        };
+        item.add_downloaded_size(progress as u128);
+
+        self.emit_by_name("tick", &[]).unwrap();
+    }
+
     pub fn download_engine_from_docker(&self, version: &str) {
         debug!("Initializing docker engine download of {}", version);
+        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let item = crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
+        let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
+        let mut items = self_.download_items.borrow_mut();
+        match items.get_mut(version) {
+            None => {
+                debug!("Adding item to the list under: {}", version);
+                items.insert(version.to_string(), item.clone());
+            }
+            Some(_) => {
+                return;
+            }
+        };
+        for cap in re.captures_iter(version) {
+            item.set_property("label", cap[1].to_string()).unwrap();
+        }
+        item.set_property("status", "initializing...".to_string())
+            .unwrap();
+
+        match gtk4::gdk_pixbuf::Pixbuf::from_resource(
+            "/io/github/achetagames/epic_asset_manager/icons/ue-logo-symbolic.svg",
+        ) {
+            Ok(pix) => {
+                item.set_property("thumbnail", &pix).unwrap();
+            }
+            Err(e) => {
+                error!("Unable to load icon: {}", e);
+            }
+        };
+        self_.downloads.append(&item);
+
+        self.set_property("has-items", self_.downloads.first_child().is_some())
+            .unwrap();
+
+        if let Some(window) = self_.window.get() {
+            let win_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
+                let client = dclient.clone();
+                let sender = self_.sender.clone();
+                let v = version.to_string();
+                self_.download_pool.execute(move || {
+                    match Runtime::new()
+                        .expect("Unable to create tokio runtime")
+                        .block_on(client.get_manifest("epicgames/unreal-engine", &v))
+                    {
+                        Ok(manifest) => match manifest.layers_digests(None) {
+                            Ok(digests) => {
+                                sender
+                                    .send(DownloadMsg::PerformDockerEngineDownload(
+                                        v,
+                                        manifest.download_size().unwrap_or(0),
+                                        digests,
+                                    ))
+                                    .unwrap();
+                            }
+                            Err(e) => {
+                                error!("Unable to get manifest layers: {:?}", e);
+                            }
+                        },
+                        Err(e) => {
+                            error!("Unable to get docker manifest {:?}", e);
+                        }
+                    };
+                });
+            }
+        }
     }
 }
