@@ -11,6 +11,7 @@ pub(crate) mod imp {
     use gtk4::gio;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
+    use std::collections::VecDeque;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/download_item.ui")]
@@ -24,11 +25,14 @@ pub(crate) mod imp {
         pub downloaded_size: RefCell<u128>,
         pub total_files: RefCell<u64>,
         pub extracted_files: RefCell<u64>,
+        pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
         #[template_child]
         pub stack: TemplateChild<gtk4::Stack>,
+        #[template_child]
+        pub speed: TemplateChild<gtk4::Label>,
         #[template_child]
         pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]
@@ -52,9 +56,11 @@ pub(crate) mod imp {
                 downloaded_size: RefCell::new(0),
                 total_files: RefCell::new(0),
                 extracted_files: RefCell::new(0),
+                speed_queue: RefCell::new(VecDeque::new()),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
                 stack: TemplateChild::default(),
+                speed: TemplateChild::default(),
                 download_progress: TemplateChild::default(),
                 extraction_progress: TemplateChild::default(),
             }
@@ -75,6 +81,7 @@ pub(crate) mod imp {
             self.parent_constructed(obj);
             obj.setup_actions();
             obj.setup_messaging();
+            obj.setup_timer();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -228,6 +235,49 @@ impl EpicDownloadItem {
         self_.window.set(window.clone()).unwrap();
     }
 
+    pub fn setup_timer(&self) {
+        glib::timeout_add_seconds_local(
+            1,
+            clone!(@weak self as obj => @default-panic, move || {
+                let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(&obj);
+                if let Some(speed) = {
+                    let queue = &mut *self_.speed_queue.borrow_mut();
+                    if queue.len() <= 1 {
+                        self_.speed.set_text(&format!(""));
+                        return glib::Continue(true);
+                    }
+                    let mut downloaded = 0_u128;
+                    let start = queue.front().unwrap().0;
+                    let end = queue.back().unwrap().0;
+                    let mut pop_counter=0;
+                    for (t, s) in queue.iter() {
+                        if end - *t > chrono::Duration::seconds(1) {
+                            pop_counter+=1;
+                        }
+                        downloaded += s;
+                    }
+                    for _ in 0..pop_counter {
+                        queue.pop_front();
+                    }
+
+                    let time = end - start;
+                    if time > chrono::Duration::seconds(1) {
+                        Some(
+                            ((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0)) as u128,
+                        )
+                    } else {
+                        None
+                    }
+                } {
+                    let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
+                    self_.speed.set_text(&format!("{}/s", byte.format(1)));
+                }
+
+                glib::Continue(true)
+            }),
+        );
+    }
+
     pub fn setup_actions(&self) {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
 
@@ -268,6 +318,12 @@ impl EpicDownloadItem {
         self_.extracted_files.replace(new_count);
         self.parent();
         if new_count == total {
+            {
+                let queue = &mut *self_.speed_queue.borrow_mut();
+                queue.clear();
+            };
+            self_.downloaded_size.replace(*self_.total_size.borrow());
+            self_.download_progress.set_fraction(1.0);
             self.set_property("status", "Finished".to_string()).unwrap();
             glib::timeout_add_seconds_local(
                 15,
@@ -281,8 +337,16 @@ impl EpicDownloadItem {
 
     pub fn add_downloaded_size(&self, size: u128) {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+
+        // Download Speed
+        {
+            let queue = &mut *self_.speed_queue.borrow_mut();
+            queue.push_back((chrono::Utc::now(), size));
+        };
+
         self_.stack.set_visible_child_name("progress");
-        let new_size = *self_.downloaded_size.borrow() + size;
+        let old_size = *self_.downloaded_size.borrow();
+        let new_size = old_size + size;
         let total = *self_.total_size.borrow();
         self_
             .download_progress

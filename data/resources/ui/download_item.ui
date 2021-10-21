@@ -98,12 +98,21 @@
                     </object>
                 </child>
                 <child>
-                    <object class="GtkButton">
-                        <property name="margin-start">5</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="action-name">download_item.open</property>
-                        <property name="label" translatable="yes">Open Directory</property>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkButton">
+                                <property name="margin-start">5</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="action-name">download_item.open</property>
+                                <property name="label" translatable="yes">Open Directory</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkLabel" id="speed">
+                            </object>
+                        </child>
                     </object>
                 </child>
             </object>

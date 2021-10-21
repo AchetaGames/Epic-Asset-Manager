@@ -837,7 +837,6 @@ impl EpicLibraryBox {
 
     pub fn fetch_assets(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
-        return;
         if let Some(window) = self.main_window() {
             let win_ = window.data();
             let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -895,21 +894,6 @@ impl EpicLibraryBox {
                     self_.image_load_pool.queued_count() +
                     self_.image_load_pool.active_count()) > 0)
             }));
-            glib::timeout_add_seconds_local(
-                1,
-                clone!(@weak self as obj => @default-panic, move || {
-                    let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);
-                    if let Ok(a) = self_.assets_pending.read() {
-                        if a.len() > 0 {
-                            glib::idle_add_local(clone!(@weak obj => @default-panic, move || {
-                                obj.flush_assets();
-                                glib::Continue(false)
-                            }));
-                        }
-                    }
-                    glib::Continue(true)
-                }),
-            );
         }
     }
 

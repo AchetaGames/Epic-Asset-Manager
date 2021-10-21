@@ -1,5 +1,5 @@
+use crate::ui::widgets::download_manager::docker::Docker;
 use adw::prelude::ActionRowExt;
-use futures::stream::StreamExt;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::str::FromStr;
 use std::thread;
-use tokio::runtime::Runtime;
 use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
@@ -266,11 +265,8 @@ impl EpicEngineDetails {
             let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
             let combo = gtk4::ComboBoxText::new();
-
-            let row = adw::ActionRowBuilder::new()
-                .halign(gtk4::Align::Start)
-                .activatable(true)
-                .build();
+            combo.set_hexpand(true);
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
             let title = gtk4::LabelBuilder::new()
                 .label("Available Versions")
                 .build();
@@ -280,10 +276,7 @@ impl EpicEngineDetails {
             row.add_suffix(&combo);
             self_.details.append(&row);
 
-            let row = adw::ActionRowBuilder::new()
-                .halign(gtk4::Align::Start)
-                .activatable(true)
-                .build();
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
             row.set_tooltip_markup(Some(
                 "Include <b>Template Projects</b> and <b>Debug symbols</b>?",
             ));
@@ -292,7 +285,10 @@ impl EpicEngineDetails {
                 .build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let check = gtk4::CheckButtonBuilder::new().active(true).build();
+            let check = gtk4::CheckButtonBuilder::new()
+                .active(true)
+                .hexpand(true)
+                .build();
             size_group_labels.add_widget(&check);
             row.add_suffix(&check);
             self_.details.append(&row);

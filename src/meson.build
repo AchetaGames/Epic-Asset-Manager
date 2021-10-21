@@ -54,6 +54,7 @@ rust_sources = files(
     'ui/widgets/sid_login/mod.rs',
     'ui/widgets/download_manager/mod.rs',
     'ui/widgets/download_manager/download_item.rs',
+    'ui/widgets/download_manager/docker.rs',
     'ui/mod.rs',
     'ui/messages.rs',
     'config.rs',

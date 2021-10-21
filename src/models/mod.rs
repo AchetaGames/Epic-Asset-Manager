@@ -13,7 +13,6 @@ use log::{debug, error, info};
 use secret_service::{EncryptionType, SecretService};
 use std::cell::RefCell;
 use std::thread;
-use tokio::runtime::Runtime;
 
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
