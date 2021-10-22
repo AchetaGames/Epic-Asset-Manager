@@ -233,21 +233,34 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     .to_string(),
             );
             target.push("docker");
+            let mut remaining = 0;
             for d in digests {
                 match d.1 {
                     DownloadStatus::Init
                     | DownloadStatus::Downloaded
                     | DownloadStatus::Extracted => {
+                        remaining += 1;
                         continue;
                     }
                     DownloadStatus::Extracting => {
                         d.1 = DownloadStatus::Extracted;
                         let mut t = target.clone();
                         t.push(&d.0);
-                        std::fs::remove_file(t);
+                        std::fs::remove_file(t).expect("Unable to remove digest file");
                         item.file_processed();
                     }
                 };
+            }
+            if remaining == 0 {
+                if let Some(window) = self_.window.get() {
+                    let win_: &crate::window::imp::EpicAssetManagerWindow =
+                        crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+                    let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
+                        crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(
+                            &win_.logged_in_stack,
+                        );
+                    l_.engine.load_engines();
+                }
             }
         }
         self.docker_extract_digests(version);

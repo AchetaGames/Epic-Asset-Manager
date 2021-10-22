@@ -252,7 +252,6 @@ impl EpicEnginesBox {
             }
         }));
         self.load_engines();
-        self.load_engines_from_fs();
     }
 
     pub fn setup_actions(&self) {
@@ -293,11 +292,16 @@ impl EpicEnginesBox {
 
     pub fn load_engines(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
-        for (guid, path) in Self::read_engines_ini() {
+        'outer: for (guid, path) in Self::read_engines_ini() {
             let mut engines = self_.engines.borrow_mut();
             if let Some(version) =
                 crate::models::engine_data::EngineData::read_engine_version(&path)
             {
+                for eng in engines.values() {
+                    if eng.path.eq(&path) {
+                        continue 'outer;
+                    }
+                }
                 engines.insert(
                     guid.clone(),
                     UnrealEngine {
@@ -316,6 +320,7 @@ impl EpicEnginesBox {
                 self_.grid_model.append(&data);
             };
         }
+        self.load_engines_from_fs();
     }
 
     pub fn load_engines_from_fs(&self) {
