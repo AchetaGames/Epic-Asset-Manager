@@ -320,7 +320,7 @@ impl EpicDownloadManager {
                 self.docker_download_progress(&version, progress);
             }
             DownloadMsg::DockerBlobFinished(version, digest) => {
-                println!("Finished download of {} digest {}", version, digest);
+                debug!("Finished download of {} digest {}", version, digest);
                 self.docker_blob_finished(&version, &digest);
             }
             DownloadMsg::DockerBlobFailed(version, digest) => {
@@ -1005,17 +1005,17 @@ impl EpicDownloadManager {
             .unwrap();
     }
 
-    pub fn progress(&self) -> f64 {
+    pub fn progress(&self) -> f32 {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let items = self_.download_items.borrow().values().len();
-        let mut progress = 0.0;
+        let mut progress = 0.0f32;
         for item in self_.download_items.borrow().values() {
             progress += item.progress();
         }
         if items > 0 {
-            progress / items as f64
+            progress / items as f32
         } else {
-            0.0
+            0.0f32
         }
     }
 

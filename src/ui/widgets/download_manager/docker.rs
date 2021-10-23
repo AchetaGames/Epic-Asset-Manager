@@ -191,7 +191,9 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                         path
                     }
                 };
-                std::fs::create_dir(&path).expect("Failed to created directory");
+                if let Err(e) = std::fs::create_dir_all(&path) {
+                    warn!("Unable to create target directory: {}", e);
+                };
                 let can_path = path.canonicalize().unwrap();
                 let sender = self_.sender.clone();
                 let v = version.to_string();
@@ -314,7 +316,6 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     match client.get_manifest("epicgames/unreal-engine", &v) { 
                         Ok(manifest) => match manifest.layers_digests(None) {
                             Ok(digests) => {
-                                println!("{:#?}", digests);
                                 sender
                                     .send(crate::ui::widgets::download_manager::DownloadMsg::PerformDockerEngineDownload(
                                         v,

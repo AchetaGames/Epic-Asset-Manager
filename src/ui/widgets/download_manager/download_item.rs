@@ -354,7 +354,7 @@ impl EpicDownloadItem {
         self_.downloaded_size.replace(new_size);
     }
 
-    pub fn progress(&self) -> f64 {
+    pub fn progress(&self) -> f32 {
         let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
         let new_size = *self_.downloaded_size.borrow();
         let total = *self_.total_size.borrow();
@@ -363,12 +363,16 @@ impl EpicDownloadItem {
         ((if total == 0 {
             0.0
         } else {
-            new_size as f64 / total as f64
+            if new_count == total_count {
+                1.0
+            } else {
+                new_size as f32 / total as f32
+            }
         }) / 2.0)
             + ((if total_count == 0 {
                 0.0
             } else {
-                new_count as f64 / total_count as f64
+                new_count as f32 / total_count as f32
             }) / 2.0)
     }
 }

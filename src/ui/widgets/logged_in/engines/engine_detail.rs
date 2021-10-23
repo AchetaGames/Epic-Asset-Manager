@@ -55,6 +55,7 @@ pub(crate) mod imp {
         pub receiver: RefCell<Option<gtk4::glib::Receiver<super::DockerMsg>>>,
         pub docker_versions: RefCell<Option<HashMap<String, Vec<String>>>>,
         selected: RefCell<Option<String>>,
+        download_size: RefCell<Option<String>>,
     }
 
     #[glib::object_subclass]
@@ -81,6 +82,7 @@ pub(crate) mod imp {
                 data: RefCell::new(None),
                 docker_versions: RefCell::new(None),
                 selected: RefCell::new(None),
+                download_size: RefCell::new(None),
             }
         }
 
@@ -119,6 +121,13 @@ pub(crate) mod imp {
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
+                    ParamSpec::new_string(
+                        "download-size",
+                        "Download Size",
+                        "Download Size",
+                        None,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -140,6 +149,10 @@ pub(crate) mod imp {
                     let selected = value.get().unwrap();
                     self.selected.replace(selected);
                 }
+                "download-size" => {
+                    let size = value.get().unwrap();
+                    self.download_size.replace(size);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -148,6 +161,7 @@ pub(crate) mod imp {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
+                "download-size" => self.download_size.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -347,6 +361,27 @@ impl EpicEngineDetails {
                     combo.set_active_id(Some(ver));
                 }
             }
+
+            let row = adw::ActionRowBuilder::new()
+                .activatable(true)
+                .name("size_row")
+                .build();
+            let title = gtk4::LabelBuilder::new().label("Download Size").build();
+            let size_label = gtk4::LabelBuilder::new()
+                .name("size_label")
+                .halign(gtk4::Align::Start)
+                .hexpand(true)
+                .label("unknown")
+                .build();
+            size_label
+                .bind_property("label", self, "download-size")
+                .flags(glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE)
+                .build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            size_group_labels.add_widget(&size_label);
+            row.add_suffix(&size_label);
+            self_.details.append(&row);
         }
     }
 
@@ -379,7 +414,9 @@ impl EpicEngineDetails {
                 self.updated_docker_versions(&ver);
             }
             DockerMsg::DockerManifestSize(size) => {
-                println!("Manifest: {:?}", size);
+                let byte = byte_unit::Byte::from_bytes(size as u128).get_appropriate_unit(false);
+                self.set_property("download-size", Some(format!("{}", byte.format(1))))
+                    .unwrap();
             }
         };
     }
