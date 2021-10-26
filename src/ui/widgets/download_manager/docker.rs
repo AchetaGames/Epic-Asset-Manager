@@ -1,4 +1,5 @@
 use crate::ui::widgets::download_manager::DownloadStatus;
+use glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use regex::Regex;
@@ -126,6 +127,89 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
+    fn download_engine_from_docker(&self, version: &str) {
+        debug!("Initializing docker engine download of {}", version);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
+            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let item = crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
+        let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
+        let mut items = self_.download_items.borrow_mut();
+        match items.get_mut(version) {
+            None => {
+                debug!("Adding item to the list under: {}", version);
+                items.insert(version.to_string(), item.clone());
+            }
+            Some(_) => {
+                return;
+            }
+        };
+        for cap in re.captures_iter(version) {
+            item.set_property("label", cap[1].to_string()).unwrap();
+        }
+        item.set_property("status", "initializing...".to_string())
+            .unwrap();
+
+        item.connect_local(
+            "finished",
+            false,
+            clone!(@weak self as edm, @weak item => @default-return None, move |_| {
+                let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
+            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(&edm);
+                self_.downloads.remove(&item);
+                edm.set_property("has-items", self_.downloads.first_child().is_some()).unwrap();
+                edm.emit_by_name("tick", &[]).unwrap();
+                None
+            }),
+        )
+        .unwrap();
+
+        match gtk4::gdk_pixbuf::Pixbuf::from_resource(
+            "/io/github/achetagames/epic_asset_manager/icons/ue-logo-symbolic.svg",
+        ) {
+            Ok(pix) => {
+                item.set_property("thumbnail", &pix).unwrap();
+            }
+            Err(e) => {
+                error!("Unable to load icon: {}", e);
+            }
+        };
+        self_.downloads.append(&item);
+
+        self.set_property("has-items", self_.downloads.first_child().is_some())
+            .unwrap();
+
+        if let Some(window) = self_.window.get() {
+            let win_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
+                let client = dclient.clone();
+                let sender = self_.sender.clone();
+                let v = version.to_string();
+                self_.download_pool.execute(move || {
+                    match client.get_manifest("epicgames/unreal-engine", &v) { 
+                        Ok(manifest) => match manifest.layers_digests(None) {
+                            Ok(digests) => {
+                                sender
+                                    .send(crate::ui::widgets::download_manager::DownloadMsg::PerformDockerEngineDownload(
+                                        v,
+                                        manifest.download_size().unwrap_or(0),
+                                        digests,
+                                    ))
+                                    .unwrap();
+                            }
+                            Err(e) => {
+                                error!("Unable to get manifest layers: {:?}", e);
+                            }
+                        },
+                        Err(e) => {
+                            error!("Unable to get docker manifest {:?}", e);
+                        }
+                    };
+                });
+            }
+        }
+    }
+
     fn docker_download_progress(&self, version: &str, progress: u64) {
         let item = match self.get_item(version) {
             None => {
@@ -199,20 +283,22 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let v = version.to_string();
                 self_.file_pool.execute(move || {
                     match ghregistry::render::unpack_partial_files(
-                        to_extract,
+                        to_extract.clone(),
                         &can_path,
                         "home/ue4/UnrealEngine/",
                     ) {
-                        Ok(_) => {}
+                        Ok(_) => {
+                            sender.send(
+                                crate::ui::widgets::download_manager::DownloadMsg::DockerExtractionFinished(
+                                    v,
+                                ),
+                            ).unwrap();
+                        }
                         Err(e) => {
-                            error!("Error during render: {:?}", e);
+                            error!("Error during render of {:?}: {:?}", to_extract, e);
                         }
                     };
-                    sender.send(
-                        crate::ui::widgets::download_manager::DownloadMsg::DockerExtractionFinished(
-                            v,
-                        ),
-                    ).unwrap();
+
                 });
             }
         }
@@ -253,6 +339,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     }
                 };
             }
+            println!("Remaining: {}", remaining);
             if remaining == 0 {
                 if let Some(window) = self_.window.get() {
                     let win_: &crate::window::imp::EpicAssetManagerWindow =
@@ -266,74 +353,5 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
         }
         self.docker_extract_digests(version);
-    }
-
-    fn download_engine_from_docker(&self, version: &str) {
-        debug!("Initializing docker engine download of {}", version);
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
-        let item = crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
-        let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
-        let mut items = self_.download_items.borrow_mut();
-        match items.get_mut(version) {
-            None => {
-                debug!("Adding item to the list under: {}", version);
-                items.insert(version.to_string(), item.clone());
-            }
-            Some(_) => {
-                return;
-            }
-        };
-        for cap in re.captures_iter(version) {
-            item.set_property("label", cap[1].to_string()).unwrap();
-        }
-        item.set_property("status", "initializing...".to_string())
-            .unwrap();
-
-        match gtk4::gdk_pixbuf::Pixbuf::from_resource(
-            "/io/github/achetagames/epic_asset_manager/icons/ue-logo-symbolic.svg",
-        ) {
-            Ok(pix) => {
-                item.set_property("thumbnail", &pix).unwrap();
-            }
-            Err(e) => {
-                error!("Unable to load icon: {}", e);
-            }
-        };
-        self_.downloads.append(&item);
-
-        self.set_property("has-items", self_.downloads.first_child().is_some())
-            .unwrap();
-
-        if let Some(window) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
-            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
-                let client = dclient.clone();
-                let sender = self_.sender.clone();
-                let v = version.to_string();
-                self_.download_pool.execute(move || {
-                    match client.get_manifest("epicgames/unreal-engine", &v) { 
-                        Ok(manifest) => match manifest.layers_digests(None) {
-                            Ok(digests) => {
-                                sender
-                                    .send(crate::ui::widgets::download_manager::DownloadMsg::PerformDockerEngineDownload(
-                                        v,
-                                        manifest.download_size().unwrap_or(0),
-                                        digests,
-                                    ))
-                                    .unwrap();
-                            }
-                            Err(e) => {
-                                error!("Unable to get manifest layers: {:?}", e);
-                            }
-                        },
-                        Err(e) => {
-                            error!("Unable to get docker manifest {:?}", e);
-                        }
-                    };
-                });
-            }
-        }
     }
 }

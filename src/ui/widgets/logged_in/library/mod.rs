@@ -837,6 +837,7 @@ impl EpicLibraryBox {
 
     pub fn fetch_assets(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        return;
         if let Some(window) = self.main_window() {
             let win_ = window.data();
             let cache_dir = self_.settings.string("cache-directory").to_string();
