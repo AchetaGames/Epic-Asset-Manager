@@ -1,5 +1,6 @@
 use crate::ui::widgets::download_manager::DownloadStatus;
 use glib::clone;
+use gtk4::glib;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use regex::Regex;
@@ -324,12 +325,10 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             let mut remaining = 0;
             for d in digests {
                 match d.1 {
-                    DownloadStatus::Init
-                    | DownloadStatus::Downloaded
-                    | DownloadStatus::Extracted => {
+                    DownloadStatus::Init | DownloadStatus::Downloaded => {
                         remaining += 1;
-                        continue;
                     }
+                    DownloadStatus::Extracted => {}
                     DownloadStatus::Extracting => {
                         d.1 = DownloadStatus::Extracted;
                         let mut t = target.clone();

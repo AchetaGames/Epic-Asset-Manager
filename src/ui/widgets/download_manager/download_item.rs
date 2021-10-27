@@ -243,7 +243,7 @@ impl EpicDownloadItem {
                 if let Some(speed) = {
                     let queue = &mut *self_.speed_queue.borrow_mut();
                     if queue.len() <= 1 {
-                        self_.speed.set_text(&format!(""));
+                        self_.speed.set_text(&format!("0 b/s"));
                         return glib::Continue(true);
                     }
                     let mut downloaded = 0_u128;
