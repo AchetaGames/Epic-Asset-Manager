@@ -243,7 +243,7 @@ impl EpicDownloadItem {
                 if let Some(speed) = {
                     let queue = &mut *self_.speed_queue.borrow_mut();
                     if queue.len() <= 1 {
-                        self_.speed.set_text(&format!("0 b/s"));
+                        self_.speed.set_text("0 b/s");
                         return glib::Continue(true);
                     }
                     let mut downloaded = 0_u128;
@@ -362,12 +362,10 @@ impl EpicDownloadItem {
         let total_count = *self_.total_files.borrow();
         ((if total == 0 {
             0.0
+        } else if new_count == total_count {
+            1.0
         } else {
-            if new_count == total_count {
-                1.0
-            } else {
-                new_size as f32 / total as f32
-            }
+            new_size as f32 / total as f32
         }) / 2.0)
             + ((if total_count == 0 {
                 0.0

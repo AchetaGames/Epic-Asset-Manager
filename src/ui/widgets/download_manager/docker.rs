@@ -338,7 +338,6 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     }
                 };
             }
-            println!("Remaining: {}", remaining);
             if remaining == 0 {
                 if let Some(window) = self_.window.get() {
                     let win_: &crate::window::imp::EpicAssetManagerWindow =

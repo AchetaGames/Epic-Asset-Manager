@@ -4,7 +4,7 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 use regex::Regex;
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -17,13 +17,6 @@ pub enum DockerMsg {
     DockerEngineVersions(HashMap<String, Vec<String>>),
     DockerManifestSize(u64),
 }
-
-// [11:18 AM] Adam Rehn: @Acheta I just remembered that you were talking about incorporating the container images for downloading the engine through EAM. Here's some details that might be relevant:
-//
-// - The dev image includes debug symbols and template projects, whereas dev-slim excludes those components. The filesystem layers stack though, so if you pull dev-slim and then pull dev it'll just download the extra layers rather than needing to re-download the layer with the Installed Build in it.
-// - The code that ue4-docker uses for copying an Installed Build from a container to the host system is here: https://github.com/adamrehn/ue4-docker/blob/v0.0.91/ue4docker/exports/export_installed.py#L43-L52. You can ignore the "linker fixup" stuff that it does below that, since that only matters for older versions of the Unreal Engine.
-//
-// Let me know if you have any questions or if there's anything I can do to help out with the integration! (I don't know Rust though, so I can't help with any implementation code. 😆)
 
 pub(crate) mod imp {
     use super::*;
@@ -270,11 +263,11 @@ impl EpicEngineDetails {
             .title
             .set_markup("<b><u><big>Add Engine</big></u></b>");
 
+        // remove old details
+        while let Some(el) = self_.details.first_child() {
+            self_.details.remove(&el);
+        }
         if let Some(versions) = &*self_.docker_versions.borrow() {
-            // remove old details
-            while let Some(el) = self_.details.first_child() {
-                self_.details.remove(&el);
-            }
             let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
             let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
@@ -297,8 +290,12 @@ impl EpicEngineDetails {
             let title = gtk4::LabelBuilder::new()
                 .label("Additional Content")
                 .build();
-            size_group_prefix.add_widget(&title);
-            row.add_prefix(&title);
+            let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
+            b.append(&title);
+            let info = gtk4::Image::from_icon_name(Some("dialog-information-symbolic"));
+            b.append(&info);
+            size_group_prefix.add_widget(&b);
+            row.add_prefix(&b);
             let check = gtk4::CheckButtonBuilder::new()
                 .active(true)
                 .hexpand(true)
@@ -382,6 +379,15 @@ impl EpicEngineDetails {
             size_group_labels.add_widget(&size_label);
             row.add_suffix(&size_label);
             self_.details.append(&row);
+        } else {
+            let label = gtk4::LabelBuilder::new()
+                .halign(gtk4::Align::Center)
+                .hexpand(true)
+                .use_markup(true)
+                .label("<b>Please configure github token in Preferences</b>")
+                .build();
+            self_.details.append(&label);
+            get_action!(self_.actions, @install).set_enabled(false);
         }
     }
 
@@ -415,7 +421,7 @@ impl EpicEngineDetails {
             }
             DockerMsg::DockerManifestSize(size) => {
                 let byte = byte_unit::Byte::from_bytes(size as u128).get_appropriate_unit(false);
-                self.set_property("download-size", Some(format!("{}", byte.format(1))))
+                self.set_property("download-size", Some(byte.format(1)))
                     .unwrap();
             }
         };
@@ -428,6 +434,7 @@ impl EpicEngineDetails {
 
     pub fn docker_manifest(&self) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        get_action!(self_.actions, @install).set_enabled(true);
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
                 crate::window::imp::EpicAssetManagerWindow::from_instance(window);

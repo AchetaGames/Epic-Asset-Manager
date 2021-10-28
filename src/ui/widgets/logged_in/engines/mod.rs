@@ -326,7 +326,6 @@ impl EpicEnginesBox {
     pub fn load_engines_from_fs(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
         'outer: for dir in self_.settings.strv("unreal-engine-directories") {
-            println!("Trying to find engine install in {}", dir);
             match crate::models::engine_data::EngineData::read_engine_version(&dir.to_string()) {
                 None => {
                     let path = std::path::PathBuf::from(dir.to_string());
@@ -334,13 +333,11 @@ impl EpicEnginesBox {
                         'inner: for d in rd.flatten() {
                             let p = d.path();
                             if p.is_dir() {
-                                println!("Trying to find engine install in subdir {:?}", p);
                                 if let Some(version) =
                                     crate::models::engine_data::EngineData::read_engine_version(
                                         p.to_str().unwrap(),
                                     )
                                 {
-                                    println!("Found engine {:?}", version);
                                     let mut engines = self_.engines.borrow_mut();
                                     for engine in engines.values() {
                                         if engine.path.eq(p.to_str().unwrap()) {
@@ -369,7 +366,6 @@ impl EpicEnginesBox {
                     }
                 }
                 Some(version) => {
-                    println!("Found engine {:?}", version);
                     let mut engines = self_.engines.borrow_mut();
                     for engine in engines.values() {
                         if engine.path.eq(&dir.to_string()) {
