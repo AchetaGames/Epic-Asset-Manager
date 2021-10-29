@@ -18,7 +18,7 @@ egs-api = "0.4"
 env_logger = "0.9"
 futures = "0.3"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
-ghregistry = { git = "https://github.com/AchetaGames/ghregistry" }
+ghregistry = "0.1"
 git2 = "0.13"
 gtk4 = { version = "0.3", features = ["v4_4"] }
 gtk-macros = "0.3"
