@@ -28,6 +28,14 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.7.0" date="2021-10-29">
+       <description>
+              <p>Install Engine from Docker</p>
+              <ul>
+                  <li>Fix the previous button enabled on empty images</li>
+              </ul>
+       </description>
+    </release>
     <release version="2.6.1" date="2021-10-13">
        <description>
               <p>Asset Sorting</p>
