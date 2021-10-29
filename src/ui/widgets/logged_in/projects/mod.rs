@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 use log::info;
@@ -208,7 +208,7 @@ impl EpicProjectsBox {
                 let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(&projects);
                 let project = a.downcast::<crate::models::project_data::ProjectData>().unwrap();
                 if let Some(uproject) = project.uproject() {
-                    self_.details.set_project(uproject, project.path());
+                    self_.details.set_project(&uproject, project.path());
                 }
                 projects.set_property("selected", project.path()).unwrap();
                 self_.selected_uproject.replace(project.uproject());
@@ -235,18 +235,13 @@ impl EpicProjectsBox {
                         Ok(entry) => {
                             let p = entry.path();
                             if p.is_dir() {
-                                if let Some(uproject_file) = EpicProjectsBox::uproject_path(p) {
+                                if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
                                     self_.grid_model.append(
                                         &crate::models::project_data::ProjectData::new(
-                                            uproject_file.to_str().unwrap().to_string(),
-                                            uproject_file
-                                                .file_stem()
-                                                .unwrap()
-                                                .to_str()
-                                                .unwrap()
-                                                .to_string(),
+                                            uproject_file.to_str().unwrap(),
+                                            uproject_file.file_stem().unwrap().to_str().unwrap(),
                                         ),
-                                    )
+                                    );
                                 };
                             } else {
                                 continue;
@@ -261,7 +256,7 @@ impl EpicProjectsBox {
         }
     }
 
-    fn uproject_path(p: PathBuf) -> Option<PathBuf> {
+    fn uproject_path(p: &Path) -> Option<PathBuf> {
         if let Ok(r) = p.read_dir() {
             for file_entry in r.flatten() {
                 let file = file_entry.path();

@@ -40,6 +40,10 @@ pub mod imp {
         pub unreal_engine_vault_directories_box: TemplateChild<gtk4::Box>,
         #[template_child]
         pub unreal_engine_directories_box: TemplateChild<gtk4::Box>,
+        #[template_child]
+        pub github_token: TemplateChild<gtk4::PasswordEntry>,
+        #[template_child]
+        pub github_user: TemplateChild<gtk4::Entry>,
     }
 
     #[glib::object_subclass]
@@ -62,6 +66,8 @@ pub mod imp {
                 unreal_engine_project_directories_box: TemplateChild::default(),
                 unreal_engine_vault_directories_box: TemplateChild::default(),
                 unreal_engine_directories_box: TemplateChild::default(),
+                github_token: TemplateChild::default(),
+                github_user: TemplateChild::default(),
             }
         }
 
@@ -118,7 +124,11 @@ impl PreferencesWindow {
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        if self_.window.get().is_some() {
+            return;
+        }
         self_.window.set(window.clone()).unwrap();
+        self.load_secrets();
     }
 
     pub fn imp(&self) -> &imp::PreferencesWindow {
@@ -141,15 +151,24 @@ impl PreferencesWindow {
             )
             .flags(SettingsBindFlags::DEFAULT)
             .build();
-    }
 
-    // fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
-    //     let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-    //     match self_.window.get() {
-    //         Some(window) => Some(&(*window)),
-    //         None => None,
-    //     }
-    // }
+        self_
+            .settings
+            .bind("github-user", &*self_.github_user, "text")
+            .flags(SettingsBindFlags::DEFAULT)
+            .build();
+
+        self_
+            .github_user
+            .connect_changed(clone!(@weak self as preferences => move |_| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                if let Some(w) = self_.window.get() {
+                    let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                    let model = win_.model.borrow();
+                    model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
+                };
+            }));
+    }
 
     pub fn load_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
@@ -178,6 +197,64 @@ impl PreferencesWindow {
         }
     }
 
+    fn load_secrets(&self) {
+        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        if let Some(w) = self_.window.get() {
+            let win_: &crate::window::imp::EpicAssetManagerWindow =
+                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+            if let Ok(collection) = win_.model.borrow().secret_service.get_default_collection() {
+                if let Ok(items) = collection.search_items(
+                    [("application", crate::config::APP_ID)]
+                        .iter()
+                        .copied()
+                        .collect(),
+                ) {
+                    for item in items {
+                        let label = if let Ok(l) = item.get_label() {
+                            l
+                        } else {
+                            debug!("No label skipping");
+                            continue;
+                        };
+                        debug!("Loading: {}", label);
+                        match label.as_str() {
+                            "eam_github_token" => {
+                                if let Ok(d) = item.get_secret() {
+                                    if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                        self_.github_token.set_text(s);
+                                    }
+                                };
+                            }
+                            &_ => {}
+                        }
+                    }
+                };
+            };
+        };
+        self_
+            .github_token
+            .connect_changed(clone!(@weak self as preferences => move |_| {
+                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                if let Some(w) = self_.window.get() {
+                    let mut attributes = HashMap::new();
+                    attributes.insert("application", crate::config::APP_ID);
+                    attributes.insert("type", "token");
+                    let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                    let model = win_.model.borrow();
+                    if let Err(e) = model.secret_service.get_default_collection().unwrap().create_item(
+                        "eam_github_token",
+                        attributes.clone(),
+                        self_.github_token.text().as_bytes(),
+                        true,
+                        "text/plain",
+                    ) {
+                        error!("Failed to save secret {}", e);
+                    };
+                    model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
+                }
+            }));
+    }
+
     pub fn setup_actions(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         let actions = &self_.actions;
@@ -192,7 +269,7 @@ impl PreferencesWindow {
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
-                            win.set_directory(file, DirectoryConfigType::Cache);
+                            win.set_directory(&file, DirectoryConfigType::Cache);
                         }
                     }
                     d.destroy();
@@ -208,7 +285,7 @@ impl PreferencesWindow {
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
-                            win.set_directory(file, DirectoryConfigType::Temp);
+                            win.set_directory(&file, DirectoryConfigType::Temp);
                         }
                     }
                     d.destroy();
@@ -223,7 +300,7 @@ impl PreferencesWindow {
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
-                            win.set_directory(file, DirectoryConfigType::Vault);
+                            win.set_directory(&file, DirectoryConfigType::Vault);
                         }
                     }
                     d.destroy();
@@ -238,7 +315,7 @@ impl PreferencesWindow {
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
-                            win.set_directory(file, DirectoryConfigType::Engine);
+                            win.set_directory(&file, DirectoryConfigType::Engine);
                         }
                     }
                     d.destroy();
@@ -253,7 +330,7 @@ impl PreferencesWindow {
                 dialog.connect_response(clone!(@weak win => move |d, response| {
                     if response == gtk4::ResponseType::Accept {
                         if let Some(file) = d.file() {
-                            win.set_directory(file, DirectoryConfigType::Projects);
+                            win.set_directory(&file, DirectoryConfigType::Projects);
                         }
                     }
                     d.destroy();
@@ -262,11 +339,11 @@ impl PreferencesWindow {
         );
     }
 
-    fn set_directory(&self, dir: File, kind: DirectoryConfigType) {
+    fn set_directory(&self, dir: &File, kind: DirectoryConfigType) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         match dir.query_file_type(FileQueryInfoFlags::NONE, gtk4::gio::NONE_CANCELLABLE) {
             FileType::Directory => {
-                debug!("Selected Directory")
+                debug!("Selected Directory");
             }
             _ => {
                 return;
@@ -304,22 +381,21 @@ impl PreferencesWindow {
             | DirectoryConfigType::Projects => {
                 if let Some((setting_name, widget)) = self.setting_name_and_box_from_type(kind) {
                     let mut current = self_.settings.strv(setting_name);
-                    let n = match name.into_string() {
-                        Ok(s) => s,
-                        Err(_) => {
-                            error!("Selected directory is not UTF8");
-                            return;
-                        }
+                    let n = if let Ok(s) = name.into_string() {
+                        s
+                    } else {
+                        error!("Selected directory is not UTF8");
+                        return;
                     };
                     if !current.contains(&gtk4::glib::GString::from(n.clone())) {
                         current.push(gtk4::glib::GString::from(n.clone()));
                         self.add_directory_row(widget, n, kind);
                     }
-                    let new: Vec<&str> = current.iter().map(|i| i.as_str()).collect();
+                    let new: Vec<&str> = current.iter().map(gtk4::glib::GString::as_str).collect();
                     self_
                         .settings
                         .set_strv(setting_name, new.as_slice())
-                        .unwrap()
+                        .unwrap();
                 }
             }
             DirectoryConfigType::Games => {}
@@ -334,7 +410,7 @@ impl PreferencesWindow {
             Some(r) => {
                 let v: Vec<&str> = r.iter().map(|i| i.0.as_str()).collect();
                 if let Some(setting_name) = Self::setting_name_from_type(kind) {
-                    self_.settings.set_strv(setting_name, v.as_slice()).unwrap()
+                    self_.settings.set_strv(setting_name, v.as_slice()).unwrap();
                 }
             }
         };
@@ -342,12 +418,12 @@ impl PreferencesWindow {
 
     fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
         match kind {
-            DirectoryConfigType::Cache => None,
-            DirectoryConfigType::Temp => None,
+            DirectoryConfigType::Games | DirectoryConfigType::Cache | DirectoryConfigType::Temp => {
+                None
+            }
             DirectoryConfigType::Vault => Some("unreal-vault-directories"),
             DirectoryConfigType::Engine => Some("unreal-engine-directories"),
             DirectoryConfigType::Projects => Some("unreal-projects-directories"),
-            DirectoryConfigType::Games => None,
         }
     }
 
@@ -357,8 +433,9 @@ impl PreferencesWindow {
     ) -> Option<(&'static str, &gtk4::Box)> {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
         match kind {
-            DirectoryConfigType::Cache => None,
-            DirectoryConfigType::Temp => None,
+            DirectoryConfigType::Games | DirectoryConfigType::Cache | DirectoryConfigType::Temp => {
+                None
+            }
             DirectoryConfigType::Vault => Some((
                 "unreal-vault-directories",
                 &*self_.unreal_engine_vault_directories_box,
@@ -371,13 +448,11 @@ impl PreferencesWindow {
                 "unreal-projects-directories",
                 &*self_.unreal_engine_project_directories_box,
             )),
-            DirectoryConfigType::Games => None,
         }
     }
 
     fn add_directory_row(&self, target_box: &gtk4::Box, dir: String, kind: DirectoryConfigType) {
-        let row: super::dir_row::DirectoryRow =
-            super::dir_row::DirectoryRow::new(dir.clone(), self);
+        let row: super::dir_row::DirectoryRow = super::dir_row::DirectoryRow::new(&dir, self);
 
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
 
@@ -537,12 +612,12 @@ impl PreferencesWindow {
         native.set_modal(true);
         native.set_transient_for(Some(self));
 
-        filters.iter().for_each(|f| {
+        for f in filters.iter() {
             let filter = gtk4::FileFilter::new();
             filter.add_mime_type(f);
             filter.set_name(Some(f));
             native.add_filter(&filter);
-        });
+        }
 
         self_.file_chooser.replace(Some(native.clone()));
         native.show();

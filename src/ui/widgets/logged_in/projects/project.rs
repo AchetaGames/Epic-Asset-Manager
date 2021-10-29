@@ -219,7 +219,7 @@ impl EpicProject {
         if let Some(pix) = data.image() {
             self_
                 .thumbnail
-                .set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)))
+                .set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
         }
 
         match data.path() {
@@ -237,7 +237,7 @@ impl EpicProject {
             clone!(@weak self as project, @weak data => @default-return None, move |_| {
                 let self_: &imp::EpicProject = imp::EpicProject::from_instance(&project);
                 if let Some(pix) = data.image() {
-                    self_.thumbnail.set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)))
+                    self_.thumbnail.set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
                 }
                 None
             }),

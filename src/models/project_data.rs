@@ -219,12 +219,12 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl ProjectData {
-    pub fn new(path: String, name: String) -> ProjectData {
+    pub fn new(path: &str, name: &str) -> ProjectData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create ProjectData");
         let self_: &imp::ProjectData = imp::ProjectData::from_instance(&data);
         data.set_property("path", &path).unwrap();
         data.set_property("name", &name).unwrap();
-        let mut uproject = Self::read_uproject(&path);
+        let mut uproject = Self::read_uproject(path);
         uproject.engine_association = uproject
             .engine_association
             .chars()
@@ -234,7 +234,7 @@ impl ProjectData {
         if let Some(path) = data.path() {
             let sender = self_.sender.clone();
             thread::spawn(move || {
-                Self::load_thumbnail(path, sender);
+                Self::load_thumbnail(&path, &sender);
             });
         }
         data
@@ -319,7 +319,7 @@ impl ProjectData {
         self.emit_by_name("finished", &[]).unwrap();
     }
 
-    pub fn load_thumbnail(path: String, sender: gtk4::glib::Sender<ProjectMsg>) {
+    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<ProjectMsg>) {
         let mut pathbuf = match PathBuf::from(&path).parent() {
             None => return,
             Some(p) => p.to_path_buf(),
@@ -360,7 +360,7 @@ impl ProjectData {
                                 .save_to_bufferv("png", &[])
                                 .unwrap(),
                             ))
-                            .unwrap()
+                            .unwrap();
                     }
                 };
             }

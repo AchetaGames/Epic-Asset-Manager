@@ -12,6 +12,7 @@ pub enum Msg {
     ProcessAssetThumbnail(AssetInfo, Vec<u8>),
     FlushAssetThumbnails,
     DownloadImage(KeyImage, AssetInfo),
+    DockerClient(ghregistry::Client),
 }
 
 impl fmt::Display for Msg {
@@ -37,6 +38,9 @@ impl fmt::Display for Msg {
             }
             Msg::ProcessEpicAsset(_) => {
                 write!(f, "ProcessEpicAsset")
+            }
+            Msg::DockerClient(_) => {
+                write!(f, "DockerClient")
             }
         }
     }

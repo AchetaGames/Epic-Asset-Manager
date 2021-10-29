@@ -195,7 +195,7 @@ impl EpicSidebarCategory {
 
             let child = list_item.child().unwrap().downcast::<Label>().unwrap();
             child.set_label(&data.name());
-            child.set_tooltip_text(Some(&data.filter()))
+            child.set_tooltip_text(Some(&data.filter()));
         });
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
@@ -262,12 +262,12 @@ impl EpicSidebarCategory {
         }
     }
 
-    pub fn add_category(&self, name: String, filter: String) {
+    pub fn add_category(&self, name: &str, filter: &str) {
         let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
         self_.categories.append(&CategoryData::new(
-            EpicSidebarCategory::capitalize_first_letter(&name),
+            &EpicSidebarCategory::capitalize_first_letter(name),
             filter,
-        ))
+        ));
     }
 
     pub fn filter(&self) -> String {

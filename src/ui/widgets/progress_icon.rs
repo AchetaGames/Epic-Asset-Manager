@@ -10,7 +10,7 @@ pub(crate) mod imp {
 
     #[derive(Debug, Default)]
     pub struct ProgressIcon {
-        pub fraction: RefCell<f64>,
+        pub fraction: RefCell<f32>,
         pub inverted: RefCell<bool>,
         pub clockwise: RefCell<bool>,
     }
@@ -174,10 +174,10 @@ pub trait ProgressIconExt {
     /// Gets the child widget of `self`.
     ///
     /// Returns: the fraction of `self`
-    fn fraction(&self) -> f64;
+    fn fraction(&self) -> f32;
 
     /// Sets the fraction of `self`. `fraction` should be between 0.0 and 1.0, inclusive.
-    fn set_fraction(&self, fraction: f64);
+    fn set_fraction(&self, fraction: f32);
 
     /// Returns whether `self` is inverted.
     fn inverted(&self) -> bool;
@@ -197,12 +197,12 @@ pub trait ProgressIconExt {
 }
 
 impl<W: IsA<ProgressIcon>> ProgressIconExt for W {
-    fn fraction(&self) -> f64 {
+    fn fraction(&self) -> f32 {
         let this = imp::ProgressIcon::from_instance(self.as_ref());
         *this.fraction.borrow()
     }
-    fn set_fraction(&self, fraction: f64) {
-        if (fraction - self.fraction()).abs() < f64::EPSILON {
+    fn set_fraction(&self, fraction: f32) {
+        if (fraction - self.fraction()).abs() < f32::EPSILON {
             return;
         }
         let this = imp::ProgressIcon::from_instance(self.as_ref());

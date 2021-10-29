@@ -9,9 +9,10 @@ use egs_api::EpicGames;
 use gtk4::gio;
 use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT};
 use gtk4::prelude::*;
-use log::{debug, info};
+use log::{debug, error, info};
 use secret_service::{EncryptionType, SecretService};
 use std::cell::RefCell;
+use std::thread;
 
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
@@ -19,6 +20,7 @@ pub struct Model {
     pub sender: Sender<crate::ui::messages::Msg>,
     pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
     pub settings: gio::Settings,
+    pub dclient: RefCell<Option<ghregistry::Client>>,
 }
 
 impl Default for Model {
@@ -37,6 +39,7 @@ impl Model {
             sender,
             receiver: RefCell::new(Some(receiver)),
             settings: gio::Settings::new(APP_ID),
+            dclient: RefCell::new(None),
         };
         obj.load_secrets();
         obj.load_defaults();
@@ -89,22 +92,54 @@ impl Model {
         }
     }
 
+    pub fn validate_registry_login(&self, user: String, token: String) {
+        debug!("Trying to validate token for {}", user);
+        let client = ghregistry::Client::configure()
+            .registry("ghcr.io")
+            .insecure_registry(false)
+            .username(Some(user))
+            .password(Some(token))
+            .build()
+            .unwrap();
+        let sender = self.sender.clone();
+        thread::spawn(move || {
+            let login_scope = "repository:epicgames/unreal-engine:pull";
+            match client.authenticate(&[login_scope]) {
+                Ok(docker_client) => match docker_client.is_auth() {
+                    Ok(auth) => {
+                        if auth {
+                            sender
+                                .send(crate::ui::messages::Msg::DockerClient(docker_client))
+                                .unwrap();
+                            info!("Docker Authenticated");
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed authentication verification {:?}", e);
+                    }
+                },
+                Err(e) => {
+                    error!("Failed authentication {:?}", e);
+                }
+            };
+        });
+    }
+
     fn load_secrets(&mut self) {
         if let Ok(collection) = self.secret_service.get_default_collection() {
             if let Ok(items) = collection.search_items(
                 [("application", crate::config::APP_ID)]
                     .iter()
-                    .cloned()
+                    .copied()
                     .collect(),
             ) {
                 let mut ud = egs_api::api::UserData::new();
                 for item in items {
-                    let label = match item.get_label() {
-                        Ok(l) => l,
-                        Err(_) => {
-                            debug!("No label skipping");
-                            continue;
-                        }
+                    let label = if let Ok(l) = item.get_label() {
+                        l
+                    } else {
+                        debug!("No label skipping");
+                        continue;
                     };
                     debug!("Loading: {}", label);
                     if let Ok(attributes) = item.get_attributes() {
@@ -138,7 +173,7 @@ impl Model {
                                 if let Ok(d) = item.get_secret() {
                                     if let Ok(s) = std::str::from_utf8(d.as_slice()) {
                                         debug!("Loaded access token");
-                                        ud.set_access_token(Some(s.to_string()))
+                                        ud.set_access_token(Some(s.to_string()));
                                     }
                                 };
                             }
@@ -166,7 +201,17 @@ impl Model {
                                 if let Ok(d) = item.get_secret() {
                                     if let Ok(s) = std::str::from_utf8(d.as_slice()) {
                                         debug!("Loaded refresh token");
-                                        ud.set_refresh_token(Some(s.to_string()))
+                                        ud.set_refresh_token(Some(s.to_string()));
+                                    }
+                                };
+                            }
+                            "eam_github_token" => {
+                                if let Ok(d) = item.get_secret() {
+                                    if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                        self.validate_registry_login(
+                                            self.settings.string("github-user").to_string(),
+                                            s.to_string(),
+                                        );
                                     }
                                 };
                             }

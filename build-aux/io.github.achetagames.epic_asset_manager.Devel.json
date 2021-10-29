@@ -15,8 +15,9 @@
     "--talk-name=org.freedesktop.secrets",
     "--device=dri",
     "--env=RUST_LOG=debug",
-    "--env=RUST_BACKTRACE=1",
-    "--env=G_MESSAGES_DEBUG=none"
+    "--env=RUST_BACKTRACE=full",
+    "--env=G_MESSAGES_DEBUG=none",
+    "--env=GTK_PATH=/app/lib/gtk-4.0"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",

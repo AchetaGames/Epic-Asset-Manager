@@ -250,9 +250,9 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl EngineData {
     pub fn new(
-        path: String,
-        guid: String,
-        version: UnrealVersion,
+        path: &str,
+        guid: &str,
+        version: &UnrealVersion,
         model: &gtk4::gio::ListStore,
     ) -> EngineData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create EngineData");
@@ -266,7 +266,7 @@ impl EngineData {
         if let Some(path) = data.path() {
             let sender = self_.sender.clone();
             thread::spawn(move || {
-                Self::needs_repo_update(path, Some(sender));
+                Self::needs_repo_update(&path, Some(sender));
             });
         }
         data
@@ -311,7 +311,7 @@ impl EngineData {
         self.emit_by_name("finished", &[]).unwrap();
     }
 
-    fn needs_repo_update(path: String, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {
+    fn needs_repo_update(path: &str, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {
         if let Ok(repo) = git2::Repository::open(&path) {
             let mut commit = git2::Oid::zero();
             let mut branch = String::new();
@@ -344,7 +344,7 @@ impl EngineData {
                         }
                         let cb = Self::git_callbacks();
                         if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
-                            warn!("Unable to connect: {}", e)
+                            warn!("Unable to connect: {}", e);
                         }
                         if let Ok(list) = r.list() {
                             for head in list {
@@ -355,20 +355,19 @@ impl EngineData {
                                             s.send(EngineMsg::Update(false)).unwrap();
                                         }
                                         return false;
-                                    } else {
-                                        info!("{} needs updating", path);
-                                        debug!(
-                                            "{} Local commit {}({}), remote commit {}",
-                                            path,
-                                            commit,
-                                            time.seconds(),
-                                            head.oid()
-                                        );
-                                        if let Some(s) = sender {
-                                            s.send(EngineMsg::Update(true)).unwrap();
-                                        }
-                                        return true;
                                     }
+                                    info!("{} needs updating", path);
+                                    debug!(
+                                        "{} Local commit {}({}), remote commit {}",
+                                        path,
+                                        commit,
+                                        time.seconds(),
+                                        head.oid()
+                                    );
+                                    if let Some(s) = sender {
+                                        s.send(EngineMsg::Update(true)).unwrap();
+                                    }
+                                    return true;
                                 }
                             }
                         }
@@ -451,7 +450,7 @@ impl EngineData {
                 key.push("id_rsa");
 
                 let user = username
-                    .map(|s| s.to_string())
+                    .map(std::string::ToString::to_string)
                     .or_else(|| cred_helper.username.clone())
                     .unwrap_or_else(|| "git".to_string());
                 if key.exists() {

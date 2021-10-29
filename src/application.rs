@@ -77,7 +77,7 @@ pub(crate) mod imp {
                             _ => {
                                 self.product.replace(None);
                                 self.item.replace(None);
-                                error!("Please report what item in the store you clicked to get this response. {:?}", file.uri())
+                                error!("Please report what item in the store you clicked to get this response. {:?}", file.uri());
                             }
                         }
                     }
@@ -131,7 +131,7 @@ pub(crate) mod imp {
             adw::functions::init();
 
             app.set_resource_base_path(Some("/io/github/achetagames/epic_asset_manager"));
-            app.setup_css();
+            Self::Type::setup_css();
             let app_d = app.downcast_ref::<super::EpicAssetManager>().unwrap();
             // Preferences
             action!(
@@ -140,7 +140,7 @@ pub(crate) mod imp {
                 clone!(@weak app as app => move |_,_| {
                     let preferences = PreferencesWindow::new();
                     preferences.set_transient_for(Some(app.main_window()));
-                    preferences.set_window(&app.main_window());
+                    preferences.set_window(app.main_window());
                     preferences.show();
                 })
             );
@@ -185,7 +185,7 @@ impl EpicAssetManager {
     pub fn setup_gactions(&self) {
         self.connect_shutdown(|_| {
             if let Ok(mut w) = crate::RUNNING.write() {
-                *w = false
+                *w = false;
             }
         });
 
@@ -195,7 +195,7 @@ impl EpicAssetManager {
             "quit",
             clone!(@weak self as app => move |_, _| {
                 if let Ok(mut w) = crate::RUNNING.write() {
-                    *w = false
+                    *w = false;
                 }
                 app.main_window().close();
                 app.quit();
@@ -218,7 +218,7 @@ impl EpicAssetManager {
         self.set_accels_for_action("win.show-help-overlay", &["<primary>question"]);
     }
 
-    pub fn setup_css(&self) {
+    pub fn setup_css() {
         let provider = gtk4::CssProvider::new();
         provider.load_from_resource("/io/github/achetagames/epic_asset_manager/style.css");
         if let Some(display) = gdk::Display::default() {

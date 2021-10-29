@@ -8,11 +8,12 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
-use version_compare::{CompOp, VersionCompare};
 
 use engine::EpicEngine;
+use version_compare::Cmp;
 
 pub mod engine;
+pub mod engine_detail;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct UnrealEngine {
@@ -31,15 +32,13 @@ impl UnrealEngine {
             test.push("UE4Editor");
             if test.exists() {
                 return Some(test.into_os_string());
-            } else {
-                let mut test = p.clone();
-                test.push("UnrealEditor");
-                if test.exists() {
-                    return Some(test.into_os_string());
-                } else {
-                    error!("Unable to launch the engine")
-                }
             }
+            let mut test = p.clone();
+            test.push("UnrealEditor");
+            if test.exists() {
+                return Some(test.into_os_string());
+            }
+            error!("Unable to launch the engine");
         };
         None
     }
@@ -60,6 +59,9 @@ pub(crate) mod imp {
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         #[template_child]
         pub engine_grid: TemplateChild<gtk4::GridView>,
+        #[template_child]
+        pub details:
+            TemplateChild<crate::ui::widgets::logged_in::engines::engine_detail::EpicEngineDetails>,
         pub grid_model: gtk4::gio::ListStore,
         pub expanded: RefCell<bool>,
         selected: RefCell<Option<String>>,
@@ -79,6 +81,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 engine_grid: TemplateChild::default(),
+                details: TemplateChild::default(),
                 grid_model: gtk4::gio::ListStore::new(
                     crate::models::engine_data::EngineData::static_type(),
                 ),
@@ -184,7 +187,7 @@ impl EpicEnginesBox {
         if self_.window.get().is_some() {
             return;
         }
-
+        self_.details.set_window(window);
         self_.window.set(window.clone()).unwrap();
 
         let factory = gtk4::SignalListItemFactory::new();
@@ -220,17 +223,14 @@ impl EpicEnginesBox {
                 .downcast_ref::<crate::models::engine_data::EngineData>()
                 .unwrap();
 
-            match VersionCompare::compare(
+            match version_compare::compare(
                 &info1.version().unwrap_or_default(),
                 &info2.version().unwrap_or_default(),
             ) {
                 Ok(comp) => match comp {
-                    CompOp::Eq => gtk4::Ordering::Equal,
-                    CompOp::Lt => gtk4::Ordering::Larger,
-                    CompOp::Le => gtk4::Ordering::Equal,
-                    CompOp::Ge => gtk4::Ordering::Equal,
-                    CompOp::Gt => gtk4::Ordering::Smaller,
-                    CompOp::Ne => gtk4::Ordering::Smaller,
+                    Cmp::Lt => gtk4::Ordering::Larger,
+                    Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
+                    Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
                 },
                 Err(_) => gtk4::Ordering::Equal,
             }
@@ -243,62 +243,27 @@ impl EpicEnginesBox {
         self_.engine_grid.set_factory(Some(&factory));
 
         selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
+            let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
             if let Some(a) = model.selected_item() {
                 let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
                 engines.set_property("selected", engine.path()).unwrap();
-                engines.set_property("expanded", true).unwrap();
+                self_.details.set_property("expanded", true).unwrap();
+                self_.details.set_data(engine);
             }
         }));
         self.load_engines();
-        self.load_engines_from_fs();
-    }
-
-    fn get_engine_binary_path(path: &str) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(path) {
-            p.push("Engine");
-            p.push("Binaries");
-            p.push("Linux");
-            let mut test = p.clone();
-            test.push("UE4Editor");
-            if test.exists() {
-                return Some(test.into_os_string());
-            } else {
-                let mut test = p.clone();
-                test.push("UnrealEditor");
-                if test.exists() {
-                    return Some(test.into_os_string());
-                } else {
-                    error!("Unable to launch the engine")
-                }
-            }
-        };
-        None
     }
 
     pub fn setup_actions(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
         self.insert_action_group("engines", Some(&self_.actions));
-
         action!(
             self_.actions,
-            "launch",
+            "add",
             clone!(@weak self as engines => move |_, _| {
-                let path = engines.selected();
-                if let Some(path) = path {
-                    match Self::get_engine_binary_path(&path) {
-                        None => { warn!("No path");}
-                        Some(p) => {
-                            let context = gtk4::gio::AppLaunchContext::new();
-                            context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                            let app = gtk4::gio::AppInfo::create_from_commandline(
-                                p,
-                                Some("Unreal Engine"),
-                                gtk4::gio::AppInfoCreateFlags::NONE,
-                            ).unwrap();
-                            app.launch(&[], Some(&context)).expect("Failed to launch application");
-                        }
-                    }
-                };
+                let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
+                self_.details.set_property("expanded", true).unwrap();
+                self_.details.add_engine();
             })
         );
     }
@@ -322,15 +287,21 @@ impl EpicEnginesBox {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
+        self_.details.set_download_manager(dm);
     }
 
     pub fn load_engines(&self) {
         let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
-        for (guid, path) in Self::read_engines_ini() {
+        'outer: for (guid, path) in Self::read_engines_ini() {
             let mut engines = self_.engines.borrow_mut();
             if let Some(version) =
                 crate::models::engine_data::EngineData::read_engine_version(&path)
             {
+                for eng in engines.values() {
+                    if eng.path.eq(&path) {
+                        continue 'outer;
+                    }
+                }
                 engines.insert(
                     guid.clone(),
                     UnrealEngine {
@@ -340,15 +311,16 @@ impl EpicEnginesBox {
                     },
                 );
                 let data = crate::models::engine_data::EngineData::new(
-                    path,
-                    guid,
-                    version,
+                    &path,
+                    &guid,
+                    &version,
                     &self_.grid_model,
                 );
 
                 self_.grid_model.append(&data);
             };
         }
+        self.load_engines_from_fs();
     }
 
     pub fn load_engines_from_fs(&self) {
@@ -381,9 +353,9 @@ impl EpicEnginesBox {
                                         },
                                     );
                                     let data = crate::models::engine_data::EngineData::new(
-                                        p.to_str().unwrap().to_string(),
-                                        p.to_str().unwrap().to_string(),
-                                        version,
+                                        p.to_str().unwrap(),
+                                        p.to_str().unwrap(),
+                                        &version,
                                         &self_.grid_model,
                                     );
 
@@ -409,9 +381,9 @@ impl EpicEnginesBox {
                         },
                     );
                     let data = crate::models::engine_data::EngineData::new(
-                        dir.to_string(),
-                        dir.to_string(),
-                        version,
+                        &dir,
+                        &dir,
+                        &version,
                         &self_.grid_model,
                     );
 
@@ -445,6 +417,11 @@ impl EpicEnginesBox {
             }
         }
         result
+    }
+
+    pub fn update_docker(&self) {
+        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        self_.details.update_docker();
     }
 
     pub fn engine_from_assoociation(&self, engine_association: &str) -> Option<UnrealEngine> {

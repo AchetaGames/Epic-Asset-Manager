@@ -16,7 +16,7 @@ extern crate diesel;
 extern crate diesel_migrations;
 #[macro_use]
 extern crate lazy_static;
-
+extern crate futures;
 use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use application::EpicAssetManager;
 use env_logger::Env;
@@ -70,6 +70,6 @@ fn main() {
     debug!("{}", VERSION);
     app.run();
     if let Ok(mut w) = crate::RUNNING.write() {
-        *w = false
+        *w = false;
     };
 }

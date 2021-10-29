@@ -182,7 +182,13 @@ impl EpicLoggedInBox {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
-        self_.library.set_download_manager(&dm.clone());
+        self_.library.set_download_manager(dm);
+        self_.engine.set_download_manager(dm);
+    }
+
+    pub fn update_docker(&self) {
+        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        self_.engine.update_docker();
     }
 
     pub(crate) fn process_epic_asset(
@@ -195,7 +201,7 @@ impl EpicLoggedInBox {
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
-        self_.library.load_thumbnail(asset)
+        self_.library.load_thumbnail(asset);
     }
 
     pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {

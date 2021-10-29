@@ -143,7 +143,7 @@ impl EpicImageOverlay {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
         if self_.stack.n_pages() > 0 {
             while let Some(el) = self_.stack.nth_page(0) {
-                self_.stack.remove(&el)
+                self_.stack.remove(&el);
             }
         }
         self.check_actions();
@@ -217,7 +217,7 @@ impl EpicImageOverlay {
             clone!(@weak self as image_stack => move |_, _| {
                 let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
                 if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32) + 1) {
-                    self_.stack.scroll_to(&image)
+                    self_.stack.scroll_to(&image);
                 };
             })
         );
@@ -228,7 +228,7 @@ impl EpicImageOverlay {
             clone!(@weak self as image_stack => move |_, _| {
                 let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
                 if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32).saturating_sub(1)) {
-                    self_.stack.scroll_to(&image)
+                    self_.stack.scroll_to(&image);
                 };
             })
         );
@@ -236,10 +236,13 @@ impl EpicImageOverlay {
 
     pub fn check_actions(&self) {
         let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
-        get_action!(self_.actions, @prev).set_enabled(!matches!(
-            self_.stack.position().partial_cmp(&1.0),
-            None | Some(Ordering::Less)
-        ));
+        get_action!(self_.actions, @prev).set_enabled(
+            match self_.stack.position().partial_cmp(&1.0) {
+                None | Some(Ordering::Less) => false,
+                _ => self_.stack.first_child().is_some(),
+            },
+        );
+
         get_action!(self_.actions, @next).set_enabled(
             !matches!(
                 self_
@@ -277,32 +280,29 @@ impl EpicImageOverlay {
         let img = image.clone();
 
         self_.image_load_pool.execute(move || {
-            match File::open(cache_path.as_path()) {
-                Ok(mut f) => {
-                    fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
-                    let metadata =
-                        fs::metadata(&cache_path.as_path()).expect("unable to read metadata");
-                    let mut buffer = vec![0; metadata.len() as usize];
-                    f.read_exact(&mut buffer).expect("buffer overflow");
-                    let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-                    pixbuf_loader.write(&buffer).unwrap();
-                    pixbuf_loader.close().ok();
-                    match pixbuf_loader.pixbuf() {
-                        None => {}
-                        Some(pb) => sender
-                            .send(ImageMsg::ImageLoaded(
-                                pb.save_to_bufferv("png", &[]).unwrap(),
-                            ))
-                            .unwrap(),
-                    };
-                }
-                Err(_) => {
-                    debug!("Need to download image");
-                    sender
-                        .send(ImageMsg::DownloadImage(asset, img.clone()))
-                        .unwrap();
-                }
+            if let Ok(mut f) = File::open(cache_path.as_path()) {
+                fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
+                let metadata =
+                    fs::metadata(&cache_path.as_path()).expect("unable to read metadata");
+                let mut buffer = vec![0; metadata.len() as usize];
+                f.read_exact(&mut buffer).expect("buffer overflow");
+                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
+                pixbuf_loader.write(&buffer).unwrap();
+                pixbuf_loader.close().ok();
+                match pixbuf_loader.pixbuf() {
+                    None => {}
+                    Some(pb) => sender
+                        .send(ImageMsg::ImageLoaded(
+                            pb.save_to_bufferv("png", &[]).unwrap(),
+                        ))
+                        .unwrap(),
+                };
+            } else {
+                debug!("Need to download image");
+                sender
+                    .send(ImageMsg::DownloadImage(asset, img.clone()))
+                    .unwrap();
             };
-        })
+        });
     }
 }

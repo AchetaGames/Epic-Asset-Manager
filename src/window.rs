@@ -36,6 +36,8 @@ pub(crate) mod imp {
             TemplateChild<crate::ui::widgets::download_manager::EpicDownloadManager>,
         #[template_child]
         pub progress_icon: TemplateChild<crate::ui::widgets::progress_icon::ProgressIcon>,
+        #[template_child]
+        pub appmenu_button: TemplateChild<gtk4::MenuButton>,
         pub model: RefCell<Model>,
     }
 
@@ -54,6 +56,7 @@ pub(crate) mod imp {
                 progress_message: TemplateChild::default(),
                 download_manager: TemplateChild::default(),
                 progress_icon: TemplateChild::default(),
+                appmenu_button: TemplateChild::default(),
                 model: RefCell::new(Model::new()),
             }
         }
@@ -271,7 +274,7 @@ impl EpicAssetManagerWindow {
         let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
         self_.sid_box.set_window(self);
         self_.logged_in_stack.activate(false);
-        self_.main_stack.set_visible_child_name("sid_box")
+        self_.main_stack.set_visible_child_name("sid_box");
     }
 
     pub fn show_download_manager(&self) {
@@ -286,7 +289,7 @@ impl EpicAssetManagerWindow {
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 
-    pub fn show_assets(&self, ud: ::egs_api::api::UserData) {
+    pub fn show_assets(&self, ud: &egs_api::api::UserData) {
         // TODO display user information from the UserData
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
@@ -302,6 +305,9 @@ impl EpicAssetManagerWindow {
             .logged_in_stack
             .set_download_manager(&self_.download_manager);
         self.show_logged_in();
+        if let Some(id) = &ud.display_name {
+            self_.appmenu_button.set_label(id);
+        }
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);
@@ -330,7 +336,7 @@ impl EpicAssetManagerWindow {
                             "text/plain",
                         )
                     {
-                        error!("Failed to save secret {}", e)
+                        error!("Failed to save secret {}", e);
                     };
                 }
             }
@@ -361,7 +367,7 @@ impl EpicAssetManagerWindow {
                             "text/plain",
                         )
                     {
-                        error!("Failed to save secret {}", e)
+                        error!("Failed to save secret {}", e);
                     };
                 }
             }

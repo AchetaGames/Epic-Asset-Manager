@@ -1,6 +1,8 @@
+pub(crate) mod docker;
 mod download_item;
 
 use crate::tools::asset_info::Search;
+use crate::ui::widgets::download_manager::docker::Docker;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
 use glib::clone;
 use gtk4::subclass::prelude::*;
@@ -37,6 +39,19 @@ pub enum DownloadMsg {
     FinalizeFileDownload(String, DownloadedFile),
     FileAlreadyDownloaded(String, u128),
     FileExtracted(String),
+    PerformDockerEngineDownload(String, u64, Vec<(String, u64)>),
+    DockerDownloadProgress(String, u64),
+    DockerBlobFinished(String, String),
+    DockerBlobFailed(String, (String, u64)),
+    DockerExtractionFinished(String),
+}
+
+#[derive(Debug, Clone)]
+pub enum DownloadStatus {
+    Init,
+    Downloaded,
+    Extracting,
+    Extracted,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -78,6 +93,7 @@ pub(crate) mod imp {
         pub downloaded_chunks: RefCell<HashMap<String, Vec<String>>>,
         pub chunk_urls: RefCell<HashMap<String, Vec<Url>>>,
         pub asset_files: RefCell<HashMap<String, Vec<String>>>,
+        pub docker_digests: RefCell<HashMap<String, Vec<(String, DownloadStatus)>>>,
         #[template_child]
         pub downloads: TemplateChild<gtk4::Box>,
         has_children: RefCell<bool>,
@@ -103,6 +119,7 @@ pub(crate) mod imp {
                 downloaded_chunks: RefCell::new(HashMap::new()),
                 chunk_urls: RefCell::new(HashMap::new()),
                 asset_files: RefCell::new(HashMap::new()),
+                docker_digests: RefCell::new(HashMap::new()),
                 downloads: TemplateChild::default(),
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
                 image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
@@ -221,7 +238,7 @@ impl EpicDownloadManager {
             clone!(@weak self as details => move |_, _| {
                 let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&details);
                 if let Some(w) = self_.window.get() {
-                   w.show_logged_in()
+                   w.show_logged_in();
                 }
             })
         );
@@ -245,7 +262,7 @@ impl EpicDownloadManager {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         match msg {
             DownloadMsg::ProcessItemThumbnail(id, image) => {
-                let item = match self.get_item(id) {
+                let item = match self.get_item(&id) {
                     None => return,
                     Some(i) => i,
                 };
@@ -258,7 +275,7 @@ impl EpicDownloadManager {
                 };
             }
             DownloadMsg::StartAssetDownload(id, manifest) => {
-                self.start_download_asset(id, manifest);
+                self.start_download_asset(&id, &manifest);
             }
             DownloadMsg::PerformAssetDownload(id, release, name, manifest) => {
                 self.download_asset_file(id, release, name, manifest);
@@ -267,16 +284,16 @@ impl EpicDownloadManager {
                 self.download_chunk(link, path, guid);
             }
             DownloadMsg::RedownloadChunk(link, path, guid) => {
-                self.redownload_chunk(link, path, guid);
+                self.redownload_chunk(&link, path, &guid);
             }
             DownloadMsg::ChunkDownloadProgress(guid, size, finished) => {
-                self.chunk_progress_report(guid, size, finished);
+                self.chunk_progress_report(&guid, size, finished);
             }
             DownloadMsg::FinalizeFileDownload(file, file_details) => {
-                self.finalize_file_download(file, file_details);
+                self.finalize_file_download(&file, file_details);
             }
             DownloadMsg::FileAlreadyDownloaded(id, progress) => {
-                let item = match self.get_item(id.clone()) {
+                let item = match self.get_item(&id) {
                     None => {
                         return;
                     }
@@ -287,7 +304,7 @@ impl EpicDownloadManager {
                 self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
             }
             DownloadMsg::FileExtracted(id) => {
-                let item = match self.get_item(id) {
+                let item = match self.get_item(&id) {
                     None => {
                         return;
                     }
@@ -296,13 +313,29 @@ impl EpicDownloadManager {
                 item.file_processed();
                 self.emit_by_name("tick", &[]).unwrap();
             }
+            DownloadMsg::PerformDockerEngineDownload(version, size, digests) => {
+                self.perform_docker_blob_downloads(&version, size, digests);
+            }
+            DownloadMsg::DockerDownloadProgress(version, progress) => {
+                self.docker_download_progress(&version, progress);
+            }
+            DownloadMsg::DockerBlobFinished(version, digest) => {
+                debug!("Finished download of {} digest {}", version, digest);
+                self.docker_blob_finished(&version, &digest);
+            }
+            DownloadMsg::DockerBlobFailed(version, digest) => {
+                self.download_docker_digest(&version, digest);
+            }
+            DownloadMsg::DockerExtractionFinished(version) => {
+                self.docker_extraction_finished(&version);
+            }
         }
     }
 
-    fn get_item(&self, id: String) -> Option<EpicDownloadItem> {
+    fn get_item(&self, id: &str) -> Option<EpicDownloadItem> {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let mut items = self_.download_items.borrow_mut();
-        items.get_mut(&id).map(|i| i.clone())
+        items.get_mut(id).map(|i| i.clone())
     }
 
     pub fn load_thumbnail(
@@ -361,7 +394,7 @@ impl EpicDownloadManager {
                                             .save_to_bufferv("png", &[])
                                             .unwrap(),
                                         ))
-                                        .unwrap()
+                                        .unwrap();
                                 }
                             };
                         }
@@ -369,7 +402,7 @@ impl EpicDownloadManager {
                             warn!("Need to load image");
                         }
                     };
-                })
+                });
             }
         }
     }
@@ -456,11 +489,11 @@ impl EpicDownloadManager {
     /// This also validates if the file was already downloaded and if it is and the hashes match does not download it again.
     fn start_download_asset(
         &self,
-        id: String,
-        dm: Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+        id: &str,
+        dm: &[egs_api::api::types::download_manifest::DownloadManifest],
     ) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
-        let item = match self.get_item(id.clone()) {
+        let item = match self.get_item(id) {
             None => return,
             Some(i) => i,
         };
@@ -494,7 +527,7 @@ impl EpicDownloadManager {
                         .unwrap();
                 }
                 Err(e) => {
-                    error!("Unable to save Manifest: {:?}", e)
+                    error!("Unable to save Manifest: {:?}", e);
                 }
             }
             match File::create(t.as_path().join("manifest")) {
@@ -502,7 +535,7 @@ impl EpicDownloadManager {
                     manifest_file.write_all(&manifest.to_vec()).unwrap();
                 }
                 Err(e) => {
-                    error!("Unable to save binary Manifest: {:?}", e)
+                    error!("Unable to save binary Manifest: {:?}", e);
                 }
             }
         });
@@ -515,7 +548,7 @@ impl EpicDownloadManager {
 
         // consolidate manifests
 
-        for manifest in &dm {
+        for manifest in dm {
             for m in manifest.files().values() {
                 for chunk in m.file_chunk_parts.clone() {
                     match chunk.link {
@@ -538,7 +571,7 @@ impl EpicDownloadManager {
 
         for (filename, manifest) in dm[0].files() {
             info!("Starting download of {}", filename);
-            let r_id = id.clone();
+            let r_id = id.to_string();
             let r_name = dm[0].app_name_string.clone();
             let f_name = filename.clone();
             let sender = self_.sender.clone();
@@ -565,25 +598,38 @@ impl EpicDownloadManager {
                             }
                         }
                         let hash = hasher.finalize();
-                        if !m.file_hash.eq(&hash
+                        if m.file_hash.eq(&hash
                             .iter()
                             .map(|b| format!("{:02x}", b))
                             .collect::<String>())
                         {
-                            warn!("Hashes do not match, downloading again: {:?}", full_path);
                             sender
-                                .send(DownloadMsg::PerformAssetDownload(r_id, r_name, f_name, m))
+                                .send(DownloadMsg::FileAlreadyDownloaded(
+                                    r_id.to_string(),
+                                    m.size(),
+                                ))
                                 .unwrap();
                         } else {
+                            warn!("Hashes do not match, downloading again: {:?}", full_path);
                             sender
-                                .send(DownloadMsg::FileAlreadyDownloaded(r_id, m.size()))
+                                .send(DownloadMsg::PerformAssetDownload(
+                                    r_id.to_string(),
+                                    r_name,
+                                    f_name,
+                                    m,
+                                ))
                                 .unwrap();
                         };
                     }
                     // File does not exist perform download
                     Err(_) => {
                         sender
-                            .send(DownloadMsg::PerformAssetDownload(r_id, r_name, f_name, m))
+                            .send(DownloadMsg::PerformAssetDownload(
+                                r_id.to_string(),
+                                r_name,
+                                f_name,
+                                m,
+                            ))
                             .unwrap();
                     }
                 }
@@ -602,7 +648,7 @@ impl EpicDownloadManager {
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
-        let _item = match self.get_item(id.clone()) {
+        let _item = match self.get_item(&id) {
             None => return,
             Some(i) => i,
         };
@@ -649,23 +695,23 @@ impl EpicDownloadManager {
         }
     }
 
-    fn redownload_chunk(&self, link: Url, p: PathBuf, g: String) {
+    fn redownload_chunk(&self, link: &Url, p: PathBuf, g: &str) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let sender = self_.sender.clone();
         let mut chunks = self_.chunk_urls.borrow_mut();
-        match chunks.get_mut(&g) {
+        match chunks.get_mut(g) {
             None => {
                 // Unable to get chunk urls
                 sender
                     .send(DownloadMsg::PerformChunkDownload(
                         link.clone(),
                         p,
-                        g.clone(),
+                        g.to_string(),
                     ))
                     .unwrap();
             }
             Some(v) => {
-                v.retain(|x| !x.eq(&link));
+                v.retain(|x| !x.eq(link));
                 if v.is_empty() {
                     // No other URL available, redownloading
                     //TODO: This has the potential to loop forever
@@ -673,7 +719,7 @@ impl EpicDownloadManager {
                         .send(DownloadMsg::PerformChunkDownload(
                             link.clone(),
                             p.clone(),
-                            g.clone(),
+                            g.to_string(),
                         ))
                         .unwrap();
                 };
@@ -687,14 +733,18 @@ impl EpicDownloadManager {
                             .send(DownloadMsg::PerformChunkDownload(
                                 link.clone(),
                                 p,
-                                g.clone(),
+                                g.to_string(),
                             ))
                             .unwrap();
                     }
                     Some(u) => {
                         // Using new url to redownload the chunk
                         sender
-                            .send(DownloadMsg::PerformChunkDownload(u.clone(), p, g.clone()))
+                            .send(DownloadMsg::PerformChunkDownload(
+                                u.clone(),
+                                p,
+                                g.to_string(),
+                            ))
                             .unwrap();
                     }
                 }
@@ -772,14 +822,14 @@ impl EpicDownloadManager {
         });
     }
 
-    fn chunk_progress_report(&self, guid: String, progress: u128, finished: bool) {
+    fn chunk_progress_report(&self, guid: &str, progress: u128, finished: bool) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         if finished {
             debug!("Finished downloading {}", guid);
             let mut finished_files: Vec<String> = Vec::new();
             let chunks = self_.downloaded_chunks.borrow();
-            self_.chunk_urls.borrow_mut().remove(&guid);
-            if let Some(files) = chunks.get(&guid) {
+            self_.chunk_urls.borrow_mut().remove(guid);
+            if let Some(files) = chunks.get(guid) {
                 let vault_dir = PathBuf::from(
                     match self_.settings.strv("unreal-vault-directories").get(0) {
                         None => {
@@ -866,30 +916,30 @@ impl EpicDownloadManager {
                                                         .unwrap();
                                                 }
                                                 Err(e) => {
-                                                    error!("Error opening the chunk file: {:?}", e)
+                                                    error!("Error opening the chunk file: {:?}", e);
                                                 }
                                             }
                                             debug!("chunk: {:?}", chunk);
                                         }
                                         let hash = hasher.finalize();
-                                        if !finished.hash.eq(&hash
+                                        if finished.hash.eq(&hash
                                             .iter()
                                             .map(|b| format!("{:02x}", b))
                                             .collect::<String>())
                                         {
-                                            error!("Failed to validate hash on: {:?}", vault);
-                                            // TODO: Try to download this file again
-                                        } else {
                                             sender
                                                 .send(DownloadMsg::FinalizeFileDownload(
                                                     file_c.clone(),
                                                     f_c.clone(),
                                                 ))
                                                 .unwrap();
+                                        } else {
+                                            error!("Failed to validate hash on: {:?}", vault);
+                                            // TODO: Try to download this file again
                                         };
                                     }
                                     Err(e) => {
-                                        error!("Error opening the target file: {:?}", e)
+                                        error!("Error opening the target file: {:?}", e);
                                     }
                                 }
                             });
@@ -899,10 +949,10 @@ impl EpicDownloadManager {
             }
         } else {
             let chunks = self_.downloaded_chunks.borrow();
-            if let Some(files) = chunks.get(&guid) {
+            if let Some(files) = chunks.get(guid) {
                 for file in files {
                     if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
-                        let item = match self.get_item(f.asset.clone()) {
+                        let item = match self.get_item(&f.asset) {
                             None => {
                                 break;
                             }
@@ -917,10 +967,10 @@ impl EpicDownloadManager {
         }
     }
 
-    fn finalize_file_download(&self, file: String, file_details: DownloadedFile) {
+    fn finalize_file_download(&self, file: &str, file_details: DownloadedFile) {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         info!("File finished: {}", file);
-        self_.downloaded_files.borrow_mut().remove(&file);
+        self_.downloaded_files.borrow_mut().remove(file);
         let temp_dir = PathBuf::from(
             self_
                 .settings
@@ -929,7 +979,7 @@ impl EpicDownloadManager {
         );
         for chunk in file_details.finished_chunks {
             if let Some(ch) = self_.downloaded_chunks.borrow_mut().get_mut(&chunk.guid) {
-                ch.retain(|x| !x.eq(&file));
+                ch.retain(|x| !x.eq(file));
                 if ch.is_empty() {
                     let mut p = temp_dir.clone();
                     p.push(&file_details.release);
@@ -941,10 +991,10 @@ impl EpicDownloadManager {
                         error!("Unable to remove chunk file: {}", e);
                     };
                     if let Err(e) = std::fs::remove_dir(p.parent().unwrap()) {
-                        debug!("Unable to remove the temp directory(yet): {}", e)
+                        debug!("Unable to remove the temp directory(yet): {}", e);
                     };
                     if let Err(e) = std::fs::remove_dir(p.parent().unwrap().parent().unwrap()) {
-                        debug!("Unable to remove the temp directory(yet): {}", e)
+                        debug!("Unable to remove the temp directory(yet): {}", e);
                     };
                 }
             }
@@ -955,17 +1005,17 @@ impl EpicDownloadManager {
             .unwrap();
     }
 
-    pub fn progress(&self) -> f64 {
+    pub fn progress(&self) -> f32 {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let items = self_.download_items.borrow().values().len();
-        let mut progress = 0.0;
+        let mut progress = 0.0f32;
         for item in self_.download_items.borrow().values() {
             progress += item.progress();
         }
         if items > 0 {
-            progress / items as f64
+            progress / items as f32
         } else {
-            0.0
+            0.0f32
         }
     }
 
@@ -1006,7 +1056,7 @@ impl EpicDownloadManager {
                         .unwrap();
                 }
             };
-        })
+        });
     }
 
     pub fn download_image(
@@ -1052,6 +1102,6 @@ impl EpicDownloadManager {
                         .unwrap();
                 }
             };
-        })
+        });
     }
 }

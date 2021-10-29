@@ -119,7 +119,7 @@ pub(crate) mod imp {
                 asset_search: TemplateChild::default(),
                 search_toggle: TemplateChild::default(),
                 select_order_by: TemplateChild::default(),
-                order: Default::default(),
+                order: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
                 filter: RefCell::new(None),
                 search: RefCell::new(None),
@@ -271,10 +271,8 @@ pub(crate) mod imp {
             obj.bind_properties();
             obj.setup_actions();
             obj.setup_widgets();
-            self.home_category
-                .add_category("all".to_string(), "".to_string());
-            self.home_category
-                .add_category("favorites".to_string(), "favorites".to_string());
+            self.home_category.add_category("all", "");
+            self.home_category.add_category("favorites", "favorites");
         }
     }
 
@@ -359,7 +357,7 @@ impl EpicLibraryBox {
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&library);
                 let asset = a.downcast::<crate::models::asset_data::AssetData>().unwrap();
                 let assets = self_.loaded_assets.borrow();
-                if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a.clone()) }
+                if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a) }
             }
         }));
 
@@ -382,9 +380,10 @@ impl EpicLibraryBox {
                 } else if info2.is_none() {
                     return gtk4::Ordering::Larger;
                 }
-                match asc {
-                    true => info1.unwrap().cmp(&info2.unwrap()).into(),
-                    false => info2.unwrap().cmp(&info1.unwrap()).into(),
+                if asc {
+                    info1.unwrap().cmp(&info2.unwrap()).into()
+                } else {
+                    info2.unwrap().cmp(&info1.unwrap()).into()
                 }
             }),
             "updated" => gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -401,9 +400,10 @@ impl EpicLibraryBox {
                 } else if info2.is_none() {
                     return gtk4::Ordering::Larger;
                 }
-                match asc {
-                    true => info1.unwrap().cmp(&info2.unwrap()).into(),
-                    false => info2.unwrap().cmp(&info1.unwrap()).into(),
+                if asc {
+                    info1.unwrap().cmp(&info2.unwrap()).into()
+                } else {
+                    info2.unwrap().cmp(&info1.unwrap()).into()
                 }
             }),
             _ => gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -413,17 +413,18 @@ impl EpicLibraryBox {
                 let info2 = obj2
                     .downcast_ref::<crate::models::asset_data::AssetData>()
                     .unwrap();
-                match asc {
-                    true => info1
+                if asc {
+                    info1
                         .name()
                         .to_lowercase()
                         .cmp(&info2.name().to_lowercase())
-                        .into(),
-                    false => info2
+                        .into()
+                } else {
+                    info2
                         .name()
                         .to_lowercase()
                         .cmp(&info1.name().to_lowercase())
-                        .into(),
+                        .into()
                 }
             }),
         }
@@ -435,7 +436,7 @@ impl EpicLibraryBox {
         if let Some(id) = self.item() {
             let assets = self_.loaded_assets.borrow();
             if let Some(a) = assets.get(&id) {
-                self_.details.set_asset(a.clone());
+                self_.details.set_asset(a);
             }
         } else if let Some(product) = self.product() {
             let assets = self_.loaded_assets.borrow();
@@ -443,7 +444,7 @@ impl EpicLibraryBox {
             match products.get(&product) {
                 Some(id) => {
                     if let Some(a) = assets.get(id) {
-                        self_.details.set_asset(a.clone())
+                        self_.details.set_asset(a);
                     }
                 }
                 None => {
@@ -451,7 +452,7 @@ impl EpicLibraryBox {
                         if product.starts_with(prod) {
                             if let Some(id) = products.get(prod) {
                                 if let Some(a) = assets.get(id) {
-                                    self_.details.set_asset(a.clone())
+                                    self_.details.set_asset(a);
                                 }
                             }
                             break;
@@ -536,10 +537,7 @@ impl EpicLibraryBox {
     pub fn order_changed(&self) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
         let asc = if let Some(name) = self_.order.icon_name() {
-            match name.as_str() {
-                "view-sort-ascending-symbolic" => true,
-                _ => false,
-            }
+            matches!(name.as_str(), "view-sort-ascending-symbolic")
         } else {
             false
         };
@@ -578,7 +576,7 @@ impl EpicLibraryBox {
             clone!(@weak self as win => move |_, _| {
                 let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
                 if let Some(w) = self_.window.get() {
-                   w.show_download_manager()
+                   w.show_download_manager();
                 }
             })
         );
@@ -591,7 +589,7 @@ impl EpicLibraryBox {
                 if let Some(name) = self_.order.icon_name() {
                     match name.as_str() {
                         "view-sort-ascending-symbolic" => {
-                            self_.order.set_icon_name("view-sort-descending-symbolic")
+                            self_.order.set_icon_name("view-sort-descending-symbolic");
                         }
                         _ => self_.order.set_icon_name("view-sort-ascending-symbolic"),
                     }
@@ -674,7 +672,7 @@ impl EpicLibraryBox {
                     .contains(&se.to_ascii_lowercase()),
             }) && (match &filter_p {
                 None => true,
-                Some(f) => asset.check_category(f.clone()),
+                Some(f) => asset.check_category(f),
             })
         });
         self_.filter_model.set_filter(Some(&filter));
@@ -739,13 +737,13 @@ impl EpicLibraryBox {
         let parts = path.split('/').collect::<Vec<&str>>();
         if parts.len() > 1 {
             let name = parts[1..].join("/");
-            match parts[0] {
-                "assets" => &self_.assets_category,
-                "plugins" => &self_.plugins_category,
-                "projects" => &self_.projects_category,
-                &_ => &self_.other_category,
+            match parts.get(0) {
+                Some(&"assets") => &self_.assets_category,
+                Some(&"plugins") => &self_.plugins_category,
+                Some(&"projects") => &self_.projects_category,
+                _ => &self_.other_category,
             }
-            .add_category(name, path.to_string());
+            .add_category(&name, path);
         }
     }
 
@@ -813,7 +811,7 @@ impl EpicLibraryBox {
                                                 .save_to_bufferv("png", &[])
                                                 .unwrap(),
                                             ))
-                                            .unwrap()
+                                            .unwrap();
                                     }
                                 };
                             }
@@ -823,7 +821,7 @@ impl EpicLibraryBox {
                                     .unwrap();
                             }
                         };
-                    })
+                    });
                 }
             }
         }
@@ -896,21 +894,6 @@ impl EpicLibraryBox {
                     self_.image_load_pool.queued_count() +
                     self_.image_load_pool.active_count()) > 0)
             }));
-            glib::timeout_add_seconds_local(
-                1,
-                clone!(@weak self as obj => @default-panic, move || {
-                    let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);
-                    if let Ok(a) = self_.assets_pending.read() {
-                        if a.len() > 0 {
-                            glib::idle_add_local(clone!(@weak obj => @default-panic, move || {
-                                obj.flush_assets();
-                                glib::Continue(false)
-                            }));
-                        }
-                    }
-                    glib::Continue(true)
-                }),
-            );
         }
     }
 
@@ -967,11 +950,11 @@ impl EpicLibraryBox {
         }
     }
 
-    pub fn refresh_asset(&self, id: String) {
+    pub fn refresh_asset(&self, id: &str) {
         let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
-        if let Some(data) = self_.loaded_data.borrow().get(&id) {
-            data.refresh()
+        if let Some(data) = self_.loaded_data.borrow().get(id) {
+            data.refresh();
         }
-        self.apply_filter()
+        self.apply_filter();
     }
 }
