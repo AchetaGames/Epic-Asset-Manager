@@ -202,7 +202,7 @@ impl PreferencesWindow {
         if let Some(w) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
                 crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-            if let Ok(collection) = win_.model.borrow().secret_service.get_default_collection() {
+            if let Ok(collection) = win_.model.borrow().secret_service.get_any_collection() {
                 if let Ok(items) = collection.search_items(
                     [("application", crate::config::APP_ID)]
                         .iter()
@@ -241,7 +241,7 @@ impl PreferencesWindow {
                     attributes.insert("type", "token");
                     let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
                     let model = win_.model.borrow();
-                    if let Err(e) = model.secret_service.get_default_collection().unwrap().create_item(
+                    if let Err(e) = model.secret_service.get_any_collection().unwrap().create_item(
                         "eam_github_token",
                         attributes.clone(),
                         self_.github_token.text().as_bytes(),

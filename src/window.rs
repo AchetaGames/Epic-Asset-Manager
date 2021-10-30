@@ -326,7 +326,7 @@ impl EpicAssetManagerWindow {
                         .model
                         .borrow()
                         .secret_service
-                        .get_default_collection()
+                        .get_any_collection()
                         .unwrap()
                         .create_item(
                             "eam_epic_games_token",
@@ -357,7 +357,7 @@ impl EpicAssetManagerWindow {
                         .model
                         .borrow()
                         .secret_service
-                        .get_default_collection()
+                        .get_any_collection()
                         .unwrap()
                         .create_item(
                             "eam_epic_games_refresh_token",
