@@ -130,7 +130,7 @@ impl Model {
     }
 
     fn load_secrets(&mut self) {
-        if let Ok(collection) = self.secret_service.get_default_collection() {
+        if let Ok(collection) = self.secret_service.get_any_collection() {
             if let Ok(items) = collection.search_items(
                 [("application", crate::config::APP_ID)]
                     .iter()
