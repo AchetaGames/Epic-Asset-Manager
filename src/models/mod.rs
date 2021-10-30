@@ -119,7 +119,11 @@ impl Model {
                     }
                 },
                 Err(e) => {
+                    // TODO: Display visual notification authentication failed
                     error!("Failed authentication {:?}", e);
+                    sender
+                        .send(crate::ui::messages::Msg::GithubAuthFailed)
+                        .unwrap();
                 }
             };
         });

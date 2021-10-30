@@ -430,6 +430,9 @@ impl EpicEngineDetails {
     fn updated_docker_versions(&self, versions: &HashMap<String, Vec<String>>) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
         self_.docker_versions.replace(Some(versions.clone()));
+        if self_.data.borrow().is_none() {
+            self.add_engine();
+        }
     }
 
     pub fn docker_manifest(&self) {
@@ -501,6 +504,11 @@ impl EpicEngineDetails {
                         .send(DockerMsg::DockerEngineVersions(result))
                         .unwrap();
                 });
+            } else {
+                self_.docker_versions.replace(None);
+                if self_.data.borrow().is_none() {
+                    self.add_engine();
+                }
             };
         }
     }

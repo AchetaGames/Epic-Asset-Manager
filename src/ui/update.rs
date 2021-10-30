@@ -40,6 +40,10 @@ impl Update for EpicAssetManagerWindow {
                 self_.model.borrow_mut().dclient.replace(Some(dclient));
                 self_.logged_in_stack.update_docker();
             }
+            Msg::GithubAuthFailed => {
+                self_.model.borrow_mut().dclient.replace(None);
+                self_.logged_in_stack.update_docker();
+            }
         }
         // debug!(
         //     "{:?} - {} took {:?}",

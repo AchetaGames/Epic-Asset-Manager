@@ -13,6 +13,7 @@ pub enum Msg {
     FlushAssetThumbnails,
     DownloadImage(KeyImage, AssetInfo),
     DockerClient(ghregistry::Client),
+    GithubAuthFailed,
 }
 
 impl fmt::Display for Msg {
@@ -41,6 +42,9 @@ impl fmt::Display for Msg {
             }
             Msg::DockerClient(_) => {
                 write!(f, "DockerClient")
+            }
+            Msg::GithubAuthFailed => {
+                write!(f, "GithubAuthFailed")
             }
         }
     }
