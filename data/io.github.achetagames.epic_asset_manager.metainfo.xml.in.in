@@ -28,6 +28,11 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.7.2" date="2021-10-30">
+       <description>
+              <p>Fix crashes on XFCE</p>
+       </description>
+    </release>
     <release version="2.7.1" date="2021-10-29">
        <description>
                   <p>Change ghregistry from github to crates.io</p>
