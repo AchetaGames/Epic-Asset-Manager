@@ -5,7 +5,7 @@ use glib::clone;
 use gtk4::prelude::*;
 use gtk4::subclass::prelude::*;
 use gtk4::{gdk, gio, glib};
-use gtk_macros::action;
+use gtk_macros::{action, stateful_action};
 use log::{debug, info};
 use once_cell::sync::OnceCell;
 
@@ -126,6 +126,17 @@ pub(crate) mod imp {
 
         fn startup(&self, app: &Self::Type) {
             debug!("GtkApplication<EpicAssetManager>::startup");
+
+            self.settings
+                .connect_changed(Some("dark-mode"), |_settings, _key| {
+                    let style_manager = adw::StyleManager::default().unwrap();
+                    if style_manager.is_dark() {
+                        style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
+                    } else {
+                        style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
+                    }
+                });
+
             self.parent_startup(app);
 
             adw::functions::init();
@@ -183,6 +194,7 @@ impl EpicAssetManager {
     }
 
     pub fn setup_gactions(&self) {
+        let self_ = crate::application::imp::EpicAssetManager::from_instance(self);
         self.connect_shutdown(|_| {
             if let Ok(mut w) = crate::RUNNING.write() {
                 *w = false;
@@ -199,6 +211,22 @@ impl EpicAssetManager {
                 }
                 app.main_window().close();
                 app.quit();
+            })
+        );
+
+        let is_dark_mode = self_.settings.boolean("dark-mode");
+        stateful_action!(
+            self,
+            "dark-mode",
+            is_dark_mode,
+            clone!(@weak self_.settings as settings =>  move |action, _| {
+                let state = action.state().unwrap();
+                let action_state: bool = state.get().unwrap();
+                let is_dark_mode = !action_state;
+                action.set_state(&is_dark_mode.to_variant());
+                if let Err(err) = settings.set_boolean("dark-mode", is_dark_mode) {
+                    error!("Failed to switch dark mode: {} ", err);
+                }
             })
         );
 

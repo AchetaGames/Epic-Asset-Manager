@@ -38,6 +38,8 @@ pub(crate) mod imp {
         pub progress_icon: TemplateChild<crate::ui::widgets::progress_icon::ProgressIcon>,
         #[template_child]
         pub appmenu_button: TemplateChild<gtk4::MenuButton>,
+        #[template_child]
+        pub color_scheme_btn: TemplateChild<gtk4::Button>,
         pub model: RefCell<Model>,
     }
 
@@ -57,6 +59,7 @@ pub(crate) mod imp {
                 download_manager: TemplateChild::default(),
                 progress_icon: TemplateChild::default(),
                 appmenu_button: TemplateChild::default(),
+                color_scheme_btn: TemplateChild::default(),
                 model: RefCell::new(Model::new()),
             }
         }
@@ -79,6 +82,23 @@ pub(crate) mod imp {
             if PROFILE == "Devel" {
                 obj.style_context().add_class("devel");
             }
+
+            let button = self.color_scheme_btn.get();
+            let style_manager = adw::StyleManager::default().unwrap();
+
+            style_manager.connect_color_scheme_notify(move |style_manager| {
+                let supported = style_manager.system_supports_color_schemes();
+                button.set_visible(!supported);
+                if supported {
+                    style_manager.set_color_scheme(adw::ColorScheme::Default);
+                } else {
+                    if style_manager.is_dark() {
+                        button.set_icon_name("light-mode-symbolic");
+                    } else {
+                        button.set_icon_name("dark-mode-symbolic");
+                    }
+                }
+            });
 
             // load latest window state
             obj.load_window_size();
@@ -210,6 +230,14 @@ impl EpicAssetManagerWindow {
 
         if is_maximized {
             self.maximize();
+        }
+        let style_manager = adw::StyleManager::default().unwrap();
+        if !style_manager.system_supports_color_schemes() {
+            if settings.boolean("dark-mode") {
+                style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
+            } else {
+                style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
+            }
         }
     }
 
