@@ -7,6 +7,7 @@ use egs_api::api::UserData;
 pub enum Msg {
     ShowLogin,
     LoginOk(UserData),
+    LoginFailed(String),
     ProcessAssetInfo(AssetInfo),
     ProcessEpicAsset(EpicAsset),
     ProcessAssetThumbnail(AssetInfo, Vec<u8>),
@@ -45,6 +46,9 @@ impl fmt::Display for Msg {
             }
             Msg::GithubAuthFailed => {
                 write!(f, "GithubAuthFailed")
+            }
+            Msg::LoginFailed => {
+                write!(f, "LoginFailed")
             }
         }
     }

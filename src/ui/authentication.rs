@@ -24,7 +24,19 @@ impl EpicAssetManagerWindow {
                     sender
                         .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                         .unwrap();
+                } else {
+                    sender
+                        .send(crate::ui::messages::Msg::LoginFailed(
+                            "Unable to get auth code".to_string(),
+                        ))
+                        .unwrap();
                 }
+            } else {
+                sender
+                    .send(crate::ui::messages::Msg::LoginFailed(
+                        "Unable to authenticate with sid".to_string(),
+                    ))
+                    .unwrap();
             };
             debug!(
                 "{:?} - Login requests took {:?}",
@@ -93,8 +105,11 @@ impl EpicAssetManagerWindow {
                     .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
             } else {
-                error!("Relogin request failed");
-                sender.send(crate::ui::messages::Msg::ShowLogin).unwrap();
+                sender
+                    .send(crate::ui::messages::Msg::LoginFailed(
+                        "Relogin request failed".to_string(),
+                    ))
+                    .unwrap();
             };
             debug!(
                 "{:?} - Relogin requests took {:?}",

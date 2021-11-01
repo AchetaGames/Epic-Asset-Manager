@@ -44,6 +44,10 @@ impl Update for EpicAssetManagerWindow {
                 self_.model.borrow_mut().dclient.replace(None);
                 self_.logged_in_stack.update_docker();
             }
+            Msg::LoginFailed(reason) => {
+                error!("{}", reason);
+                self.show_login();
+            }
         }
         // debug!(
         //     "{:?} - {} took {:?}",
