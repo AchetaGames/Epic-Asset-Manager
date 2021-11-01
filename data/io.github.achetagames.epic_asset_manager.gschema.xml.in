@@ -47,5 +47,9 @@
       <default>[]</default>
       <summary>Unreal Projects Directories</summary>
     </key>
+    <key name="dark-mode" type="b">
+      <default>false</default>
+      <summary>Enable or disable dark mode</summary>
+    </key>
   </schema>
 </schemalist>

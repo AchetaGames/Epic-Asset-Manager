@@ -28,6 +28,11 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.7.3" date="2021-11-01">
+       <description>
+              <p>Added Dark Mode</p>
+       </description>
+    </release>
     <release version="2.7.2" date="2021-10-30">
        <description>
               <p>Fix crashes on XFCE</p>

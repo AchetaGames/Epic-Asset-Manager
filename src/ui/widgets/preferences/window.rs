@@ -44,6 +44,8 @@ pub mod imp {
         pub github_token: TemplateChild<gtk4::PasswordEntry>,
         #[template_child]
         pub github_user: TemplateChild<gtk4::Entry>,
+        #[template_child(id = "dark_theme_switch")]
+        pub dark_theme: TemplateChild<gtk4::Switch>,
     }
 
     #[glib::object_subclass]
@@ -68,6 +70,7 @@ pub mod imp {
                 unreal_engine_directories_box: TemplateChild::default(),
                 github_token: TemplateChild::default(),
                 github_user: TemplateChild::default(),
+                dark_theme: TemplateChild::default(),
             }
         }
 
@@ -137,6 +140,10 @@ impl PreferencesWindow {
 
     pub fn bind_settings(&self) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        self_
+            .settings
+            .bind("dark-mode", &*self_.dark_theme, "active")
+            .build();
         self_
             .settings
             .bind("cache-directory", &*self_.cache_directory_row, "subtitle")

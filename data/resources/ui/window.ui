@@ -34,6 +34,15 @@
                         </binding>
                     </object>
                 </property>
+                <child type="start">
+                    <object class="GtkButton" id="color_scheme_btn">
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="action-name">app.dark-mode</property>
+                        <property name="tooltip-text" translatable="yes">Toggle Dark Mode</property>
+                        <property name="icon-name">dark-mode-symbolic</property>
+                    </object>
+                </child>
                 <child type="end">
                     <object class="GtkBox">
                         <child>
