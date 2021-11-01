@@ -46,6 +46,7 @@ impl Update for EpicAssetManagerWindow {
             }
             Msg::LoginFailed(reason) => {
                 error!("{}", reason);
+                self.add_notification(&reason, gtk4::MessageType::Error);
                 self.show_login();
             }
         }
