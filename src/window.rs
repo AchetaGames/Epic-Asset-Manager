@@ -360,7 +360,6 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn show_assets(&self, ud: &egs_api::api::UserData) {
-        // TODO display user information from the UserData
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
         self_
