@@ -320,11 +320,29 @@ impl EpicAssetManagerWindow {
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 
-    pub fn add_notification(&self, message: &str, message_type: gtk4::MessageType) {
+    pub fn clear_notification(&self, name: &str) {
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        match self_.notifications.first_child() {
+            None => {}
+            Some(w) => {
+                if w.widget_name().eq(name) {
+                    self_.notifications.remove(&w);
+                }
+                while let Some(s) = w.next_sibling() {
+                    self_.notifications.remove(&s);
+                }
+            }
+        }
+    }
+
+    pub fn add_notification(&self, name: &str, message: &str, message_type: gtk4::MessageType) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow =
+            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        self.clear_notification(name);
         let notif = gtk4::InfoBarBuilder::new()
             .message_type(message_type)
+            .name(name)
             .margin_start(10)
             .margin_end(10)
             .show_close_button(true)

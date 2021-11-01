@@ -1,5 +1,6 @@
 use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
+use gtk4::prelude::SettingsExt;
 // use log::debug;
 // use std::thread;
 
@@ -16,7 +17,10 @@ impl Update for EpicAssetManagerWindow {
 
         match event {
             Msg::ShowLogin => self.show_login(),
-            Msg::LoginOk(ud) => self.show_assets(&ud),
+            Msg::LoginOk(ud) => {
+                self.clear_notification("login");
+                self.show_assets(&ud);
+            }
             Msg::ProcessAssetInfo(a) => {
                 self_.logged_in_stack.load_thumbnail(&a);
             }
@@ -38,15 +42,30 @@ impl Update for EpicAssetManagerWindow {
             }
             Msg::DockerClient(dclient) => {
                 self_.model.borrow_mut().dclient.replace(Some(dclient));
+                self.clear_notification("GithubAuth");
                 self_.logged_in_stack.update_docker();
             }
             Msg::GithubAuthFailed => {
                 self_.model.borrow_mut().dclient.replace(None);
+                if !self_
+                    .model
+                    .borrow()
+                    .settings
+                    .string("github-user")
+                    .is_empty()
+                {
+                    self.add_notification(
+                        "GithubAuth",
+                        "Github Token Authentication failed",
+                        gtk4::MessageType::Error,
+                    );
+                }
+
                 self_.logged_in_stack.update_docker();
             }
             Msg::LoginFailed(reason) => {
                 error!("{}", reason);
-                self.add_notification(&reason, gtk4::MessageType::Error);
+                self.add_notification("login", &reason, gtk4::MessageType::Error);
                 self.show_login();
             }
         }
