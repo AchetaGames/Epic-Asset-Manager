@@ -21,9 +21,11 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="download_item.ui">resources/ui/download_item.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="image_stack.ui">resources/ui/image_stack.ui</file>
         <file compressed="true" alias="style.css">resources/style.css</file>
-        <file compressed="true" preprocess="xml-stripblanks">icons/ue-logo-symbolic.svg</file>
     </gresource>
-    <gresource prefix="/io/github/achetagames/epic_asset_manager/icons/16x16/actions/">
+    <gresource prefix="/io/github/achetagames/epic_asset_manager/icons/scalable/emblems">
+        <file compressed="true" preprocess="xml-stripblanks" alias="ue-logo-symbolic.svg">icons/ue-logo-symbolic.svg</file>
+    </gresource>
+    <gresource prefix="/io/github/achetagames/epic_asset_manager/icons/scalable/actions/">
         <file compressed="true" preprocess="xml-stripblanks" alias="light-mode-symbolic.svg">icons/light-mode-symbolic.svg</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="dark-mode-symbolic.svg">icons/dark-mode-symbolic.svg</file>
     </gresource>

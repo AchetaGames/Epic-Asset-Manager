@@ -40,6 +40,8 @@ pub(crate) mod imp {
         pub appmenu_button: TemplateChild<gtk4::MenuButton>,
         #[template_child]
         pub color_scheme_btn: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub notifications: TemplateChild<gtk4::Box>,
         pub model: RefCell<Model>,
     }
 
@@ -60,6 +62,7 @@ pub(crate) mod imp {
                 progress_icon: TemplateChild::default(),
                 appmenu_button: TemplateChild::default(),
                 color_scheme_btn: TemplateChild::default(),
+                notifications: TemplateChild::default(),
                 model: RefCell::new(Model::new()),
             }
         }
@@ -317,8 +320,46 @@ impl EpicAssetManagerWindow {
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 
+    pub fn clear_notification(&self, name: &str) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow =
+            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        match self_.notifications.first_child() {
+            None => {}
+            Some(w) => {
+                if w.widget_name().eq(name) {
+                    self_.notifications.remove(&w);
+                }
+                while let Some(s) = w.next_sibling() {
+                    self_.notifications.remove(&s);
+                }
+            }
+        }
+    }
+
+    pub fn add_notification(&self, name: &str, message: &str, message_type: gtk4::MessageType) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow =
+            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        self.clear_notification(name);
+        let notif = gtk4::InfoBarBuilder::new()
+            .message_type(message_type)
+            .name(name)
+            .margin_start(10)
+            .margin_end(10)
+            .show_close_button(true)
+            .build();
+        let label = gtk4::LabelBuilder::new().label(message).build();
+        notif.add_child(&label);
+        notif.connect_response(
+            clone!(@weak notif, @weak self as window => @default-panic, move |_, _| {
+                let self_: &crate::window::imp::EpicAssetManagerWindow =
+            crate::window::imp::EpicAssetManagerWindow::from_instance(&window);
+                self_.notifications.remove(&notif);
+            }),
+        );
+        self_.notifications.append(&notif);
+    }
+
     pub fn show_assets(&self, ud: &egs_api::api::UserData) {
-        // TODO display user information from the UserData
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
         self_
