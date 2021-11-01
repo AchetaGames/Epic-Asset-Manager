@@ -1,7 +1,7 @@
 use crate::window::EpicAssetManagerWindow;
 use chrono::{DateTime, Utc};
 use gtk4::prelude::SettingsExt;
-use log::{debug, error};
+use log::debug;
 use std::thread;
 use tokio::runtime::Runtime;
 

@@ -47,7 +47,7 @@ impl fmt::Display for Msg {
             Msg::GithubAuthFailed => {
                 write!(f, "GithubAuthFailed")
             }
-            Msg::LoginFailed => {
+            Msg::LoginFailed(_) => {
                 write!(f, "LoginFailed")
             }
         }
