@@ -11,6 +11,12 @@ then
     cargo build --manifest-path \
         "$MESON_SOURCE_ROOT"/Cargo.toml && \
         cp "$CARGO_TARGET_DIR"/debug/$5 $3
+elif [[ $4 = "Windows" ]]
+then
+  echo "WINDOWS MODE"
+      cargo build --target=x86_64-pc-windows-gnu --manifest-path \
+          "$MESON_SOURCE_ROOT"/Cargo.toml && \
+          cp "$CARGO_TARGET_DIR"/debug/$5 $3
 else
     echo "RELEASE MODE"
     cargo build --manifest-path \

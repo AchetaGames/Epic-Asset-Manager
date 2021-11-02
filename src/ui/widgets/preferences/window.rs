@@ -205,42 +205,42 @@ impl PreferencesWindow {
     }
 
     fn load_secrets(&self) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-        if let Some(w) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-            if let Ok(collection) = win_.model.borrow().secret_service.get_any_collection() {
-                if let Ok(items) = collection.search_items(
-                    [("application", crate::config::APP_ID)]
-                        .iter()
-                        .copied()
-                        .collect(),
-                ) {
-                    for item in items {
-                        let label = if let Ok(l) = item.get_label() {
-                            l
-                        } else {
-                            debug!("No label skipping");
-                            continue;
-                        };
-                        debug!("Loading: {}", label);
-                        match label.as_str() {
-                            "eam_github_token" => {
-                                if let Ok(d) = item.get_secret() {
-                                    if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                        self_.github_token.set_text(s);
-                                    }
-                                };
+        #[cfg(target_os = "linux")]
+        {
+            let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+            if let Some(w) = self_.window.get() {
+                let win_: &crate::window::imp::EpicAssetManagerWindow =
+                    crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                if let Ok(collection) = win_.model.borrow().secret_service.get_any_collection() {
+                    if let Ok(items) = collection.search_items(
+                        [("application", crate::config::APP_ID)]
+                            .iter()
+                            .copied()
+                            .collect(),
+                    ) {
+                        for item in items {
+                            let label = if let Ok(l) = item.get_label() {
+                                l
+                            } else {
+                                debug!("No label skipping");
+                                continue;
+                            };
+                            debug!("Loading: {}", label);
+                            match label.as_str() {
+                                "eam_github_token" => {
+                                    if let Ok(d) = item.get_secret() {
+                                        if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                            self_.github_token.set_text(s);
+                                        }
+                                    };
+                                }
+                                &_ => {}
                             }
-                            &_ => {}
                         }
-                    }
+                    };
                 };
             };
-        };
-        self_
-            .github_token
-            .connect_changed(clone!(@weak self as preferences => move |_| {
+            self_.github_token.connect_changed(clone!(@weak self as preferences => move |_| {
                 let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
                 if let Some(w) = self_.window.get() {
                     let mut attributes = HashMap::new();
@@ -260,6 +260,7 @@ impl PreferencesWindow {
                     model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
                 }
             }));
+        }
     }
 
     pub fn setup_actions(&self) {

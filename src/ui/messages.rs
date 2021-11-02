@@ -13,7 +13,9 @@ pub enum Msg {
     ProcessAssetThumbnail(AssetInfo, Vec<u8>),
     FlushAssetThumbnails,
     DownloadImage(KeyImage, AssetInfo),
+    #[cfg(target_os = "linux")]
     DockerClient(ghregistry::Client),
+    #[cfg(target_os = "linux")]
     GithubAuthFailed,
 }
 
@@ -41,9 +43,11 @@ impl fmt::Display for Msg {
             Msg::ProcessEpicAsset(_) => {
                 write!(f, "ProcessEpicAsset")
             }
+            #[cfg(target_os = "linux")]
             Msg::DockerClient(_) => {
                 write!(f, "DockerClient")
             }
+            #[cfg(target_os = "linux")]
             Msg::GithubAuthFailed => {
                 write!(f, "GithubAuthFailed")
             }

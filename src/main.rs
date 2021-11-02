@@ -17,6 +17,10 @@ extern crate diesel_migrations;
 #[macro_use]
 extern crate lazy_static;
 extern crate futures;
+
+#[cfg(target_os = "windows")]
+extern crate winres;
+
 use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use application::EpicAssetManager;
 use env_logger::Env;
@@ -31,11 +35,11 @@ lazy_static! {
 }
 
 fn main() {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
-        WindowsResource::new()
+        winres::WindowsResource::new()
             .set_icon("data/icons/io.github.achetagames.epic_asset_manager.ico")
-            .compile()?;
+            .compile();
     }
 
     env_logger::Builder::from_env(Env::default().default_filter_or("epic_asset_manager:info"))

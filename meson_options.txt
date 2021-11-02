@@ -8,3 +8,8 @@ option(
   value: 'default',
   description: 'The build profile for Epic Asset Manager. One of "default" or "development".'
 )
+option(
+  'windows',
+  type : 'boolean',
+  value : false
+)

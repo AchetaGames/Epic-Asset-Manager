@@ -5,6 +5,11 @@ global_conf.set_quoted('PROFILE', profile)
 global_conf.set_quoted('VERSION', version + version_suffix)
 global_conf.set_quoted('GETTEXT_PACKAGE', gettext_package)
 global_conf.set_quoted('LOCALEDIR', localedir)
+if get_option('windows')
+    global_conf.set_quoted('GRESOURCEFILE', 'resources.gresource')
+else
+    global_conf.set_quoted('GRESOURCEFILE', '/resources.gresource')
+endif
 config = configure_file(
   input: 'config.rs.in',
   output: 'config.rs',
@@ -61,6 +66,11 @@ rust_sources = files(
 )
 
 sources = [cargo_sources, rust_sources]
+if get_option('windows')
+    target = 'Windows'
+else
+    target = profile
+endif
 
 custom_target(
   'cargo-build',
@@ -76,7 +86,7 @@ custom_target(
     meson.build_root(),
     meson.source_root(),
     '@OUTPUT@',
-    profile,
+    target,
     meson.project_name(),
   ]
 )

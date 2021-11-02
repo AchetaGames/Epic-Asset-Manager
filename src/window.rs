@@ -390,23 +390,26 @@ impl EpicAssetManagerWindow {
                     .set_string("token-expiration", d.as_str())
                     .unwrap();
                 if let Some(at) = ud.access_token() {
-                    debug!("Saving token secret");
-                    if let Err(e) = self_
-                        .model
-                        .borrow()
-                        .secret_service
-                        .get_any_collection()
-                        .unwrap()
-                        .create_item(
-                            "eam_epic_games_token",
-                            attributes.clone(),
-                            at.as_bytes(),
-                            true,
-                            "text/plain",
-                        )
+                    #[cfg(target_os = "linux")]
                     {
-                        error!("Failed to save secret {}", e);
-                    };
+                        debug!("Saving token secret");
+                        if let Err(e) = self_
+                            .model
+                            .borrow()
+                            .secret_service
+                            .get_any_collection()
+                            .unwrap()
+                            .create_item(
+                                "eam_epic_games_token",
+                                attributes.clone(),
+                                at.as_bytes(),
+                                true,
+                                "text/plain",
+                            )
+                        {
+                            error!("Failed to save secret {}", e);
+                        };
+                    }
                 }
             }
             let mut attributes = HashMap::new();
@@ -422,22 +425,25 @@ impl EpicAssetManagerWindow {
                     .unwrap();
                 if let Some(rt) = ud.refresh_token() {
                     debug!("Saving refresh token secret");
-                    if let Err(e) = self_
-                        .model
-                        .borrow()
-                        .secret_service
-                        .get_any_collection()
-                        .unwrap()
-                        .create_item(
-                            "eam_epic_games_refresh_token",
-                            attributes,
-                            rt.as_bytes(),
-                            true,
-                            "text/plain",
-                        )
+                    #[cfg(target_os = "linux")]
                     {
-                        error!("Failed to save secret {}", e);
-                    };
+                        if let Err(e) = self_
+                            .model
+                            .borrow()
+                            .secret_service
+                            .get_any_collection()
+                            .unwrap()
+                            .create_item(
+                                "eam_epic_games_refresh_token",
+                                attributes,
+                                rt.as_bytes(),
+                                true,
+                                "text/plain",
+                            )
+                        {
+                            error!("Failed to save secret {}", e);
+                        };
+                    }
                 }
             }
         }
