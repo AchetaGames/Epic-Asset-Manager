@@ -137,6 +137,23 @@
                         </property>
                         <child type="overlay">
                             <object class="GtkBox">
+                                <property name="css-classes">view</property>
+                                <property name="opacity">0.7</property>
+                                <property name="valign">end</property>
+                                <property name="halign">end</property>
+                                <child>
+                                    <object class="GtkLabel" id="count_label">
+                                        <property name="margin-start">5</property>
+                                        <property name="margin-end">5</property>
+                                        <property name="margin-top">5</property>
+                                        <property name="margin-bottom">5</property>
+                                        <property name="label" translatable="yes">0 items</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child type="overlay">
+                            <object class="GtkBox">
                                 <property name="margin-start">5</property>
                                 <property name="margin-end">5</property>
                                 <property name="margin-top">5</property>

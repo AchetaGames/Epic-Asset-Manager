@@ -76,6 +76,8 @@ pub(crate) mod imp {
         pub select_order_by: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
         pub order: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub count_label: TemplateChild<gtk4::Label>,
         pub sidebar_expanded: RefCell<bool>,
         pub filter: RefCell<Option<String>>,
         pub search: RefCell<Option<String>>,
@@ -120,6 +122,7 @@ pub(crate) mod imp {
                 search_toggle: TemplateChild::default(),
                 select_order_by: TemplateChild::default(),
                 order: TemplateChild::default(),
+                count_label: TemplateChild::default(),
                 sidebar_expanded: RefCell::new(false),
                 filter: RefCell::new(None),
                 search: RefCell::new(None),
@@ -343,6 +346,7 @@ impl EpicLibraryBox {
         }));
 
         self_.filter_model.set_model(Some(&self_.grid_model));
+        self.update_count();
         self_.sorter_model.set_model(Some(&self_.filter_model));
         self_
             .sorter_model
@@ -474,6 +478,7 @@ impl EpicLibraryBox {
             self_.grid_model.splice(0, 0, vec.as_slice());
             vec.clear();
         }
+        self.update_count();
         // Scroll to top if nothing is selected
         if !self_.details.has_asset() {
             match self_.asset_grid.vadjustment() {
@@ -483,6 +488,16 @@ impl EpicLibraryBox {
         }
         self.open_asset();
         // debug!("Finished flushing {:?}", start.elapsed());
+    }
+
+    pub fn update_count(&self) {
+        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let count = self_.filter_model.n_items();
+        self_.count_label.set_label(&format!(
+            "{} {}",
+            count,
+            if count == 1 { "item" } else { "items" }
+        ));
     }
 
     pub fn bind_properties(&self) {
@@ -566,7 +581,6 @@ impl EpicLibraryBox {
                         self_.expand_image.set_icon_name(Some("go-next-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                         self_.expand_label.set_label("");
-                        self_.other_category.activate(false);
                     };
                     win.set_property("sidebar-expanded", &new_value).unwrap();
                 }
@@ -670,6 +684,7 @@ impl EpicLibraryBox {
         let filter_p = self.filter();
         if filter_p.is_none() && search.is_none() {
             self_.filter_model.set_filter(None::<&gtk4::CustomFilter>);
+            self.update_count();
             return;
         }
 
@@ -689,6 +704,7 @@ impl EpicLibraryBox {
             })
         });
         self_.filter_model.set_filter(Some(&filter));
+        self.update_count();
     }
 
     pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
