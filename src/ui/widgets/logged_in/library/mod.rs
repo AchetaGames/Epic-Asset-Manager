@@ -581,7 +581,6 @@ impl EpicLibraryBox {
                         self_.expand_image.set_icon_name(Some("go-next-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                         self_.expand_label.set_label("");
-                        self_.other_category.activate(false);
                     };
                     win.set_property("sidebar-expanded", &new_value).unwrap();
                 }
