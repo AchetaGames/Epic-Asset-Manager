@@ -62,6 +62,7 @@
                                         <child>
                                             <object class="EpicSidebarCategory" id="other_category">
                                                 <property name="icon-name">image-x-generic-symbolic</property>
+                                                <property name="filter">!other|games|dlc|plugins|projects|assets</property>
                                                 <property name="tooltip-text" translatable="yes">Other</property>
                                             </object>
                                         </child>

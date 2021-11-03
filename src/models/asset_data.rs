@@ -237,6 +237,24 @@ impl AssetData {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
         if cat.eq("favorites") {
             self.favorite()
+        } else if cat.starts_with("!other") {
+            match self_.asset.borrow().as_ref() {
+                None => false,
+                Some(b) => {
+                    for category in b.categories.as_ref().unwrap() {
+                        for split in cat.split('|') {
+                            if category
+                                .path
+                                .to_ascii_lowercase()
+                                .contains(&split.to_ascii_lowercase())
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    true
+                }
+            }
         } else {
             match self_.asset.borrow().as_ref() {
                 None => false,
