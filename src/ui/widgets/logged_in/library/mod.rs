@@ -273,6 +273,7 @@ pub(crate) mod imp {
             obj.setup_widgets();
             self.home_category.add_category("all", "");
             self.home_category.add_category("favorites", "favorites");
+            self.home_category.activate(false);
         }
     }
 
@@ -556,6 +557,7 @@ impl EpicLibraryBox {
                     if let Ok(v) = win.property("sidebar-expanded") {
                     let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
                     let new_value = !v.get::<bool>().unwrap();
+                    win.enable_all_categories();
                     if new_value {
                         self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
@@ -564,6 +566,7 @@ impl EpicLibraryBox {
                         self_.expand_image.set_icon_name(Some("go-next-symbolic"));
                         self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                         self_.expand_label.set_label("");
+                        self_.other_category.activate(false);
                     };
                     win.set_property("sidebar-expanded", &new_value).unwrap();
                 }
@@ -649,6 +652,16 @@ impl EpicLibraryBox {
         self_.other_category.unselect_except(&filter);
         self_.games_category.unselect_except(&filter);
         self_.home_category.unselect_except(&filter);
+    }
+
+    pub fn enable_all_categories(&self) {
+        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        self_.projects_category.activate(true);
+        self_.assets_category.activate(true);
+        self_.plugins_category.activate(true);
+        self_.other_category.activate(true);
+        self_.games_category.activate(true);
+        self_.home_category.activate(true);
     }
 
     pub fn apply_filter(&self) {

@@ -26,6 +26,8 @@ pub(crate) mod imp {
         pub sub_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub sub_box: TemplateChild<gtk4::ListView>,
+        #[template_child]
+        pub category_button: TemplateChild<gtk4::Button>,
         pub categories: ListStore,
         pub selection_model: SingleSelection,
     }
@@ -46,6 +48,7 @@ pub(crate) mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 sub_revealer: TemplateChild::default(),
                 sub_box: TemplateChild::default(),
+                category_button: TemplateChild::default(),
                 categories: ListStore::new(CategoryData::static_type()),
                 selection_model: SingleSelection::new(None::<&gtk4::SortListModel>),
             }
@@ -243,9 +246,11 @@ impl EpicSidebarCategory {
                             if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()).unwrap(); };
                         } else {
                             self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
-                            }
+                        }
                     } else if let Some(l) = self_.loggedin.get() {
+                        l.enable_all_categories();
                         l.set_property("filter", win.filter()).unwrap();
+                        win.activate(false);
                     };
                 }
 
@@ -290,5 +295,10 @@ impl EpicSidebarCategory {
                 self_.selection_model.unselect_item(selected_id);
             }
         }
+    }
+
+    pub fn activate(&self, activate: bool) {
+        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        self_.category_button.set_sensitive(activate);
     }
 }
