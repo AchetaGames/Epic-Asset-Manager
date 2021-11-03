@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export MESON_BUILD_ROOT="$1"
 export MESON_SOURCE_ROOT="$2"
@@ -14,9 +14,8 @@ then
 elif [[ $4 = "Windows" ]]
 then
   echo "WINDOWS MODE"
-      cargo build --target=x86_64-pc-windows-gnu --manifest-path \
-          "$MESON_SOURCE_ROOT"/Cargo.toml && \
-          cp "$CARGO_TARGET_DIR"/debug/$5 $3
+      cargo build --target=x86_64-pc-windows-gnu --release --manifest-path \
+          "$MESON_SOURCE_ROOT"/Cargo.toml
 else
     echo "RELEASE MODE"
     cargo build --manifest-path \

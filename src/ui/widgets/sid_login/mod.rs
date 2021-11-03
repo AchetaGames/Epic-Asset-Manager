@@ -94,10 +94,14 @@ impl SidBox {
         let actions = &self_.actions;
 
         self.insert_action_group("sid", Some(actions));
+
         action!(actions, "browser", move |_, _| {
+            #[cfg(target_os = "linux")]
             if gio::AppInfo::launch_default_for_uri("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect", None::<&gio::AppLaunchContext>).is_err() {
                 error!("Please go to https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect");
             }
+            #[cfg(target_os = "windows")]
+            open::that("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect");
         });
 
         action!(

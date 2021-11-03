@@ -17,13 +17,13 @@ diesel_migrations = { version = "1.4", features = ["sqlite"] }
 egs-api = "0.4"
 env_logger = "0.9"
 futures = "0.3"
-gettext-rs = { version = "0.7", features = ["gettext-system"] }
 gtk4 = { version = "0.3", features = ["v4_4"] }
 gtk-macros = "0.3"
 hex = "0.4"
 html2pango = "0.4"
 json5 = "0.4.1"
 lazy_static = "1.4"
+libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
 log = "0.4"
 once_cell = "1.8"
 rand = "0.8"
@@ -37,10 +37,14 @@ threadpool = "1.8"
 tokio = "1"
 version-compare = "0.1"
 
-[target.'cfg(target_os = "windows")'.dependencies]
+[target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
 
+[target.'cfg(target_os = "windows")'.dependencies]
+open = "2"
+
 [target.'cfg(target_os = "linux")'.dependencies]
+gettext-rs = { version = "0.7", features = ["gettext-system"] }
 ghregistry = "0.1"
 git2 = "0.13"
 secret-service = "2.0"

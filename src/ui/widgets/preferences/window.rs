@@ -1,4 +1,3 @@
-use gettextrs::gettext;
 use gtk4::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
 use gtk4::glib::clone;
 use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
@@ -608,12 +607,12 @@ impl PreferencesWindow {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
 
         let native = gtk4::FileChooserDialog::new(
-            Some(&gettext(title)),
+            Some(title),
             Some(self),
             gtk4::FileChooserAction::SelectFolder,
             &[
-                (&gettext("Select"), gtk4::ResponseType::Accept),
-                (&gettext("Cancel"), gtk4::ResponseType::Cancel),
+                ("Select", gtk4::ResponseType::Accept),
+                ("Cancel", gtk4::ResponseType::Cancel),
             ],
         );
 

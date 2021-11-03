@@ -35,7 +35,7 @@ if get_option('windows')
     bindir = ''
     localedir = 'locale'
     datadir = 'data'
-    pkgdatadir = datadir / meson.project_name()
+    pkgdatadir = datadir
     iconsdir = datadir / 'icons'
     podir = meson.source_root() / 'po'
 else

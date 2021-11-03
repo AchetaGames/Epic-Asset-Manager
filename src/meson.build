@@ -5,11 +5,6 @@ global_conf.set_quoted('PROFILE', profile)
 global_conf.set_quoted('VERSION', version + version_suffix)
 global_conf.set_quoted('GETTEXT_PACKAGE', gettext_package)
 global_conf.set_quoted('LOCALEDIR', localedir)
-if get_option('windows')
-    global_conf.set_quoted('GRESOURCEFILE', 'resources.gresource')
-else
-    global_conf.set_quoted('GRESOURCEFILE', '/resources.gresource')
-endif
 config = configure_file(
   input: 'config.rs.in',
   output: 'config.rs',

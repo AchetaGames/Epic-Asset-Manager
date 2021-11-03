@@ -18,12 +18,10 @@ extern crate diesel_migrations;
 extern crate lazy_static;
 extern crate futures;
 
-#[cfg(target_os = "windows")]
-extern crate winres;
-
 use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use application::EpicAssetManager;
 use env_logger::Env;
+#[cfg(target_os = "linux")]
 use gettextrs::*;
 use gtk4::gio;
 use log::debug;
@@ -35,13 +33,6 @@ lazy_static! {
 }
 
 fn main() {
-    #[cfg(target_os = "windows")]
-    {
-        winres::WindowsResource::new()
-            .set_icon("data/icons/io.github.achetagames.epic_asset_manager.ico")
-            .compile();
-    }
-
     env_logger::Builder::from_env(Env::default().default_filter_or("epic_asset_manager:info"))
         .format(|buf, record| {
             writeln!(
@@ -55,9 +46,12 @@ fn main() {
         .init();
 
     // Prepare i18n
-    setlocale(LocaleCategory::LcAll, "");
-    bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).unwrap();
-    textdomain(GETTEXT_PACKAGE).unwrap();
+    #[cfg(target_os = "linux")]
+    {
+        setlocale(LocaleCategory::LcAll, "");
+        bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).unwrap();
+        textdomain(GETTEXT_PACKAGE).unwrap();
+    }
 
     gtk4::glib::set_application_name("Epic Asset Manager");
     gtk4::glib::set_prgname(Some("epic_asset_manager"));
