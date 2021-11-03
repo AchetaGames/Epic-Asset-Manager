@@ -260,54 +260,56 @@ impl EpicEngineDetails {
 
     pub fn add_engine(&self) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
-        self_.data.replace(None);
-        self_.launch_button.set_visible(false);
-        self_.install_button.set_visible(true);
-        self_
-            .title
-            .set_markup("<b><u><big>Add Engine</big></u></b>");
+        #[cfg(target_os = "linux")]
+        {
+            self_.data.replace(None);
+            self_.launch_button.set_visible(false);
+            self_.install_button.set_visible(true);
+            self_
+                .title
+                .set_markup("<b><u><big>Add Engine</big></u></b>");
 
-        // remove old details
-        while let Some(el) = self_.details.first_child() {
-            self_.details.remove(&el);
-        }
-        if let Some(versions) = &*self_.docker_versions.borrow() {
-            let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-            let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+            // remove old details
+            while let Some(el) = self_.details.first_child() {
+                self_.details.remove(&el);
+            }
+            if let Some(versions) = &*self_.docker_versions.borrow() {
+                let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+                let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
-            let combo = gtk4::ComboBoxText::new();
-            combo.set_hexpand(true);
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new()
-                .label("Available Versions")
-                .build();
-            size_group_prefix.add_widget(&title);
-            row.add_prefix(&title);
-            size_group_labels.add_widget(&combo);
-            row.add_suffix(&combo);
-            self_.details.append(&row);
+                let combo = gtk4::ComboBoxText::new();
+                combo.set_hexpand(true);
+                let row = adw::ActionRowBuilder::new().activatable(true).build();
+                let title = gtk4::LabelBuilder::new()
+                    .label("Available Versions")
+                    .build();
+                size_group_prefix.add_widget(&title);
+                row.add_prefix(&title);
+                size_group_labels.add_widget(&combo);
+                row.add_suffix(&combo);
+                self_.details.append(&row);
 
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            row.set_tooltip_markup(Some(
-                "Include <b>Template Projects</b> and <b>Debug symbols</b>?",
-            ));
-            let title = gtk4::LabelBuilder::new()
-                .label("Additional Content")
-                .build();
-            let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
-            b.append(&title);
-            let info = gtk4::Image::from_icon_name(Some("dialog-information-symbolic"));
-            b.append(&info);
-            size_group_prefix.add_widget(&b);
-            row.add_prefix(&b);
-            let check = gtk4::CheckButtonBuilder::new()
-                .active(true)
-                .hexpand(true)
-                .build();
-            size_group_labels.add_widget(&check);
-            row.add_suffix(&check);
-            self_.details.append(&row);
-            combo.connect_changed(clone!(@weak self as detail, @weak check as check => move |c| {
+                let row = adw::ActionRowBuilder::new().activatable(true).build();
+                row.set_tooltip_markup(Some(
+                    "Include <b>Template Projects</b> and <b>Debug symbols</b>?",
+                ));
+                let title = gtk4::LabelBuilder::new()
+                    .label("Additional Content")
+                    .build();
+                let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
+                b.append(&title);
+                let info = gtk4::Image::from_icon_name(Some("dialog-information-symbolic"));
+                b.append(&info);
+                size_group_prefix.add_widget(&b);
+                row.add_prefix(&b);
+                let check = gtk4::CheckButtonBuilder::new()
+                    .active(true)
+                    .hexpand(true)
+                    .build();
+                size_group_labels.add_widget(&check);
+                row.add_suffix(&check);
+                self_.details.append(&row);
+                combo.connect_changed(clone!(@weak self as detail, @weak check as check => move |c| {
                 let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&detail);
                 check.set_sensitive(false);
                 if let Some(selected) = c.active_id() {
@@ -327,7 +329,7 @@ impl EpicEngineDetails {
                 };
             }));
 
-            check.connect_toggled(clone!(@weak self as detail, @weak combo as combo => move |c| {
+                check.connect_toggled(clone!(@weak self as detail, @weak combo as combo => move |c| {
                 let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&detail);
                 if let Some(selected) = combo.active_id() {
                     if let Some(ver) = &*self_.docker_versions.borrow() {
@@ -346,52 +348,53 @@ impl EpicEngineDetails {
                 };
             }));
 
-            let mut version: Vec<&String> = versions.keys().into_iter().collect();
-            version.sort_by(|a, b| match version_compare::compare(b, a) {
-                Ok(cmp) => match cmp {
-                    Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
-                    Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
-                    Cmp::Gt => std::cmp::Ordering::Greater,
-                },
-                Err(_) => std::cmp::Ordering::Equal,
-            });
+                let mut version: Vec<&String> = versions.keys().into_iter().collect();
+                version.sort_by(|a, b| match version_compare::compare(b, a) {
+                    Ok(cmp) => match cmp {
+                        Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
+                        Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
+                        Cmp::Gt => std::cmp::Ordering::Greater,
+                    },
+                    Err(_) => std::cmp::Ordering::Equal,
+                });
 
-            for ver in version {
-                combo.append(Some(ver), ver);
-                if combo.active_id().is_none() {
-                    combo.set_active_id(Some(ver));
+                for ver in version {
+                    combo.append(Some(ver), ver);
+                    if combo.active_id().is_none() {
+                        combo.set_active_id(Some(ver));
+                    }
                 }
-            }
 
-            let row = adw::ActionRowBuilder::new()
-                .activatable(true)
-                .name("size_row")
-                .build();
-            let title = gtk4::LabelBuilder::new().label("Download Size").build();
-            let size_label = gtk4::LabelBuilder::new()
-                .name("size_label")
-                .halign(gtk4::Align::Start)
-                .hexpand(true)
-                .label("unknown")
-                .build();
-            size_label
-                .bind_property("label", self, "download-size")
-                .flags(glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE)
-                .build();
-            size_group_prefix.add_widget(&title);
-            row.add_prefix(&title);
-            size_group_labels.add_widget(&size_label);
-            row.add_suffix(&size_label);
-            self_.details.append(&row);
-        } else {
-            let label = gtk4::LabelBuilder::new()
-                .halign(gtk4::Align::Center)
-                .hexpand(true)
-                .use_markup(true)
-                .label("<b>Please configure github token in Preferences</b>")
-                .build();
-            self_.details.append(&label);
-            get_action!(self_.actions, @install).set_enabled(false);
+                let row = adw::ActionRowBuilder::new()
+                    .activatable(true)
+                    .name("size_row")
+                    .build();
+                let title = gtk4::LabelBuilder::new().label("Download Size").build();
+                let size_label = gtk4::LabelBuilder::new()
+                    .name("size_label")
+                    .halign(gtk4::Align::Start)
+                    .hexpand(true)
+                    .label("unknown")
+                    .build();
+                size_label
+                    .bind_property("label", self, "download-size")
+                    .flags(glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE)
+                    .build();
+                size_group_prefix.add_widget(&title);
+                row.add_prefix(&title);
+                size_group_labels.add_widget(&size_label);
+                row.add_suffix(&size_label);
+                self_.details.append(&row);
+            } else {
+                let label = gtk4::LabelBuilder::new()
+                    .halign(gtk4::Align::Center)
+                    .hexpand(true)
+                    .use_markup(true)
+                    .label("<b>Please configure github token in Preferences</b>")
+                    .build();
+                self_.details.append(&label);
+                get_action!(self_.actions, @install).set_enabled(false);
+            }
         }
     }
 
@@ -439,6 +442,7 @@ impl EpicEngineDetails {
         }
     }
 
+    #[cfg(target_os = "linux")]
     pub fn docker_manifest(&self) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
         get_action!(self_.actions, @install).set_enabled(true);
@@ -474,46 +478,51 @@ impl EpicEngineDetails {
 
     pub fn update_docker(&self) {
         debug!("Trying to query docker API for images");
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
-        if let Some(window) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
-            if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
-                let client = dclient.clone();
-                let sender = self_.sender.clone();
-                thread::spawn(move || {
-                    let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
-                    let mut result: HashMap<String, Vec<String>> = HashMap::new();
+        #[cfg(target_os = "linux")]
+        {
+            let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+            if let Some(window) = self_.window.get() {
+                let win_: &crate::window::imp::EpicAssetManagerWindow =
+                    crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+                if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
+                    let client = dclient.clone();
+                    let sender = self_.sender.clone();
+                    thread::spawn(move || {
+                        let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
+                        let mut result: HashMap<String, Vec<String>> = HashMap::new();
 
-                    client
-                        .get_tags("epicgames/unreal-engine", None)
-                        .unwrap()
-                        .into_iter()
-                        .for_each(|tag| {
-                            if re.is_match(&tag) {
-                                for cap in re.captures_iter(&tag) {
-                                    match result.get_mut(&cap[1]) {
-                                        None => {
-                                            result
-                                                .insert(cap[1].to_string(), vec![tag.to_string()]);
-                                        }
-                                        Some(v) => {
-                                            v.push(tag.to_string());
+                        client
+                            .get_tags("epicgames/unreal-engine", None)
+                            .unwrap()
+                            .into_iter()
+                            .for_each(|tag| {
+                                if re.is_match(&tag) {
+                                    for cap in re.captures_iter(&tag) {
+                                        match result.get_mut(&cap[1]) {
+                                            None => {
+                                                result.insert(
+                                                    cap[1].to_string(),
+                                                    vec![tag.to_string()],
+                                                );
+                                            }
+                                            Some(v) => {
+                                                v.push(tag.to_string());
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        });
-                    sender
-                        .send(DockerMsg::DockerEngineVersions(result))
-                        .unwrap();
-                });
-            } else {
-                self_.docker_versions.replace(None);
-                if self_.data.borrow().is_none() {
-                    self.add_engine();
-                }
-            };
+                            });
+                        sender
+                            .send(DockerMsg::DockerEngineVersions(result))
+                            .unwrap();
+                    });
+                } else {
+                    self_.docker_versions.replace(None);
+                    if self_.data.borrow().is_none() {
+                        self.add_engine();
+                    }
+                };
+            }
         }
     }
 

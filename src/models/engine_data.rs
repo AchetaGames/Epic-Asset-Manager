@@ -312,69 +312,72 @@ impl EngineData {
     }
 
     fn needs_repo_update(path: &str, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {
-        if let Ok(repo) = git2::Repository::open(&path) {
-            let mut commit = git2::Oid::zero();
-            let mut branch = String::new();
-            if let Ok(head) = repo.head() {
-                if head.is_branch() {
-                    commit = head.target().unwrap();
-                    branch = head.name().unwrap().to_string();
-                    if let Some(s) = sender.clone() {
-                        s.send(EngineMsg::Branch(
-                            head.shorthand().unwrap_or_default().to_string(),
-                        ))
-                        .unwrap();
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(repo) = git2::Repository::open(&path) {
+                let mut commit = git2::Oid::zero();
+                let mut branch = String::new();
+                if let Ok(head) = repo.head() {
+                    if head.is_branch() {
+                        commit = head.target().unwrap();
+                        branch = head.name().unwrap().to_string();
+                        if let Some(s) = sender.clone() {
+                            s.send(EngineMsg::Branch(
+                                head.shorthand().unwrap_or_default().to_string(),
+                            ))
+                            .unwrap();
+                        }
                     }
                 }
-            }
-            let mut time = git2::Time::new(0, 0);
-            if let Ok(c) = repo.find_commit(commit) {
-                time = c.time();
-            }
-            if let Ok(remotes) = repo.remotes() {
-                let num_remotes = remotes.len();
-                for remote in remotes.iter().flatten() {
-                    if let Ok(mut r) = repo.find_remote(remote) {
-                        if num_remotes > 1 {
-                            if let Some(url) = r.url() {
-                                if !url.contains("EpicGames/UnrealEngine.git") {
-                                    continue;
+                let mut time = git2::Time::new(0, 0);
+                if let Ok(c) = repo.find_commit(commit) {
+                    time = c.time();
+                }
+                if let Ok(remotes) = repo.remotes() {
+                    let num_remotes = remotes.len();
+                    for remote in remotes.iter().flatten() {
+                        if let Ok(mut r) = repo.find_remote(remote) {
+                            if num_remotes > 1 {
+                                if let Some(url) = r.url() {
+                                    if !url.contains("EpicGames/UnrealEngine.git") {
+                                        continue;
+                                    }
                                 }
                             }
-                        }
-                        let cb = Self::git_callbacks();
-                        if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
-                            warn!("Unable to connect: {}", e);
-                        }
-                        if let Ok(list) = r.list() {
-                            for head in list {
-                                if branch.eq(&head.name()) {
-                                    if head.oid().eq(&commit) {
-                                        debug!("{} Up to date", path);
-                                        if let Some(s) = sender {
-                                            s.send(EngineMsg::Update(false)).unwrap();
+                            let cb = Self::git_callbacks();
+                            if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
+                                warn!("Unable to connect: {}", e);
+                            }
+                            if let Ok(list) = r.list() {
+                                for head in list {
+                                    if branch.eq(&head.name()) {
+                                        if head.oid().eq(&commit) {
+                                            debug!("{} Up to date", path);
+                                            if let Some(s) = sender {
+                                                s.send(EngineMsg::Update(false)).unwrap();
+                                            }
+                                            return false;
                                         }
-                                        return false;
+                                        info!("{} needs updating", path);
+                                        debug!(
+                                            "{} Local commit {}({}), remote commit {}",
+                                            path,
+                                            commit,
+                                            time.seconds(),
+                                            head.oid()
+                                        );
+                                        if let Some(s) = sender {
+                                            s.send(EngineMsg::Update(true)).unwrap();
+                                        }
+                                        return true;
                                     }
-                                    info!("{} needs updating", path);
-                                    debug!(
-                                        "{} Local commit {}({}), remote commit {}",
-                                        path,
-                                        commit,
-                                        time.seconds(),
-                                        head.oid()
-                                    );
-                                    if let Some(s) = sender {
-                                        s.send(EngineMsg::Update(true)).unwrap();
-                                    }
-                                    return true;
                                 }
                             }
                         }
                     }
                 }
-            }
-        };
+            };
+        }
         false
     }
 
@@ -437,6 +440,7 @@ impl EngineData {
         None
     }
 
+    #[cfg(target_os = "linux")]
     fn git_callbacks() -> git2::RemoteCallbacks<'static> {
         let git_config = git2::Config::open_default().unwrap();
         let mut cb = git2::RemoteCallbacks::new();

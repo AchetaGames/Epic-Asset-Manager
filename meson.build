@@ -11,7 +11,7 @@ base_id = 'io.github.achetagames.epic_asset_manager'
 
 dependency('glib-2.0', version: '>= 2.66')
 dependency('gio-2.0', version: '>= 2.66')
-dependency('gtk4', version: '>= 4.4.0')
+dependency('gtk4', version: '>= 4.3.2')
 dependency('libadwaita-1', version: '>=1.0.0')
 
 glib_compile_resources = find_program('glib-compile-resources', required: true)
@@ -30,14 +30,24 @@ major_version = version_array[0].to_int()
 minor_version = version_array[1].to_int()
 version_micro = version_array[2].to_int()
 
-prefix = get_option('prefix')
-bindir = prefix / get_option('bindir')
-localedir = prefix / get_option('localedir')
+if get_option('windows')
+    prefix = ''
+    bindir = ''
+    localedir = 'locale'
+    datadir = 'data'
+    pkgdatadir = datadir
+    iconsdir = datadir / 'icons'
+    podir = meson.source_root() / 'po'
+else
+    prefix = get_option('prefix')
+    bindir = prefix / get_option('bindir')
+    localedir = prefix / get_option('localedir')
 
-datadir = prefix / get_option('datadir')
-pkgdatadir = datadir / meson.project_name()
-iconsdir = datadir / 'icons'
-podir = meson.source_root() / 'po'
+    datadir = prefix / get_option('datadir')
+    pkgdatadir = datadir / meson.project_name()
+    iconsdir = datadir / 'icons'
+    podir = meson.source_root() / 'po'
+endif
 gettext_package = meson.project_name()
 
 if get_option('profile') == 'development'

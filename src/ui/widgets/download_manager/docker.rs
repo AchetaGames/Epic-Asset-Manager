@@ -43,6 +43,7 @@ pub(crate) trait Docker {
 }
 
 impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
+    #[cfg(target_os = "linux")]
     fn perform_docker_blob_downloads(&self, version: &str, size: u64, digests: Vec<(String, u64)>) {
         let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
@@ -74,6 +75,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
+    #[cfg(target_os = "linux")]
     fn download_docker_digest(&self, version: &str, digest: (String, u64)) {
         let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
@@ -128,6 +130,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
+    #[cfg(target_os = "linux")]
     fn download_engine_from_docker(&self, version: &str) {
         debug!("Initializing docker engine download of {}", version);
         let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
@@ -211,6 +214,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
+    #[cfg(target_os = "linux")]
     fn docker_download_progress(&self, version: &str, progress: u64) {
         let item = match self.get_item(version) {
             None => {
@@ -223,6 +227,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.emit_by_name("tick", &[]).unwrap();
     }
 
+    #[cfg(target_os = "linux")]
     fn docker_blob_finished(&self, version: &str, digest: &str) {
         let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
@@ -236,6 +241,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.docker_extract_digests(version);
     }
 
+    #[cfg(target_os = "linux")]
     fn docker_extract_digests(&self, version: &str) {
         let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
@@ -282,29 +288,32 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let can_path = path.canonicalize().unwrap();
                 let sender = self_.sender.clone();
                 let v = version.to_string();
-                self_.file_pool.execute(move || {
-                    match ghregistry::render::unpack_partial_files(
-                        to_extract.clone(),
-                        &can_path,
-                        "home/ue4/UnrealEngine/",
-                    ) {
-                        Ok(_) => {
-                            sender.send(
-                                crate::ui::widgets::download_manager::DownloadMsg::DockerExtractionFinished(
-                                    v,
-                                ),
-                            ).unwrap();
-                        }
-                        Err(e) => {
-                            error!("Error during render of {:?}: {:?}", to_extract, e);
-                        }
-                    };
-
-                });
+                #[cfg(target_os = "linux")]
+                {
+                    self_.file_pool.execute(move || {
+                        match ghregistry::render::unpack_partial_files(
+                            to_extract.clone(),
+                            &can_path,
+                            "home/ue4/UnrealEngine/",
+                        ) {
+                            Ok(_) => {
+                                sender.send(
+                                    crate::ui::widgets::download_manager::DownloadMsg::DockerExtractionFinished(
+                                        v,
+                                    ),
+                                ).unwrap();
+                            }
+                            Err(e) => {
+                                error!("Error during render of {:?}: {:?}", to_extract, e);
+                            }
+                        };
+                    });
+                }
             }
         }
     }
 
+    #[cfg(target_os = "linux")]
     fn docker_extraction_finished(&self, version: &str) {
         let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);

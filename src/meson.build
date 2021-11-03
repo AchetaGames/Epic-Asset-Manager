@@ -61,6 +61,11 @@ rust_sources = files(
 )
 
 sources = [cargo_sources, rust_sources]
+if get_option('windows')
+    target = 'Windows'
+else
+    target = profile
+endif
 
 custom_target(
   'cargo-build',
@@ -76,7 +81,7 @@ custom_target(
     meson.build_root(),
     meson.source_root(),
     '@OUTPUT@',
-    profile,
+    target,
     meson.project_name(),
   ]
 )
