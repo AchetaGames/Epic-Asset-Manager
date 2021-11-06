@@ -27,6 +27,7 @@ pub(crate) mod imp {
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
         #[template_child]
         pub adwstack: TemplateChild<adw::ViewStack>,
+        pub settings: gtk4::gio::Settings,
         stack: RefCell<Option<adw::ViewStack>>,
         item: RefCell<Option<String>>,
         product: RefCell<Option<String>>,
@@ -46,6 +47,7 @@ pub(crate) mod imp {
                 engine: TemplateChild::default(),
                 projects: TemplateChild::default(),
                 adwstack: TemplateChild::default(),
+                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
                 stack: RefCell::new(None),
                 item: RefCell::new(None),
                 product: RefCell::new(None),
@@ -170,6 +172,13 @@ impl EpicLoggedInBox {
         self_.library.set_window(&window.clone());
         self_.engine.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
+
+        match self_.settings.string("default-view").as_str() {
+            "library" => self_.adwstack.set_visible_child_name("library"),
+            "engine" => self_.adwstack.set_visible_child_name("engine"),
+            "projects" => self_.adwstack.set_visible_child_name("projects"),
+            _ => self_.adwstack.set_visible_child_name("library"),
+        }
     }
 
     pub fn set_download_manager(

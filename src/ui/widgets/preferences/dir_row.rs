@@ -13,7 +13,7 @@ pub mod imp {
     #[derive(CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/dir_row.ui")]
     pub struct DirectoryRow {
-        pub window: OnceCell<crate::ui::widgets::preferences::window::PreferencesWindow>,
+        pub window: OnceCell<crate::ui::widgets::preferences::PreferencesWindow>,
         pub actions: gio::SimpleActionGroup,
     }
 
@@ -72,10 +72,7 @@ glib::wrapper! {
 }
 
 impl DirectoryRow {
-    pub fn new(
-        dir: &str,
-        window: &crate::ui::widgets::preferences::window::PreferencesWindow,
-    ) -> Self {
+    pub fn new(dir: &str, window: &crate::ui::widgets::preferences::PreferencesWindow) -> Self {
         let row: Self = glib::Object::new(&[]).expect("Failed to create DirectoryRow");
         adw::prelude::PreferencesRowExt::set_title(&row, dir);
         let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(&row);
