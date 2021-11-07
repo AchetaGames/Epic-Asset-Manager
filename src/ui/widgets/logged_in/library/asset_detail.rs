@@ -326,6 +326,37 @@ impl EpicAssetDetails {
             self_.details_box.append(&row);
         }
 
+        if let Some(categories) = &asset.categories {
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
+            let title = gtk4::LabelBuilder::new().label("Categories").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+
+            let mut cats: Vec<String> = Vec::new();
+            for category in categories {
+                let parts = category.path.split('/').collect::<Vec<&str>>();
+                if parts.len() > 1 {
+                    if cats.is_empty() {
+                        cats.push(parts[0].to_string());
+                    }
+                    cats.push(parts[1..].join("/"));
+                }
+            }
+            if cats.is_empty() {
+                for category in categories {
+                    cats.push(category.path.clone());
+                }
+            }
+            let label = gtk4::LabelBuilder::new()
+                .label(&cats.join(", "))
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details_box.append(&row);
+        }
+
         if let Some(platforms) = &asset.platforms() {
             let row = adw::ActionRowBuilder::new().activatable(true).build();
             let title = gtk4::LabelBuilder::new().label("Platforms").build();
