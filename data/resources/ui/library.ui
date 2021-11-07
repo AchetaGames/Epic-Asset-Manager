@@ -126,9 +126,7 @@
                                         <property name="child">
                                             <object class="GtkGridView" id="asset_grid">
                                                 <property name="can-focus">1</property>
-                                                <property name="halign">start</property>
                                                 <property name="max-columns">255</property>
-                                                <property name="valign">start</property>
                                             </object>
                                         </property>
                                     </object>

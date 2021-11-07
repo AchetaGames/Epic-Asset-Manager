@@ -4,6 +4,7 @@ use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use glib::ObjectExt;
 use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
+use gtk4::gio::prelude::SettingsExt;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
 
 // Implementation sub-module of the GObject
@@ -16,13 +17,15 @@ mod imp {
 
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     pub struct AssetData {
         id: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
         favorite: RefCell<bool>,
+        downloaded: RefCell<bool>,
         pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         thumbnail: RefCell<Option<Pixbuf>>,
+        pub settings: gtk4::gio::Settings,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -37,8 +40,10 @@ mod imp {
                 id: RefCell::new(None),
                 name: RefCell::new(None),
                 favorite: RefCell::new(false),
+                downloaded: RefCell::new(false),
                 asset: RefCell::new(None),
                 thumbnail: RefCell::new(None),
+                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
         }
     }
@@ -96,6 +101,13 @@ mod imp {
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
+                    glib::ParamSpec::new_boolean(
+                        "downloaded",
+                        "downloaded",
+                        "Is Downloaded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
 
@@ -128,6 +140,12 @@ mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.favorite.replace(favorite);
                 }
+                "downloaded" => {
+                    let downloaded = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.downloaded.replace(downloaded);
+                }
                 "thumbnail" => {
                     let thumbnail = value
                         .get()
@@ -143,6 +161,7 @@ mod imp {
                 "name" => self.name.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
                 "favorite" => self.favorite.borrow().to_value(),
+                "downloaded" => self.downloaded.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -167,7 +186,7 @@ impl AssetData {
         data.check_favorite();
         data.set_property("name", &asset.title).unwrap();
         self_.asset.replace(Some(asset.clone()));
-
+        data.check_downloaded();
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
         pixbuf_loader.write(image).unwrap();
         pixbuf_loader.close().ok();
@@ -198,6 +217,15 @@ impl AssetData {
 
     pub fn favorite(&self) -> bool {
         if let Ok(value) = self.property("favorite") {
+            if let Ok(id_opt) = value.get::<bool>() {
+                return id_opt;
+            }
+        };
+        false
+    }
+
+    pub fn downloaded(&self) -> bool {
+        if let Ok(value) = self.property("downloaded") {
             if let Ok(id_opt) = value.get::<bool>() {
                 return id_opt;
             }
@@ -237,6 +265,8 @@ impl AssetData {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
         if cat.eq("favorites") {
             self.favorite()
+        } else if cat.eq("downloaded") {
+            self.downloaded()
         } else if cat.starts_with("!other") {
             match self_.asset.borrow().as_ref() {
                 None => false,
@@ -271,6 +301,30 @@ impl AssetData {
                         }
                     }
                     false
+                }
+            }
+        }
+    }
+
+    pub fn check_downloaded(&self) {
+        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let asset = &*self_.asset.borrow();
+        if let Some(ass) = asset {
+            for vault in self_.settings.strv("unreal-vault-directories") {
+                let pathbuf = std::path::PathBuf::from(&vault);
+                if let Some(ris) = &ass.release_info {
+                    for ri in ris {
+                        let mut p = pathbuf.clone();
+                        if let Some(app) = &ri.app_id {
+                            p.push(&app);
+                            p.push("manifest");
+                            if p.exists() {
+                                println!("Exists {:?}", p.to_str());
+                                self.set_property("downloaded", true).unwrap();
+                                return;
+                            }
+                        }
+                    }
                 }
             }
         }
