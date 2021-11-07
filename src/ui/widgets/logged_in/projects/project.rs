@@ -194,8 +194,7 @@ impl EpicProject {
                     };
                     match last_engine {
                         None => {
-                            self.set_property("engine", uproject.engine_association)
-                                .unwrap();
+                            self.set_property("engine", "Unknown Engine").unwrap();
                         }
                         Some(eng) => {
                             match crate::models::engine_data::EngineData::read_engine_version(&eng)
