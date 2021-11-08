@@ -276,6 +276,7 @@ pub(crate) mod imp {
             obj.setup_widgets();
             self.home_category.add_category("all", "");
             self.home_category.add_category("favorites", "favorites");
+            self.home_category.add_category("downloaded", "downloaded");
             self.home_category.activate(false);
         }
     }

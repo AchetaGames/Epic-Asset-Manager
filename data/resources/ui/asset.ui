@@ -38,6 +38,15 @@
                         <property name="visible" bind-source="EpicAsset" bind-property="favorite" bind-flags="sync-create"/>
                     </object>
                 </child>
+                <child type="overlay">
+                    <object class="GtkImage">
+                        <property name="icon-name">emblem-default</property>
+                        <property name="pixel-size">35</property>
+                        <property name="halign">end</property>
+                        <property name="valign">end</property>
+                        <property name="visible" bind-source="EpicAsset" bind-property="downloaded" bind-flags="sync-create"/>
+                    </object>
+                </child>
             </object>
         </child>
     </template>

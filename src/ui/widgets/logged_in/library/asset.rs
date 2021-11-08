@@ -16,6 +16,7 @@ pub(crate) mod imp {
         id: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
         favorite: RefCell<bool>,
+        downloaded: RefCell<bool>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
@@ -34,6 +35,7 @@ pub(crate) mod imp {
                 id: RefCell::new(None),
                 label: RefCell::new(None),
                 favorite: RefCell::new(false),
+                downloaded: RefCell::new(false),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
                 data: RefCell::new(None),
@@ -88,6 +90,13 @@ pub(crate) mod imp {
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
+                    glib::ParamSpec::new_boolean(
+                        "downloaded",
+                        "downloaded",
+                        "Is Downloaded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
 
@@ -120,6 +129,12 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.favorite.replace(favorite);
                 }
+                "downloaded" => {
+                    let downloaded = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.downloaded.replace(downloaded);
+                }
                 "thumbnail" => {
                     let thumbnail: Option<Pixbuf> = value
                         .get()
@@ -144,6 +159,7 @@ pub(crate) mod imp {
                 "label" => self.label.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
                 "favorite" => self.favorite.borrow().to_value(),
+                "downloaded" => self.downloaded.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -181,6 +197,7 @@ impl EpicAsset {
         self.set_property("label", &data.name()).unwrap();
         self.set_property("thumbnail", &data.image()).unwrap();
         self.set_property("favorite", &data.favorite()).unwrap();
+        self.set_property("downloaded", &data.downloaded()).unwrap();
         if let Ok(id) = data.connect_local(
             "refreshed",
             false,
