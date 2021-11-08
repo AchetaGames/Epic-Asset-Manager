@@ -255,7 +255,49 @@ impl EpicEngineDetails {
         }
         self_.launch_button.set_visible(true);
         self_.install_button.set_visible(false);
-        self_.data.replace(Some(data));
+        self_.data.replace(Some(data.clone()));
+        let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+        let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
+
+        if let Some(path) = &data.path() {
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
+            let title = gtk4::LabelBuilder::new().label("Path").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            let label = gtk4::LabelBuilder::new()
+                .label(path)
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details.append(&row);
+        }
+
+        if let Some(branch) = &data.branch() {
+            let row = adw::ActionRowBuilder::new().activatable(true).build();
+            let title = gtk4::LabelBuilder::new().label("Branch").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            let label = gtk4::LabelBuilder::new()
+                .label(branch)
+                .wrap(true)
+                .xalign(0.0)
+                .build();
+            size_group_labels.add_widget(&label);
+            row.add_suffix(&label);
+            self_.details.append(&row);
+        }
+
+        if let Some(update) = &data.needs_update() {
+            if *update {
+                let row = adw::ActionRowBuilder::new().activatable(true).build();
+                let title = gtk4::LabelBuilder::new().label("Needs update").build();
+                size_group_prefix.add_widget(&title);
+                row.add_prefix(&title);
+                self_.details.append(&row);
+            }
+        }
     }
 
     pub fn add_engine(&self) {
