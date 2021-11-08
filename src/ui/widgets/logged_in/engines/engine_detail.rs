@@ -242,7 +242,7 @@ impl EpicEngineDetails {
         );
     }
 
-    pub fn set_data(&self, data: crate::models::engine_data::EngineData) {
+    pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
         let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
         // remove old details
         while let Some(el) = self_.details.first_child() {

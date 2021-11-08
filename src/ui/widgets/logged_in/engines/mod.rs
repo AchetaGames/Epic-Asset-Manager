@@ -248,7 +248,7 @@ impl EpicEnginesBox {
                 let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
                 engines.set_property("selected", engine.path()).unwrap();
                 self_.details.set_property("expanded", true).unwrap();
-                self_.details.set_data(engine);
+                self_.details.set_data(&engine);
             }
         }));
         self.load_engines();

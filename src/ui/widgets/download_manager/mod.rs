@@ -1008,14 +1008,14 @@ impl EpicDownloadManager {
     pub fn progress(&self) -> f32 {
         let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
         let items = self_.download_items.borrow().values().len();
-        let mut progress = 0.0f32;
+        let mut progress = 0.0_f32;
         for item in self_.download_items.borrow().values() {
             progress += item.progress();
         }
         if items > 0 {
             progress / items as f32
         } else {
-            0.0f32
+            0.0_f32
         }
     }
 
