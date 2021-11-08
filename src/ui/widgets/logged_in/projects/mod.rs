@@ -248,7 +248,6 @@ impl EpicProjectsBox {
                                         uproject_file.file_stem().unwrap().to_str().unwrap(),
                                     ),
                                 );
-                                a
                             } else {
                                 self.check_path_for_uproject(&p);
                             };
