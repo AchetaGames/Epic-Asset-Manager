@@ -289,12 +289,14 @@ impl EpicEngineDetails {
             self_.details.append(&row);
         }
 
-        if let Some(_) = &data.needs_update() {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Needs update").build();
-            size_group_prefix.add_widget(&title);
-            row.add_prefix(&title);
-            self_.details.append(&row);
+        if let Some(update) = &data.needs_update() {
+            if *update {
+                let row = adw::ActionRowBuilder::new().activatable(true).build();
+                let title = gtk4::LabelBuilder::new().label("Needs update").build();
+                size_group_prefix.add_widget(&title);
+                row.add_prefix(&title);
+                self_.details.append(&row);
+            }
         }
     }
 
