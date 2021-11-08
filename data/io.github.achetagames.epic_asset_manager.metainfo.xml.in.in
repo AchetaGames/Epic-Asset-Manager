@@ -28,6 +28,21 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.8.0" date="2021-11-08">
+       <description>
+              <p>A polish release fixing minor annoyances</p>
+              <ul>
+                  <li>Display available engine details</li>
+                  <li>Display if asset downloaded</li>
+                  <li>Display Category information in assets</li>
+                  <li>Display message instead of GUID on unmatched project</li>
+                  <li>Respect the default_view setting</li>
+                  <li>Add Asset counter</li>
+                  <li>Add visual indication of categories</li>
+                  <li>Windows build</li>
+</ul>
+       </description>
+    </release>
     <release version="2.7.4" date="2021-11-02">
        <description>
               <p>Add notifications and implement them in couple places</p>
