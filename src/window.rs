@@ -94,12 +94,10 @@ pub(crate) mod imp {
                 button.set_visible(!supported);
                 if supported {
                     style_manager.set_color_scheme(adw::ColorScheme::Default);
+                } else if style_manager.is_dark() {
+                    button.set_icon_name("light-mode-symbolic");
                 } else {
-                    if style_manager.is_dark() {
-                        button.set_icon_name("light-mode-symbolic");
-                    } else {
-                        button.set_icon_name("dark-mode-symbolic");
-                    }
+                    button.set_icon_name("dark-mode-symbolic");
                 }
             });
 

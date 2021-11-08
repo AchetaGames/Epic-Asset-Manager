@@ -183,7 +183,7 @@ impl PreferencesWindow {
         self_.default_view_selection.connect_changed(
             clone!(@weak self as preferences => move |_| {
                 let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
-                self_.settings.set_string("default-view", &self_.default_view_selection.active_id().unwrap_or("library".into())).unwrap();
+                self_.settings.set_string("default-view", &self_.default_view_selection.active_id().unwrap_or_else(|| "library".into())).unwrap();
             }),
         );
     }

@@ -174,7 +174,6 @@ impl EpicLoggedInBox {
         self_.projects.set_window(&window.clone());
 
         match self_.settings.string("default-view").as_str() {
-            "library" => self_.adwstack.set_visible_child_name("library"),
             "engine" => self_.adwstack.set_visible_child_name("engine"),
             "projects" => self_.adwstack.set_visible_child_name("projects"),
             _ => self_.adwstack.set_visible_child_name("library"),
