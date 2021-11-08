@@ -229,27 +229,35 @@ impl EpicProjectsBox {
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
             let path = std::path::PathBuf::from(dir.to_string());
-            if let Ok(rd) = path.read_dir() {
-                for d in rd {
-                    match d {
-                        Ok(entry) => {
-                            let p = entry.path();
-                            if p.is_dir() {
-                                if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
-                                    self_.grid_model.append(
-                                        &crate::models::project_data::ProjectData::new(
-                                            uproject_file.to_str().unwrap(),
-                                            uproject_file.file_stem().unwrap().to_str().unwrap(),
-                                        ),
-                                    );
-                                };
+            self.check_path_for_uproject(&path);
+        }
+    }
+
+    fn check_path_for_uproject(&self, path: &PathBuf) {
+        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        if let Ok(rd) = path.read_dir() {
+            for d in rd {
+                match d {
+                    Ok(entry) => {
+                        let p = entry.path();
+                        if p.is_dir() {
+                            if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
+                                self_.grid_model.append(
+                                    &crate::models::project_data::ProjectData::new(
+                                        uproject_file.to_str().unwrap(),
+                                        uproject_file.file_stem().unwrap().to_str().unwrap(),
+                                    ),
+                                );
+                                a
                             } else {
-                                continue;
-                            }
-                        }
-                        Err(_) => {
+                                self.check_path_for_uproject(&p);
+                            };
+                        } else {
                             continue;
                         }
+                    }
+                    Err(_) => {
+                        continue;
                     }
                 }
             }
