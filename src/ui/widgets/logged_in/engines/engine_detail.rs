@@ -576,12 +576,20 @@ impl EpicEngineDetails {
             let mut test = p.clone();
             test.push("UE4Editor");
             if test.exists() {
-                return Some(test.into_os_string());
+                let mut result = OsString::new();
+                result.push("\"");
+                result.push(test.into_os_string());
+                result.push("\"");
+                return Some(result);
             }
             let mut test = p.clone();
             test.push("UnrealEditor");
             if test.exists() {
-                return Some(test.into_os_string());
+                let mut result = OsString::new();
+                result.push("\"");
+                result.push(test.into_os_string());
+                result.push("\"");
+                return Some(result);
             }
             error!("Unable to launch the engine");
         };
