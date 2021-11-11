@@ -89,12 +89,15 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let client = dclient.clone();
                 let sender = self_.sender.clone();
                 let pool = self_.download_pool.clone();
-                let mut target = std::path::PathBuf::from(
-                    self_
-                        .settings
-                        .string("temporary-download-directory")
-                        .to_string(),
-                );
+                let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
+                    None => {
+                        if let Some(w) = self_.window.get() {
+                            w.add_notification("missing engine config", "Unable to download engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
+                        }
+                        return;
+                    }
+                    Some(p) => PathBuf::from(p),
+                };
                 target.push("docker");
                 debug!("Going to download to {:?}", target);
                 thread::spawn(move || {
@@ -113,7 +116,13 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                             Ok(_) => s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFinished(v, d)).unwrap(),
                             Err(e) => {
                                 error!("Failed blob download because: {:?}", e);
-                                s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap();
+                                match e {
+                                    ghregistry::errors::Error::IO(err) => {
+                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::IOError(err.to_string())).unwrap()
+                                    },
+                                    _ => s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap()
+                                }
+
                             }
                         };
                     });
@@ -247,12 +256,15 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             let mut to_extract: Vec<String> = Vec::new();
-            let mut target = std::path::PathBuf::from(
-                self_
-                    .settings
-                    .string("temporary-download-directory")
-                    .to_string(),
-            );
+            let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
+                None => {
+                    if let Some(w) = self_.window.get() {
+                        w.add_notification("missing engine config", "Unable to download engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
+                    }
+                    return;
+                }
+                Some(p) => PathBuf::from(p),
+            };
             target.push("docker");
             for d in digests {
                 match d.1 {
@@ -324,12 +336,15 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 }
                 Some(i) => i,
             };
-            let mut target = std::path::PathBuf::from(
-                self_
-                    .settings
-                    .string("temporary-download-directory")
-                    .to_string(),
-            );
+            let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
+                None => {
+                    if let Some(w) = self_.window.get() {
+                        w.add_notification("missing engine config", "Unable to download engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
+                    }
+                    return;
+                }
+                Some(p) => PathBuf::from(p),
+            };
             target.push("docker");
             let mut remaining = 0;
             for d in digests {

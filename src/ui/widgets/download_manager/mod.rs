@@ -44,6 +44,7 @@ pub enum DownloadMsg {
     DockerBlobFinished(String, String),
     DockerBlobFailed(String, (String, u64)),
     DockerExtractionFinished(String),
+    IOError(String),
 }
 
 #[derive(Debug, Clone)]
@@ -328,6 +329,15 @@ impl EpicDownloadManager {
             }
             DownloadMsg::DockerExtractionFinished(version) => {
                 self.docker_extraction_finished(&version);
+            }
+            DownloadMsg::IOError(e) => {
+                if let Some(w) = self_.window.get() {
+                    w.add_notification(
+                        "iodownloaderror",
+                        &format!("Unable to download file: {}", e),
+                        gtk4::MessageType::Error,
+                    );
+                }
             }
         }
     }
