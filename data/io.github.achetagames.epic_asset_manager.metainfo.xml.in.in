@@ -28,6 +28,17 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.9.0" date="2021-11-12">
+       <description>
+              <p>Engine install fixes</p>
+              <ul>
+                  <li>Check for disk space before engine install, fixed #126</li>
+                  <li>Fix engine not launching when there is space in the path, fixed #128</li>
+                  <li>Report broken download to the user, fixed #123</li>
+                  <li>Recursively scan for projects, fixed #83</li>
+</ul>
+       </description>
+    </release>
     <release version="2.8.0" date="2021-11-08">
        <description>
               <p>A polish release fixing minor annoyances</p>
