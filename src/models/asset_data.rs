@@ -1,11 +1,20 @@
 use chrono::{DateTime, Utc};
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
+use egs_api::api::types::asset_info::AssetInfo;
 use glib::ObjectExt;
 use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::gio::prelude::SettingsExt;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
+
+pub enum AssetType {
+    Asset,
+    Project,
+    Game,
+    Engine,
+    Plugin,
+}
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -23,6 +32,7 @@ mod imp {
         name: RefCell<Option<String>>,
         favorite: RefCell<bool>,
         downloaded: RefCell<bool>,
+        pub kind: RefCell<Option<String>>,
         pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         thumbnail: RefCell<Option<Pixbuf>>,
         pub settings: gtk4::gio::Settings,
@@ -41,6 +51,7 @@ mod imp {
                 name: RefCell::new(None),
                 favorite: RefCell::new(false),
                 downloaded: RefCell::new(false),
+                kind: RefCell::new(None),
                 asset: RefCell::new(None),
                 thumbnail: RefCell::new(None),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
@@ -191,10 +202,47 @@ impl AssetData {
         pixbuf_loader.write(image).unwrap();
         pixbuf_loader.close().ok();
 
+        data.configure_kind(asset);
+
         if let Some(pix) = pixbuf_loader.pixbuf() {
             data.set_property("thumbnail", &pix).unwrap();
         };
         data
+    }
+
+    fn configure_kind(&self, asset: &AssetInfo) {
+        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        match &asset.categories {
+            None => {}
+            Some(cat) => {
+                for c in cat {
+                    match c.path.as_str() {
+                        "asset" => {
+                            self_.kind.replace(Some("asset".to_string()));
+                            return;
+                        }
+                        "games" => {
+                            self_.kind.replace(Some("games".to_string()));
+                            return;
+                        }
+                        "plugins" => {
+                            self_.kind.replace(Some("plugins".to_string()));
+                            return;
+                        }
+                        "projects" => {
+                            self_.kind.replace(Some("projects".to_string()));
+                            return;
+                        }
+                        "engines" => {
+                            self_.kind.replace(Some("engines".to_string()));
+                            return;
+                        }
+                        _ => {}
+                    };
+                }
+                self_.kind.replace(None);
+            }
+        };
     }
 
     pub fn id(&self) -> String {
@@ -239,6 +287,21 @@ impl AssetData {
             Some(a) => match a.latest_release() {
                 None => a.last_modified_date,
                 Some(ri) => ri.date_added,
+            },
+            None => None,
+        }
+    }
+
+    pub fn kind(&self) -> Option<AssetType> {
+        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        match &*self_.kind.borrow() {
+            Some(a) => match a.as_str() {
+                "asset" => Some(AssetType::Asset),
+                "games" => Some(AssetType::Game),
+                "plugins" => Some(AssetType::Plugin),
+                "projects" => Some(AssetType::Project),
+                "engines" => Some(AssetType::Engine),
+                _ => None,
             },
             None => None,
         }
@@ -317,9 +380,8 @@ impl AssetData {
                         let mut p = pathbuf.clone();
                         if let Some(app) = &ri.app_id {
                             p.push(&app);
-                            p.push("manifest");
+                            p.push("data");
                             if p.exists() {
-                                println!("Exists {:?}", p.to_str());
                                 self.set_property("downloaded", true).unwrap();
                                 return;
                             }
