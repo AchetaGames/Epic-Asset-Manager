@@ -46,6 +46,6 @@ open = "2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
-ghregistry = "0.1"
+ghregistry = "^0.1.2"
 git2 = "0.13"
 secret-service = "2.0"
