@@ -464,12 +464,35 @@ impl EpicEngineDetails {
     }
 
     pub fn update(&self, msg: DockerMsg) {
+        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
         match msg {
             DockerMsg::DockerEngineVersions(ver) => {
                 self.updated_docker_versions(&ver);
             }
             DockerMsg::DockerManifestSize(size) => {
                 let byte = byte_unit::Byte::from_bytes(size as u128).get_appropriate_unit(false);
+                match self_.settings.strv("unreal-engine-directories").get(0) {
+                    None => {
+                        if let Some(w) = self_.window.get() {
+                            w.add_notification("missing engine config", "Unable to install engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
+                            get_action!(self_.actions, @install).set_enabled(false);
+                        }
+                    }
+                    Some(p) => {
+                        if fs2::available_space(std::path::Path::new(p)).unwrap_or_default() < size
+                        {
+                            if let Some(w) = self_.window.get() {
+                                w.add_notification("no space left on device engine", "Not enough space left in the Engine directory for install, please chose a different one.", gtk4::MessageType::Error);
+                            }
+                            get_action!(self_.actions, @install).set_enabled(false);
+                        } else {
+                            if let Some(w) = self_.window.get() {
+                                w.clear_notification("no space left on device engine");
+                            }
+                            get_action!(self_.actions, @install).set_enabled(true);
+                        }
+                    }
+                };
                 self.set_property("download-size", Some(byte.format(1)))
                     .unwrap();
             }
