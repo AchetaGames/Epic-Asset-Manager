@@ -20,7 +20,7 @@ use std::thread;
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
     #[cfg(target_os = "linux")]
-    pub secret_service: SecretService<'static>,
+    pub secret_service: Option<SecretService<'static>>,
     pub sender: Sender<crate::ui::messages::Msg>,
     pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
     pub settings: gio::Settings,
@@ -40,8 +40,16 @@ impl Model {
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
             #[cfg(target_os = "linux")]
-            secret_service: SecretService::new(EncryptionType::Dh)
-                .expect("A running secret-service is required"),
+            secret_service: match SecretService::new(EncryptionType::Dh) {
+                Ok(ss) => Some(ss),
+                Err(e) => {
+                    error!(
+                        "Unable to initialize Secret service no secrets will be stored: {}",
+                        e
+                    );
+                    None
+                }
+            },
             sender,
             receiver: RefCell::new(Some(receiver)),
             settings: gio::Settings::new(APP_ID),
@@ -141,102 +149,116 @@ impl Model {
     fn load_secrets(&mut self) {
         #[cfg(target_os = "linux")]
         {
-            if let Ok(collection) = self.secret_service.get_any_collection() {
-                if let Ok(items) = collection.search_items(
-                    [("application", crate::config::APP_ID)]
-                        .iter()
-                        .copied()
-                        .collect(),
-                ) {
-                    let mut ud = egs_api::api::UserData::new();
-                    for item in items {
-                        let label = if let Ok(l) = item.get_label() {
-                            l
-                        } else {
-                            debug!("No label skipping");
-                            continue;
-                        };
-                        debug!("Loading: {}", label);
-                        if let Ok(attributes) = item.get_attributes() {
-                            match label.as_str() {
-                                "eam_epic_games_token" => {
-                                    let t = match attributes.get("type") {
-                                        None => {
-                                            debug!("Access token does not have type");
-                                            continue;
+            match &self.secret_service {
+                None => {
+                    error!("Unable to load secrets from Secret service");
+                }
+                Some(ss) => {
+                    if let Ok(collection) = ss.get_any_collection() {
+                        if let Ok(items) = collection.search_items(
+                            [("application", crate::config::APP_ID)]
+                                .iter()
+                                .copied()
+                                .collect(),
+                        ) {
+                            let mut ud = egs_api::api::UserData::new();
+                            for item in items {
+                                let label = if let Ok(l) = item.get_label() {
+                                    l
+                                } else {
+                                    debug!("No label skipping");
+                                    continue;
+                                };
+                                debug!("Loading: {}", label);
+                                if let Ok(attributes) = item.get_attributes() {
+                                    match label.as_str() {
+                                        "eam_epic_games_token" => {
+                                            let t = match attributes.get("type") {
+                                                None => {
+                                                    debug!("Access token does not have type");
+                                                    continue;
+                                                }
+                                                Some(v) => v.clone(),
+                                            };
+                                            let exp = match chrono::DateTime::parse_from_rfc3339(
+                                                self.settings.string("token-expiration").as_str(),
+                                            ) {
+                                                Ok(d) => d.with_timezone(&chrono::Utc),
+                                                Err(e) => {
+                                                    debug!(
+                                                        "Failed to parse token expiration date {}",
+                                                        e
+                                                    );
+                                                    continue;
+                                                }
+                                            };
+                                            let now = chrono::offset::Utc::now();
+                                            let td = exp - now;
+                                            if td.num_seconds() < 600 {
+                                                info!("Token {} is expired, removing", label);
+                                                item.delete().unwrap_or_default();
+                                                continue;
+                                            }
+                                            ud.expires_at = Some(exp);
+                                            ud.token_type = Some(t);
+                                            if let Ok(d) = item.get_secret() {
+                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                                    debug!("Loaded access token");
+                                                    ud.set_access_token(Some(s.to_string()));
+                                                }
+                                            };
                                         }
-                                        Some(v) => v.clone(),
-                                    };
-                                    let exp = match chrono::DateTime::parse_from_rfc3339(
-                                        self.settings.string("token-expiration").as_str(),
-                                    ) {
-                                        Ok(d) => d.with_timezone(&chrono::Utc),
-                                        Err(e) => {
-                                            debug!("Failed to parse token expiration date {}", e);
-                                            continue;
-                                        }
-                                    };
-                                    let now = chrono::offset::Utc::now();
-                                    let td = exp - now;
-                                    if td.num_seconds() < 600 {
-                                        info!("Token {} is expired, removing", label);
-                                        item.delete().unwrap_or_default();
-                                        continue;
-                                    }
-                                    ud.expires_at = Some(exp);
-                                    ud.token_type = Some(t);
-                                    if let Ok(d) = item.get_secret() {
-                                        if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                            debug!("Loaded access token");
-                                            ud.set_access_token(Some(s.to_string()));
-                                        }
-                                    };
-                                }
-                                "eam_epic_games_refresh_token" => {
-                                    let exp = match chrono::DateTime::parse_from_rfc3339(
-                                        self.settings.string("refresh-token-expiration").as_str(),
-                                    ) {
-                                        Ok(d) => d.with_timezone(&chrono::Utc),
-                                        Err(e) => {
-                                            debug!(
+                                        "eam_epic_games_refresh_token" => {
+                                            let exp = match chrono::DateTime::parse_from_rfc3339(
+                                                self.settings
+                                                    .string("refresh-token-expiration")
+                                                    .as_str(),
+                                            ) {
+                                                Ok(d) => d.with_timezone(&chrono::Utc),
+                                                Err(e) => {
+                                                    debug!(
                                                 "Failed to parse refresh token expiration date {}",
                                                 e
                                             );
-                                            continue;
+                                                    continue;
+                                                }
+                                            };
+                                            let now = chrono::offset::Utc::now();
+                                            let td = exp - now;
+                                            if td.num_seconds() < 600 {
+                                                info!("Token {} is expired, removing", label);
+                                                item.delete().unwrap_or_default();
+                                                continue;
+                                            }
+                                            ud.refresh_expires_at = Some(exp);
+                                            if let Ok(d) = item.get_secret() {
+                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                                    debug!("Loaded refresh token");
+                                                    ud.set_refresh_token(Some(s.to_string()));
+                                                }
+                                            };
                                         }
-                                    };
-                                    let now = chrono::offset::Utc::now();
-                                    let td = exp - now;
-                                    if td.num_seconds() < 600 {
-                                        info!("Token {} is expired, removing", label);
-                                        item.delete().unwrap_or_default();
-                                        continue;
+                                        "eam_github_token" => {
+                                            if let Ok(d) = item.get_secret() {
+                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                                    self.validate_registry_login(
+                                                        self.settings
+                                                            .string("github-user")
+                                                            .to_string(),
+                                                        s.to_string(),
+                                                    );
+                                                }
+                                            };
+                                        }
+                                        &_ => {}
                                     }
-                                    ud.refresh_expires_at = Some(exp);
-                                    if let Ok(d) = item.get_secret() {
-                                        if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                            debug!("Loaded refresh token");
-                                            ud.set_refresh_token(Some(s.to_string()));
-                                        }
-                                    };
                                 }
-                                "eam_github_token" => {
-                                    if let Ok(d) = item.get_secret() {
-                                        if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                            self.validate_registry_login(
-                                                self.settings.string("github-user").to_string(),
-                                                s.to_string(),
-                                            );
-                                        }
-                                    };
-                                }
-                                &_ => {}
                             }
-                        }
-                    }
-                    self.epic_games.borrow_mut().set_user_details(ud);
-                };
-            };
+                            self.epic_games.borrow_mut().set_user_details(ud);
+                        };
+                    };
+                }
+            }
         }
     }
 }
