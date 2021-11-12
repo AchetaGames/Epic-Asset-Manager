@@ -388,25 +388,25 @@ impl EpicAssetManagerWindow {
                     .set_string("token-expiration", d.as_str())
                     .unwrap();
                 if let Some(at) = ud.access_token() {
+                    debug!("Saving token secret");
                     #[cfg(target_os = "linux")]
                     {
-                        debug!("Saving token secret");
-                        if let Err(e) = self_
-                            .model
-                            .borrow()
-                            .secret_service
-                            .get_any_collection()
-                            .unwrap()
-                            .create_item(
-                                "eam_epic_games_token",
-                                attributes.clone(),
-                                at.as_bytes(),
-                                true,
-                                "text/plain",
-                            )
-                        {
-                            error!("Failed to save secret {}", e);
-                        };
+                        match &self_.model.borrow().secret_service {
+                            None => {
+                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
+                            }
+                            Some(ss) => {
+                                if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                                    "eam_epic_games_token",
+                                    attributes.clone(),
+                                    at.as_bytes(),
+                                    true,
+                                    "text/plain",
+                                ) {
+                                    error!("Failed to save secret {}", e);
+                                };
+                            }
+                        }
                     }
                 }
             }
@@ -422,25 +422,25 @@ impl EpicAssetManagerWindow {
                     .set_string("refresh-token-expiration", d.as_str())
                     .unwrap();
                 if let Some(rt) = ud.refresh_token() {
-                    debug!("Saving refresh token secret");
                     #[cfg(target_os = "linux")]
                     {
-                        if let Err(e) = self_
-                            .model
-                            .borrow()
-                            .secret_service
-                            .get_any_collection()
-                            .unwrap()
-                            .create_item(
-                                "eam_epic_games_refresh_token",
-                                attributes,
-                                rt.as_bytes(),
-                                true,
-                                "text/plain",
-                            )
-                        {
-                            error!("Failed to save secret {}", e);
-                        };
+                        debug!("Saving refresh token secret");
+                        match &self_.model.borrow().secret_service {
+                            None => {
+                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
+                            }
+                            Some(ss) => {
+                                if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                                    "eam_epic_games_refresh_token",
+                                    attributes,
+                                    rt.as_bytes(),
+                                    true,
+                                    "text/plain",
+                                ) {
+                                    error!("Failed to save secret {}", e);
+                                };
+                            }
+                        }
                     }
                 }
             }

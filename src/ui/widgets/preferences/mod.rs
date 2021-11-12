@@ -225,34 +225,36 @@ impl PreferencesWindow {
             if let Some(w) = self_.window.get() {
                 let win_: &crate::window::imp::EpicAssetManagerWindow =
                     crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-                if let Ok(collection) = win_.model.borrow().secret_service.get_any_collection() {
-                    if let Ok(items) = collection.search_items(
-                        [("application", crate::config::APP_ID)]
-                            .iter()
-                            .copied()
-                            .collect(),
-                    ) {
-                        for item in items {
-                            let label = if let Ok(l) = item.get_label() {
-                                l
-                            } else {
-                                debug!("No label skipping");
-                                continue;
-                            };
-                            debug!("Loading: {}", label);
-                            match label.as_str() {
-                                "eam_github_token" => {
-                                    if let Ok(d) = item.get_secret() {
-                                        if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                            self_.github_token.set_text(s);
-                                        }
+                match &win_.model.borrow().secret_service {
+                    None => w.add_notification("ss_none", "org.freedesktop.Secret.Service not available for use, secrets will not be stored", gtk4::MessageType::Warning),
+                    Some(ss) => {
+                        if let Ok(collection) = ss.get_any_collection() {
+                            if let Ok(items) = collection.search_items(
+                                [("application", crate::config::APP_ID)].iter().copied().collect(),
+                            ) {
+                                for item in items {
+                                    let label = if let Ok(l) = item.get_label() {
+                                        l
+                                    } else {
+                                        debug!("No label skipping");
+                                        continue;
                                     };
+                                    debug!("Loading: {}", label);
+                                    match label.as_str() {
+                                        "eam_github_token" => {
+                                            if let Ok(d) = item.get_secret() {
+                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                                    self_.github_token.set_text(s);
+                                                }
+                                            };
+                                        }
+                                        &_ => {}
+                                    }
                                 }
-                                &_ => {}
-                            }
-                        }
-                    };
-                };
+                            };
+                        };
+                    }
+                }
             };
             self_.github_token.connect_changed(clone!(@weak self as preferences => move |_| {
                 let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
@@ -262,15 +264,23 @@ impl PreferencesWindow {
                     attributes.insert("type", "token");
                     let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
                     let model = win_.model.borrow();
-                    if let Err(e) = model.secret_service.get_any_collection().unwrap().create_item(
-                        "eam_github_token",
-                        attributes.clone(),
-                        self_.github_token.text().as_bytes(),
-                        true,
-                        "text/plain",
-                    ) {
-                        error!("Failed to save secret {}", e);
-                    };
+                    match &model.secret_service {
+                        None => {
+                            w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be persisted over application restarts", gtk4::MessageType::Warning)
+                        }
+                        Some(ss) => {
+                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                                "eam_github_token",
+                                attributes.clone(),
+                                self_.github_token.text().as_bytes(),
+                                true,
+                                "text/plain",
+                            ) {
+                                error!("Failed to save secret {}", e);
+                            };
+                        }
+                    }
+
                     model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
                 }
             }));
