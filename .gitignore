@@ -78,3 +78,7 @@ src/config.rs
 
 #fenv
 .fenv
+
+#package
+package/
+package.zip
