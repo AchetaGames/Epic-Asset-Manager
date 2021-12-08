@@ -29,8 +29,6 @@ pub(crate) mod imp {
         pub adwstack: TemplateChild<adw::ViewStack>,
         pub settings: gtk4::gio::Settings,
         stack: RefCell<Option<adw::ViewStack>>,
-        item: RefCell<Option<String>>,
-        product: RefCell<Option<String>>,
     }
 
     #[glib::object_subclass]
@@ -49,8 +47,6 @@ pub(crate) mod imp {
                 adwstack: TemplateChild::default(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
                 stack: RefCell::new(None),
-                item: RefCell::new(None),
-                product: RefCell::new(None),
             }
         }
 
