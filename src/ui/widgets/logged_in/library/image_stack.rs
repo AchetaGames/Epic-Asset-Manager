@@ -217,7 +217,7 @@ impl EpicImageOverlay {
             clone!(@weak self as image_stack => move |_, _| {
                 let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
                 if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32) + 1) {
-                    self_.stack.scroll_to(&image);
+                    self_.stack.scroll_to(&image, true);
                 };
             })
         );
@@ -228,7 +228,7 @@ impl EpicImageOverlay {
             clone!(@weak self as image_stack => move |_, _| {
                 let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
                 if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32).saturating_sub(1)) {
-                    self_.stack.scroll_to(&image);
+                    self_.stack.scroll_to(&image, true);
                 };
             })
         );
