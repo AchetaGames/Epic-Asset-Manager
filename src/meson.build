@@ -20,6 +20,7 @@ run_command(
 
 rust_sources = files(
     'window.rs',
+    'schema.rs',
     'tools/asset_info.rs',
     'tools/or.rs',
     'tools/mod.rs',

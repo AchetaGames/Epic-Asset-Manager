@@ -2,6 +2,7 @@ use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
 use crate::ui::widgets::progress_icon::ProgressIconExt;
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk4::subclass::prelude::*;
@@ -372,8 +373,28 @@ impl EpicAssetManagerWindow {
             .logged_in_stack
             .set_download_manager(&self_.download_manager);
         self.show_logged_in();
+        let db = crate::models::database::connection();
         if let Some(id) = &ud.display_name {
+            if let Ok(conn) = db.get() {
+                diesel::replace_into(crate::schema::user_data::table)
+                    .values((
+                        crate::schema::user_data::name.eq("display_name"),
+                        crate::schema::user_data::value.eq(id),
+                    ))
+                    .execute(&conn)
+                    .expect("Unable to insert display name to the DB");
+            };
             self_.appmenu_button.set_label(id);
+        } else {
+            if let Ok(conn) = db.get() {
+                let data: Result<String, diesel::result::Error> = crate::schema::user_data::table
+                    .filter(crate::schema::user_data::name.eq("display_name"))
+                    .select(crate::schema::user_data::value)
+                    .first(&conn);
+                if let Ok(name) = data {
+                    self_.appmenu_button.set_label(&name);
+                }
+            };
         }
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
