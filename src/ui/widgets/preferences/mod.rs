@@ -1,5 +1,6 @@
 pub mod dir_row;
 
+use adw::prelude::PreferencesWindowExt;
 use gtk4::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
 use gtk4::glib::clone;
 use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
@@ -285,6 +286,10 @@ impl PreferencesWindow {
                 }
             }));
         }
+    }
+
+    pub fn switch_to_tab(&self, name: &str) {
+        self.set_visible_page_name(name);
     }
 
     pub fn setup_actions(&self) {

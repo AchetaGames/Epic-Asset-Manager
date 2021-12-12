@@ -8,6 +8,7 @@
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
                 <property name="title" translatable="yes">General</property>
+                <property name="name">general</property>
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Startup</property>
@@ -56,6 +57,7 @@
             <object class="AdwPreferencesPage">
                 <property name="icon-name">folder-symbolic</property>
                 <property name="title" translatable="yes">Directories</property>
+                <property name="name">directories</property>
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Download Targets</property>
@@ -222,6 +224,7 @@
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
                 <property name="title" translatable="yes">GitHub</property>
+                <property name="name">github</property>
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Secrets</property>

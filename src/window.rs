@@ -2,6 +2,7 @@ use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
 use crate::ui::widgets::progress_icon::ProgressIconExt;
+use crate::ui::PreferencesWindow;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use glib::clone;
 use glib::signal::Inhibit;
@@ -356,6 +357,14 @@ impl EpicAssetManagerWindow {
             }),
         );
         self_.notifications.append(&notif);
+    }
+
+    pub fn show_preferences(&self) -> PreferencesWindow {
+        let preferences = PreferencesWindow::new();
+        preferences.set_transient_for(Some(self));
+        preferences.set_window(self);
+        preferences.show();
+        preferences
     }
 
     pub fn show_assets(&self, ud: &egs_api::api::UserData) {

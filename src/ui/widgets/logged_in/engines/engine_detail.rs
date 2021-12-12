@@ -432,8 +432,19 @@ impl EpicEngineDetails {
                     .halign(gtk4::Align::Center)
                     .hexpand(true)
                     .use_markup(true)
-                    .label("<b>Please configure github token in Preferences</b>")
+                    .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
                     .build();
+                label.connect_activate_link(clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
+                    let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&details);
+                    if uri.eq("preferences") {
+                        if let Some(w) = self_.window.get() {
+                            let pref = w.show_preferences();
+                            pref.switch_to_tab("github");
+                        }
+                    };
+                    gtk4::Inhibit(true)
+                }));
+
                 self_.details.append(&label);
                 get_action!(self_.actions, @install).set_enabled(false);
             }

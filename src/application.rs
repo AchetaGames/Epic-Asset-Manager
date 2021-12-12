@@ -11,7 +11,6 @@ use once_cell::sync::OnceCell;
 
 pub(crate) mod imp {
     use super::*;
-    use crate::ui::PreferencesWindow;
     use log::error;
     use std::cell::RefCell;
 
@@ -149,10 +148,7 @@ pub(crate) mod imp {
                 app_d,
                 "preferences",
                 clone!(@weak app as app => move |_,_| {
-                    let preferences = PreferencesWindow::new();
-                    preferences.set_transient_for(Some(app.main_window()));
-                    preferences.set_window(app.main_window());
-                    preferences.show();
+                    app.main_window().show_preferences();
                 })
             );
 
