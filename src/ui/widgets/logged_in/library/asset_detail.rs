@@ -1,3 +1,4 @@
+use crate::models::asset_data::AssetType;
 use adw::prelude::ActionRowExt;
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
@@ -35,9 +36,13 @@ pub(crate) mod imp {
         #[template_child]
         pub details_box: TemplateChild<gtk4::Box>,
         #[template_child]
+        pub actions_box: TemplateChild<gtk4::Box>,
+        #[template_child]
         pub title: TemplateChild<gtk4::Label>,
         #[template_child]
         pub favorite: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub actions_menu: TemplateChild<gtk4::MenuButton>,
         #[template_child]
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
@@ -66,8 +71,10 @@ pub(crate) mod imp {
                 download_confirmation_revealer: TemplateChild::default(),
                 details: TemplateChild::default(),
                 details_box: TemplateChild::default(),
+                actions_box: TemplateChild::default(),
                 title: TemplateChild::default(),
                 favorite: TemplateChild::default(),
+                actions_menu: TemplateChild::default(),
                 images: TemplateChild::default(),
                 download_details: TemplateChild::default(),
                 window: OnceCell::new(),
@@ -222,6 +229,7 @@ impl EpicAssetDetails {
                 self_.download_confirmation_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(false);
                 get_action!(self_.actions, @show_asset_details).set_enabled(true);
+                self_.actions_menu.popdown()
             })
         );
 
@@ -266,6 +274,99 @@ impl EpicAssetDetails {
         );
     }
 
+    fn build_box_with_icon_label(label: Option<&str>, icon: Option<&str>) -> gtk4::Box {
+        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+        b.append(&gtk4::Image::from_icon_name(icon));
+        b.append(&gtk4::Label::new(label));
+        b
+    }
+
+    pub fn set_actions(&self) {
+        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        while let Some(el) = self_.actions_box.first_child() {
+            self_.actions_box.remove(&el);
+        }
+        let button = gtk4::ButtonBuilder::new()
+            .child(&Self::build_box_with_icon_label(
+                Some("Download"),
+                Some("folder-download-symbolic"),
+            ))
+            .action_name("details.show_download_details")
+            .build();
+        self_.actions_box.append(&button);
+        if let Some(asset) = self.asset() {
+            if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
+                match kind {
+                    AssetType::Asset => {
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Add to Project"),
+                                Some("edit-select-all-symbolic"),
+                            ))
+                            .action_name("details.add_to_project")
+                            .build();
+                        self_.actions_box.append(&button);
+                    }
+                    AssetType::Project => {
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Add to Project"),
+                                Some("edit-select-all-symbolic"),
+                            ))
+                            .action_name("details.add_to_project")
+                            .build();
+                        self_.actions_box.append(&button);
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Create Project"),
+                                Some("folder-new-symbolic"),
+                            ))
+                            .action_name("details.create_project")
+                            .build();
+                        self_.actions_box.append(&button);
+                    }
+                    AssetType::Game => {
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Install"),
+                                Some("system-software-install-symbolic"),
+                            ))
+                            .action_name("details.install_game")
+                            .build();
+                        self_.actions_box.append(&button);
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Play"),
+                                Some("media-playback-start-symbolic"),
+                            ))
+                            .action_name("details.play_game")
+                            .build();
+                        self_.actions_box.append(&button);
+                    }
+                    AssetType::Engine => {}
+                    AssetType::Plugin => {
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Add to Project"),
+                                Some("edit-select-all-symbolic"),
+                            ))
+                            .action_name("details.add_to_project")
+                            .build();
+                        self_.actions_box.append(&button);
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Add to Engine"),
+                                Some("application-x-addon-symbolic"),
+                            ))
+                            .action_name("details.add_to_project")
+                            .build();
+                        self_.actions_box.append(&button);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
         if let Some(a) = &*self_.asset.borrow() {
@@ -273,11 +374,13 @@ impl EpicAssetDetails {
                 return;
             }
         };
+
         self_
             .images
             .set_property("asset", asset.id.clone())
             .unwrap();
         self_.asset.replace(Some(asset.clone()));
+        self.set_actions();
         self_.download_details.set_asset(asset);
         self_.details_revealer.set_reveal_child(true);
         self_.details_revealer.set_vexpand_set(false);

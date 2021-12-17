@@ -210,39 +210,58 @@ impl AssetData {
         data
     }
 
+    pub fn decide_kind(asset: &AssetInfo) -> Option<AssetType> {
+        return if let Some(cat) = &asset.categories {
+            for c in cat {
+                match c.path.as_str() {
+                    "assets" => {
+                        return Some(AssetType::Asset);
+                    }
+                    "games" => {
+                        return Some(AssetType::Game);
+                    }
+                    "plugins" => {
+                        return Some(AssetType::Plugin);
+                    }
+                    "projects" => {
+                        return Some(AssetType::Project);
+                    }
+                    "engines" => {
+                        return Some(AssetType::Engine);
+                    }
+                    _ => {}
+                };
+            }
+            None
+        } else {
+            None
+        };
+    }
+
     fn configure_kind(&self, asset: &AssetInfo) {
         let self_: &imp::AssetData = imp::AssetData::from_instance(self);
-        match &asset.categories {
-            None => {}
-            Some(cat) => {
-                for c in cat {
-                    match c.path.as_str() {
-                        "asset" => {
-                            self_.kind.replace(Some("asset".to_string()));
-                            return;
-                        }
-                        "games" => {
-                            self_.kind.replace(Some("games".to_string()));
-                            return;
-                        }
-                        "plugins" => {
-                            self_.kind.replace(Some("plugins".to_string()));
-                            return;
-                        }
-                        "projects" => {
-                            self_.kind.replace(Some("projects".to_string()));
-                            return;
-                        }
-                        "engines" => {
-                            self_.kind.replace(Some("engines".to_string()));
-                            return;
-                        }
-                        _ => {}
-                    };
-                }
+        match Self::decide_kind(asset) {
+            None => {
                 self_.kind.replace(None);
             }
-        };
+            Some(kind) => match kind {
+                AssetType::Asset => {
+                    self_.kind.replace(Some("asset".to_string()));
+                }
+                AssetType::Project => {
+                    self_.kind.replace(Some("projects".to_string()));
+                }
+                AssetType::Game => {
+                    self_.kind.replace(Some("games".to_string()));
+                }
+                AssetType::Engine => {
+                    self_.kind.replace(Some("engines".to_string()));
+                }
+                AssetType::Plugin => {
+                    self_.kind.replace(Some("plugins".to_string()));
+                }
+            },
+        }
     }
 
     pub fn id(&self) -> String {
