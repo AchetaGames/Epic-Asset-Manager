@@ -275,7 +275,7 @@ impl EpicAssetDetails {
     }
 
     fn build_box_with_icon_label(label: Option<&str>, icon: Option<&str>) -> gtk4::Box {
-        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
         b.append(&gtk4::Image::from_icon_name(icon));
         b.append(&gtk4::Label::new(label));
         b
