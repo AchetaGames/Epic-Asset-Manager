@@ -233,7 +233,7 @@ impl EpicProjectsBox {
         }
     }
 
-    fn check_path_for_uproject(&self, path: &PathBuf) {
+    fn check_path_for_uproject(&self, path: &Path) {
         let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
         if let Ok(rd) = path.read_dir() {
             for d in rd {

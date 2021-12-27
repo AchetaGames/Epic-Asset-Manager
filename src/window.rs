@@ -235,7 +235,7 @@ impl EpicAssetManagerWindow {
             self.maximize();
         }
         let style_manager = adw::StyleManager::default().unwrap();
-        if !style_manager.system_supports_color_schemes() {
+        if style_manager.system_supports_color_schemes() {
             if settings.boolean("dark-mode") {
                 style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
             } else {
@@ -394,17 +394,15 @@ impl EpicAssetManagerWindow {
                     .expect("Unable to insert display name to the DB");
             };
             self_.appmenu_button.set_label(id);
-        } else {
-            if let Ok(conn) = db.get() {
-                let data: Result<String, diesel::result::Error> = crate::schema::user_data::table
-                    .filter(crate::schema::user_data::name.eq("display_name"))
-                    .select(crate::schema::user_data::value)
-                    .first(&conn);
-                if let Ok(name) = data {
-                    self_.appmenu_button.set_label(&name);
-                }
-            };
-        }
+        } else if let Ok(conn) = db.get() {
+            let data: Result<String, diesel::result::Error> = crate::schema::user_data::table
+                .filter(crate::schema::user_data::name.eq("display_name"))
+                .select(crate::schema::user_data::value)
+                .first(&conn);
+            if let Ok(name) = data {
+                self_.appmenu_button.set_label(&name);
+            }
+        };
         if let Some(t) = ud.token_type.clone() {
             let mut attributes = HashMap::new();
             attributes.insert("application", crate::config::APP_ID);
