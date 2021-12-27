@@ -28,6 +28,18 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.9.2" date="2021-12-27">
+       <description>
+              <p>Fix release</p>
+              <ul>
+                  <li>Fix panic on creating json manifest</li>
+                  <li>Fix build due to libadwaita change</li>
+                  <li>Opening project with engine binary containing space fails.</li>
+                  <li>Fix the dependency to reflect the required ghregistry version</li>
+                  <li>If secret service is not available do not panic but display reasonable messages</li>
+              </ul>
+       </description>
+    </release>
     <release version="2.9.0" date="2021-11-12">
        <description>
               <p>Engine install fixes</p>
