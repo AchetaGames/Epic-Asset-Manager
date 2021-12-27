@@ -307,6 +307,14 @@ impl EpicEnginesBox {
             {
                 for eng in engines.values() {
                     if eng.path.eq(&path) {
+                        engines.insert(
+                            guid.clone(),
+                            UnrealEngine {
+                                version: version.clone(),
+                                path: path.clone(),
+                                guid: Some(guid.clone()),
+                            },
+                        );
                         continue 'outer;
                     }
                 }
@@ -420,7 +428,14 @@ impl EpicEnginesBox {
                 if let Ok(path) = ini.value("Installations", &item) {
                     let guid: String = item.chars().filter(|c| c != &'{' && c != &'}').collect();
                     debug!("Got engine install: {} in {}", guid, path);
-                    result.insert(guid.to_string(), path.to_string());
+                    match path.to_string().strip_suffix("/") {
+                        None => {
+                            result.insert(guid.to_string(), path.to_string());
+                        }
+                        Some(pa) => {
+                            result.insert(guid.to_string(), pa.to_string());
+                        }
+                    }
                 }
             }
         }
