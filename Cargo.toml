@@ -11,7 +11,7 @@ adw = { package = "libadwaita", version = "0.1.0-beta-1" }
 anyhow = "1.0"
 byte-unit = "4.0"
 chrono = "0.4"
-clap = "2.33"
+clap = "3"
 diesel = { version = "1.4", features = ["sqlite", "r2d2"] }
 diesel_migrations = { version = "1.4", features = ["sqlite"] }
 egs-api = "0.4"
