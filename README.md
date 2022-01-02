@@ -54,5 +54,11 @@ meson compile -C _build
 meson install -C _build
 ```
 
+## Run
+Open from your favorite application tray or run the following in a terminal
+```
+epic_asset_manager
+```
+
 ## Action video 
 [![Youtube Video](https://img.youtube.com/vi/vgy3j03sZns/maxresdefault.jpg)](https://www.youtube.com/watch?v=vgy3j03sZns)
