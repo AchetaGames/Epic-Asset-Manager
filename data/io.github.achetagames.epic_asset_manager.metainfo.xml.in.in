@@ -28,6 +28,14 @@
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.9.3" date="2022-01-10">
+       <description>
+              <p>Crash fix</p>
+              <ul>
+                  <li>Remove non-existent property</li>
+              </ul>
+       </description>
+    </release>
     <release version="2.9.2" date="2021-12-27">
        <description>
               <p>Fix release</p>
