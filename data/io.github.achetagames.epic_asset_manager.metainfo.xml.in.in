@@ -26,6 +26,7 @@
     </screenshots>
     <url type="homepage">https://github.com/AchetaGames/Epic-Asset-Manager</url>
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
+    <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
     <release version="2.9.3" date="2022-01-10">
