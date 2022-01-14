@@ -119,12 +119,12 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkRevealer" id="download_revealer">
+                            <object class="GtkRevealer" id="actions_revealer">
                                 <property name="reveal-child">false</property>
                                 <property name="vexpand-set">True</property>
                                 <property name="transition-type">slide-up</property>
                                 <child>
-                                    <object class="EpicDownloadDetails" id="download_details">
+                                    <object class="EpicAssetActions" id="asset_actions">
                                     </object>
                                 </child>
                             </object>

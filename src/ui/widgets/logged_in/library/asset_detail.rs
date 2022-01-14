@@ -28,7 +28,7 @@ pub(crate) mod imp {
         #[template_child]
         pub details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub download_revealer: TemplateChild<gtk4::Revealer>,
+        pub actions_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub download_confirmation_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
@@ -47,9 +47,8 @@ pub(crate) mod imp {
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
         #[template_child]
-        pub download_details: TemplateChild<
-            crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
-        >,
+        pub asset_actions:
+            TemplateChild<crate::ui::widgets::logged_in::library::asset_actions::EpicAssetActions>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
@@ -67,7 +66,7 @@ pub(crate) mod imp {
                 asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
-                download_revealer: TemplateChild::default(),
+                actions_revealer: TemplateChild::default(),
                 download_confirmation_revealer: TemplateChild::default(),
                 details: TemplateChild::default(),
                 details_box: TemplateChild::default(),
@@ -76,7 +75,7 @@ pub(crate) mod imp {
                 favorite: TemplateChild::default(),
                 actions_menu: TemplateChild::default(),
                 images: TemplateChild::default(),
-                download_details: TemplateChild::default(),
+                asset_actions: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
@@ -178,11 +177,11 @@ impl EpicAssetDetails {
         }
 
         self_.download_manager.set(dm.clone()).unwrap();
-        self_.download_details.set_download_manager(dm);
+        self_.asset_actions.set_download_manager(dm);
         self_.images.set_download_manager(dm);
 
         self_
-            .download_details
+            .asset_actions
             .connect_local(
                 "start-download",
                 false,
@@ -223,12 +222,13 @@ impl EpicAssetDetails {
                 let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
                 self_.details_revealer.set_reveal_child(false);
                 self_.details_revealer.set_vexpand_set(true);
-                self_.download_revealer.set_reveal_child(true);
-                self_.download_revealer.set_vexpand(true);
+                self_.actions_revealer.set_reveal_child(true);
+                self_.actions_revealer.set_vexpand(true);
                 self_.download_confirmation_revealer.set_reveal_child(false);
                 self_.download_confirmation_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(false);
                 get_action!(self_.actions, @show_asset_details).set_enabled(true);
+                self_.asset_actions.set_action(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
                 self_.actions_menu.popdown()
             })
         );
@@ -242,8 +242,8 @@ impl EpicAssetDetails {
                 self_.download_confirmation_revealer.set_vexpand(true);
                 self_.details_revealer.set_reveal_child(false);
                 self_.details_revealer.set_vexpand_set(true);
-                self_.download_revealer.set_reveal_child(false);
-                self_.download_revealer.set_vexpand(false);
+                self_.actions_revealer.set_reveal_child(false);
+                self_.actions_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(true);
                 get_action!(self_.actions, @show_asset_details).set_enabled(true);
             })
@@ -256,8 +256,8 @@ impl EpicAssetDetails {
                 let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
                 self_.details_revealer.set_reveal_child(true);
                 self_.details_revealer.set_vexpand_set(false);
-                self_.download_revealer.set_reveal_child(false);
-                self_.download_revealer.set_vexpand(false);
+                self_.actions_revealer.set_reveal_child(false);
+                self_.actions_revealer.set_vexpand(false);
                 self_.download_confirmation_revealer.set_reveal_child(false);
                 self_.download_confirmation_revealer.set_vexpand(false);
                 get_action!(self_.actions, @show_download_details).set_enabled(true);
@@ -286,14 +286,7 @@ impl EpicAssetDetails {
         while let Some(el) = self_.actions_box.first_child() {
             self_.actions_box.remove(&el);
         }
-        let button = gtk4::ButtonBuilder::new()
-            .child(&Self::build_box_with_icon_label(
-                Some("Download"),
-                Some("folder-download-symbolic"),
-            ))
-            .action_name("details.show_download_details")
-            .build();
-        self_.actions_box.append(&button);
+
         if let Some(asset) = self.asset() {
             if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
                 match kind {
@@ -328,18 +321,18 @@ impl EpicAssetDetails {
                     AssetType::Game => {
                         let button = gtk4::ButtonBuilder::new()
                             .child(&Self::build_box_with_icon_label(
-                                Some("Install"),
-                                Some("system-software-install-symbolic"),
-                            ))
-                            .action_name("details.install_game")
-                            .build();
-                        self_.actions_box.append(&button);
-                        let button = gtk4::ButtonBuilder::new()
-                            .child(&Self::build_box_with_icon_label(
                                 Some("Play"),
                                 Some("media-playback-start-symbolic"),
                             ))
                             .action_name("details.play_game")
+                            .build();
+                        self_.actions_box.append(&button);
+                        let button = gtk4::ButtonBuilder::new()
+                            .child(&Self::build_box_with_icon_label(
+                                Some("Install"),
+                                Some("system-software-install-symbolic"),
+                            ))
+                            .action_name("details.install_game")
                             .build();
                         self_.actions_box.append(&button);
                     }
@@ -365,6 +358,14 @@ impl EpicAssetDetails {
                 }
             }
         }
+        let button = gtk4::ButtonBuilder::new()
+            .child(&Self::build_box_with_icon_label(
+                Some("Download"),
+                Some("folder-download-symbolic"),
+            ))
+            .action_name("details.show_download_details")
+            .build();
+        self_.actions_box.append(&button);
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
@@ -381,11 +382,11 @@ impl EpicAssetDetails {
             .unwrap();
         self_.asset.replace(Some(asset.clone()));
         self.set_actions();
-        self_.download_details.set_asset(asset);
+        self_.asset_actions.set_asset(asset);
         self_.details_revealer.set_reveal_child(true);
         self_.details_revealer.set_vexpand_set(false);
-        self_.download_revealer.set_reveal_child(false);
-        self_.download_revealer.set_vexpand(false);
+        self_.actions_revealer.set_reveal_child(false);
+        self_.actions_revealer.set_vexpand(false);
         self_.download_confirmation_revealer.set_reveal_child(false);
         self_.download_confirmation_revealer.set_vexpand(false);
         get_action!(self_.actions, @show_download_details).set_enabled(true);

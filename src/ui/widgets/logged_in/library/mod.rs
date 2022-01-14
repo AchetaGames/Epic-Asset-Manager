@@ -14,6 +14,7 @@ use gtk_macros::action;
 use log::debug;
 
 mod asset;
+mod asset_actions;
 pub mod asset_detail;
 pub mod category;
 mod download_detail;

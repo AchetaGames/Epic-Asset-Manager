@@ -1,23 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <object class="GtkSizeGroup">
-        <widgets>
-            <widget name="version_label"/>
-            <widget name="supported_label"/>
-            <widget name="platforms_label"/>
-            <widget name="release_date_label"/>
-            <widget name="release_notes_label"/>
-        </widgets>
-    </object>
-    <object class="GtkSizeGroup">
-        <widgets>
-            <widget name="select_download_version"/>
-            <widget name="supported_versions"/>
-            <widget name="platforms"/>
-            <widget name="release_date"/>
-            <widget name="release_notes"/>
-        </widgets>
-    </object>
     <template class="EpicDownloadDetails" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
@@ -27,112 +9,6 @@
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
-                        <child>
-                            <object class="AdwActionRow" id="version_row">
-                                <property name="activatable">True</property>
-                                <child type="prefix">
-                                    <object class="GtkLabel" id="version_label">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">Select version</property>
-                                    </object>
-                                </child>
-                                <child type="suffix">
-                                    <object class="GtkComboBoxText" id="select_download_version">
-                                        <property name="hexpand">true</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkRevealer" id="download_details_revealer">
-                                <property name="reveal-child">true</property>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="orientation">vertical</property>
-                                        <child>
-                                            <object class="AdwActionRow" id="supported_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="supported_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Supported versions</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="supported_versions">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicDownloadDetails" bind-property="supported-versions" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="AdwActionRow" id="platforms_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="platforms_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Platforms</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="platforms">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicDownloadDetails" bind-property="platforms" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="AdwActionRow" id="release_date_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="release_date_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Release date</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="release_date">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicDownloadDetails" bind-property="release-date" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="AdwActionRow" id="release_notes_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="release_notes_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Release notes</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="release_notes">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicDownloadDetails" bind-property="release-notes" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
                         <child>
                             <object class="GtkBox">
                                 <child>
@@ -152,40 +28,6 @@
                                                         <property name="label" translatable="yes">Download</property>
                                                     </object>
                                                 </child>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkButton">
-                                        <property name="action-name">download_details.download_selection</property>
-                                        <child>
-                                            <object class="GtkBox">
-                                                <property name="valign">center</property>
-                                                <property name="halign">center</property>
-                                                <child>
-                                                    <object class="GtkImage">
-                                                        <property name="icon-name">go-down</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="label" translatable="yes">Selective Download</property>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="halign">end</property>
-                                        <property name="hexpand">True</property>
-                                        <child>
-                                            <object class="GtkButton" id="download_details_button">
-                                                <property name="icon-name">go-up-symbolic</property>
-                                                <property name="action-name">download_details.show</property>
-                                                <property name="tooltip-text" translatable="yes">Hide Details</property>
                                             </object>
                                         </child>
                                     </object>
