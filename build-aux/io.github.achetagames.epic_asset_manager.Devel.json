@@ -14,7 +14,6 @@
     "--filesystem=host",
     "--talk-name=org.freedesktop.secrets",
     "--talk-name=org.freedesktop.Flatpak",
-    "--talk-name=org.freedesktop.portal.Flatpak",
     "--device=dri",
     "--env=RUST_LOG=debug",
     "--env=RUST_BACKTRACE=full",

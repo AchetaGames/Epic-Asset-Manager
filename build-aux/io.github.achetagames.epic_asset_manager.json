@@ -13,6 +13,7 @@
     "--share=network",
     "--filesystem=host",
     "--talk-name=org.freedesktop.secrets",
+    "--talk-name=org.freedesktop.Flatpak",
     "--device=dri",
     "--env=G_MESSAGES_DEBUG=none"
   ],
