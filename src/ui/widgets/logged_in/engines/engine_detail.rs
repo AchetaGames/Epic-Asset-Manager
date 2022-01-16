@@ -1,5 +1,7 @@
 use crate::ui::widgets::download_manager::docker::Docker;
 use adw::prelude::ActionRowExt;
+use ashpd::flatpak::{FlatpakProxy, SpawnFlags, SpawnOptions};
+use ashpd::zbus;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -222,24 +224,56 @@ impl EpicEngineDetails {
             self_.actions,
             "launch",
             clone!(@weak self as engines => move |_, _| {
-                let path = engines.path();
-                if let Some(path) = path {
-                    match Self::get_engine_binary_path(&path) {
-                        None => { warn!("No path");}
-                        Some(p) => {
-                            let context = gtk4::gio::AppLaunchContext::new();
-                            context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                            let app = gtk4::gio::AppInfo::create_from_commandline(
-                                p,
-                                Some("Unreal Engine"),
-                                gtk4::gio::AppInfoCreateFlags::NONE,
-                            ).unwrap();
-                            app.launch(&[], Some(&context)).expect("Failed to launch application");
-                        }
-                    }
-                };
+                engines.launch_engine()
             })
         );
+    }
+
+    fn launch_engine(&self) {
+        let path = self.path();
+        if let Some(path) = path {
+            match Self::get_engine_binary_path(&path) {
+                None => {
+                    warn!("No path");
+                }
+                Some(p) => {
+                    // let ctx = glib::MainContext::default();
+                    // ctx.spawn_local(clone!(@weak engines => async move {
+                    //     let connection = zbus::Connection::session().await.unwrap();
+                    //     let proxy = FlatpakProxy::new(&connection).await.unwrap();
+                    //     let mut paths = p.to_str().unwrap().split("/").collect::<Vec<&str>>();
+                    //     paths.pop().unwrap();
+                    //     let res = proxy
+                    //         .spawn(
+                    //             paths.join("/"),
+                    //             &vec![p.to_str().unwrap()],
+                    //             HashMap::new(),
+                    //             [("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2")]
+                    //              .iter().cloned().collect(),
+                    //             enumflags2::BitFlags::empty(),
+                    //             SpawnOptions::default(),
+                    //         ).await
+                    //         .unwrap();
+                    //     debug!("Launched process: {}", res);
+                    // }));
+
+                    let context = gtk4::gio::AppLaunchContext::new();
+                    context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
+                    let app = gtk4::gio::AppInfo::create_from_commandline(
+                        if ashpd::is_sandboxed() {
+                            format!("flatpak-spawn --host \"{}\"", p.to_str().unwrap())
+                        } else {
+                            format!("\"{}\"", p.to_str().unwrap())
+                        },
+                        Some("Unreal Engine"),
+                        gtk4::gio::AppInfoCreateFlags::NONE,
+                    )
+                    .unwrap();
+                    app.launch(&[], Some(&context))
+                        .expect("Failed to launch application");
+                }
+            }
+        };
     }
 
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
@@ -611,18 +645,14 @@ impl EpicEngineDetails {
             test.push("UE4Editor");
             if test.exists() {
                 let mut result = OsString::new();
-                result.push("\"");
                 result.push(test.into_os_string());
-                result.push("\"");
                 return Some(result);
             }
             let mut test = p.clone();
             test.push("UnrealEditor");
             if test.exists() {
                 let mut result = OsString::new();
-                result.push("\"");
                 result.push(test.into_os_string());
-                result.push("\"");
                 return Some(result);
             }
             error!("Unable to launch the engine");

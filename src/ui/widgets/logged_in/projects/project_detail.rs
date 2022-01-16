@@ -193,7 +193,15 @@ impl UnrealProjectDetails {
                 let context = gtk4::gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
                 let app = gtk4::gio::AppInfo::create_from_commandline(
-                    format!("\"{:?}\" \"{}\"", p, path),
+                    if ashpd::is_sandboxed() {
+                        format!(
+                            "flatpak-spawn --host \"{}\" \"{}\"",
+                            p.to_str().unwrap(),
+                            path
+                        )
+                    } else {
+                        format!("\"{:?}\" \"{}\"", p, path)
+                    },
                     Some("Unreal Engine"),
                     gtk4::gio::AppInfoCreateFlags::NONE,
                 )
