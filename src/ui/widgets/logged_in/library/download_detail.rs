@@ -129,7 +129,7 @@ impl EpicDownloadDetails {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -139,7 +139,7 @@ impl EpicDownloadDetails {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("download_details", Some(actions));
 
@@ -147,7 +147,7 @@ impl EpicDownloadDetails {
             actions,
             "download_all",
             clone!(@weak self as download_details => move |_, _| {
-                let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(&download_details);
+                let self_ = download_details.imp();
                 if let Some(dm) = self_.download_manager.get() {
                     if let Some(asset_info) = &*self_.asset.borrow() {
                         dm.add_asset_download(download_details.selected_version(), asset_info.clone());
@@ -159,15 +159,11 @@ impl EpicDownloadDetails {
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
-        let self_: &imp::EpicDownloadDetails = imp::EpicDownloadDetails::from_instance(self);
+        let self_ = self.imp();
         self_.asset.replace(Some(asset.clone()));
     }
 
     pub fn selected_version(&self) -> String {
-        let value: glib::Value = self.property("selected-version");
-        if let Ok(id_opt) = value.get::<String>() {
-            return id_opt;
-        }
-        "".to_string()
+        self.property("selected-version")
     }
 }

@@ -157,7 +157,7 @@ impl EpicAssetDetails {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -170,7 +170,7 @@ impl EpicAssetDetails {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -180,29 +180,27 @@ impl EpicAssetDetails {
         self_.asset_actions.set_download_manager(dm);
         self_.images.set_download_manager(dm);
 
-        self_
-            .asset_actions
-            .connect_local(
-                "start-download",
-                false,
-                clone!(@weak self as ead => @default-return None, move |_| {
-                    let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&ead);
-                    get_action!(self_.actions, @show_download_confirmation).activate(None);
-                    glib::timeout_add_seconds_local(
-                        2,
-                        clone!(@weak ead as obj => @default-panic, move || {
-                            let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&obj);
-                            get_action!(self_.actions, @show_asset_details).activate(None);
-                            glib::Continue(false)
-                        }),
-                    );
-                    None
-                }),
-            );
+        self_.asset_actions.connect_local(
+            "start-download",
+            false,
+            clone!(@weak self as ead => @default-return None, move |_| {
+                let self_ = ead.imp();
+                get_action!(self_.actions, @show_download_confirmation).activate(None);
+                glib::timeout_add_seconds_local(
+                    2,
+                    clone!(@weak ead as obj => @default-panic, move || {
+                        let self_ = obj.imp();
+                        get_action!(self_.actions, @show_asset_details).activate(None);
+                        glib::Continue(false)
+                    }),
+                );
+                None
+            }),
+        );
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("details", Some(actions));
 
@@ -218,7 +216,7 @@ impl EpicAssetDetails {
             actions,
             "show_download_details",
             clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                let self_ = details.imp();
                 self_.details_revealer.set_reveal_child(false);
                 self_.details_revealer.set_vexpand_set(true);
                 self_.actions_revealer.set_reveal_child(true);
@@ -236,7 +234,7 @@ impl EpicAssetDetails {
             actions,
             "show_download_confirmation",
             clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                let self_ = details.imp();
                 self_.download_confirmation_revealer.set_reveal_child(true);
                 self_.download_confirmation_revealer.set_vexpand(true);
                 self_.details_revealer.set_reveal_child(false);
@@ -252,7 +250,7 @@ impl EpicAssetDetails {
             actions,
             "show_asset_details",
             clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(&details);
+                let self_ = details.imp();
                 self_.details_revealer.set_reveal_child(true);
                 self_.details_revealer.set_vexpand_set(false);
                 self_.actions_revealer.set_reveal_child(false);
@@ -281,7 +279,7 @@ impl EpicAssetDetails {
     }
 
     pub fn set_actions(&self) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         while let Some(el) = self_.actions_box.first_child() {
             self_.actions_box.remove(&el);
         }
@@ -368,7 +366,7 @@ impl EpicAssetDetails {
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         if let Some(a) = &*self_.asset.borrow() {
             if asset.id.eq(&a.id) {
                 return;
@@ -522,20 +520,16 @@ impl EpicAssetDetails {
     }
 
     pub fn is_expanded(&self) -> bool {
-        let value: glib::Value = self.property("expanded");
-        if let Ok(id_opt) = value.get::<bool>() {
-            return id_opt;
-        }
-        false
+        self.property("expanded")
     }
 
     pub fn asset(&self) -> Option<AssetInfo> {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         self_.asset.borrow().clone()
     }
 
     pub fn toggle_favorites(&self) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         let db = crate::models::database::connection();
         if let Some(asset) = self.asset() {
             if let Ok(conn) = db.get() {
@@ -558,13 +552,9 @@ impl EpicAssetDetails {
                     match self_.window.get() {
                         None => {}
                         Some(w) => {
-                            let w_: &crate::window::imp::EpicAssetManagerWindow =
-                                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                            let w_ = w.imp();
                             let l = w_.logged_in_stack.clone();
-                            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
-                                crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(
-                                    &l,
-                                );
+                            let l_ = l.imp();
                             l_.library.refresh_asset(&asset.id);
                         }
                     }
@@ -574,12 +564,12 @@ impl EpicAssetDetails {
     }
 
     pub fn has_asset(&self) -> bool {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         self_.asset.borrow().is_some()
     }
 
     pub fn check_favorite(&self) {
-        let self_: &imp::EpicAssetDetails = imp::EpicAssetDetails::from_instance(self);
+        let self_ = self.imp();
         let db = crate::models::database::connection();
         if let Ok(conn) = db.get() {
             match self.asset() {

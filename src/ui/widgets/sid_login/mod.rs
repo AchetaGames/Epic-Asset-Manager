@@ -63,7 +63,7 @@ glib::wrapper! {
 
 impl SidBox {
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -72,14 +72,14 @@ impl SidBox {
     }
 
     pub fn setup_events(&self) {
-        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        let self_ = self.imp();
         self_
             .sid_entry
             .connect_changed(clone!(@weak self as sid_box => move |_| sid_box.validate_sid()));
     }
 
     fn validate_sid(&self) {
-        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        let self_ = self.imp();
         let text = self_.sid_entry.text();
         let is_valid = if text.len() == 32 {
             text.chars().all(char::is_alphanumeric)
@@ -90,7 +90,7 @@ impl SidBox {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::SidBox = imp::SidBox::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
 
         self.insert_action_group("sid", Some(actions));
@@ -108,7 +108,7 @@ impl SidBox {
             actions,
             "login",
             clone!(@weak self as sid_box => move |_, _| {
-                let self_: &crate::ui::widgets::sid_login::imp::SidBox = imp::SidBox::from_instance(&sid_box);
+                let self_ = sid_box.imp();
                 let text = self_.sid_entry.text();
                 if let Some(window) = self_.window.get() {
                     gtk4::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));

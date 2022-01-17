@@ -253,7 +253,7 @@ impl EpicAssetActions {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -266,7 +266,7 @@ impl EpicAssetActions {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -277,7 +277,7 @@ impl EpicAssetActions {
     }
 
     pub fn setup_events(&self) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
 
         self_.select_download_version.connect_changed(
             clone!(@weak self as download_details => move |_| {
@@ -296,7 +296,7 @@ impl EpicAssetActions {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("asset_actions", Some(actions));
 
@@ -304,7 +304,7 @@ impl EpicAssetActions {
             actions,
             "show",
             clone!(@weak self as download_details => move |_, _| {
-                let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(&download_details);
+                let self_ = download_details.imp();
                 if self_.asset_details_revealer.reveals_child() {
                     self_.asset_details_revealer.set_reveal_child(false);
                     self_.asset_actions_button.set_icon_name("go-down-symbolic");
@@ -319,7 +319,7 @@ impl EpicAssetActions {
     }
 
     pub fn set_action(&self, action: Action) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         match action {
             Action::Download => {
                 self_.download_row.set_expanded(true);
@@ -341,7 +341,7 @@ impl EpicAssetActions {
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         if let Some(a) = &*self_.asset.borrow() {
             if asset.id.eq(&a.id) {
                 return;
@@ -349,6 +349,7 @@ impl EpicAssetActions {
         };
 
         self_.asset.replace(Some(asset.clone()));
+        self_.version_row.set_visible(true);
         self_.download_details.set_asset(&asset.clone());
         self_.select_download_version.remove_all();
         if let Some(releases) = asset.sorted_releases() {
@@ -367,11 +368,6 @@ impl EpicAssetActions {
                 );
             }
             self_.select_download_version.set_active(Some(0));
-            if releases.len() <= 1 {
-                self_.version_row.set_visible(false);
-            } else {
-                self_.version_row.set_visible(true);
-            }
         }
 
         if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(asset) {
@@ -405,7 +401,7 @@ impl EpicAssetActions {
     }
 
     pub fn version_selected(&self) {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         if let Some(id) = self_.select_download_version.active_id() {
             self.set_property("selected-version", id.to_string());
             self_
@@ -453,12 +449,12 @@ impl EpicAssetActions {
     }
 
     pub fn asset(&self) -> Option<AssetInfo> {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         self_.asset.borrow().clone()
     }
 
     pub fn has_asset(&self) -> bool {
-        let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
+        let self_ = self.imp();
         self_.asset.borrow().is_some()
     }
 }

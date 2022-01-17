@@ -203,7 +203,7 @@ glib::wrapper! {
 impl ProjectData {
     pub fn new(path: &str, name: &str) -> ProjectData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create ProjectData");
-        let self_: &imp::ProjectData = imp::ProjectData::from_instance(&data);
+        let self_ = data.imp();
         data.set_property("path", &path);
         data.set_property("name", &name);
         let mut uproject = Self::read_uproject(path);
@@ -223,35 +223,19 @@ impl ProjectData {
     }
 
     pub fn guid(&self) -> Option<String> {
-        let value: glib::Value = self.property("guid");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("guid")
     }
 
     pub fn path(&self) -> Option<String> {
-        let value: glib::Value = self.property("path");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("path")
     }
 
     pub fn name(&self) -> Option<String> {
-        let value: glib::Value = self.property("name");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("name")
     }
 
     pub fn image(&self) -> Option<Pixbuf> {
-        let value: glib::Value = self.property("thumbnail");
-        if let Ok(id_opt) = value.get::<Pixbuf>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("thumbnail")
     }
 
     pub fn read_uproject(path: &str) -> Uproject {
@@ -266,12 +250,12 @@ impl ProjectData {
     }
 
     pub fn uproject(&self) -> Option<Uproject> {
-        let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
+        let self_ = self.imp();
         self_.uproject.borrow().clone()
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
+        let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,

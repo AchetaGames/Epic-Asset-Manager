@@ -221,7 +221,7 @@ impl EpicDownloadManager {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -231,7 +231,7 @@ impl EpicDownloadManager {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
 
         action!(
             self_.actions,
@@ -248,7 +248,7 @@ impl EpicDownloadManager {
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
@@ -260,7 +260,7 @@ impl EpicDownloadManager {
     }
 
     pub fn update(&self, msg: DownloadMsg) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         match msg {
             DownloadMsg::ProcessItemThumbnail(id, image) => {
                 let item = match self.get_item(&id) {
@@ -343,7 +343,7 @@ impl EpicDownloadManager {
     }
 
     fn get_item(&self, id: &str) -> Option<EpicDownloadItem> {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let mut items = self_.download_items.borrow_mut();
         items.get_mut(id).map(|i| i.clone())
     }
@@ -353,7 +353,7 @@ impl EpicDownloadManager {
         id: String,
         thumbnail: Option<egs_api::api::types::asset_info::KeyImage>,
     ) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         match thumbnail {
             None => {}
             Some(t) => {
@@ -426,7 +426,7 @@ impl EpicDownloadManager {
     ) {
         debug!("Adding download: {:?}", asset.title);
 
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let item = crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
         let mut items = self_.download_items.borrow_mut();
         match items.get_mut(&release_id) {
@@ -500,7 +500,7 @@ impl EpicDownloadManager {
         id: &str,
         dm: &[egs_api::api::types::download_manifest::DownloadManifest],
     ) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let item = match self.get_item(id) {
             None => return,
             Some(i) => i,
@@ -657,7 +657,7 @@ impl EpicDownloadManager {
         filename: String,
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let _item = match self.get_item(&id) {
             None => return,
             Some(i) => i,
@@ -706,7 +706,7 @@ impl EpicDownloadManager {
     }
 
     fn redownload_chunk(&self, link: &Url, p: PathBuf, g: &str) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let sender = self_.sender.clone();
         let mut chunks = self_.chunk_urls.borrow_mut();
         match chunks.get_mut(g) {
@@ -764,7 +764,7 @@ impl EpicDownloadManager {
 
     /// Download Chunks
     fn download_chunk(&self, link: Url, p: PathBuf, g: String) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         if !link.has_host() {
             return;
         }
@@ -833,7 +833,7 @@ impl EpicDownloadManager {
     }
 
     fn chunk_progress_report(&self, guid: &str, progress: u128, finished: bool) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         if finished {
             debug!("Finished downloading {}", guid);
             let mut finished_files: Vec<String> = Vec::new();
@@ -978,7 +978,7 @@ impl EpicDownloadManager {
     }
 
     fn finalize_file_download(&self, file: &str, file_details: DownloadedFile) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         info!("File finished: {}", file);
         self_.downloaded_files.borrow_mut().remove(file);
         let temp_dir = PathBuf::from(
@@ -1016,7 +1016,7 @@ impl EpicDownloadManager {
     }
 
     pub fn progress(&self) -> f32 {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let items = self_.download_items.borrow().values().len();
         let mut progress = 0.0_f32;
         for item in self_.download_items.borrow().values() {
@@ -1035,7 +1035,7 @@ impl EpicDownloadManager {
         asset: egs_api::api::types::asset_info::AssetInfo,
         sender: gtk4::glib::Sender<crate::ui::messages::Msg>,
     ) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
         let mut cache_path = PathBuf::from(cache_dir);
         cache_path.push("images");
@@ -1075,7 +1075,7 @@ impl EpicDownloadManager {
         asset: String,
         sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::library::image_stack::ImageMsg>,
     ) {
-        let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(self);
+        let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
         let mut cache_path = PathBuf::from(cache_dir);
         cache_path.push("images");

@@ -187,7 +187,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn data(&self) -> &imp::EpicAssetManagerWindow {
-        imp::EpicAssetManagerWindow::from_instance(self)
+        self.imp()
     }
 
     pub fn save_window_size(&self) -> Result<(), glib::BoolError> {
@@ -261,13 +261,13 @@ impl EpicAssetManagerWindow {
                 }
             })
         );
-        let self_: &imp::EpicAssetManagerWindow = imp::EpicAssetManagerWindow::from_instance(self);
+        let self_ = self.imp();
 
         self_.download_manager.connect_local(
             "tick",
             false,
             clone!(@weak self as obj => @default-return None, move |_| {
-                let self_: &imp::EpicAssetManagerWindow = imp::EpicAssetManagerWindow::from_instance(&obj);
+                let self_ = obj.imp();
                 self_.progress_icon.set_fraction(self_.download_manager.progress());
                 None}),
         );
@@ -305,8 +305,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn clear_notification(&self, name: &str) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow =
-            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        let self_ = self.imp();
         match self_.notifications.first_child() {
             None => {}
             Some(w) => {
@@ -321,8 +320,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn add_notification(&self, name: &str, message: &str, message_type: gtk4::MessageType) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow =
-            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        let self_ = self.imp();
         self.clear_notification(name);
         let notif = gtk4::InfoBar::builder()
             .message_type(message_type)
@@ -335,8 +333,7 @@ impl EpicAssetManagerWindow {
         notif.add_child(&label);
         notif.connect_response(
             clone!(@weak notif, @weak self as window => @default-panic, move |_, _| {
-                let self_: &crate::window::imp::EpicAssetManagerWindow =
-            crate::window::imp::EpicAssetManagerWindow::from_instance(&window);
+                let self_ = window.imp();
                 self_.notifications.remove(&notif);
             }),
         );
@@ -352,8 +349,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn show_assets(&self, ud: &egs_api::api::UserData) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow =
-            crate::window::imp::EpicAssetManagerWindow::from_instance(self);
+        let self_ = self.imp();
         self_
             .model
             .borrow_mut()

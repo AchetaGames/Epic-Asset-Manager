@@ -229,7 +229,7 @@ impl EpicDownloadItem {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -242,7 +242,7 @@ impl EpicDownloadItem {
         glib::timeout_add_seconds_local(
             1,
             clone!(@weak self as obj => @default-panic, move || {
-                let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(&obj);
+                let self_ = obj.imp();
                 if let Some(speed) = {
                     let queue = &mut *self_.speed_queue.borrow_mut();
                     if queue.len() <= 1 {
@@ -282,35 +282,31 @@ impl EpicDownloadItem {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
 
         self.insert_action_group("download_item", Some(&self_.actions));
     }
 
     pub fn setup_messaging(&self) {
-        let _self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let _self_: &imp::EpicDownloadItem = self.imp();
     }
 
     pub fn set_total_size(&self, size: u128) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
         self_.total_size.replace(size);
     }
 
     pub fn path(&self) -> Option<String> {
-        let value: glib::Value = self.property("path");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("path")
     }
 
     pub fn set_total_files(&self, count: u64) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
         self_.total_files.replace(count);
     }
 
     pub fn file_processed(&self) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
         self_.stack.set_visible_child_name("progress");
         let new_count = *self_.extracted_files.borrow() + 1;
         let total = *self_.total_files.borrow();
@@ -337,7 +333,7 @@ impl EpicDownloadItem {
     }
 
     pub fn add_downloaded_size(&self, size: u128) {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
 
         // Download Speed
         {
@@ -356,7 +352,7 @@ impl EpicDownloadItem {
     }
 
     pub fn progress(&self) -> f32 {
-        let self_: &imp::EpicDownloadItem = imp::EpicDownloadItem::from_instance(self);
+        let self_ = self.imp();
         let new_size = *self_.downloaded_size.borrow();
         let total = *self_.total_size.borrow();
         let new_count = *self_.extracted_files.borrow();

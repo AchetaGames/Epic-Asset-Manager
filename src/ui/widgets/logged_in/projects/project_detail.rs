@@ -148,7 +148,7 @@ impl UnrealProjectDetails {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("project_details", Some(actions));
 
@@ -207,7 +207,7 @@ impl UnrealProjectDetails {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -217,7 +217,7 @@ impl UnrealProjectDetails {
     }
 
     fn set_launch_enabled(&self, enabled: bool) {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @launch_project).set_enabled(enabled);
     }
 
@@ -226,7 +226,7 @@ impl UnrealProjectDetails {
         project: &crate::models::project_data::Uproject,
         path: Option<String>,
     ) {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         self.set_property("path", &path);
         self_.uproject.replace(Some(project.clone()));
         while let Some(el) = self_.details_box.first_child() {
@@ -350,7 +350,7 @@ impl UnrealProjectDetails {
     }
 
     fn engine_selected(&self, path: &str) {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         for engine in self.available_engines() {
             if engine.path.eq(path) {
                 self.set_launch_enabled(true);
@@ -360,13 +360,10 @@ impl UnrealProjectDetails {
     }
 
     fn associated_engine(&self, uproject: &Uproject) -> Option<UnrealEngine> {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         if let Some(w) = self_.window.get() {
-            let w_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-            let l = w_.logged_in_stack.clone();
-            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
-                crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+            let w_ = w.imp();
+            let l_ = w_.logged_in_stack.imp();
             return l_
                 .engine
                 .engine_from_assoociation(&uproject.engine_association);
@@ -375,41 +372,30 @@ impl UnrealProjectDetails {
     }
 
     fn available_engines(&self) -> Vec<UnrealEngine> {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         if let Some(w) = self_.window.get() {
-            let w_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-            let l = w_.logged_in_stack.clone();
-            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
-                crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+            let w_ = w.imp();
+            let l_ = w_.logged_in_stack.imp();
             return l_.engine.engines();
         }
         Vec::new()
     }
 
     fn is_expanded(&self) -> bool {
-        let value: glib::Value = self.property("expanded");
-        if let Ok(id_opt) = value.get::<bool>() {
-            return id_opt;
-        }
-        false
+        self.property("expanded")
     }
 
     pub fn uproject(&self) -> Option<Uproject> {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         self_.uproject.borrow().clone()
     }
 
     fn engine(&self) -> Option<UnrealEngine> {
-        let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
+        let self_ = self.imp();
         self_.engine.borrow().clone()
     }
 
     fn path(&self) -> Option<String> {
-        let value: glib::Value = self.property("path");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("path")
     }
 }

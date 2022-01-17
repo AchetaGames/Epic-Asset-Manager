@@ -300,7 +300,7 @@ impl EpicLibraryBox {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -311,7 +311,7 @@ impl EpicLibraryBox {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -355,7 +355,7 @@ impl EpicLibraryBox {
 
         selection_model.connect_selected_notify(clone!(@weak self as library => move |model| {
             if let Some(a) = model.selected_item() {
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&library);
+                let self_ = library.imp();
                 let asset = a.downcast::<crate::models::asset_data::AssetData>().unwrap();
                 let assets = self_.loaded_assets.borrow();
                 if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a) }
@@ -433,7 +433,7 @@ impl EpicLibraryBox {
 
     /// Open asset based on a name from xdg-open
     fn open_asset(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(id) = self.item() {
             let assets = self_.loaded_assets.borrow();
             if let Some(a) = assets.get(&id) {
@@ -466,7 +466,7 @@ impl EpicLibraryBox {
 
     pub fn flush_assets(&self) {
         // let start = std::time::Instant::now();
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Ok(mut vec) = self_.assets_pending.write() {
             if vec.is_empty() {
                 return;
@@ -487,7 +487,7 @@ impl EpicLibraryBox {
     }
 
     pub fn update_count(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         let count = self_.filter_model.n_items();
         self_.count_label.set_label(&format!(
             "{} {}",
@@ -497,7 +497,7 @@ impl EpicLibraryBox {
     }
 
     pub fn bind_properties(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         self.bind_property("sidebar-expanded", &*self_.home_category, "expanded")
             .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
             .build();
@@ -524,7 +524,7 @@ impl EpicLibraryBox {
     }
 
     pub fn setup_widgets(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         self_.projects_category.set_logged_in(self);
         self_.assets_category.set_logged_in(self);
         self_.plugins_category.set_logged_in(self);
@@ -540,14 +540,14 @@ impl EpicLibraryBox {
 
         self_
             .asset_search
-            .connect_search_changed(clone!(@weak self as win => move |_| {
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
+            .connect_search_changed(clone!(@weak self as library => move |_| {
+                let self_ = library.imp();
                 self_.search_toggle.set_active(true);
             }));
     }
 
     pub fn order_changed(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         let asc = if let Some(name) = self_.order.icon_name() {
             matches!(name.as_str(), "view-sort-ascending-symbolic")
         } else {
@@ -559,16 +559,16 @@ impl EpicLibraryBox {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
 
         action!(
             self_.actions,
             "expand",
-            clone!(@weak self as win => move |_, _| {
-                let v: glib::Value = win.property("sidebar-expanded");
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
+            clone!(@weak self as library => move |_, _| {
+                let v: glib::Value = library.property("sidebar-expanded");
+                let self_ = library.imp();
                 let new_value = !v.get::<bool>().unwrap();
-                win.enable_all_categories();
+                library.enable_all_categories();
                 if new_value {
                     self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
                     self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
@@ -578,15 +578,15 @@ impl EpicLibraryBox {
                     self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
                     self_.expand_label.set_label("");
                 };
-                win.set_property("sidebar-expanded", &new_value);
+                library.set_property("sidebar-expanded", &new_value);
             })
         );
 
         action!(
             self_.actions,
             "show_download_details",
-            clone!(@weak self as win => move |_, _| {
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
+            clone!(@weak self as library => move |_, _| {
+                let self_ = library.imp();
                 if let Some(w) = self_.window.get() {
                    w.show_download_manager();
                 }
@@ -597,7 +597,7 @@ impl EpicLibraryBox {
             self_.actions,
             "order",
             clone!(@weak self as library => move |_, _| {
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&library);
+                let self_ = library.imp();
                 if let Some(name) = self_.order.icon_name() {
                     match name.as_str() {
                         "view-sort-ascending-symbolic" => {
@@ -614,39 +614,23 @@ impl EpicLibraryBox {
     }
 
     pub fn filter(&self) -> Option<String> {
-        let value: glib::Value = self.property("filter");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("filter")
     }
 
     pub fn search(&self) -> Option<String> {
-        let value: glib::Value = self.property("search");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("search")
     }
 
     pub fn item(&self) -> Option<String> {
-        let value: glib::Value = self.property("item");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("item")
     }
 
     pub fn product(&self) -> Option<String> {
-        let value: glib::Value = self.property("product");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("product")
     }
 
     pub fn unselect_categories_except(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         let filter = match self.filter() {
             None => "".to_string(),
             Some(f) => f,
@@ -660,7 +644,7 @@ impl EpicLibraryBox {
     }
 
     pub fn enable_all_categories(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         self_.projects_category.activate(true);
         self_.assets_category.activate(true);
         self_.plugins_category.activate(true);
@@ -670,7 +654,7 @@ impl EpicLibraryBox {
     }
 
     pub fn apply_filter(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         let search = self.search();
         let filter_p = self.filter();
         if filter_p.is_none() && search.is_none() {
@@ -699,7 +683,7 @@ impl EpicLibraryBox {
     }
 
     pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(categories) = &asset.categories {
             for category in categories {
                 let mut cats = self_.categories.borrow_mut();
@@ -753,7 +737,7 @@ impl EpicLibraryBox {
     }
 
     fn add_category(&self, path: &str) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         let parts = path.split('/').collect::<Vec<&str>>();
         if parts.len() > 1 {
             let name = parts[1..].join("/");
@@ -768,7 +752,7 @@ impl EpicLibraryBox {
     }
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(window) = self.main_window() {
             let win_ = window.data();
             let sender = win_.model.borrow().sender.clone();
@@ -848,7 +832,7 @@ impl EpicLibraryBox {
     }
 
     fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         match self_.window.get() {
             Some(window) => Some(&(*window)),
             None => None,
@@ -856,7 +840,7 @@ impl EpicLibraryBox {
     }
 
     pub fn fetch_assets(&self) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(window) = self.main_window() {
             let win_ = window.data();
             let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -906,9 +890,9 @@ impl EpicLibraryBox {
                         .unwrap();
                 }
             });
-            glib::idle_add_local(clone!(@weak self as obj => @default-panic, move || {
-                obj.flush_assets();
-                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&obj);
+            glib::idle_add_local(clone!(@weak self as library => @default-panic, move || {
+                library.flush_assets();
+                let self_ = library.imp();
                 glib::Continue((self_.asset_load_pool.queued_count() +
                     self_.asset_load_pool.active_count() +
                     self_.image_load_pool.queued_count() +
@@ -921,7 +905,7 @@ impl EpicLibraryBox {
         &self,
         epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
     ) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(window) = self.main_window() {
             let win_ = window.data();
             let mut cache_dir = PathBuf::from(self_.settings.string("cache-directory").to_string());
@@ -971,7 +955,7 @@ impl EpicLibraryBox {
     }
 
     pub fn refresh_asset(&self, id: &str) {
-        let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(data) = self_.loaded_data.borrow().get(id) {
             data.refresh();
         }
