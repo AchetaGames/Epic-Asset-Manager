@@ -14,7 +14,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -101,7 +101,7 @@ pub(crate) mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpec::new_boolean(
+                vec![ParamSpecBoolean::new(
                     "expanded",
                     "expanded",
                     "Is expanded",
@@ -198,8 +198,7 @@ impl EpicAssetDetails {
                     );
                     None
                 }),
-            )
-            .unwrap();
+            );
     }
 
     pub fn setup_actions(&self) {
@@ -211,7 +210,7 @@ impl EpicAssetDetails {
             actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                details.set_property("expanded", false).unwrap();
+                details.set_property("expanded", false);
             })
         );
 
@@ -274,7 +273,7 @@ impl EpicAssetDetails {
         );
     }
 
-    fn build_box_with_icon_label(label: Option<&str>, icon: Option<&str>) -> gtk4::Box {
+    fn build_box_with_icon_label(label: Option<&str>, icon: &str) -> gtk4::Box {
         let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
         b.append(&gtk4::Image::from_icon_name(icon));
         b.append(&gtk4::Label::new(label));
@@ -291,46 +290,46 @@ impl EpicAssetDetails {
             if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
                 match kind {
                     AssetType::Asset => {
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Add to Project"),
-                                Some("edit-select-all-symbolic"),
+                                "edit-select-all-symbolic",
                             ))
                             .action_name("details.add_to_project")
                             .build();
                         self_.actions_box.append(&button);
                     }
                     AssetType::Project => {
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Add to Project"),
-                                Some("edit-select-all-symbolic"),
+                                "edit-select-all-symbolic",
                             ))
                             .action_name("details.add_to_project")
                             .build();
                         self_.actions_box.append(&button);
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Create Project"),
-                                Some("folder-new-symbolic"),
+                                "folder-new-symbolic",
                             ))
                             .action_name("details.create_project")
                             .build();
                         self_.actions_box.append(&button);
                     }
                     AssetType::Game => {
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Play"),
-                                Some("media-playback-start-symbolic"),
+                                "media-playback-start-symbolic",
                             ))
                             .action_name("details.play_game")
                             .build();
                         self_.actions_box.append(&button);
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Install"),
-                                Some("system-software-install-symbolic"),
+                                "system-software-install-symbolic",
                             ))
                             .action_name("details.install_game")
                             .build();
@@ -338,18 +337,18 @@ impl EpicAssetDetails {
                     }
                     AssetType::Engine => {}
                     AssetType::Plugin => {
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Add to Project"),
-                                Some("edit-select-all-symbolic"),
+                                "edit-select-all-symbolic",
                             ))
                             .action_name("details.add_to_project")
                             .build();
                         self_.actions_box.append(&button);
-                        let button = gtk4::ButtonBuilder::new()
+                        let button = gtk4::Button::builder()
                             .child(&Self::build_box_with_icon_label(
                                 Some("Add to Engine"),
-                                Some("application-x-addon-symbolic"),
+                                "application-x-addon-symbolic",
                             ))
                             .action_name("details.add_to_project")
                             .build();
@@ -358,10 +357,10 @@ impl EpicAssetDetails {
                 }
             }
         }
-        let button = gtk4::ButtonBuilder::new()
+        let button = gtk4::Button::builder()
             .child(&Self::build_box_with_icon_label(
                 Some("Download"),
-                Some("folder-download-symbolic"),
+                "folder-download-symbolic",
             ))
             .action_name("details.show_download_details")
             .build();
@@ -376,10 +375,7 @@ impl EpicAssetDetails {
             }
         };
 
-        self_
-            .images
-            .set_property("asset", asset.id.clone())
-            .unwrap();
+        self_.images.set_property("asset", asset.id.clone());
         self_.asset.replace(Some(asset.clone()));
         self.set_actions();
         self_.asset_actions.set_asset(asset);
@@ -416,11 +412,11 @@ impl EpicAssetDetails {
         let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
         if let Some(dev_name) = &asset.developer {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Developer").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Developer").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(dev_name)
                 .wrap(true)
                 .xalign(0.0)
@@ -431,8 +427,8 @@ impl EpicAssetDetails {
         }
 
         if let Some(categories) = &asset.categories {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Categories").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Categories").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
 
@@ -451,7 +447,7 @@ impl EpicAssetDetails {
                     cats.push(category.path.clone());
                 }
             }
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(&cats.join(", "))
                 .wrap(true)
                 .xalign(0.0)
@@ -462,11 +458,11 @@ impl EpicAssetDetails {
         }
 
         if let Some(platforms) = &asset.platforms() {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Platforms").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Platforms").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(&platforms.join(", "))
                 .wrap(true)
                 .xalign(0.0)
@@ -477,11 +473,11 @@ impl EpicAssetDetails {
         }
 
         if let Some(updated) = &asset.last_modified_date {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Updated").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Updated").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(&updated.to_rfc3339())
                 .wrap(true)
                 .xalign(0.0)
@@ -492,11 +488,11 @@ impl EpicAssetDetails {
         }
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Compatible with").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Compatible with").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(&compatible_apps.join(", ").replace("UE_", ""))
                 .wrap(true)
                 .xalign(0.0)
@@ -507,30 +503,29 @@ impl EpicAssetDetails {
         }
 
         if let Some(desc) = &asset.long_description {
-            let label = gtk4::LabelBuilder::new().wrap(true).xalign(0.0).build();
+            let label = gtk4::Label::builder().wrap(true).xalign(0.0).build();
             label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
             self_.details_box.append(&label);
         }
 
         if let Some(desc) = &asset.technical_details {
-            let label = gtk4::LabelBuilder::new().wrap(true).xalign(0.0).build();
+            let label = gtk4::Label::builder().wrap(true).xalign(0.0).build();
             label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
             self_.details_box.append(&label);
         }
 
         if !self.is_expanded() {
-            self.set_property("expanded", true).unwrap();
+            self.set_property("expanded", true);
         }
 
         self.check_favorite();
     }
 
     pub fn is_expanded(&self) -> bool {
-        if let Ok(value) = self.property("expanded") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("expanded");
+        if let Ok(id_opt) = value.get::<bool>() {
+            return id_opt;
+        }
         false
     }
 

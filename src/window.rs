@@ -18,6 +18,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::models::Model;
     use glib::ParamSpec;
+    use gtk4::glib::ParamSpecString;
     use std::cell::RefCell;
 
     #[derive(CompositeTemplate)]
@@ -89,7 +90,7 @@ pub(crate) mod imp {
             }
 
             let button = self.color_scheme_btn.get();
-            let style_manager = adw::StyleManager::default().unwrap();
+            let style_manager = adw::StyleManager::default();
 
             style_manager.connect_color_scheme_notify(move |style_manager| {
                 let supported = style_manager.system_supports_color_schemes();
@@ -113,14 +114,8 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
-                        "item",
-                        "item",
-                        "item",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "product",
                         "product",
                         "product",
@@ -142,13 +137,11 @@ pub(crate) mod imp {
             match pspec.name() {
                 "item" => {
                     let item = value.get::<String>().unwrap();
-                    self.logged_in_stack.set_property("item", item).unwrap();
+                    self.logged_in_stack.set_property("item", item);
                 }
                 "product" => {
                     let product = value.get::<String>().unwrap();
-                    self.logged_in_stack
-                        .set_property("product", product)
-                        .unwrap();
+                    self.logged_in_stack.set_property("product", product);
                 }
                 _ => unimplemented!(),
             }
@@ -156,16 +149,8 @@ pub(crate) mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "item" => self
-                    .logged_in_stack
-                    .property("item")
-                    .unwrap_or_else(|_| "".to_value())
-                    .to_value(),
-                "product" => self
-                    .logged_in_stack
-                    .property("product")
-                    .unwrap_or_else(|_| "".to_value())
-                    .to_value(),
+                "item" => self.logged_in_stack.property("item"),
+                "product" => self.logged_in_stack.property("product"),
                 &_ => unimplemented!(),
             }
         }
@@ -234,7 +219,7 @@ impl EpicAssetManagerWindow {
         if is_maximized {
             self.maximize();
         }
-        let style_manager = adw::StyleManager::default().unwrap();
+        let style_manager = adw::StyleManager::default();
         if style_manager.system_supports_color_schemes() {
             if settings.boolean("dark-mode") {
                 style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
@@ -285,8 +270,7 @@ impl EpicAssetManagerWindow {
                 let self_: &imp::EpicAssetManagerWindow = imp::EpicAssetManagerWindow::from_instance(&obj);
                 self_.progress_icon.set_fraction(self_.download_manager.progress());
                 None}),
-        )
-            .unwrap();
+        );
     }
 
     pub fn check_login(&mut self) {
@@ -340,14 +324,14 @@ impl EpicAssetManagerWindow {
         let self_: &crate::window::imp::EpicAssetManagerWindow =
             crate::window::imp::EpicAssetManagerWindow::from_instance(self);
         self.clear_notification(name);
-        let notif = gtk4::InfoBarBuilder::new()
+        let notif = gtk4::InfoBar::builder()
             .message_type(message_type)
             .name(name)
             .margin_start(10)
             .margin_end(10)
             .show_close_button(true)
             .build();
-        let label = gtk4::LabelBuilder::new().label(message).build();
+        let label = gtk4::Label::builder().label(message).build();
         notif.add_child(&label);
         notif.connect_response(
             clone!(@weak notif, @weak self as window => @default-panic, move |_, _| {

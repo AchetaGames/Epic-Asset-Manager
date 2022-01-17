@@ -11,7 +11,7 @@ mod project_detail;
 pub(crate) mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
 
     use super::*;
@@ -79,14 +79,14 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "expanded",
                         "expanded",
                         "Is expanded",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "selected",
                         "Selected",
                         "Selected",
@@ -210,9 +210,9 @@ impl EpicProjectsBox {
                 if let Some(uproject) = project.uproject() {
                     self_.details.set_project(&uproject, project.path());
                 }
-                projects.set_property("selected", project.path()).unwrap();
+                projects.set_property("selected", project.path());
                 self_.selected_uproject.replace(project.uproject());
-                projects.set_property("expanded", true).unwrap();
+                projects.set_property("expanded", true);
             }
         }));
         self_.projects_grid.set_model(Some(&selection_model));

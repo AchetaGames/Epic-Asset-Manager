@@ -51,7 +51,7 @@ impl UnrealEngine {
 pub(crate) mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
 
     use super::*;
@@ -117,14 +117,14 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "expanded",
                         "expanded",
                         "Is expanded",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "selected",
                         "Selected",
                         "Selected",
@@ -210,13 +210,9 @@ impl EpicEnginesBox {
             let child = list_item.child().unwrap().downcast::<EpicEngine>().unwrap();
             child.set_data(&data);
 
-            child.set_property("branch", &data.branch()).unwrap();
-            child
-                .set_property("has-branch", &data.has_branch().unwrap_or(false))
-                .unwrap();
-            child
-                .set_property("needs-update", &data.needs_update().unwrap_or(false))
-                .unwrap();
+            child.set_property("branch", &data.branch());
+            child.set_property("has-branch", &data.has_branch().unwrap_or(false));
+            child.set_property("needs-update", &data.needs_update().unwrap_or(false));
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -250,8 +246,8 @@ impl EpicEnginesBox {
             let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
             if let Some(a) = model.selected_item() {
                 let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
-                engines.set_property("selected", engine.path()).unwrap();
-                self_.details.set_property("expanded", true).unwrap();
+                engines.set_property("selected", engine.path());
+                self_.details.set_property("expanded", true);
                 self_.details.set_data(&engine);
             }
         }));
@@ -266,18 +262,17 @@ impl EpicEnginesBox {
             "add",
             clone!(@weak self as engines => move |_, _| {
                 let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
-                self_.details.set_property("expanded", true).unwrap();
+                self_.details.set_property("expanded", true);
                 self_.details.add_engine();
             })
         );
     }
 
     pub fn selected(&self) -> Option<String> {
-        if let Ok(value) = self.property("selected") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("selected");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 
@@ -424,7 +419,7 @@ impl EpicEnginesBox {
                 if let Ok(path) = ini.value("Installations", &item) {
                     let guid: String = item.chars().filter(|c| c != &'{' && c != &'}').collect();
                     debug!("Got engine install: {} in {}", guid, path);
-                    match path.to_string().strip_suffix("/") {
+                    match path.to_string().strip_suffix('/') {
                         None => {
                             result.insert(guid.to_string(), path.to_string());
                         }

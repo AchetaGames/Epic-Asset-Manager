@@ -9,6 +9,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::models::category_data::CategoryData;
     use glib::ParamSpec;
+    use gtk4::glib::{ParamSpecBoolean, ParamSpecString};
     use gtk4::{gio, gio::ListStore, SingleSelection};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
@@ -69,28 +70,28 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "tooltip-text",
                         "tooltip text",
                         "The category name",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "icon-name",
                         "icon name",
                         "The Icon Name",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "filter",
                         "Filter",
                         "Filter",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "expanded",
                         "expanded",
                         "Is expanded",
@@ -227,7 +228,7 @@ impl EpicSidebarCategory {
             if let Some(item) = model.selected_item() {
                 let filter = item.downcast::<crate::models::category_data::CategoryData>().unwrap();
                 if let Some(l) = self_.loggedin.get() {
-                    l.set_property("filter", filter.filter()).unwrap();
+                    l.set_property("filter", filter.filter());
                 };
             }
         }));
@@ -239,21 +240,19 @@ impl EpicSidebarCategory {
             self_.actions,
             "clicked",
             clone!(@weak self as win => move |_, _| {
-                if let Ok(v) = win.property("expanded") {
-                    let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&win);
-                    if v.get::<bool>().unwrap() {
-                        if self_.sub_box.first_child().is_none() {
-                            if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()).unwrap(); };
-                        } else {
-                            self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
-                        }
-                    } else if let Some(l) = self_.loggedin.get() {
-                        l.enable_all_categories();
-                        l.set_property("filter", win.filter()).unwrap();
-                        win.activate(false);
-                    };
-                }
-
+                let v: glib::Value = win.property("expanded");
+                let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&win);
+                if v.get::<bool>().unwrap() {
+                    if self_.sub_box.first_child().is_none() {
+                        if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()); };
+                    } else {
+                        self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
+                    }
+                } else if let Some(l) = self_.loggedin.get() {
+                    l.enable_all_categories();
+                    l.set_property("filter", win.filter());
+                    win.activate(false);
+                };
             })
         );
         self.insert_action_group("category", Some(&self_.actions));
@@ -276,11 +275,10 @@ impl EpicSidebarCategory {
     }
 
     pub fn filter(&self) -> String {
-        if let Ok(value) = self.property("filter") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("filter");
+        if let Ok(id_opt) = value.get::<String>() {
+            return id_opt;
+        }
         "".to_string()
     }
 

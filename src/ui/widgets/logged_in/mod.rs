@@ -9,7 +9,7 @@ mod projects;
 pub(crate) mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
     use once_cell::sync::OnceCell;
 
     use super::*;
@@ -69,21 +69,15 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
-                        "item",
-                        "item",
-                        "item",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "product",
                         "product",
                         "product",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecObject::new(
                         "stack",
                         "Stack",
                         "Stack",
@@ -105,11 +99,11 @@ pub(crate) mod imp {
             match pspec.name() {
                 "item" => {
                     let item: Option<String> = value.get().unwrap();
-                    self.library.set_property("item", item).unwrap();
+                    self.library.set_property("item", item);
                 }
                 "product" => {
                     let product: Option<String> = value.get().unwrap();
-                    self.library.set_property("product", product).unwrap();
+                    self.library.set_property("product", product);
                 }
                 "stack" => {
                     let stack = value
@@ -123,14 +117,8 @@ pub(crate) mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "item" => self
-                    .library
-                    .property("item")
-                    .unwrap_or_else(|_| "".to_value()),
-                "product" => self
-                    .library
-                    .property("product")
-                    .unwrap_or_else(|_| "".to_value()),
+                "item" => self.library.property("item"),
+                "product" => self.library.property("product"),
                 "stack" => self.stack.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -221,9 +209,9 @@ impl EpicLoggedInBox {
     pub fn activate(&self, active: bool) {
         let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
         if active {
-            self.set_property("stack", &*self_.adwstack).unwrap();
+            self.set_property("stack", &*self_.adwstack);
         } else {
-            self.set_property("stack", None::<adw::ViewStack>).unwrap();
+            self.set_property("stack", None::<adw::ViewStack>);
         }
     }
 }

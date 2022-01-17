@@ -27,7 +27,7 @@ pub(crate) mod imp {
 
     use gtk4::gio;
     use gtk4::gio::ListStore;
-    use gtk4::glib::{Object, ParamSpec};
+    use gtk4::glib::{Object, ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use threadpool::ThreadPool;
 
@@ -130,8 +130,8 @@ pub(crate) mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
-                filter_model: gtk4::FilterListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_FILTER),
-                sorter_model: gtk4::SortListModel::new(gio::NONE_LIST_MODEL, gtk4::NONE_SORTER),
+                filter_model: gtk4::FilterListModel::new(gio::ListModel::NONE, gtk4::Filter::NONE),
+                sorter_model: gtk4::SortListModel::new(gio::ListModel::NONE, gtk4::Sorter::NONE),
                 grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
@@ -161,35 +161,29 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "sidebar-expanded",
                         "sidebar expanded",
                         "Is Sidebar expanded",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "filter",
                         "Filter",
                         "Filter",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "search",
                         "Search",
                         "Search",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
-                        "item",
-                        "item",
-                        "item",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "product",
                         "product",
                         "product",
@@ -571,21 +565,20 @@ impl EpicLibraryBox {
             self_.actions,
             "expand",
             clone!(@weak self as win => move |_, _| {
-                    if let Ok(v) = win.property("sidebar-expanded") {
-                    let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
-                    let new_value = !v.get::<bool>().unwrap();
-                    win.enable_all_categories();
-                    if new_value {
-                        self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
-                        self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
-                        self_.expand_label.set_label("Collapse");
-                    } else {
-                        self_.expand_image.set_icon_name(Some("go-next-symbolic"));
-                        self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
-                        self_.expand_label.set_label("");
-                    };
-                    win.set_property("sidebar-expanded", &new_value).unwrap();
-                }
+                let v: glib::Value = win.property("sidebar-expanded");
+                let self_: &imp::EpicLibraryBox = imp::EpicLibraryBox::from_instance(&win);
+                let new_value = !v.get::<bool>().unwrap();
+                win.enable_all_categories();
+                if new_value {
+                    self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
+                    self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
+                    self_.expand_label.set_label("Collapse");
+                } else {
+                    self_.expand_image.set_icon_name(Some("go-next-symbolic"));
+                    self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
+                    self_.expand_label.set_label("");
+                };
+                win.set_property("sidebar-expanded", &new_value);
             })
         );
 
@@ -621,38 +614,34 @@ impl EpicLibraryBox {
     }
 
     pub fn filter(&self) -> Option<String> {
-        if let Ok(value) = self.property("filter") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("filter");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 
     pub fn search(&self) -> Option<String> {
-        if let Ok(value) = self.property("search") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("search");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 
     pub fn item(&self) -> Option<String> {
-        if let Ok(value) = self.property("item") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("item");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 
     pub fn product(&self) -> Option<String> {
-        if let Ok(value) = self.property("product") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("product");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 

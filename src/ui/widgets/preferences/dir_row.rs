@@ -5,6 +5,7 @@ use gtk_macros::{action, get_action};
 pub mod imp {
     use super::*;
     use adw::subclass::action_row::ActionRowImpl;
+    use adw::subclass::prelude::PreferencesRowImpl;
     use glib::subclass::{self};
     use gtk4::glib::subclass::Signal;
     use once_cell::sync::Lazy;
@@ -63,6 +64,7 @@ pub mod imp {
     }
     impl WidgetImpl for DirectoryRow {}
     impl ActionRowImpl for DirectoryRow {}
+    impl PreferencesRowImpl for DirectoryRow {}
     impl ListBoxRowImpl for DirectoryRow {}
 }
 
@@ -84,7 +86,7 @@ impl DirectoryRow {
             self_.actions,
             "remove",
             clone!(@weak row as row => move |_, _| {
-                row.emit_by_name("remove", &[]).unwrap();
+                row.emit_by_name::<()>("remove", &[]);
             })
         );
 
@@ -92,7 +94,7 @@ impl DirectoryRow {
             self_.actions,
             "up",
             clone!(@weak row as row => move |_, _| {
-                row.emit_by_name("move-up", &[]).unwrap();
+                row.emit_by_name::<()>("move-up", &[]);
             })
         );
 
@@ -100,7 +102,7 @@ impl DirectoryRow {
             self_.actions,
             "down",
             clone!(@weak row as row => move |_, _| {
-                row.emit_by_name("move-down", &[]).unwrap();
+                row.emit_by_name::<()>("move-down", &[]);
             })
         );
         row.set_down_enabled(false);

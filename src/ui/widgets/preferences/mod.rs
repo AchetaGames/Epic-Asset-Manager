@@ -378,7 +378,7 @@ impl PreferencesWindow {
 
     fn set_directory(&self, dir: &File, kind: DirectoryConfigType) {
         let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
-        match dir.query_file_type(FileQueryInfoFlags::NONE, gtk4::gio::NONE_CANCELLABLE) {
+        match dir.query_file_type(FileQueryInfoFlags::NONE, gtk4::gio::Cancellable::NONE) {
             FileType::Directory => {
                 debug!("Selected Directory");
             }
@@ -544,8 +544,7 @@ impl PreferencesWindow {
                 win.update_directories(kind);
                 None
             }),
-        )
-            .unwrap();
+        );
 
         let k = kind;
         let dir_c = dir.clone();
@@ -584,7 +583,7 @@ impl PreferencesWindow {
                 win.update_directories(kind);
                 None
             }),
-        ).unwrap();
+        );
 
         let k = kind;
         let dir_c = dir;
@@ -624,7 +623,7 @@ impl PreferencesWindow {
                 win.update_directories(kind);
                 None
             }),
-        ).unwrap();
+        );
 
         target_box.append(&row);
     }

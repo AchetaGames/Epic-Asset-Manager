@@ -7,7 +7,7 @@ pub(crate) mod imp {
     use super::*;
     use gtk4::gdk_pixbuf::prelude::StaticType;
     use gtk4::gdk_pixbuf::Pixbuf;
-    use gtk4::glib::SignalHandlerId;
+    use gtk4::glib::{ParamSpecObject, SignalHandlerId};
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
@@ -62,35 +62,35 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "label",
                         "Label",
                         "Label",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "id",
                         "ID",
                         "ID",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecObject::new(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
                         Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "favorite",
                         "favorite",
                         "Is favorite",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "downloaded",
                         "downloaded",
                         "Is Downloaded",
@@ -194,19 +194,17 @@ impl EpicAsset {
             }
         }
         self_.data.replace(Some(data.clone()));
-        self.set_property("label", &data.name()).unwrap();
-        self.set_property("thumbnail", &data.image()).unwrap();
-        self.set_property("favorite", &data.favorite()).unwrap();
-        self.set_property("downloaded", &data.downloaded()).unwrap();
-        if let Ok(id) = data.connect_local(
+        self.set_property("label", &data.name());
+        self.set_property("thumbnail", &data.image());
+        self.set_property("favorite", &data.favorite());
+        self.set_property("downloaded", &data.downloaded());
+        self_.handler.replace(Some(data.connect_local(
             "refreshed",
             false,
             clone!(@weak self as asset, @weak data => @default-return None, move |_| {
-                asset.set_property("favorite", &data.favorite()).unwrap();
+                asset.set_property("favorite", &data.favorite());
                 None
             }),
-        ) {
-            self_.handler.replace(Some(id));
-        }
+        )));
     }
 }
