@@ -88,8 +88,8 @@ pub(crate) mod imp {
         fn activate(&self, app: &Self::Type) {
             debug!("GtkApplication<EpicAssetManager>::activate");
 
-            let priv_ = EpicAssetManager::from_instance(app);
-            if let Some(window) = priv_.window.get() {
+            let self_ = app.imp();
+            if let Some(window) = self_.window.get() {
                 window.show();
 
                 if let Ok(item) = self.item.borrow().to_value().get::<String>() {
@@ -185,12 +185,12 @@ impl EpicAssetManager {
     }
 
     pub fn main_window(&self) -> &EpicAssetManagerWindow {
-        let self_ = crate::application::imp::EpicAssetManager::from_instance(self);
+        let self_ = self.imp();
         self_.window.get().unwrap()
     }
 
     pub fn setup_gactions(&self) {
-        let self_ = crate::application::imp::EpicAssetManager::from_instance(self);
+        let self_ = self.imp();
         self.connect_shutdown(|_| {
             if let Ok(mut w) = crate::RUNNING.write() {
                 *w = false;
@@ -263,7 +263,7 @@ impl EpicAssetManager {
             .version(config::VERSION)
             .transient_for(self.main_window())
             .modal(true)
-            .authors(vec!["Milan Stastny".into()])
+            .authors(vec!["Acheta Games".into()])
             .build();
 
         dialog.show();

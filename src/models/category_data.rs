@@ -98,18 +98,10 @@ impl CategoryData {
     }
 
     pub fn name(&self) -> String {
-        let value: glib::Value = self.property("name");
-        if let Ok(id_opt) = value.get::<String>() {
-            return id_opt;
-        }
-        "".to_string()
+        self.property("name")
     }
 
     pub fn filter(&self) -> String {
-        let value: glib::Value = self.property("filter");
-        if let Ok(id_opt) = value.get::<String>() {
-            return id_opt;
-        }
-        "".to_string()
+        self.property("filter")
     }
 }

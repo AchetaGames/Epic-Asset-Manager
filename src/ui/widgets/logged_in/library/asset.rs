@@ -187,7 +187,7 @@ impl EpicAsset {
     }
 
     pub fn set_data(&self, data: &crate::models::asset_data::AssetData) {
-        let self_: &imp::EpicAsset = imp::EpicAsset::from_instance(self);
+        let self_ = self.imp();
         if let Some(d) = self_.data.take() {
             if let Some(id) = self_.handler.take() {
                 d.disconnect(id);

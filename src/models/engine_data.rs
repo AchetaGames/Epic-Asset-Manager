@@ -244,7 +244,7 @@ impl EngineData {
         model: &gtk4::gio::ListStore,
     ) -> EngineData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create EngineData");
-        let self_: &imp::EngineData = imp::EngineData::from_instance(&data);
+        let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
         data.set_property("path", &path);
@@ -275,7 +275,7 @@ impl EngineData {
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::EngineData = imp::EngineData::from_instance(self);
+        let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
@@ -370,56 +370,32 @@ impl EngineData {
     }
 
     pub fn guid(&self) -> Option<String> {
-        let value: glib::Value = self.property("guid");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("guid")
     }
 
     pub fn path(&self) -> Option<String> {
-        let value: glib::Value = self.property("path");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("path")
     }
 
     pub fn branch(&self) -> Option<String> {
-        let value: glib::Value = self.property("branch");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("branch")
     }
 
     pub fn ueversion(&self) -> Option<UnrealVersion> {
-        let self_: &imp::EngineData = imp::EngineData::from_instance(self);
+        let self_ = self.imp();
         self_.ueversion.borrow().clone()
     }
 
     pub fn version(&self) -> Option<String> {
-        let value: glib::Value = self.property("version");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("version")
     }
 
-    pub fn has_branch(&self) -> Option<bool> {
-        let value: glib::Value = self.property("has-branch");
-        if let Ok(id_opt) = value.get::<bool>() {
-            return Some(id_opt);
-        }
-        None
+    pub fn has_branch(&self) -> bool {
+        self.property("has-branch")
     }
 
-    pub fn needs_update(&self) -> Option<bool> {
-        let value: glib::Value = self.property("needs-update");
-        if let Ok(id_opt) = value.get::<bool>() {
-            return Some(id_opt);
-        }
-        None
+    pub fn needs_update(&self) -> bool {
+        self.property("needs-update")
     }
 
     #[cfg(target_os = "linux")]

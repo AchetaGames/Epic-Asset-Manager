@@ -131,7 +131,7 @@ impl PreferencesWindow {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         if self_.window.get().is_some() {
             return;
         }
@@ -139,12 +139,8 @@ impl PreferencesWindow {
         self.load_secrets();
     }
 
-    pub fn imp(&self) -> &imp::PreferencesWindow {
-        imp::PreferencesWindow::from_instance(self)
-    }
-
     pub fn bind_settings(&self) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         self_
             .settings
             .bind("dark-mode", &*self_.dark_theme, "active")
@@ -173,9 +169,9 @@ impl PreferencesWindow {
         self_
             .github_user
             .connect_changed(clone!(@weak self as preferences => move |_| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                let self_ = preferences.imp();
                 if let Some(w) = self_.window.get() {
-                    let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                    let win_ = w.imp();
                     let model = win_.model.borrow();
                     model.validate_registry_login(self_.github_user.text().as_str().to_string(), self_.github_token.text().as_str().to_string());
                 };
@@ -183,14 +179,14 @@ impl PreferencesWindow {
 
         self_.default_view_selection.connect_changed(
             clone!(@weak self as preferences => move |_| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                let self_ = preferences.imp();
                 self_.settings.set_string("default-view", &self_.default_view_selection.active_id().unwrap_or_else(|| "library".into())).unwrap();
             }),
         );
     }
 
     pub fn load_settings(&self) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         for dir in self_.settings.strv("unreal-projects-directories") {
             self.add_directory_row(
                 &self_.unreal_engine_project_directories_box,
@@ -222,10 +218,9 @@ impl PreferencesWindow {
     fn load_secrets(&self) {
         #[cfg(target_os = "linux")]
         {
-            let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+            let self_ = self.imp();
             if let Some(w) = self_.window.get() {
-                let win_: &crate::window::imp::EpicAssetManagerWindow =
-                    crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                let win_ = w.imp();
                 match &win_.model.borrow().secret_service {
                     None => w.add_notification("ss_none", "org.freedesktop.Secret.Service not available for use, secrets will not be stored", gtk4::MessageType::Warning),
                     Some(ss) => {
@@ -258,12 +253,12 @@ impl PreferencesWindow {
                 }
             };
             self_.github_token.connect_changed(clone!(@weak self as preferences => move |_| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&preferences);
+                let self_ = preferences.imp();
                 if let Some(w) = self_.window.get() {
                     let mut attributes = HashMap::new();
                     attributes.insert("application", crate::config::APP_ID);
                     attributes.insert("type", "token");
-                    let win_: &crate::window::imp::EpicAssetManagerWindow = crate::window::imp::EpicAssetManagerWindow::from_instance(w);
+                    let win_ = w.imp();
                     let model = win_.model.borrow();
                     match &model.secret_service {
                         None => {
@@ -293,7 +288,7 @@ impl PreferencesWindow {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
 
         self.insert_action_group("preferences", Some(actions));
@@ -377,7 +372,7 @@ impl PreferencesWindow {
     }
 
     fn set_directory(&self, dir: &File, kind: DirectoryConfigType) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         match dir.query_file_type(FileQueryInfoFlags::NONE, gtk4::gio::Cancellable::NONE) {
             FileType::Directory => {
                 debug!("Selected Directory");
@@ -440,7 +435,7 @@ impl PreferencesWindow {
     }
 
     fn update_directories(&self, kind: DirectoryConfigType) {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         let rows = self_.directory_rows.borrow();
         match rows.get(&kind) {
             None => {}
@@ -468,7 +463,7 @@ impl PreferencesWindow {
         &self,
         kind: DirectoryConfigType,
     ) -> Option<(&'static str, &gtk4::Box)> {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
         match kind {
             DirectoryConfigType::Games | DirectoryConfigType::Cache | DirectoryConfigType::Temp => {
                 None
@@ -491,7 +486,7 @@ impl PreferencesWindow {
     fn add_directory_row(&self, target_box: &gtk4::Box, dir: String, kind: DirectoryConfigType) {
         let row: dir_row::DirectoryRow = dir_row::DirectoryRow::new(&dir, self);
 
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
 
         let mut rows = self_.directory_rows.borrow_mut();
         match rows.get_mut(&kind) {
@@ -522,7 +517,7 @@ impl PreferencesWindow {
             "remove",
             false,
             clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let self_ = win.imp();
                 {
                     let mut rows = self_.directory_rows.borrow_mut();
                     target_box.remove(&row);
@@ -552,7 +547,7 @@ impl PreferencesWindow {
             "move-up",
             false,
             clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let self_ = win.imp();
                 {
                     let mut rows = self_.directory_rows.borrow_mut();
                     if let Some(r) = rows.get_mut(&k) {
@@ -591,7 +586,7 @@ impl PreferencesWindow {
             "move-down",
             false,
             clone!(@weak self as win, @weak target_box, @weak row => @default-return None, move |_| {
-                let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(&win);
+                let self_ = win.imp();
                 {
                     let mut rows = self_.directory_rows.borrow_mut();
                     if let Some(r) = rows.get_mut(&k) {
@@ -633,7 +628,7 @@ impl PreferencesWindow {
         filters: &'static [&str],
         title: &'static str,
     ) -> gtk4::FileChooserDialog {
-        let self_: &imp::PreferencesWindow = imp::PreferencesWindow::from_instance(self);
+        let self_ = self.imp();
 
         let native = gtk4::FileChooserDialog::new(
             Some(title),

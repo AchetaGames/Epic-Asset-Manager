@@ -175,15 +175,11 @@ impl EpicEngine {
     }
 
     pub fn path(&self) -> Option<String> {
-        let value: glib::Value = self.property("path");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("path")
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -196,7 +192,7 @@ impl EpicEngine {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -205,7 +201,7 @@ impl EpicEngine {
     }
 
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let self_ = self.imp();
         if let Some(d) = self_.data.take() {
             if let Some(id) = self_.handler.take() {
                 d.disconnect(id);
@@ -222,9 +218,9 @@ impl EpicEngine {
             clone!(@weak self as engine, @weak data => @default-return None, move |_| {
                 engine.set_property("branch", &data.branch());
                 engine
-                    .set_property("has-branch", &data.has_branch().unwrap_or(false));
+                    .set_property("has-branch", &data.has_branch());
                 engine
-                    .set_property("needs-update", &data.needs_update().unwrap_or(false));
+                    .set_property("needs-update", &data.needs_update());
                 None
             }),
         )));

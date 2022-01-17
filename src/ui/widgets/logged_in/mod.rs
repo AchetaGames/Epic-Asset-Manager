@@ -146,7 +146,7 @@ impl EpicLoggedInBox {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -168,7 +168,7 @@ impl EpicLoggedInBox {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -179,7 +179,7 @@ impl EpicLoggedInBox {
     }
 
     pub fn update_docker(&self) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.engine.update_docker();
     }
 
@@ -187,27 +187,27 @@ impl EpicLoggedInBox {
         &self,
         epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
     ) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.process_epic_asset(epic_asset);
     }
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.load_thumbnail(asset);
     }
 
     pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.add_asset(asset, image);
     }
 
     pub fn flush_assets(&self) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.flush_assets();
     }
 
     pub fn activate(&self, active: bool) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         if active {
             self.set_property("stack", &*self_.adwstack);
         } else {

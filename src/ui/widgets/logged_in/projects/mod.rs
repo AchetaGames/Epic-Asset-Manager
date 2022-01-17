@@ -148,7 +148,7 @@ impl EpicProjectsBox {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -205,7 +205,7 @@ impl EpicProjectsBox {
 
         selection_model.connect_selected_notify(clone!(@weak self as projects => move |model| {
             if let Some(a) = model.selected_item() {
-                let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(&projects);
+                let self_ = projects.imp();
                 let project = a.downcast::<crate::models::project_data::ProjectData>().unwrap();
                 if let Some(uproject) = project.uproject() {
                     self_.details.set_project(&uproject, project.path());
@@ -220,12 +220,12 @@ impl EpicProjectsBox {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        let self_ = self.imp();
         self.insert_action_group("projects", Some(&self_.actions));
     }
 
     fn load_projects(&self) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        let self_ = self.imp();
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
             let path = std::path::PathBuf::from(dir.to_string());
@@ -234,7 +234,7 @@ impl EpicProjectsBox {
     }
 
     fn check_path_for_uproject(&self, path: &Path) {
-        let self_: &imp::EpicProjectsBox = imp::EpicProjectsBox::from_instance(self);
+        let self_ = self.imp();
         if let Ok(rd) = path.read_dir() {
             for d in rd {
                 match d {

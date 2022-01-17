@@ -171,7 +171,7 @@ impl EpicSidebarCategory {
     }
 
     pub fn set_logged_in(&self, loggedin: &crate::ui::widgets::logged_in::library::EpicLibraryBox) {
-        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.loggedin.get().is_some() {
             return;
@@ -181,7 +181,7 @@ impl EpicSidebarCategory {
     }
 
     pub fn setup_categories(&self) {
-        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let self_ = self.imp();
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = Label::new(None);
@@ -224,7 +224,7 @@ impl EpicSidebarCategory {
         self_.sub_box.set_factory(Some(&factory));
 
         self_.selection_model.connect_selected_notify(clone!(@weak self as category => move |model| {
-            let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&category);
+            let self_ = category.imp();
             if let Some(item) = model.selected_item() {
                 let filter = item.downcast::<crate::models::category_data::CategoryData>().unwrap();
                 if let Some(l) = self_.loggedin.get() {
@@ -235,13 +235,13 @@ impl EpicSidebarCategory {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let self_ = self.imp();
         action!(
             self_.actions,
             "clicked",
             clone!(@weak self as win => move |_, _| {
                 let v: glib::Value = win.property("expanded");
-                let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(&win);
+                let self_ = win.imp();
                 if v.get::<bool>().unwrap() {
                     if self_.sub_box.first_child().is_none() {
                         if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()); };
@@ -267,7 +267,7 @@ impl EpicSidebarCategory {
     }
 
     pub fn add_category(&self, name: &str, filter: &str) {
-        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let self_ = self.imp();
         self_.categories.append(&CategoryData::new(
             &EpicSidebarCategory::capitalize_first_letter(name),
             filter,
@@ -275,15 +275,11 @@ impl EpicSidebarCategory {
     }
 
     pub fn filter(&self) -> String {
-        let value: glib::Value = self.property("filter");
-        if let Ok(id_opt) = value.get::<String>() {
-            return id_opt;
-        }
-        "".to_string()
+        self.property("filter")
     }
 
     pub fn unselect_except(&self, category: &str) {
-        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let self_ = self.imp();
         let selected_id = self_.selection_model.selected();
         if let Some(item) = self_.selection_model.selected_item() {
             let cat = item
@@ -296,7 +292,7 @@ impl EpicSidebarCategory {
     }
 
     pub fn activate(&self, activate: bool) {
-        let self_: &imp::EpicSidebarCategory = imp::EpicSidebarCategory::from_instance(self);
+        let self_ = self.imp();
         self_.category_button.set_sensitive(activate);
     }
 }

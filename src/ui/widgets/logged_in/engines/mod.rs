@@ -186,7 +186,7 @@ impl EpicEnginesBox {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -211,8 +211,8 @@ impl EpicEnginesBox {
             child.set_data(&data);
 
             child.set_property("branch", &data.branch());
-            child.set_property("has-branch", &data.has_branch().unwrap_or(false));
-            child.set_property("needs-update", &data.needs_update().unwrap_or(false));
+            child.set_property("has-branch", &data.has_branch());
+            child.set_property("needs-update", &data.needs_update());
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -243,7 +243,7 @@ impl EpicEnginesBox {
         self_.engine_grid.set_factory(Some(&factory));
 
         selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
-            let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
+            let self_ = engines.imp();
             if let Some(a) = model.selected_item() {
                 let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
                 engines.set_property("selected", engine.path());
@@ -255,13 +255,13 @@ impl EpicEnginesBox {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         self.insert_action_group("engines", Some(&self_.actions));
         action!(
             self_.actions,
             "add",
             clone!(@weak self as engines => move |_, _| {
-                let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(&engines);
+                let self_ = engines.imp();
                 self_.details.set_property("expanded", true);
                 self_.details.add_engine();
             })
@@ -269,18 +269,14 @@ impl EpicEnginesBox {
     }
 
     pub fn selected(&self) -> Option<String> {
-        let value: glib::Value = self.property("selected");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("selected")
     }
 
     pub fn set_download_manager(
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -290,7 +286,7 @@ impl EpicEnginesBox {
     }
 
     pub fn load_engines(&self) {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         'outer: for (guid, path) in Self::read_engines_ini() {
             let mut engines = self_.engines.borrow_mut();
             if let Some(version) =
@@ -331,7 +327,7 @@ impl EpicEnginesBox {
     }
 
     pub fn load_engines_from_fs(&self) {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         'outer: for dir in self_.settings.strv("unreal-engine-directories") {
             match crate::models::engine_data::EngineData::read_engine_version(&dir.to_string()) {
                 None => {
@@ -434,12 +430,12 @@ impl EpicEnginesBox {
     }
 
     pub fn update_docker(&self) {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         self_.details.update_docker();
     }
 
     pub fn engine_from_assoociation(&self, engine_association: &str) -> Option<UnrealEngine> {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         if let Some(engine) = self_.engines.borrow().get(engine_association) {
             return Some(engine.clone());
         };
@@ -455,7 +451,7 @@ impl EpicEnginesBox {
     }
 
     pub fn engines(&self) -> Vec<UnrealEngine> {
-        let self_: &imp::EpicEnginesBox = imp::EpicEnginesBox::from_instance(self);
+        let self_ = self.imp();
         let mut result: Vec<UnrealEngine> = Vec::new();
         for engine in self_.engines.borrow().values() {
             result.push(engine.clone());

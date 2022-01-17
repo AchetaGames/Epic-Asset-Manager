@@ -134,7 +134,7 @@ impl EpicProject {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -147,7 +147,7 @@ impl EpicProject {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -156,7 +156,7 @@ impl EpicProject {
     }
 
     pub fn set_data(&self, data: &crate::models::project_data::ProjectData) {
-        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
+        let self_ = self.imp();
         if let Some(d) = self_.data.take() {
             if let Some(id) = self_.handler.take() {
                 d.disconnect(id);
@@ -228,7 +228,7 @@ impl EpicProject {
             "finished",
             false,
             clone!(@weak self as project, @weak data => @default-return None, move |_| {
-                let self_: &imp::EpicProject = imp::EpicProject::from_instance(&project);
+                let self_ = project.imp();
                 if let Some(pix) = data.image() {
                     self_.thumbnail.set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
                 }
@@ -238,13 +238,10 @@ impl EpicProject {
     }
 
     fn associated_engine(&self, uproject: &Uproject) -> Option<UnrealEngine> {
-        let self_: &imp::EpicProject = imp::EpicProject::from_instance(self);
+        let self_ = self.imp();
         if let Some(w) = self_.window.get() {
-            let w_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(w);
-            let l = w_.logged_in_stack.clone();
-            let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
-                crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(&l);
+            let w_ = w.imp();
+            let l_ = w_.logged_in_stack.imp();
             return l_
                 .engine
                 .engine_from_assoociation(&uproject.engine_association);

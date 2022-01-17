@@ -192,7 +192,7 @@ glib::wrapper! {
 impl AssetData {
     pub fn new(asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> AssetData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create AssetData");
-        let self_: &imp::AssetData = imp::AssetData::from_instance(&data);
+        let self_ = data.imp();
 
         data.set_property("id", &asset.id);
         data.check_favorite();
@@ -240,7 +240,7 @@ impl AssetData {
     }
 
     fn configure_kind(&self, asset: &AssetInfo) {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match Self::decide_kind(asset) {
             None => {
                 self_.kind.replace(None);
@@ -266,39 +266,23 @@ impl AssetData {
     }
 
     pub fn id(&self) -> String {
-        let value: glib::Value = self.property("id");
-        if let Ok(id_opt) = value.get::<String>() {
-            return id_opt;
-        }
-        "".to_string()
+        self.property("id")
     }
 
     pub fn name(&self) -> String {
-        let value: glib::Value = self.property("name");
-        if let Ok(id_opt) = value.get::<String>() {
-            return id_opt;
-        }
-        "".to_string()
+        self.property("name")
     }
 
     pub fn favorite(&self) -> bool {
-        let value: glib::Value = self.property("favorite");
-        if let Ok(id_opt) = value.get::<bool>() {
-            return id_opt;
-        }
-        false
+        self.property("favorite")
     }
 
     pub fn downloaded(&self) -> bool {
-        let value: glib::Value = self.property("downloaded");
-        if let Ok(id_opt) = value.get::<bool>() {
-            return id_opt;
-        }
-        false
+        self.property("downloaded")
     }
 
     pub fn release(&self) -> Option<DateTime<Utc>> {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match &*self_.asset.borrow() {
             Some(a) => match a.latest_release() {
                 None => a.last_modified_date,
@@ -309,7 +293,7 @@ impl AssetData {
     }
 
     pub fn kind(&self) -> Option<AssetType> {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match &*self_.kind.borrow() {
             Some(a) => match a.as_str() {
                 "asset" => Some(AssetType::Asset),
@@ -324,7 +308,7 @@ impl AssetData {
     }
 
     pub fn last_modified(&self) -> Option<DateTime<Utc>> {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match &*self_.asset.borrow() {
             Some(a) => a.last_modified_date,
             None => None,
@@ -332,15 +316,11 @@ impl AssetData {
     }
 
     pub fn image(&self) -> Option<Pixbuf> {
-        let value: glib::Value = self.property("thumbnail");
-        if let Ok(id_opt) = value.get::<Pixbuf>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("thumbnail")
     }
 
     pub fn check_category(&self, cat: &str) -> bool {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         if cat.eq("favorites") {
             self.favorite()
         } else if cat.eq("downloaded") {
@@ -385,7 +365,7 @@ impl AssetData {
     }
 
     pub fn check_downloaded(&self) {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         let asset = &*self_.asset.borrow();
         if let Some(ass) = asset {
             for vault in self_.settings.strv("unreal-vault-directories") {

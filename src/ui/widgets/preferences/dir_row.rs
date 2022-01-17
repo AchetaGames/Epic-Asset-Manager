@@ -77,7 +77,7 @@ impl DirectoryRow {
     pub fn new(dir: &str, window: &crate::ui::widgets::preferences::PreferencesWindow) -> Self {
         let row: Self = glib::Object::new(&[]).expect("Failed to create DirectoryRow");
         adw::prelude::PreferencesRowExt::set_title(&row, dir);
-        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(&row);
+        let self_ = row.imp();
         self_.window.set(window.clone()).unwrap();
 
         row.insert_action_group("dir_row", Some(&self_.actions));
@@ -110,12 +110,12 @@ impl DirectoryRow {
     }
 
     pub fn set_up_enabled(&self, enabled: bool) {
-        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @up).set_enabled(enabled);
     }
 
     pub fn set_down_enabled(&self, enabled: bool) {
-        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @down).set_enabled(enabled);
     }
 }

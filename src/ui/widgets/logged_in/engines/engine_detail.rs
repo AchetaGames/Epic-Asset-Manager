@@ -186,7 +186,7 @@ impl EpicEngineDetails {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -195,7 +195,7 @@ impl EpicEngineDetails {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("engine_details", Some(actions));
 
@@ -211,7 +211,7 @@ impl EpicEngineDetails {
             actions,
             "install",
             clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&details);
+                let self_ = details.imp();
                 if let Some(ver) = details.selected() {
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_engine_from_docker(&ver);
@@ -277,7 +277,7 @@ impl EpicEngineDetails {
     }
 
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         // remove old details
         while let Some(el) = self_.details.first_child() {
             self_.details.remove(&el);
@@ -323,19 +323,17 @@ impl EpicEngineDetails {
             self_.details.append(&row);
         }
 
-        if let Some(update) = &data.needs_update() {
-            if *update {
-                let row = adw::ActionRow::builder().activatable(true).build();
-                let title = gtk4::Label::builder().label("Needs update").build();
-                size_group_prefix.add_widget(&title);
-                row.add_prefix(&title);
-                self_.details.append(&row);
-            }
+        if data.needs_update() {
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Needs update").build();
+            size_group_prefix.add_widget(&title);
+            row.add_prefix(&title);
+            self_.details.append(&row);
         }
     }
 
     pub fn add_engine(&self) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         #[cfg(target_os = "linux")]
         {
             self_.data.replace(None);
@@ -381,44 +379,48 @@ impl EpicEngineDetails {
                 size_group_labels.add_widget(&check);
                 row.add_suffix(&check);
                 self_.details.append(&row);
-                combo.connect_changed(clone!(@weak self as detail, @weak check as check => move |c| {
-                let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&detail);
-                check.set_sensitive(false);
-                if let Some(selected) = c.active_id() {
-                    if let Some(ver) = &*self_.docker_versions.borrow() {
-                        if let Some(v) = ver.get(selected.as_str()) {
-                            check.set_active(true);
-                            for label in v {
-                                if label.contains("slim") {
-                                    check.set_sensitive(true);
-                                } else {
-                                    detail.set_property("selected", label);
-                                    detail.docker_manifest();
+                combo.connect_changed(
+                    clone!(@weak self as detail, @weak check as check => move |c| {
+                        let self_ = detail.imp();
+                        check.set_sensitive(false);
+                        if let Some(selected) = c.active_id() {
+                            if let Some(ver) = &*self_.docker_versions.borrow() {
+                                if let Some(v) = ver.get(selected.as_str()) {
+                                    check.set_active(true);
+                                    for label in v {
+                                        if label.contains("slim") {
+                                            check.set_sensitive(true);
+                                        } else {
+                                            detail.set_property("selected", label);
+                                            detail.docker_manifest();
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-                };
-            }));
+                        };
+                    }),
+                );
 
-                check.connect_toggled(clone!(@weak self as detail, @weak combo as combo => move |c| {
-                let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&detail);
-                if let Some(selected) = combo.active_id() {
-                    if let Some(ver) = &*self_.docker_versions.borrow() {
-                        if let Some(v) = ver.get(selected.as_str()) {
-                            for label in v {
-                                if (label.contains("slim") && !c.is_active())
-                                    || (!label.contains("slim") && c.is_active())
-                                {
-                                    detail.set_property("selected", label);
-                                    detail.docker_manifest();
-                                    return;
+                check.connect_toggled(
+                    clone!(@weak self as detail, @weak combo as combo => move |c| {
+                        let self_ = detail.imp();
+                        if let Some(selected) = combo.active_id() {
+                            if let Some(ver) = &*self_.docker_versions.borrow() {
+                                if let Some(v) = ver.get(selected.as_str()) {
+                                    for label in v {
+                                        if (label.contains("slim") && !c.is_active())
+                                            || (!label.contains("slim") && c.is_active())
+                                        {
+                                            detail.set_property("selected", label);
+                                            detail.docker_manifest();
+                                            return;
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-                };
-            }));
+                        };
+                    }),
+                );
 
                 let mut version: Vec<&String> = versions.keys().into_iter().collect();
                 version.sort_by(|a, b| match version_compare::compare(b, a) {
@@ -465,7 +467,7 @@ impl EpicEngineDetails {
                     .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
                     .build();
                 label.connect_activate_link(clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
-                    let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(&details);
+                    let self_ = details.imp();
                     if uri.eq("preferences") {
                         if let Some(w) = self_.window.get() {
                             let pref = w.show_preferences();
@@ -482,7 +484,7 @@ impl EpicEngineDetails {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -493,7 +495,7 @@ impl EpicEngineDetails {
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
@@ -505,7 +507,7 @@ impl EpicEngineDetails {
     }
 
     pub fn update(&self, msg: DockerMsg) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         match msg {
             DockerMsg::DockerEngineVersions(ver) => {
                 self.updated_docker_versions(&ver);
@@ -540,7 +542,7 @@ impl EpicEngineDetails {
     }
 
     fn updated_docker_versions(&self, versions: &HashMap<String, Vec<String>>) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         self_.docker_versions.replace(Some(versions.clone()));
         if self_.data.borrow().is_none() {
             self.add_engine();
@@ -549,11 +551,10 @@ impl EpicEngineDetails {
 
     #[cfg(target_os = "linux")]
     pub fn docker_manifest(&self) {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @install).set_enabled(true);
         if let Some(window) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            let win_ = window.imp();
             if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                 let client = dclient.clone();
                 let version = self.selected();
@@ -585,10 +586,9 @@ impl EpicEngineDetails {
         debug!("Trying to query docker API for images");
         #[cfg(target_os = "linux")]
         {
-            let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+            let self_ = self.imp();
             if let Some(window) = self_.window.get() {
-                let win_: &crate::window::imp::EpicAssetManagerWindow =
-                    crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+                let win_ = window.imp();
                 if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                     let client = dclient.clone();
                     let sender = self_.sender.clone();
@@ -656,7 +656,7 @@ impl EpicEngineDetails {
     }
 
     fn path(&self) -> Option<String> {
-        let self_: &imp::EpicEngineDetails = imp::EpicEngineDetails::from_instance(self);
+        let self_ = self.imp();
         if let Some(d) = &*self_.data.borrow() {
             return d.path();
         }
@@ -664,11 +664,7 @@ impl EpicEngineDetails {
     }
 
     pub fn selected(&self) -> Option<String> {
-        let value: glib::Value = self.property("selected");
-        if let Ok(id_opt) = value.get::<String>() {
-            return Some(id_opt);
-        }
-        None
+        self.property("selected")
     }
 
     // fn is_expanded(&self) -> bool {
