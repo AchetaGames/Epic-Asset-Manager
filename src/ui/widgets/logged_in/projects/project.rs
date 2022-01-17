@@ -9,7 +9,7 @@ use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
-    use gtk4::glib::{ParamSpec, SignalHandlerId};
+    use gtk4::glib::{ParamSpec, ParamSpecString, SignalHandlerId};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -65,14 +65,8 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
-                        "name",
-                        "Name",
-                        "Name",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "engine",
                         "Engine",
                         "Engine",
@@ -169,11 +163,11 @@ impl EpicProject {
             }
         }
         self_.data.replace(Some(data.clone()));
-        self.set_property("name", &data.name()).unwrap();
-        self.set_property("tooltip-text", &data.path()).unwrap();
+        self.set_property("name", &data.name());
+        self.set_property("tooltip-text", &data.path());
         match data.uproject() {
             None => {
-                self.set_property("engine", "").unwrap();
+                self.set_property("engine", "");
             }
             Some(uproject) => match self.associated_engine(&uproject) {
                 None => {
@@ -194,23 +188,23 @@ impl EpicProject {
                     };
                     match last_engine {
                         None => {
-                            self.set_property("engine", "Unknown Engine").unwrap();
+                            self.set_property("engine", "Unknown Engine");
                         }
                         Some(eng) => {
                             match crate::models::engine_data::EngineData::read_engine_version(&eng)
                             {
                                 None => {
-                                    self.set_property("engine", eng).unwrap();
+                                    self.set_property("engine", eng);
                                 }
                                 Some(version) => {
-                                    self.set_property("engine", version.format()).unwrap();
+                                    self.set_property("engine", version.format());
                                 }
                             }
                         }
                     }
                 }
                 Some(eng) => {
-                    self.set_property("engine", eng.version.format()).unwrap();
+                    self.set_property("engine", eng.version.format());
                 }
             },
         };
@@ -230,7 +224,7 @@ impl EpicProject {
             }
         }
 
-        if let Ok(id) = data.connect_local(
+        self_.handler.replace(Some(data.connect_local(
             "finished",
             false,
             clone!(@weak self as project, @weak data => @default-return None, move |_| {
@@ -240,9 +234,7 @@ impl EpicProject {
                 }
                 None
             }),
-        ) {
-            self_.handler.replace(Some(id));
-        }
+        )));
     }
 
     fn associated_engine(&self, uproject: &Uproject) -> Option<UnrealEngine> {

@@ -15,7 +15,7 @@ use crate::ui::widgets::logged_in::engines::UnrealEngine;
 pub(crate) mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
 
     use crate::models::project_data::Uproject;
@@ -85,20 +85,14 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "expanded",
                         "expanded",
                         "Is expanded",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
-                        "path",
-                        "Path",
-                        "Path",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
                 ]
             });
             PROPERTIES.as_ref()
@@ -162,7 +156,7 @@ impl UnrealProjectDetails {
             actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                details.set_property("expanded", false).unwrap();
+                details.set_property("expanded", false);
             })
         );
 
@@ -233,7 +227,7 @@ impl UnrealProjectDetails {
         path: Option<String>,
     ) {
         let self_: &imp::UnrealProjectDetails = imp::UnrealProjectDetails::from_instance(self);
-        self.set_property("path", &path).unwrap();
+        self.set_property("path", &path);
         self_.uproject.replace(Some(project.clone()));
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el);
@@ -245,15 +239,15 @@ impl UnrealProjectDetails {
         let pathbuf = PathBuf::from(path.unwrap());
         self_.title.set_markup(&format!(
             "<b><u><big>{}</big></u></b>",
-            pathbuf.file_stem().unwrap().to_str().unwrap().to_string()
+            pathbuf.file_stem().unwrap().to_str().unwrap()
         ));
 
         let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
         let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
         // Engine
-        let row = adw::ActionRowBuilder::new().activatable(true).build();
-        let title = gtk4::LabelBuilder::new().label("Engine").build();
+        let row = adw::ActionRow::builder().activatable(true).build();
+        let title = gtk4::Label::builder().label("Engine").build();
         size_group_prefix.add_widget(&title);
         row.add_prefix(&title);
         let combo = gtk4::ComboBoxText::new();
@@ -323,11 +317,11 @@ impl UnrealProjectDetails {
         self_.details_box.append(&row);
 
         // Path
-        let row = adw::ActionRowBuilder::new().activatable(true).build();
-        let title = gtk4::LabelBuilder::new().label("Path").build();
+        let row = adw::ActionRow::builder().activatable(true).build();
+        let title = gtk4::Label::builder().label("Path").build();
         size_group_prefix.add_widget(&title);
         row.add_prefix(&title);
-        let label = gtk4::LabelBuilder::new()
+        let label = gtk4::Label::builder()
             .label(pathbuf.parent().unwrap().to_str().unwrap())
             .wrap(true)
             .xalign(0.0)
@@ -337,13 +331,11 @@ impl UnrealProjectDetails {
         self_.details_box.append(&row);
 
         // Engine Association
-        let row = adw::ActionRowBuilder::new().activatable(true).build();
-        let title = gtk4::LabelBuilder::new()
-            .label("Engine Association")
-            .build();
+        let row = adw::ActionRow::builder().activatable(true).build();
+        let title = gtk4::Label::builder().label("Engine Association").build();
         size_group_prefix.add_widget(&title);
         row.add_prefix(&title);
-        let label = gtk4::LabelBuilder::new()
+        let label = gtk4::Label::builder()
             .label(&project.engine_association)
             .wrap(true)
             .xalign(0.0)
@@ -353,7 +345,7 @@ impl UnrealProjectDetails {
         self_.details_box.append(&row);
 
         if !self.is_expanded() {
-            self.set_property("expanded", true).unwrap();
+            self.set_property("expanded", true);
         }
     }
 
@@ -396,11 +388,10 @@ impl UnrealProjectDetails {
     }
 
     fn is_expanded(&self) -> bool {
-        if let Ok(value) = self.property("expanded") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("expanded");
+        if let Ok(id_opt) = value.get::<bool>() {
+            return id_opt;
+        }
         false
     }
 
@@ -415,11 +406,10 @@ impl UnrealProjectDetails {
     }
 
     fn path(&self) -> Option<String> {
-        if let Ok(value) = self.property("path") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("path");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 }

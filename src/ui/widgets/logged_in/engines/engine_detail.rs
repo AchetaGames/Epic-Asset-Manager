@@ -23,7 +23,7 @@ pub enum DockerMsg {
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -102,21 +102,21 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "expanded",
                         "expanded",
                         "Is expanded",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "selected",
                         "Selected",
                         "Selected",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "download-size",
                         "Download Size",
                         "Download Size",
@@ -203,7 +203,7 @@ impl EpicEngineDetails {
             actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                details.set_property("expanded", false).unwrap();
+                details.set_property("expanded", false);
             })
         );
 
@@ -294,11 +294,11 @@ impl EpicEngineDetails {
         let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
         if let Some(path) = &data.path() {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Path").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Path").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(path)
                 .wrap(true)
                 .xalign(0.0)
@@ -309,11 +309,11 @@ impl EpicEngineDetails {
         }
 
         if let Some(branch) = &data.branch() {
-            let row = adw::ActionRowBuilder::new().activatable(true).build();
-            let title = gtk4::LabelBuilder::new().label("Branch").build();
+            let row = adw::ActionRow::builder().activatable(true).build();
+            let title = gtk4::Label::builder().label("Branch").build();
             size_group_prefix.add_widget(&title);
             row.add_prefix(&title);
-            let label = gtk4::LabelBuilder::new()
+            let label = gtk4::Label::builder()
                 .label(branch)
                 .wrap(true)
                 .xalign(0.0)
@@ -325,8 +325,8 @@ impl EpicEngineDetails {
 
         if let Some(update) = &data.needs_update() {
             if *update {
-                let row = adw::ActionRowBuilder::new().activatable(true).build();
-                let title = gtk4::LabelBuilder::new().label("Needs update").build();
+                let row = adw::ActionRow::builder().activatable(true).build();
+                let title = gtk4::Label::builder().label("Needs update").build();
                 size_group_prefix.add_widget(&title);
                 row.add_prefix(&title);
                 self_.details.append(&row);
@@ -355,30 +355,26 @@ impl EpicEngineDetails {
 
                 let combo = gtk4::ComboBoxText::new();
                 combo.set_hexpand(true);
-                let row = adw::ActionRowBuilder::new().activatable(true).build();
-                let title = gtk4::LabelBuilder::new()
-                    .label("Available Versions")
-                    .build();
+                let row = adw::ActionRow::builder().activatable(true).build();
+                let title = gtk4::Label::builder().label("Available Versions").build();
                 size_group_prefix.add_widget(&title);
                 row.add_prefix(&title);
                 size_group_labels.add_widget(&combo);
                 row.add_suffix(&combo);
                 self_.details.append(&row);
 
-                let row = adw::ActionRowBuilder::new().activatable(true).build();
+                let row = adw::ActionRow::builder().activatable(true).build();
                 row.set_tooltip_markup(Some(
                     "Include <b>Template Projects</b> and <b>Debug symbols</b>?",
                 ));
-                let title = gtk4::LabelBuilder::new()
-                    .label("Additional Content")
-                    .build();
+                let title = gtk4::Label::builder().label("Additional Content").build();
                 let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
                 b.append(&title);
-                let info = gtk4::Image::from_icon_name(Some("dialog-information-symbolic"));
+                let info = gtk4::Image::from_icon_name("dialog-information-symbolic");
                 b.append(&info);
                 size_group_prefix.add_widget(&b);
                 row.add_prefix(&b);
-                let check = gtk4::CheckButtonBuilder::new()
+                let check = gtk4::CheckButton::builder()
                     .active(true)
                     .hexpand(true)
                     .build();
@@ -396,7 +392,7 @@ impl EpicEngineDetails {
                                 if label.contains("slim") {
                                     check.set_sensitive(true);
                                 } else {
-                                    detail.set_property("selected", label).unwrap();
+                                    detail.set_property("selected", label);
                                     detail.docker_manifest();
                                 }
                             }
@@ -414,7 +410,7 @@ impl EpicEngineDetails {
                                 if (label.contains("slim") && !c.is_active())
                                     || (!label.contains("slim") && c.is_active())
                                 {
-                                    detail.set_property("selected", label).unwrap();
+                                    detail.set_property("selected", label);
                                     detail.docker_manifest();
                                     return;
                                 }
@@ -441,12 +437,12 @@ impl EpicEngineDetails {
                     }
                 }
 
-                let row = adw::ActionRowBuilder::new()
+                let row = adw::ActionRow::builder()
                     .activatable(true)
                     .name("size_row")
                     .build();
-                let title = gtk4::LabelBuilder::new().label("Download Size").build();
-                let size_label = gtk4::LabelBuilder::new()
+                let title = gtk4::Label::builder().label("Download Size").build();
+                let size_label = gtk4::Label::builder()
                     .name("size_label")
                     .halign(gtk4::Align::Start)
                     .hexpand(true)
@@ -462,7 +458,7 @@ impl EpicEngineDetails {
                 row.add_suffix(&size_label);
                 self_.details.append(&row);
             } else {
-                let label = gtk4::LabelBuilder::new()
+                let label = gtk4::Label::builder()
                     .halign(gtk4::Align::Center)
                     .hexpand(true)
                     .use_markup(true)
@@ -538,8 +534,7 @@ impl EpicEngineDetails {
                         }
                     }
                 };
-                self.set_property("download-size", Some(byte.format(1)))
-                    .unwrap();
+                self.set_property("download-size", Some(byte.format(1)));
             }
         };
     }
@@ -669,11 +664,10 @@ impl EpicEngineDetails {
     }
 
     pub fn selected(&self) -> Option<String> {
-        if let Ok(value) = self.property("selected") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("selected");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 

@@ -7,8 +7,10 @@ pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use adw::subclass::action_row::ActionRowImpl;
+    use adw::subclass::prelude::PreferencesRowImpl;
     use gtk4::gdk_pixbuf::Pixbuf;
     use gtk4::gio;
+    use gtk4::glib::ParamSpecObject;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::VecDeque;
@@ -102,28 +104,28 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "label",
                         "Label",
                         "Label",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "path",
                         "Path",
                         "Path",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "status",
                         "status",
                         "status",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecObject::new(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
@@ -206,6 +208,7 @@ pub(crate) mod imp {
 
     impl WidgetImpl for EpicDownloadItem {}
     impl ActionRowImpl for EpicDownloadItem {}
+    impl PreferencesRowImpl for EpicDownloadItem {}
     impl ListBoxRowImpl for EpicDownloadItem {}
 }
 
@@ -294,11 +297,10 @@ impl EpicDownloadItem {
     }
 
     pub fn path(&self) -> Option<String> {
-        if let Ok(value) = self.property("path") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("path");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 
@@ -316,7 +318,6 @@ impl EpicDownloadItem {
             .extraction_progress
             .set_fraction(new_count as f64 / total as f64);
         self_.extracted_files.replace(new_count);
-        self.parent();
         if new_count == total {
             {
                 let queue = &mut *self_.speed_queue.borrow_mut();
@@ -324,11 +325,11 @@ impl EpicDownloadItem {
             };
             self_.downloaded_size.replace(*self_.total_size.borrow());
             self_.download_progress.set_fraction(1.0);
-            self.set_property("status", "Finished".to_string()).unwrap();
+            self.set_property("status", "Finished".to_string());
             glib::timeout_add_seconds_local(
                 15,
                 clone!(@weak self as obj => @default-panic, move || {
-                    obj.emit_by_name("finished", &[]).unwrap();
+                    obj.emit_by_name::<()>("finished", &[]);
                     glib::Continue(false)
                 }),
             );

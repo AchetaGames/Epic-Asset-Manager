@@ -53,8 +53,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
             Some(i) => i,
         };
-        item.set_property("status", "waiting for download slot".to_string())
-            .unwrap();
+        item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(size as u128);
         item.set_total_files(digests.len() as u64);
 
@@ -157,10 +156,9 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
         };
         for cap in re.captures_iter(version) {
-            item.set_property("label", cap[1].to_string()).unwrap();
+            item.set_property("label", cap[1].to_string());
         }
-        item.set_property("status", "initializing...".to_string())
-            .unwrap();
+        item.set_property("status", "initializing...".to_string());
 
         item.connect_local(
             "finished",
@@ -169,18 +167,17 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
             crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(&edm);
                 self_.downloads.remove(&item);
-                edm.set_property("has-items", self_.downloads.first_child().is_some()).unwrap();
-                edm.emit_by_name("tick", &[]).unwrap();
+                edm.set_property("has-items", self_.downloads.first_child().is_some());
+                edm.emit_by_name::<()>("tick", &[]);
                 None
             }),
-        )
-        .unwrap();
+        );
 
         match gtk4::gdk_pixbuf::Pixbuf::from_resource(
             "/io/github/achetagames/epic_asset_manager/icons/ue-logo-symbolic.svg",
         ) {
             Ok(pix) => {
-                item.set_property("thumbnail", &pix).unwrap();
+                item.set_property("thumbnail", &pix);
             }
             Err(e) => {
                 error!("Unable to load icon: {}", e);
@@ -188,8 +185,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         };
         self_.downloads.append(&item);
 
-        self.set_property("has-items", self_.downloads.first_child().is_some())
-            .unwrap();
+        self.set_property("has-items", self_.downloads.first_child().is_some());
 
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
@@ -233,7 +229,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         };
         item.add_downloaded_size(progress as u128);
 
-        self.emit_by_name("tick", &[]).unwrap();
+        self.emit_by_name::<()>("tick", &[]);
     }
 
     #[cfg(target_os = "linux")]

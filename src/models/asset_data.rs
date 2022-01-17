@@ -22,6 +22,7 @@ mod imp {
     use glib::ToValue;
     use gtk4::gdk_pixbuf::prelude::StaticType;
     use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::glib::ParamSpecObject;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -84,35 +85,35 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "name",
                         "Name",
                         "Name",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "id",
                         "ID",
                         "ID",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecObject::new(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
                         Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "favorite",
                         "favorite",
                         "Is favorite",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "downloaded",
                         "downloaded",
                         "Is Downloaded",
@@ -193,9 +194,9 @@ impl AssetData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create AssetData");
         let self_: &imp::AssetData = imp::AssetData::from_instance(&data);
 
-        data.set_property("id", &asset.id).unwrap();
+        data.set_property("id", &asset.id);
         data.check_favorite();
-        data.set_property("name", &asset.title).unwrap();
+        data.set_property("name", &asset.title);
         self_.asset.replace(Some(asset.clone()));
         data.check_downloaded();
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
@@ -205,7 +206,7 @@ impl AssetData {
         data.configure_kind(asset);
 
         if let Some(pix) = pixbuf_loader.pixbuf() {
-            data.set_property("thumbnail", &pix).unwrap();
+            data.set_property("thumbnail", &pix);
         };
         data
     }
@@ -265,38 +266,34 @@ impl AssetData {
     }
 
     pub fn id(&self) -> String {
-        if let Ok(value) = self.property("id") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("id");
+        if let Ok(id_opt) = value.get::<String>() {
+            return id_opt;
+        }
         "".to_string()
     }
 
     pub fn name(&self) -> String {
-        if let Ok(value) = self.property("name") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("name");
+        if let Ok(id_opt) = value.get::<String>() {
+            return id_opt;
+        }
         "".to_string()
     }
 
     pub fn favorite(&self) -> bool {
-        if let Ok(value) = self.property("favorite") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("favorite");
+        if let Ok(id_opt) = value.get::<bool>() {
+            return id_opt;
+        }
         false
     }
 
     pub fn downloaded(&self) -> bool {
-        if let Ok(value) = self.property("downloaded") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("downloaded");
+        if let Ok(id_opt) = value.get::<bool>() {
+            return id_opt;
+        }
         false
     }
 
@@ -335,11 +332,10 @@ impl AssetData {
     }
 
     pub fn image(&self) -> Option<Pixbuf> {
-        if let Ok(value) = self.property("thumbnail") {
-            if let Ok(id_opt) = value.get::<Pixbuf>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("thumbnail");
+        if let Ok(id_opt) = value.get::<Pixbuf>() {
+            return Some(id_opt);
+        }
         None
     }
 
@@ -401,7 +397,7 @@ impl AssetData {
                             p.push(&app);
                             p.push("data");
                             if p.exists() {
-                                self.set_property("downloaded", true).unwrap();
+                                self.set_property("downloaded", true);
                                 return;
                             }
                         }
@@ -420,15 +416,15 @@ impl AssetData {
             ))
             .get_result(&conn);
             if let Ok(fav) = ex {
-                self.set_property("favorite", fav).unwrap();
+                self.set_property("favorite", fav);
                 return;
             }
         }
-        self.set_property("favorite", false).unwrap();
+        self.set_property("favorite", false);
     }
 
     pub fn refresh(&self) {
         self.check_favorite();
-        self.emit_by_name("refreshed", &[]).unwrap();
+        self.emit_by_name::<()>("refreshed", &[]);
     }
 }

@@ -93,10 +93,10 @@ pub(crate) mod imp {
                 window.show();
 
                 if let Ok(item) = self.item.borrow().to_value().get::<String>() {
-                    window.set_property("item", item).unwrap();
+                    window.set_property("item", item);
                 }
                 if let Ok(product) = self.product.borrow().to_value().get::<String>() {
-                    window.set_property("product", product).unwrap();
+                    window.set_property("product", product);
                 }
                 self.product.replace(None);
                 self.item.replace(None);
@@ -107,10 +107,10 @@ pub(crate) mod imp {
             let mut window = EpicAssetManagerWindow::new(app);
 
             if let Ok(item) = self.item.borrow().to_value().get::<String>() {
-                window.set_property("item", item).unwrap();
+                window.set_property("item", item);
             }
             if let Ok(product) = self.product.borrow().to_value().get::<String>() {
-                window.set_property("product", product).unwrap();
+                window.set_property("product", product);
             }
             self.product.replace(None);
             self.item.replace(None);
@@ -128,7 +128,7 @@ pub(crate) mod imp {
 
             self.settings
                 .connect_changed(Some("dark-mode"), |_settings, _key| {
-                    let style_manager = adw::StyleManager::default().unwrap();
+                    let style_manager = adw::StyleManager::default();
                     if style_manager.is_dark() {
                         style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
                     } else {
@@ -255,7 +255,7 @@ impl EpicAssetManager {
     }
 
     fn show_about_dialog(&self) {
-        let dialog = gtk4::AboutDialogBuilder::new()
+        let dialog = gtk4::AboutDialog::builder()
             .program_name("Epic Asset Manager")
             .logo_icon_name(config::APP_ID)
             .license_type(gtk4::License::MitX11)

@@ -69,7 +69,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -163,7 +163,7 @@ pub(crate) mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpec::new_boolean(
+                vec![ParamSpecBoolean::new(
                     "has-items",
                     "has items",
                     "Has Items",
@@ -272,7 +272,7 @@ impl EpicDownloadManager {
                 pixbuf_loader.close().ok();
 
                 if let Some(pix) = pixbuf_loader.pixbuf() {
-                    item.set_property("thumbnail", &pix).unwrap();
+                    item.set_property("thumbnail", &pix);
                 };
             }
             DownloadMsg::StartAssetDownload(id, manifest) => {
@@ -301,7 +301,7 @@ impl EpicDownloadManager {
                     Some(i) => i,
                 };
                 item.add_downloaded_size(progress);
-                self.emit_by_name("tick", &[]).unwrap();
+                self.emit_by_name::<()>("tick", &[]);
                 self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
             }
             DownloadMsg::FileExtracted(id) => {
@@ -312,7 +312,7 @@ impl EpicDownloadManager {
                     Some(i) => i,
                 };
                 item.file_processed();
-                self.emit_by_name("tick", &[]).unwrap();
+                self.emit_by_name::<()>("tick", &[]);
             }
             DownloadMsg::PerformDockerEngineDownload(version, size, digests) => {
                 self.perform_docker_blob_downloads(&version, size, digests);
@@ -438,15 +438,13 @@ impl EpicDownloadManager {
                 return;
             }
         };
-        item.set_property("label", asset.title.clone()).unwrap();
-        item.set_property("status", "initializing...".to_string())
-            .unwrap();
+        item.set_property("label", asset.title.clone());
+        item.set_property("status", "initializing...".to_string());
         self.load_thumbnail(release_id.clone(), asset.thumbnail());
 
         self_.downloads.append(&item);
 
-        self.set_property("has-items", self_.downloads.first_child().is_some())
-            .unwrap();
+        self.set_property("has-items", self_.downloads.first_child().is_some());
 
         item.connect_local(
             "finished",
@@ -454,11 +452,11 @@ impl EpicDownloadManager {
             clone!(@weak self as edm, @weak item => @default-return None, move |_| {
                 let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&edm);
                 self_.downloads.remove(&item);
-                edm.set_property("has-items", self_.downloads.first_child().is_some()).unwrap();
-                edm.emit_by_name("tick", &[]).unwrap();
+                edm.set_property("has-items", self_.downloads.first_child().is_some());
+                edm.emit_by_name::<()>("tick", &[]);
                 None
             }),
-        ).unwrap();
+        );
 
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow = window.data();
@@ -508,8 +506,7 @@ impl EpicDownloadManager {
             Some(i) => i,
         };
         if dm.is_empty() {
-            item.set_property("status", "Failed to get download manifests".to_string())
-                .unwrap();
+            item.set_property("status", "Failed to get download manifests".to_string());
             return;
         }
         let vault_dir = match self_.settings.strv("unreal-vault-directories").get(0) {
@@ -554,12 +551,10 @@ impl EpicDownloadManager {
                 }
             }
         });
-        item.set_property("status", "waiting for download slot".to_string())
-            .unwrap();
+        item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(dm[0].total_download_size());
         item.set_total_files(dm[0].file_manifest_list.len() as u64);
-        item.set_property("path", target.as_path().display().to_string())
-            .unwrap();
+        item.set_property("path", target.as_path().display().to_string());
 
         // consolidate manifests
 
@@ -974,7 +969,7 @@ impl EpicDownloadManager {
                             Some(i) => i,
                         };
                         item.add_downloaded_size(progress);
-                        self.emit_by_name("tick", &[]).unwrap();
+                        self.emit_by_name::<()>("tick", &[]);
                         break;
                     }
                 }

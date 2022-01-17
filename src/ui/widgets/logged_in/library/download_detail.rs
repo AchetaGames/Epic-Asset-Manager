@@ -67,7 +67,7 @@ pub(crate) mod imp {
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![glib::ParamSpec::new_string(
+                vec![glib::ParamSpecString::new(
                     "selected-version",
                     "selected_version",
                     "selected_version",
@@ -151,7 +151,7 @@ impl EpicDownloadDetails {
                 if let Some(dm) = self_.download_manager.get() {
                     if let Some(asset_info) = &*self_.asset.borrow() {
                         dm.add_asset_download(download_details.selected_version(), asset_info.clone());
-                        download_details.emit_by_name("start-download", &[]).unwrap();
+                        download_details.emit_by_name::<()>("start-download", &[]);
                     }
                 }
             })
@@ -164,11 +164,10 @@ impl EpicDownloadDetails {
     }
 
     pub fn selected_version(&self) -> String {
-        if let Ok(value) = self.property("selected-version") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
+        let value: glib::Value = self.property("selected-version");
+        if let Ok(id_opt) = value.get::<String>() {
+            return id_opt;
+        }
         "".to_string()
     }
 }

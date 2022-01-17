@@ -3,7 +3,7 @@ use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeT
 
 pub(crate) mod imp {
     use super::*;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -64,48 +64,36 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "needs-update",
                         "needs update",
                         "Check if engine needs update",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "version",
                         "Version",
                         "Version",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
-                        "path",
-                        "Path",
-                        "Path",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "branch",
                         "Branch",
                         "Branch",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "has-branch",
                         "Has Branch",
                         "Has Branch",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
-                        "guid",
-                        "GUID",
-                        "GUID",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
                 ]
             });
             PROPERTIES.as_ref()
@@ -187,11 +175,10 @@ impl EpicEngine {
     }
 
     pub fn path(&self) -> Option<String> {
-        if let Ok(value) = self.property("path") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
+        let value: glib::Value = self.property("path");
+        if let Ok(id_opt) = value.get::<String>() {
+            return Some(id_opt);
+        }
         None
     }
 
@@ -225,25 +212,21 @@ impl EpicEngine {
             }
         }
         self_.data.replace(Some(data.clone()));
-        self.set_property("path", &data.path()).unwrap();
-        self.set_property("guid", &data.guid()).unwrap();
-        self.set_property("version", &data.version()).unwrap();
-        self.set_property("tooltip-text", &data.path()).unwrap();
-        if let Ok(id) = data.connect_local(
+        self.set_property("path", &data.path());
+        self.set_property("guid", &data.guid());
+        self.set_property("version", &data.version());
+        self.set_property("tooltip-text", &data.path());
+        self_.handler.replace(Some(data.connect_local(
             "finished",
             false,
             clone!(@weak self as engine, @weak data => @default-return None, move |_| {
-                engine.set_property("branch", &data.branch()).unwrap();
+                engine.set_property("branch", &data.branch());
                 engine
-                    .set_property("has-branch", &data.has_branch().unwrap_or(false))
-                    .unwrap();
+                    .set_property("has-branch", &data.has_branch().unwrap_or(false));
                 engine
-                    .set_property("needs-update", &data.needs_update().unwrap_or(false))
-                    .unwrap();
+                    .set_property("needs-update", &data.needs_update().unwrap_or(false));
                 None
             }),
-        ) {
-            self_.handler.replace(Some(id));
-        }
+        )));
     }
 }

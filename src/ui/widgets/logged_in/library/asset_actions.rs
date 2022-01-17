@@ -137,35 +137,35 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "selected-version",
                         "selected_version",
                         "selected_version",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "supported-versions",
                         "supported_versions",
                         "supported_versions",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "platforms",
                         "platforms",
                         "platforms",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "release-date",
                         "release_date",
                         "release_date",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "release-notes",
                         "release_notes",
                         "release_notes",
@@ -285,17 +285,14 @@ impl EpicAssetActions {
             }),
         );
 
-        self_
-            .download_details
-            .connect_local(
-                "start-download",
-                false,
-                clone!(@weak self as ead => @default-return None, move |_| {
-                    ead.emit_by_name("start-download", &[]).unwrap();
-                    None
-                }),
-            )
-            .unwrap();
+        self_.download_details.connect_local(
+            "start-download",
+            false,
+            clone!(@weak self as ead => @default-return None, move |_| {
+                ead.emit_by_name::<()>("start-download", &[]);
+                None
+            }),
+        );
     }
 
     pub fn setup_actions(&self) {
@@ -377,7 +374,7 @@ impl EpicAssetActions {
             }
         }
 
-        if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
+        if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(asset) {
             self_.project_row.set_visible(false);
             self_.new_project_row.set_visible(false);
             self_.engine_row.set_visible(false);
@@ -410,27 +407,23 @@ impl EpicAssetActions {
     pub fn version_selected(&self) {
         let self_: &imp::EpicAssetActions = imp::EpicAssetActions::from_instance(self);
         if let Some(id) = self_.select_download_version.active_id() {
-            self.set_property("selected-version", id.to_string())
-                .unwrap();
+            self.set_property("selected-version", id.to_string());
             self_
                 .download_details
-                .set_property("selected-version", id.to_string())
-                .unwrap();
+                .set_property("selected-version", id.to_string());
             if let Some(asset_info) = &*self_.asset.borrow() {
                 if let Some(release) = asset_info.release_info(&id.to_string()) {
                     if let Some(ref compatible) = release.compatible_apps {
                         self.set_property(
                             "supported-versions",
                             &compatible.join(", ").replace("UE_", ""),
-                        )
-                        .unwrap();
+                        );
                         self_.supported_row.get().set_visible(true);
                     } else {
                         self_.supported_row.get().set_visible(false);
                     }
                     if let Some(ref platforms) = release.platform {
-                        self.set_property("platforms", &platforms.join(", "))
-                            .unwrap();
+                        self.set_property("platforms", &platforms.join(", "));
                         self_.platforms_row.get().set_visible(true);
                     } else {
                         self_.platforms_row.get().set_visible(false);
@@ -439,8 +432,7 @@ impl EpicAssetActions {
                         self.set_property(
                             "release-date",
                             &date.naive_local().format("%F").to_string(),
-                        )
-                        .unwrap();
+                        );
                         self_.release_date_row.get().set_visible(true);
                     } else {
                         self_.release_date_row.get().set_visible(false);
@@ -450,7 +442,7 @@ impl EpicAssetActions {
                             self_.release_notes_row.get().set_visible(false);
                         } else {
                             self_.release_notes_row.get().set_visible(true);
-                            self.set_property("release-notes", &note).unwrap();
+                            self.set_property("release-notes", &note);
                         }
                     } else {
                         self_.release_notes_row.get().set_visible(false);

@@ -83,27 +83,44 @@ impl Model {
         }
 
         if self.settings.strv("unreal-projects-directories").is_empty() {
-            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
-            dir.push("Unreal Projects");
-            self.settings
-                .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
-                .unwrap();
+            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
+                None => { //TODO: Handle non standard directories
+                }
+                Some(mut dir) => {
+                    dir.push("Unreal Projects");
+                    self.settings
+                        .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
+                        .unwrap();
+                }
+            };
         }
 
         if self.settings.strv("unreal-vault-directories").is_empty() {
-            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
-            dir.push("EpicVault");
-            self.settings
-                .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
-                .unwrap();
+            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
+                None => {
+                    //TODO: Handle non standard directories
+                }
+                Some(mut dir) => {
+                    dir.push("EpicVault");
+                    self.settings
+                        .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
+                        .unwrap();
+                }
+            };
         }
 
         if self.settings.strv("unreal-engine-directories").is_empty() {
-            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
-            dir.push("Unreal Engine");
-            self.settings
-                .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
-                .unwrap();
+            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
+                None => {
+                    //TODO: Handle non standard directories
+                }
+                Some(mut dir) => {
+                    dir.push("Unreal Engine");
+                    self.settings
+                        .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
+                        .unwrap();
+                }
+            };
         }
     }
 
