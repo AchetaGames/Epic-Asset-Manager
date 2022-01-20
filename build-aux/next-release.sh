@@ -42,3 +42,5 @@ git tag v"$next"
 ninja -C _build
 
 git push origin v"$next"
+
+meson dist -C _build
