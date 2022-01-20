@@ -20,8 +20,28 @@
     </categories>
     <screenshots>
         <screenshot type="default">
-            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/screenshot2.png</image>
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/default.png</image>
             <caption>Main Window</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/main.png</image>
+            <caption>Main view - Dark Mode</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/main-light.png</image>
+            <caption>Main view - Light Mode</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/engines.png</image>
+            <caption>Engine selection and install</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/projects.png</image>
+            <caption>Projects View</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/filtered.png</image>
+            <caption>Filtered Assets</caption>
         </screenshot>
     </screenshots>
     <url type="homepage">https://github.com/AchetaGames/Epic-Asset-Manager</url>
@@ -29,6 +49,11 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="2.9.4" date="2022-01-21">
+       <description>
+              <p>Dark mode Fix</p>
+       </description>
+    </release>
     <release version="2.9.3" date="2022-01-10">
        <description>
               <p>Crash fix</p>

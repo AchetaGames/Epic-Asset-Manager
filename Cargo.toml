@@ -1,6 +1,6 @@
 [package]
 name = "epic_asset_manager"
-version = "2.9.3"
+version = "2.9.4"
 authors = ["Milan Stastny <milan@stastnej.ch>"]
 edition = "2018"
 
