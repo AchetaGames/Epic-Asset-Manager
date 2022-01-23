@@ -17,6 +17,9 @@ pub(crate) mod imp {
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
+        pub settings: gio::Settings,
+        #[template_child]
+        pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
     }
 
     #[glib::object_subclass]
@@ -31,6 +34,8 @@ pub(crate) mod imp {
                 asset: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
+                settings: gio::Settings::new(crate::config::APP_ID),
+                select_target_directory: TemplateChild::default(),
             }
         }
 
@@ -48,6 +53,7 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+            obj.set_target_directories();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -123,6 +129,17 @@ impl Default for EpicDownloadDetails {
 impl EpicDownloadDetails {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+    }
+
+    pub fn set_target_directories(&self) {
+        let self_ = self.imp();
+        self_.select_target_directory.remove_all();
+        for dir in self_.settings.strv("unreal-vault-directories") {
+            self_.select_target_directory.append(Some(&dir), &dir);
+            if let None = self_.select_target_directory.active_text() {
+                self_.select_target_directory.set_active_id(Some(&dir));
+            }
+        }
     }
 
     pub fn set_download_manager(

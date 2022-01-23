@@ -3,31 +3,26 @@
     <template class="EpicAddToProject" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-            <object class="GtkScrolledWindow">
-                <property name="vexpand">true</property>
-                <property name="hscrollbar-policy">never</property>
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
                 <child>
                     <object class="GtkBox">
-                        <property name="orientation">vertical</property>
+                        <property name="halign">end</property>
                         <child>
-                            <object class="GtkBox">
+                            <object class="GtkButton">
+                                <property name="action-name">download_details.download_all</property>
                                 <child>
-                                    <object class="GtkButton">
-                                        <property name="action-name">download_details.download_all</property>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
                                         <child>
-                                            <object class="GtkBox">
-                                                <property name="valign">center</property>
-                                                <property name="halign">center</property>
-                                                <child>
-                                                    <object class="GtkImage">
-                                                        <property name="icon-name">folder-download-symbolic</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="label" translatable="yes">Download</property>
-                                                    </object>
-                                                </child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">document-new-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Add</property>
                                             </object>
                                         </child>
                                     </object>

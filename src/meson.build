@@ -34,7 +34,6 @@ rust_sources = files(
     'models/mod.rs',
     'ui/update.rs',
     'ui/authentication.rs',
-    'ui/widgets/preferences/window.rs',
     'ui/widgets/preferences/dir_row.rs',
     'ui/widgets/preferences/mod.rs',
     'ui/widgets/logged_in/mod.rs',

@@ -3,31 +3,42 @@
     <template class="EpicDownloadDetails" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-            <object class="GtkScrolledWindow">
-                <property name="vexpand">true</property>
-                <property name="hscrollbar-policy">never</property>
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="AdwActionRow" id="target_row">
+                        <property name="activatable">True</property>
+                        <child type="prefix">
+                            <object class="GtkLabel" id="target_label">
+                                <property name="can-focus">0</property>
+                                <property name="label" translatable="yes">Select target</property>
+                            </object>
+                        </child>
+                        <child type="suffix">
+                            <object class="GtkComboBoxText" id="select_target_directory">
+                                <property name="hexpand">true</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
                 <child>
                     <object class="GtkBox">
-                        <property name="orientation">vertical</property>
+                        <property name="halign">end</property>
                         <child>
-                            <object class="GtkBox">
+                            <object class="GtkButton">
+                                <property name="action-name">download_details.download_all</property>
                                 <child>
-                                    <object class="GtkButton">
-                                        <property name="action-name">download_details.download_all</property>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
                                         <child>
-                                            <object class="GtkBox">
-                                                <property name="valign">center</property>
-                                                <property name="halign">center</property>
-                                                <child>
-                                                    <object class="GtkImage">
-                                                        <property name="icon-name">folder-download-symbolic</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="label" translatable="yes">Download</property>
-                                                    </object>
-                                                </child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">folder-download-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Download</property>
                                             </object>
                                         </child>
                                     </object>
