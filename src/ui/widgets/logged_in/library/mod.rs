@@ -13,10 +13,12 @@ use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::debug;
 
+mod add_to_project;
 mod asset;
 mod asset_actions;
 pub mod asset_detail;
 pub mod category;
+mod create_asset_project;
 mod download_detail;
 pub mod image_stack;
 

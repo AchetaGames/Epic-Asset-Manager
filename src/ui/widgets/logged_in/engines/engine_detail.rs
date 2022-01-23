@@ -1,7 +1,5 @@
 use crate::ui::widgets::download_manager::docker::Docker;
 use adw::prelude::ActionRowExt;
-use ashpd::flatpak::{FlatpakProxy, SpawnFlags, SpawnOptions};
-use ashpd::zbus;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};

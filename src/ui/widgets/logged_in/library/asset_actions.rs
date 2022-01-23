@@ -66,6 +66,13 @@ pub(crate) mod imp {
         pub download_details: TemplateChild<
             crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
         >,
+        #[template_child]
+        pub add_to_project:
+            TemplateChild<crate::ui::widgets::logged_in::library::add_to_project::EpicAddToProject>,
+        #[template_child]
+        pub create_asset_project: TemplateChild<
+            crate::ui::widgets::logged_in::library::create_asset_project::EpicCreateAssetProject,
+        >,
     }
 
     #[glib::object_subclass]
@@ -99,6 +106,8 @@ pub(crate) mod imp {
                 install_row: TemplateChild::default(),
                 asset_actions_button: TemplateChild::default(),
                 download_details: TemplateChild::default(),
+                add_to_project: TemplateChild::default(),
+                create_asset_project: TemplateChild::default(),
             }
         }
 
