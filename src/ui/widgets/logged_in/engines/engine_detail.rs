@@ -288,20 +288,18 @@ impl EpicEngineDetails {
         self_.launch_button.set_visible(true);
         self_.install_button.set_visible(false);
         self_.data.replace(Some(data.clone()));
-        let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-        let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
         if let Some(path) = &data.path() {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Path").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             let label = gtk4::Label::builder()
                 .label(path)
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details.append(&row);
         }
@@ -309,14 +307,14 @@ impl EpicEngineDetails {
         if let Some(branch) = &data.branch() {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Branch").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             let label = gtk4::Label::builder()
                 .label(branch)
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details.append(&row);
         }
@@ -324,7 +322,7 @@ impl EpicEngineDetails {
         if data.needs_update() {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Needs update").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             self_.details.append(&row);
         }
@@ -346,16 +344,11 @@ impl EpicEngineDetails {
                 self_.details.remove(&el);
             }
             if let Some(versions) = &*self_.docker_versions.borrow() {
-                let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-                let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-
                 let combo = gtk4::ComboBoxText::new();
                 combo.set_hexpand(true);
                 let row = adw::ActionRow::builder().activatable(true).build();
                 let title = gtk4::Label::builder().label("Available Versions").build();
-                size_group_prefix.add_widget(&title);
                 row.add_prefix(&title);
-                size_group_labels.add_widget(&combo);
                 row.add_suffix(&combo);
                 self_.details.append(&row);
 
@@ -368,13 +361,12 @@ impl EpicEngineDetails {
                 b.append(&title);
                 let info = gtk4::Image::from_icon_name("dialog-information-symbolic");
                 b.append(&info);
-                size_group_prefix.add_widget(&b);
+
                 row.add_prefix(&b);
                 let check = gtk4::CheckButton::builder()
                     .active(true)
                     .hexpand(true)
                     .build();
-                size_group_labels.add_widget(&check);
                 row.add_suffix(&check);
                 self_.details.append(&row);
                 combo.connect_changed(
@@ -444,7 +436,6 @@ impl EpicEngineDetails {
                 let title = gtk4::Label::builder().label("Download Size").build();
                 let size_label = gtk4::Label::builder()
                     .name("size_label")
-                    .halign(gtk4::Align::Start)
                     .hexpand(true)
                     .label("unknown")
                     .build();
@@ -452,14 +443,11 @@ impl EpicEngineDetails {
                     .bind_property("label", self, "download-size")
                     .flags(glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE)
                     .build();
-                size_group_prefix.add_widget(&title);
                 row.add_prefix(&title);
-                size_group_labels.add_widget(&size_label);
                 row.add_suffix(&size_label);
                 self_.details.append(&row);
             } else {
                 let label = gtk4::Label::builder()
-                    .halign(gtk4::Align::Center)
                     .hexpand(true)
                     .use_markup(true)
                     .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")

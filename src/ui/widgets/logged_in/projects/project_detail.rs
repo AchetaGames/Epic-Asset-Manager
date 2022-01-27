@@ -242,13 +242,10 @@ impl UnrealProjectDetails {
             pathbuf.file_stem().unwrap().to_str().unwrap()
         ));
 
-        let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-        let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-
         // Engine
         let row = adw::ActionRow::builder().activatable(true).build();
         let title = gtk4::Label::builder().label("Engine").build();
-        size_group_prefix.add_widget(&title);
+
         row.add_prefix(&title);
         let combo = gtk4::ComboBoxText::new();
         let associated = self.associated_engine(project);
@@ -312,35 +309,35 @@ impl UnrealProjectDetails {
             combo.set_active_id(Some(&last));
         };
         // TODO: Change the project config based on the engine selected
-        size_group_labels.add_widget(&combo);
+
         row.add_suffix(&combo);
         self_.details_box.append(&row);
 
         // Path
         let row = adw::ActionRow::builder().activatable(true).build();
         let title = gtk4::Label::builder().label("Path").build();
-        size_group_prefix.add_widget(&title);
+
         row.add_prefix(&title);
         let label = gtk4::Label::builder()
             .label(pathbuf.parent().unwrap().to_str().unwrap())
             .wrap(true)
             .xalign(0.0)
             .build();
-        size_group_labels.add_widget(&label);
+
         row.add_suffix(&label);
         self_.details_box.append(&row);
 
         // Engine Association
         let row = adw::ActionRow::builder().activatable(true).build();
         let title = gtk4::Label::builder().label("Engine Association").build();
-        size_group_prefix.add_widget(&title);
+
         row.add_prefix(&title);
         let label = gtk4::Label::builder()
             .label(&project.engine_association)
             .wrap(true)
             .xalign(0.0)
             .build();
-        size_group_labels.add_widget(&label);
+
         row.add_suffix(&label);
         self_.details_box.append(&row);
 

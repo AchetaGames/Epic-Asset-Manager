@@ -406,20 +406,18 @@ impl EpicAssetDetails {
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el);
         }
-        let size_group_labels = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
-        let size_group_prefix = gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal);
 
         if let Some(dev_name) = &asset.developer {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Developer").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             let label = gtk4::Label::builder()
                 .label(dev_name)
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details_box.append(&row);
         }
@@ -427,7 +425,7 @@ impl EpicAssetDetails {
         if let Some(categories) = &asset.categories {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Categories").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
 
             let mut cats: Vec<String> = Vec::new();
@@ -450,7 +448,7 @@ impl EpicAssetDetails {
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details_box.append(&row);
         }
@@ -458,14 +456,14 @@ impl EpicAssetDetails {
         if let Some(platforms) = &asset.platforms() {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Platforms").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             let label = gtk4::Label::builder()
                 .label(&platforms.join(", "))
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details_box.append(&row);
         }
@@ -473,14 +471,14 @@ impl EpicAssetDetails {
         if let Some(updated) = &asset.last_modified_date {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Updated").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             let label = gtk4::Label::builder()
                 .label(&updated.to_rfc3339())
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details_box.append(&row);
         }
@@ -488,14 +486,14 @@ impl EpicAssetDetails {
         if let Some(compatible_apps) = &asset.compatible_apps() {
             let row = adw::ActionRow::builder().activatable(true).build();
             let title = gtk4::Label::builder().label("Compatible with").build();
-            size_group_prefix.add_widget(&title);
+
             row.add_prefix(&title);
             let label = gtk4::Label::builder()
                 .label(&compatible_apps.join(", ").replace("UE_", ""))
                 .wrap(true)
                 .xalign(0.0)
                 .build();
-            size_group_labels.add_widget(&label);
+
             row.add_suffix(&label);
             self_.details_box.append(&row);
         }
