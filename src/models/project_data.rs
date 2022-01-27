@@ -243,7 +243,7 @@ impl ProjectData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return json5::from_str(&contents).unwrap();
+                return serde_json::from_str(&contents).unwrap();
             }
         }
         Uproject::default()

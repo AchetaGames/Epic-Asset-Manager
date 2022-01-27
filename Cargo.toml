@@ -22,7 +22,6 @@ gtk4 = { version = "0.4", features = ["v4_6"] }
 gtk-macros = "0.3"
 hex = "0.4"
 html2pango = "0.4"
-json5 = "0.4.1"
 lazy_static = "1.4"
 libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
 log = "0.4"

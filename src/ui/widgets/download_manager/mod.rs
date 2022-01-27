@@ -528,7 +528,7 @@ impl EpicDownloadManager {
             }
             std::fs::create_dir_all(t.clone()).expect("Unable to create target directory");
             match File::create(t.as_path().join("manifest.json")) {
-                Ok(mut json_manifest_file) => match json5::to_string(&manifest) {
+                Ok(mut json_manifest_file) => match serde_json::to_string(&manifest) {
                     Ok(json) => {
                         json_manifest_file
                             .write_all(json.as_bytes().as_ref())

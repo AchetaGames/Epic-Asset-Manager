@@ -268,7 +268,7 @@ impl EngineData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return Some(json5::from_str(&contents).unwrap_or_default());
+                return Some(serde_json::from_str(&contents).unwrap_or_default());
             }
         }
         None
