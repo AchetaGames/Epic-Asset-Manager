@@ -1,3 +1,4 @@
+use adw::ActionRow;
 use std::path::PathBuf;
 
 use adw::traits::ActionRowExt;
@@ -76,11 +77,6 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for UnrealProjectDetails {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
-        }
-
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
@@ -124,6 +120,11 @@ pub(crate) mod imp {
                 "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
             }
+        }
+
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+            obj.setup_actions();
         }
     }
 
@@ -314,36 +315,33 @@ impl UnrealProjectDetails {
         self_.details_box.append(&row);
 
         // Path
-        let row = adw::ActionRow::builder().activatable(true).build();
-        let title = gtk4::Label::builder().label("Path").build();
-
-        row.add_prefix(&title);
-        let label = gtk4::Label::builder()
-            .label(pathbuf.parent().unwrap().to_str().unwrap())
-            .wrap(true)
-            .xalign(0.0)
-            .build();
-
-        row.add_suffix(&label);
-        self_.details_box.append(&row);
+        self_.details_box.append(&Self::build_row_with_label(
+            "Path",
+            pathbuf.parent().unwrap().to_str().unwrap(),
+        ));
 
         // Engine Association
-        let row = adw::ActionRow::builder().activatable(true).build();
-        let title = gtk4::Label::builder().label("Engine Association").build();
-
-        row.add_prefix(&title);
-        let label = gtk4::Label::builder()
-            .label(&project.engine_association)
-            .wrap(true)
-            .xalign(0.0)
-            .build();
-
-        row.add_suffix(&label);
-        self_.details_box.append(&row);
+        self_.details_box.append(&Self::build_row_with_label(
+            "Engine Association",
+            &project.engine_association,
+        ));
 
         if !self.is_expanded() {
             self.set_property("expanded", true);
         }
+    }
+
+    fn build_row_with_label(prefix: &str, suffix: &str) -> ActionRow {
+        let row = adw::ActionRow::builder().activatable(true).build();
+        let title = gtk4::Label::builder().label(prefix).build();
+        row.add_prefix(&title);
+        let label = gtk4::Label::builder()
+            .label(suffix)
+            .wrap(true)
+            .xalign(0.0)
+            .build();
+        row.add_suffix(&label);
+        row
     }
 
     fn engine_selected(&self, path: &str) {
