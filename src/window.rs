@@ -54,6 +54,10 @@ pub(crate) mod imp {
         type Type = super::EpicAssetManagerWindow;
         type ParentType = gtk4::ApplicationWindow;
 
+        fn class_init(klass: &mut Self::Class) {
+            Self::bind_template(klass);
+        }
+
         fn new() -> Self {
             Self {
                 headerbar: TemplateChild::default(),
@@ -70,10 +74,6 @@ pub(crate) mod imp {
             }
         }
 
-        fn class_init(klass: &mut Self::Class) {
-            Self::bind_template(klass);
-        }
-
         // You must call `Widget`'s `init_template()` within `instance_init()`.
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
             obj.init_template();
@@ -81,35 +81,6 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicAssetManagerWindow {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-
-            // Devel Profile
-            if PROFILE == "Devel" {
-                obj.style_context().add_class("devel");
-            }
-
-            let button = self.color_scheme_btn.get();
-            let style_manager = adw::StyleManager::default();
-
-            style_manager.connect_color_scheme_notify(move |style_manager| {
-                let supported = style_manager.system_supports_color_schemes();
-                button.set_visible(supported);
-                if supported {
-                    if style_manager.is_dark() {
-                        button.set_icon_name("light-mode-symbolic");
-                    } else {
-                        button.set_icon_name("dark-mode-symbolic");
-                    }
-                }
-            });
-
-            // load latest window state
-            obj.load_window_size();
-            obj.setup_actions();
-            obj.setup_receiver();
-        }
-
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
@@ -153,6 +124,35 @@ pub(crate) mod imp {
                 "product" => self.logged_in_stack.property("product"),
                 &_ => unimplemented!(),
             }
+        }
+
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+
+            // Devel Profile
+            if PROFILE == "Devel" {
+                obj.style_context().add_class("devel");
+            }
+
+            let button = self.color_scheme_btn.get();
+            let style_manager = adw::StyleManager::default();
+
+            style_manager.connect_color_scheme_notify(move |style_manager| {
+                let supported = style_manager.system_supports_color_schemes();
+                button.set_visible(supported);
+                if supported {
+                    if style_manager.is_dark() {
+                        button.set_icon_name("light-mode-symbolic");
+                    } else {
+                        button.set_icon_name("dark-mode-symbolic");
+                    }
+                }
+            });
+
+            // load latest window state
+            obj.load_window_size();
+            obj.setup_actions();
+            obj.setup_receiver();
         }
     }
 
