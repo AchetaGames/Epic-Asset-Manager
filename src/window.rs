@@ -383,81 +383,74 @@ impl EpicAssetManagerWindow {
                 self_.appmenu_button.set_label(&name);
             }
         };
-        if let Some(t) = ud.token_type.clone() {
-            let mut attributes = HashMap::new();
-            attributes.insert("application", crate::config::APP_ID);
-            attributes.insert("type", t.as_str());
-            if let Some(e) = ud.expires_at {
-                let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-                self_
-                    .model
-                    .borrow()
-                    .settings
-                    .set_string("token-expiration", d.as_str())
-                    .unwrap();
-                if let Some(at) = ud.access_token() {
-                    debug!("Saving token secret");
-                    #[cfg(target_os = "linux")]
-                    {
-                        match &self_.model.borrow().secret_service {
-                            None => {
-                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
-                            }
-                            Some(ss) => {
-                                if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                                    "eam_epic_games_token",
-                                    attributes.clone(),
-                                    at.as_bytes(),
-                                    true,
-                                    "text/plain",
-                                ) {
-                                    error!("Failed to save secret {}", e);
-                                };
-                            }
-                        }
-                    }
-                }
-            }
-            let mut attributes = HashMap::new();
-            attributes.insert("application", crate::config::APP_ID);
-            attributes.insert("type", "refresh");
-            if let Some(e) = ud.refresh_expires_at {
-                let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-                self_
-                    .model
-                    .borrow()
-                    .settings
-                    .set_string("refresh-token-expiration", d.as_str())
-                    .unwrap();
-                if let Some(rt) = ud.refresh_token() {
-                    #[cfg(target_os = "linux")]
-                    {
-                        debug!("Saving refresh token secret");
-                        match &self_.model.borrow().secret_service {
-                            None => {
-                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
-                            }
-                            Some(ss) => {
-                                if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                                    "eam_epic_games_refresh_token",
-                                    attributes,
-                                    rt.as_bytes(),
-                                    true,
-                                    "text/plain",
-                                ) {
-                                    error!("Failed to save secret {}", e);
-                                };
-                            }
-                        }
-                    }
-                }
-            }
-        }
+
+        self.save_secret(
+            ud.token_type
+                .as_ref()
+                .unwrap_or(&"login".to_string())
+                .as_str(),
+            "eam_epic_games_token",
+            ud.access_token(),
+            "token-expiration",
+            ud.refresh_expires_at,
+        );
+        self.save_secret(
+            "refresh",
+            "eam_epic_games_refresh_token",
+            ud.refresh_token(),
+            "refresh-token-expiration",
+            ud.refresh_expires_at,
+        );
         self.show_logged_in();
         self_.logged_in_stack.set_window(self);
         self_.download_manager.set_window(self);
         self_
             .logged_in_stack
             .set_download_manager(&self_.download_manager);
+    }
+
+    fn save_secret(
+        &self,
+        secret_type: &str,
+        secret_name: &str,
+        secret: Option<String>,
+        expiration_name: &str,
+        expiration: Option<chrono::DateTime<chrono::Utc>>,
+    ) {
+        let self_ = self.imp();
+        if let Some(e) = expiration {
+            let mut attributes = HashMap::new();
+            attributes.insert("application", crate::config::APP_ID);
+            attributes.insert("type", secret_type);
+            let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+            self_
+                .model
+                .borrow()
+                .settings
+                .set_string(expiration_name, d.as_str())
+                .unwrap();
+            if let Some(rt) = secret {
+                #[cfg(target_os = "linux")]
+                {
+                    debug!("Saving {} secret", secret_name);
+                    match &self_.model.borrow().secret_service {
+                        None => {
+                            self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
+                        }
+                        Some(ss) => {
+                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                                secret_name,
+                                attributes,
+                                rt.as_bytes(),
+                                true,
+                                "text/plain",
+                            ) {
+                                error!("Failed to save secret {}", e);
+                            };
+                        }
+                    }
+                }
+            }
+        }
     }
 }
