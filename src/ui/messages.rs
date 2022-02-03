@@ -8,6 +8,7 @@ pub enum Msg {
     ShowLogin,
     LoginOk(UserData),
     LoginFailed(String),
+    Logout,
     ProcessAssetInfo(AssetInfo),
     ProcessEpicAsset(EpicAsset),
     ProcessAssetThumbnail(AssetInfo, Vec<u8>),
@@ -53,6 +54,9 @@ impl fmt::Display for Msg {
             }
             Msg::LoginFailed(_) => {
                 write!(f, "LoginFailed")
+            }
+            Msg::Logout => {
+                write!(f, "Logout")
             }
         }
     }

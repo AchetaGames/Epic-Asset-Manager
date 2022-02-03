@@ -3,13 +3,14 @@ use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
 use crate::ui::widgets::progress_icon::ProgressIconExt;
 use crate::ui::PreferencesWindow;
+use chrono::TimeZone;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{gio, glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -186,12 +187,8 @@ impl EpicAssetManagerWindow {
         window
     }
 
-    pub fn data(&self) -> &imp::EpicAssetManagerWindow {
-        self.imp()
-    }
-
     pub fn save_window_size(&self) -> Result<(), glib::BoolError> {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
 
         let settings = &self_.model.borrow().settings;
 
@@ -206,7 +203,7 @@ impl EpicAssetManagerWindow {
     }
 
     fn load_window_size(&self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
 
         let settings = &self_.model.borrow().settings;
 
@@ -230,7 +227,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn setup_receiver(&self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
         self_
             .model
             .borrow()
@@ -249,6 +246,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn setup_actions(&self) {
+        let self_ = self.imp();
         action!(
             self,
             "login",
@@ -261,20 +259,29 @@ impl EpicAssetManagerWindow {
                 }
             })
         );
-        let self_ = self.imp();
+
+        self.insert_action_group("window", Some(self));
+
+        action!(
+            self,
+            "logout",
+            clone!(@weak self as window => move |_,_| {
+                window.logout();
+            })
+        );
 
         self_.download_manager.connect_local(
             "tick",
             false,
-            clone!(@weak self as obj => @default-return None, move |_| {
-                let self_ = obj.imp();
+            clone!(@weak self as window => @default-return None, move |_| {
+                let self_ = window.imp();
                 self_.progress_icon.set_fraction(self_.download_manager.progress());
                 None}),
         );
     }
 
     pub fn check_login(&mut self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
         self_.main_stack.set_visible_child_name("progress");
         self_.progress_message.set_text("Loading");
         if self.can_relogin() {
@@ -286,22 +293,44 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn show_login(&self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
         self_.sid_box.set_window(self);
         self_.logged_in_stack.activate(false);
         self_.main_stack.set_visible_child_name("sid_box");
+        get_action!(self, @logout).set_enabled(false);
     }
 
     pub fn show_download_manager(&self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
         self_.logged_in_stack.activate(false);
-        // self_.main_stack.set_visible_child_name("download_manager")
     }
 
     pub fn show_logged_in(&self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_ = self.imp();
+        get_action!(self, @logout).set_enabled(true);
         self_.logged_in_stack.activate(true);
         self_.main_stack.set_visible_child_name("logged_in_stack");
+    }
+
+    pub fn do_logout(&self) {
+        let self_ = self.imp();
+        self.save_secret(
+            "bearer",
+            "eam_epic_games_token",
+            None,
+            "token-expiration",
+            None,
+        );
+        self.save_secret(
+            "refresh",
+            "eam_epic_games_refresh_token",
+            None,
+            "refresh-token-expiration",
+            None,
+        );
+        self_.appmenu_button.set_label("");
+        self_.appmenu_button.set_icon_name("open-menu-symbolic");
+        self.show_login();
     }
 
     pub fn clear_notification(&self, name: &str) {
@@ -418,38 +447,53 @@ impl EpicAssetManagerWindow {
         expiration: Option<chrono::DateTime<chrono::Utc>>,
     ) {
         let self_ = self.imp();
-        if let Some(e) = expiration {
-            let mut attributes = HashMap::new();
-            attributes.insert("application", crate::config::APP_ID);
-            attributes.insert("type", secret_type);
-            let d = e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-            self_
-                .model
-                .borrow()
-                .settings
-                .set_string(expiration_name, d.as_str())
-                .unwrap();
-            if let Some(rt) = secret {
-                #[cfg(target_os = "linux")]
-                {
-                    debug!("Saving {} secret", secret_name);
-                    match &self_.model.borrow().secret_service {
-                        None => {
-                            self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
-                        }
-                        Some(ss) => {
-                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                                secret_name,
-                                attributes,
-                                rt.as_bytes(),
-                                true,
-                                "text/plain",
-                            ) {
-                                error!("Failed to save secret {}", e);
-                            };
+        let mut attributes = HashMap::new();
+        attributes.insert("application", crate::config::APP_ID);
+        attributes.insert("type", secret_type);
+        let d = match expiration {
+            None => chrono::Utc
+                .timestamp(0, 0)
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            Some(e) => e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        };
+        self_
+            .model
+            .borrow()
+            .settings
+            .set_string(expiration_name, d.as_str())
+            .unwrap();
+
+        #[cfg(target_os = "linux")]
+        {
+            debug!("Saving {} secret", secret_name);
+            match &self_.model.borrow().secret_service {
+                None => {
+                    self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
+                }
+                Some(ss) => match secret {
+                    None => {
+                        if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                            secret_name,
+                            attributes,
+                            "".as_bytes(),
+                            true,
+                            "text/plain",
+                        ) {
+                            error!("Failed to save secret {}", e);
                         }
                     }
-                }
+                    Some(rt) => {
+                        if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                            secret_name,
+                            attributes,
+                            rt.as_bytes(),
+                            true,
+                            "text/plain",
+                        ) {
+                            error!("Failed to save secret {}", e);
+                        }
+                    }
+                },
             }
         }
     }

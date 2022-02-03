@@ -756,7 +756,7 @@ impl EpicLibraryBox {
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_ = self.imp();
         if let Some(window) = self.main_window() {
-            let win_ = window.data();
+            let win_ = window.imp();
             let sender = win_.model.borrow().sender.clone();
             match asset.thumbnail() {
                 None => {
@@ -844,7 +844,7 @@ impl EpicLibraryBox {
     pub fn fetch_assets(&self) {
         let self_ = self.imp();
         if let Some(window) = self.main_window() {
-            let win_ = window.data();
+            let win_ = window.imp();
             let cache_dir = self_.settings.string("cache-directory").to_string();
             let cache_path = PathBuf::from(cache_dir);
             debug!("Fetching assets");
@@ -909,7 +909,7 @@ impl EpicLibraryBox {
     ) {
         let self_ = self.imp();
         if let Some(window) = self.main_window() {
-            let win_ = window.data();
+            let win_ = window.imp();
             let mut cache_dir = PathBuf::from(self_.settings.string("cache-directory").to_string());
             cache_dir.push(&epic_asset.catalog_item_id);
             let mut cache_dir_c = cache_dir.clone();

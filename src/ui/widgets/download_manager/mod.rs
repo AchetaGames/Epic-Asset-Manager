@@ -459,7 +459,7 @@ impl EpicDownloadManager {
         );
 
         if let Some(window) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow = window.data();
+            let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
             let id = release_id.clone();
