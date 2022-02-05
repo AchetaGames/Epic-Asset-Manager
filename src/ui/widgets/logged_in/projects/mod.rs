@@ -204,19 +204,25 @@ impl EpicProjectsBox {
         selection_model.set_can_unselect(true);
 
         selection_model.connect_selected_notify(clone!(@weak self as projects => move |model| {
-            if let Some(a) = model.selected_item() {
-                let self_ = projects.imp();
-                let project = a.downcast::<crate::models::project_data::ProjectData>().unwrap();
-                if let Some(uproject) = project.uproject() {
-                    self_.details.set_project(&uproject, project.path());
-                }
-                projects.set_property("selected", project.path());
-                self_.selected_uproject.replace(project.uproject());
-                projects.set_property("expanded", true);
-            }
+            projects.project_selected(model);
         }));
         self_.projects_grid.set_model(Some(&selection_model));
         self_.projects_grid.set_factory(Some(&factory));
+    }
+
+    fn project_selected(&self, model: &gtk4::SingleSelection) {
+        if let Some(a) = model.selected_item() {
+            let self_ = self.imp();
+            let project = a
+                .downcast::<crate::models::project_data::ProjectData>()
+                .unwrap();
+            if let Some(uproject) = project.uproject() {
+                self_.details.set_project(&uproject, project.path());
+            }
+            self.set_property("selected", project.path());
+            self_.selected_uproject.replace(project.uproject());
+            self.set_property("expanded", true);
+        }
     }
 
     pub fn setup_actions(&self) {

@@ -202,11 +202,7 @@ impl EpicAssetManager {
             self,
             "quit",
             clone!(@weak self as app => move |_, _| {
-                if let Ok(mut w) = crate::RUNNING.write() {
-                    *w = false;
-                }
-                app.main_window().close();
-                app.quit();
+                app.exit();
             })
         );
 
@@ -215,14 +211,8 @@ impl EpicAssetManager {
             self,
             "dark-mode",
             is_dark_mode,
-            clone!(@weak self_.settings as settings =>  move |action, _| {
-                let state = action.state().unwrap();
-                let action_state: bool = state.get().unwrap();
-                let is_dark_mode = !action_state;
-                action.set_state(&is_dark_mode.to_variant());
-                if let Err(err) = settings.set_boolean("dark-mode", is_dark_mode) {
-                    error!("Failed to switch dark mode: {} ", err);
-                }
+            clone!(@weak self as app =>  move |action, _| {
+                app.toggle_dark_mode(action);
             })
         );
 
@@ -240,6 +230,25 @@ impl EpicAssetManager {
     pub fn setup_accels(&self) {
         self.set_accels_for_action("app.quit", &["<primary>q"]);
         self.set_accels_for_action("win.show-help-overlay", &["<primary>question"]);
+    }
+
+    fn toggle_dark_mode(&self, action: &gtk4::gio::SimpleAction) {
+        let self_ = self.imp();
+        let state = action.state().unwrap();
+        let action_state: bool = state.get().unwrap();
+        let is_dark_mode = !action_state;
+        action.set_state(&is_dark_mode.to_variant());
+        if let Err(err) = self_.settings.set_boolean("dark-mode", is_dark_mode) {
+            error!("Failed to switch dark mode: {} ", err);
+        }
+    }
+
+    fn exit(&self) {
+        if let Ok(mut w) = crate::RUNNING.write() {
+            *w = false;
+        }
+        self.main_window().close();
+        self.quit();
     }
 
     pub fn setup_css() {

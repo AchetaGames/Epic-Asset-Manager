@@ -164,15 +164,19 @@ impl EpicDownloadDetails {
             actions,
             "download_all",
             clone!(@weak self as download_details => move |_, _| {
-                let self_ = download_details.imp();
-                if let Some(dm) = self_.download_manager.get() {
-                    if let Some(asset_info) = &*self_.asset.borrow() {
-                        dm.add_asset_download(download_details.selected_version(), asset_info.clone());
-                        download_details.emit_by_name::<()>("start-download", &[]);
-                    }
-                }
+                download_details.download_all();
             })
         );
+    }
+
+    fn download_all(&self) {
+        let self_ = self.imp();
+        if let Some(dm) = self_.download_manager.get() {
+            if let Some(asset_info) = &*self_.asset.borrow() {
+                dm.add_asset_download(self.selected_version(), asset_info.clone());
+                self.emit_by_name::<()>("start-download", &[]);
+            }
+        }
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {

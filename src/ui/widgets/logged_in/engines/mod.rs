@@ -243,15 +243,21 @@ impl EpicEnginesBox {
         self_.engine_grid.set_factory(Some(&factory));
 
         selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
-            let self_ = engines.imp();
-            if let Some(a) = model.selected_item() {
-                let engine = a.downcast::<crate::models::engine_data::EngineData>().unwrap();
-                engines.set_property("selected", engine.path());
-                self_.details.set_property("expanded", true);
-                self_.details.set_data(&engine);
-            }
+            engines.engine_selected(model);
         }));
         self.load_engines();
+    }
+
+    fn engine_selected(&self, model: &gtk4::SingleSelection) {
+        let self_ = self.imp();
+        if let Some(a) = model.selected_item() {
+            let engine = a
+                .downcast::<crate::models::engine_data::EngineData>()
+                .unwrap();
+            self.set_property("selected", engine.path());
+            self_.details.set_property("expanded", true);
+            self_.details.set_data(&engine);
+        }
     }
 
     pub fn setup_actions(&self) {

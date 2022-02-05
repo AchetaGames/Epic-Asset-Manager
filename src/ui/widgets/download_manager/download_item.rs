@@ -242,43 +242,46 @@ impl EpicDownloadItem {
         glib::timeout_add_seconds_local(
             1,
             clone!(@weak self as obj => @default-panic, move || {
-                let self_ = obj.imp();
-                if let Some(speed) = {
-                    let queue = &mut *self_.speed_queue.borrow_mut();
-                    if queue.len() <= 1 {
-                        self_.speed.set_text("0 b/s");
-                        return glib::Continue(true);
-                    }
-                    let mut downloaded = 0_u128;
-                    let start = queue.front().unwrap().0;
-                    let end = queue.back().unwrap().0;
-                    let mut pop_counter=0;
-                    for (t, s) in queue.iter() {
-                        if end - *t > chrono::Duration::seconds(1) {
-                            pop_counter+=1;
-                        }
-                        downloaded += s;
-                    }
-                    for _ in 0..pop_counter {
-                        queue.pop_front();
-                    }
-
-                    let time = end - start;
-                    if time > chrono::Duration::seconds(1) {
-                        Some(
-                            ((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0)) as u128,
-                        )
-                    } else {
-                        None
-                    }
-                } {
-                    let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
-                    self_.speed.set_text(&format!("{}/s", byte.format(1)));
-                }
-
+                obj.speed_update();
                 glib::Continue(true)
             }),
         );
+    }
+
+    fn speed_update(&self) {
+        let self_ = self.imp();
+        if let Some(speed) = {
+            let queue = &mut *self_.speed_queue.borrow_mut();
+            if queue.len() <= 1 {
+                self_.speed.set_text("0 b/s");
+                return;
+            }
+            let mut downloaded = 0_u128;
+            let start = queue.front().unwrap().0;
+            let end = queue.back().unwrap().0;
+            let mut pop_counter = 0;
+            for (t, s) in queue.iter() {
+                if end - *t > chrono::Duration::seconds(1) {
+                    pop_counter += 1;
+                }
+                downloaded += s;
+            }
+            for _ in 0..pop_counter {
+                queue.pop_front();
+            }
+
+            let time = end - start;
+            if time > chrono::Duration::seconds(1) {
+                Some(
+                    ((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0)) as u128,
+                )
+            } else {
+                None
+            }
+        } {
+            let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
+            self_.speed.set_text(&format!("{}/s", byte.format(1)));
+        };
     }
 
     pub fn setup_actions(&self) {

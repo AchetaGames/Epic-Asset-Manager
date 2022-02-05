@@ -209,12 +209,7 @@ impl EpicEngineDetails {
             actions,
             "install",
             clone!(@weak self as details => move |_, _| {
-                let self_ = details.imp();
-                if let Some(ver) = details.selected() {
-                    if let Some(dm) = self_.download_manager.get() {
-                        dm.download_engine_from_docker(&ver);
-                    }
-                }
+                details.install_engine();
             })
         );
 
@@ -222,9 +217,18 @@ impl EpicEngineDetails {
             self_.actions,
             "launch",
             clone!(@weak self as engines => move |_, _| {
-                engines.launch_engine()
+                engines.launch_engine();
             })
         );
+    }
+
+    fn install_engine(&self) {
+        let self_ = self.imp();
+        if let Some(ver) = self.selected() {
+            if let Some(dm) = self_.download_manager.get() {
+                dm.download_engine_from_docker(&ver);
+            }
+        }
     }
 
     fn launch_engine(&self) {
@@ -371,44 +375,13 @@ impl EpicEngineDetails {
                 self_.details.append(&row);
                 combo.connect_changed(
                     clone!(@weak self as detail, @weak check as check => move |c| {
-                        let self_ = detail.imp();
-                        check.set_sensitive(false);
-                        if let Some(selected) = c.active_id() {
-                            if let Some(ver) = &*self_.docker_versions.borrow() {
-                                if let Some(v) = ver.get(selected.as_str()) {
-                                    check.set_active(true);
-                                    for label in v {
-                                        if label.contains("slim") {
-                                            check.set_sensitive(true);
-                                        } else {
-                                            detail.set_property("selected", label);
-                                            detail.docker_manifest();
-                                        }
-                                    }
-                                }
-                            }
-                        };
+                        detail.version_selected(c, &check);
                     }),
                 );
 
                 check.connect_toggled(
                     clone!(@weak self as detail, @weak combo as combo => move |c| {
-                        let self_ = detail.imp();
-                        if let Some(selected) = combo.active_id() {
-                            if let Some(ver) = &*self_.docker_versions.borrow() {
-                                if let Some(v) = ver.get(selected.as_str()) {
-                                    for label in v {
-                                        if (label.contains("slim") && !c.is_active())
-                                            || (!label.contains("slim") && c.is_active())
-                                        {
-                                            detail.set_property("selected", label);
-                                            detail.docker_manifest();
-                                            return;
-                                        }
-                                    }
-                                }
-                            }
-                        };
+                        detail.type_selected(c, &combo);
                     }),
                 );
 
@@ -453,13 +426,7 @@ impl EpicEngineDetails {
                     .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
                     .build();
                 label.connect_activate_link(clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
-                    let self_ = details.imp();
-                    if uri.eq("preferences") {
-                        if let Some(w) = self_.window.get() {
-                            let pref = w.show_preferences();
-                            pref.switch_to_tab("github");
-                        }
-                    };
+                    details.open_preferences(uri);
                     gtk4::Inhibit(true)
                 }));
 
@@ -467,6 +434,55 @@ impl EpicEngineDetails {
                 get_action!(self_.actions, @install).set_enabled(false);
             }
         }
+    }
+
+    fn open_preferences(&self, uri: &str) {
+        let self_ = self.imp();
+        if uri.eq("preferences") {
+            if let Some(w) = self_.window.get() {
+                let pref = w.show_preferences();
+                pref.switch_to_tab("github");
+            }
+        };
+    }
+
+    fn version_selected(&self, combo: &gtk4::ComboBoxText, check: &gtk4::CheckButton) {
+        let self_ = self.imp();
+        check.set_sensitive(false);
+        if let Some(selected) = combo.active_id() {
+            if let Some(ver) = &*self_.docker_versions.borrow() {
+                if let Some(v) = ver.get(selected.as_str()) {
+                    check.set_active(true);
+                    for label in v {
+                        if label.contains("slim") {
+                            check.set_sensitive(true);
+                        } else {
+                            self.set_property("selected", label);
+                            self.docker_manifest();
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    fn type_selected(&self, check: &gtk4::CheckButton, combo: &gtk4::ComboBoxText) {
+        let self_ = self.imp();
+        if let Some(selected) = combo.active_id() {
+            if let Some(ver) = &*self_.docker_versions.borrow() {
+                if let Some(v) = ver.get(selected.as_str()) {
+                    for label in v {
+                        if (label.contains("slim") && !check.is_active())
+                            || (!label.contains("slim") && check.is_active())
+                        {
+                            self.set_property("selected", label);
+                            self.docker_manifest();
+                            return;
+                        }
+                    }
+                }
+            }
+        };
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

@@ -417,6 +417,13 @@ impl EpicDownloadManager {
         }
     }
 
+    fn finish(&self, item: &download_item::EpicDownloadItem) {
+        let self_: &imp::EpicDownloadManager = self.imp();
+        self_.downloads.remove(item);
+        self.set_property("has-items", self_.downloads.first_child().is_some());
+        self.emit_by_name::<()>("tick", &[]);
+    }
+
     /// Add an asset for download
     /// This is the first step in the process
     pub fn add_asset_download(
@@ -450,10 +457,7 @@ impl EpicDownloadManager {
             "finished",
             false,
             clone!(@weak self as edm, @weak item => @default-return None, move |_| {
-                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&edm);
-                self_.downloads.remove(&item);
-                edm.set_property("has-items", self_.downloads.first_child().is_some());
-                edm.emit_by_name::<()>("tick", &[]);
+                edm.finish(&item);
                 None
             }),
         );

@@ -332,16 +332,9 @@ impl EpicLibraryBox {
         });
 
         // Populate children
-        factory.connect_bind(clone!(@weak self as library => move |_factory, list_item| {
-            let data = list_item
-                .item()
-                .unwrap()
-                .downcast::<crate::models::asset_data::AssetData>()
-                .unwrap();
-
-            let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
-            child.set_data(&data);
-        }));
+        factory.connect_bind(move |_, list_item| {
+            Self::populate_model(list_item);
+        });
 
         self_.filter_model.set_model(Some(&self_.grid_model));
         self.update_count();
@@ -356,15 +349,34 @@ impl EpicLibraryBox {
         self_.asset_grid.set_factory(Some(&factory));
 
         selection_model.connect_selected_notify(clone!(@weak self as library => move |model| {
-            if let Some(a) = model.selected_item() {
-                let self_ = library.imp();
-                let asset = a.downcast::<crate::models::asset_data::AssetData>().unwrap();
-                let assets = self_.loaded_assets.borrow();
-                if let Some(a) = assets.get(&asset.id()) {  self_.details.set_asset(a) }
-            }
+            library.asset_selected(model);
         }));
 
         self.fetch_assets();
+    }
+
+    fn asset_selected(&self, model: &gtk4::SingleSelection) {
+        if let Some(a) = model.selected_item() {
+            let self_ = self.imp();
+            let asset = a
+                .downcast::<crate::models::asset_data::AssetData>()
+                .unwrap();
+            let assets = self_.loaded_assets.borrow();
+            if let Some(a) = assets.get(&asset.id()) {
+                self_.details.set_asset(a)
+            }
+        }
+    }
+
+    fn populate_model(list_item: &gtk4::ListItem) {
+        let data = list_item
+            .item()
+            .unwrap()
+            .downcast::<crate::models::asset_data::AssetData>()
+            .unwrap();
+
+        let child = list_item.child().unwrap().downcast::<EpicAsset>().unwrap();
+        child.set_data(&data);
     }
 
     fn sorter(by: &str, asc: bool) -> CustomSorter {
@@ -560,6 +572,27 @@ impl EpicLibraryBox {
         };
     }
 
+    fn expand(&self) {
+        let v: glib::Value = self.property("sidebar-expanded");
+        let self_ = self.imp();
+        let new_value = !v.get::<bool>().unwrap();
+        self.enable_all_categories();
+        if new_value {
+            self_
+                .expand_image
+                .set_icon_name(Some("go-previous-symbolic"));
+            self_
+                .expand_button
+                .set_tooltip_text(Some("Collapse Sidebar"));
+            self_.expand_label.set_label("Collapse");
+        } else {
+            self_.expand_image.set_icon_name(Some("go-next-symbolic"));
+            self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
+            self_.expand_label.set_label("");
+        };
+        self.set_property("sidebar-expanded", &new_value);
+    }
+
     pub fn setup_actions(&self) {
         let self_ = self.imp();
 
@@ -567,20 +600,7 @@ impl EpicLibraryBox {
             self_.actions,
             "expand",
             clone!(@weak self as library => move |_, _| {
-                let v: glib::Value = library.property("sidebar-expanded");
-                let self_ = library.imp();
-                let new_value = !v.get::<bool>().unwrap();
-                library.enable_all_categories();
-                if new_value {
-                    self_.expand_image.set_icon_name(Some("go-previous-symbolic"));
-                    self_.expand_button.set_tooltip_text(Some("Collapse Sidebar"));
-                    self_.expand_label.set_label("Collapse");
-                } else {
-                    self_.expand_image.set_icon_name(Some("go-next-symbolic"));
-                    self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
-                    self_.expand_label.set_label("");
-                };
-                library.set_property("sidebar-expanded", &new_value);
+                library.expand();
             })
         );
 
@@ -588,10 +608,8 @@ impl EpicLibraryBox {
             self_.actions,
             "show_download_details",
             clone!(@weak self as library => move |_, _| {
-                let self_ = library.imp();
-                if let Some(w) = self_.window.get() {
-                   w.show_download_manager();
-                }
+                library.show_download_details();
+
             })
         );
 
@@ -599,20 +617,31 @@ impl EpicLibraryBox {
             self_.actions,
             "order",
             clone!(@weak self as library => move |_, _| {
-                let self_ = library.imp();
-                if let Some(name) = self_.order.icon_name() {
-                    match name.as_str() {
-                        "view-sort-ascending-symbolic" => {
-                            self_.order.set_icon_name("view-sort-descending-symbolic");
-                        }
-                        _ => self_.order.set_icon_name("view-sort-ascending-symbolic"),
-                    }
-                };
-                library.order_changed();
+                library.order();
             })
         );
 
         self.insert_action_group("library", Some(&self_.actions));
+    }
+
+    fn show_download_details(&self) {
+        let self_ = self.imp();
+        if let Some(w) = self_.window.get() {
+            w.show_download_manager();
+        }
+    }
+
+    fn order(&self) {
+        let self_ = self.imp();
+        if let Some(name) = self_.order.icon_name() {
+            match name.as_str() {
+                "view-sort-ascending-symbolic" => {
+                    self_.order.set_icon_name("view-sort-descending-symbolic");
+                }
+                _ => self_.order.set_icon_name("view-sort-ascending-symbolic"),
+            }
+        };
+        self.order_changed();
     }
 
     pub fn filter(&self) -> Option<String> {
@@ -893,14 +922,19 @@ impl EpicLibraryBox {
                 }
             });
             glib::idle_add_local(clone!(@weak self as library => @default-panic, move || {
-                library.flush_assets();
-                let self_ = library.imp();
-                glib::Continue((self_.asset_load_pool.queued_count() +
-                    self_.asset_load_pool.active_count() +
-                    self_.image_load_pool.queued_count() +
-                    self_.image_load_pool.active_count()) > 0)
+                glib::Continue(library.flush_loop())
             }));
         }
+    }
+
+    fn flush_loop(&self) -> bool {
+        self.flush_assets();
+        let self_ = self.imp();
+        (self_.asset_load_pool.queued_count()
+            + self_.asset_load_pool.active_count()
+            + self_.image_load_pool.queued_count()
+            + self_.image_load_pool.active_count())
+            > 0
     }
 
     pub(crate) fn process_epic_asset(

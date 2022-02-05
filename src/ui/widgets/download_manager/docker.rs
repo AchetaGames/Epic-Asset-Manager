@@ -1,4 +1,4 @@
-use crate::ui::widgets::download_manager::DownloadStatus;
+use crate::ui::widgets::download_manager::{download_item, DownloadStatus};
 use glib::clone;
 use gtk4::glib;
 use gtk4::subclass::prelude::*;
@@ -38,6 +38,10 @@ pub(crate) trait Docker {
     }
 
     fn docker_extraction_finished(&self, _version: &str) {
+        unimplemented!()
+    }
+
+    fn docker_finished(&self, _item: &download_item::EpicDownloadItem) {
         unimplemented!()
     }
 }
@@ -161,11 +165,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             "finished",
             false,
             clone!(@weak self as edm, @weak item => @default-return None, move |_| {
-                let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(&edm);
-                self_.downloads.remove(&item);
-                edm.set_property("has-items", self_.downloads.first_child().is_some());
-                edm.emit_by_name::<()>("tick", &[]);
+                edm.docker_finished(&item);
                 None
             }),
         );
@@ -214,6 +214,13 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 });
             }
         }
+    }
+
+    fn docker_finished(&self, item: &download_item::EpicDownloadItem) {
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        self_.downloads.remove(item);
+        self.set_property("has-items", self_.downloads.first_child().is_some());
+        self.emit_by_name::<()>("tick", &[]);
     }
 
     #[cfg(target_os = "linux")]

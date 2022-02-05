@@ -301,8 +301,7 @@ impl UnrealProjectDetails {
         }
 
         combo.connect_changed(clone!(@weak self as detail => move |c| {
-            if let Some(com) = c.active_id() { detail.engine_selected(&com); }
-
+            detail.engine_selected(c);
         }));
         if let Some(engine) = associated {
             combo.set_active_id(Some(&engine.path));
@@ -344,12 +343,14 @@ impl UnrealProjectDetails {
         row
     }
 
-    fn engine_selected(&self, path: &str) {
-        let self_ = self.imp();
-        for engine in self.available_engines() {
-            if engine.path.eq(path) {
-                self.set_launch_enabled(true);
-                self_.engine.replace(Some(engine));
+    fn engine_selected(&self, combo: &gtk4::ComboBoxText) {
+        if let Some(eng) = combo.active_id() {
+            let self_ = self.imp();
+            for engine in self.available_engines() {
+                if engine.path.eq(&eng) {
+                    self.set_launch_enabled(true);
+                    self_.engine.replace(Some(engine));
+                }
             }
         }
     }

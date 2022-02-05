@@ -213,9 +213,7 @@ impl EpicImageOverlay {
             actions,
             "next",
             clone!(@weak self as image_stack => move |_, _| {
-                let self_ = image_stack.imp();
-                let image = self_.stack.nth_page((self_.stack.position().round() as u32) + 1);
-                self_.stack.scroll_to(&image, true);
+                image_stack.next();
             })
         );
 
@@ -223,11 +221,25 @@ impl EpicImageOverlay {
             actions,
             "prev",
             clone!(@weak self as image_stack => move |_, _| {
-                let self_ = image_stack.imp();
-                let image = self_.stack.nth_page((self_.stack.position().round() as u32).saturating_sub(1));
-                self_.stack.scroll_to(&image, true);
+                image_stack.prev();
             })
         );
+    }
+
+    fn next(&self) {
+        let self_ = self.imp();
+        let image = self_
+            .stack
+            .nth_page((self_.stack.position().round() as u32) + 1);
+        self_.stack.scroll_to(&image, true);
+    }
+
+    fn prev(&self) {
+        let self_ = self.imp();
+        let image = self_
+            .stack
+            .nth_page((self_.stack.position().round() as u32).saturating_sub(1));
+        self_.stack.scroll_to(&image, true);
     }
 
     pub fn check_actions(&self) {

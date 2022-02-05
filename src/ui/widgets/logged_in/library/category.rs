@@ -223,15 +223,23 @@ impl EpicSidebarCategory {
         self_.sub_box.set_model(Some(&self_.selection_model));
         self_.sub_box.set_factory(Some(&factory));
 
-        self_.selection_model.connect_selected_notify(clone!(@weak self as category => move |model| {
-            let self_ = category.imp();
-            if let Some(item) = model.selected_item() {
-                let filter = item.downcast::<crate::models::category_data::CategoryData>().unwrap();
-                if let Some(l) = self_.loggedin.get() {
-                    l.set_property("filter", filter.filter());
-                };
-            }
-        }));
+        self_.selection_model.connect_selected_notify(
+            clone!(@weak self as category => move |model| {
+                category.category_selected(model);
+            }),
+        );
+    }
+
+    fn category_selected(&self, model: &gtk4::SingleSelection) {
+        let self_ = self.imp();
+        if let Some(item) = model.selected_item() {
+            let filter = item
+                .downcast::<crate::models::category_data::CategoryData>()
+                .unwrap();
+            if let Some(l) = self_.loggedin.get() {
+                l.set_property("filter", filter.filter());
+            };
+        }
     }
 
     pub fn setup_actions(&self) {
@@ -239,23 +247,31 @@ impl EpicSidebarCategory {
         action!(
             self_.actions,
             "clicked",
-            clone!(@weak self as win => move |_, _| {
-                let v: glib::Value = win.property("expanded");
-                let self_ = win.imp();
-                if v.get::<bool>().unwrap() {
-                    if self_.sub_box.first_child().is_none() {
-                        if let Some(l) = self_.loggedin.get() { l.set_property("filter", win.filter()); };
-                    } else {
-                        self_.sub_revealer.set_reveal_child(!self_.sub_revealer.reveals_child());
-                    }
-                } else if let Some(l) = self_.loggedin.get() {
-                    l.enable_all_categories();
-                    l.set_property("filter", win.filter());
-                    win.activate(false);
-                };
+            clone!(@weak self as category => move |_, _| {
+                category.clicked();
             })
         );
         self.insert_action_group("category", Some(&self_.actions));
+    }
+
+    fn clicked(&self) {
+        let v: glib::Value = self.property("expanded");
+        let self_ = self.imp();
+        if v.get::<bool>().unwrap() {
+            if self_.sub_box.first_child().is_none() {
+                if let Some(l) = self_.loggedin.get() {
+                    l.set_property("filter", self.filter());
+                };
+            } else {
+                self_
+                    .sub_revealer
+                    .set_reveal_child(!self_.sub_revealer.reveals_child());
+            }
+        } else if let Some(l) = self_.loggedin.get() {
+            l.enable_all_categories();
+            l.set_property("filter", self.filter());
+            self.activate(false);
+        };
     }
 
     fn capitalize_first_letter(s: &str) -> String {

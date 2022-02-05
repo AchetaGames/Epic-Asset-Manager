@@ -216,13 +216,15 @@ impl EpicEngine {
             "finished",
             false,
             clone!(@weak self as engine, @weak data => @default-return None, move |_| {
-                engine.set_property("branch", &data.branch());
-                engine
-                    .set_property("has-branch", &data.has_branch());
-                engine
-                    .set_property("needs-update", &data.needs_update());
+                engine.finished(&data);
                 None
             }),
         )));
+    }
+
+    fn finished(&self, data: &crate::models::engine_data::EngineData) {
+        self.set_property("branch", &data.branch());
+        self.set_property("has-branch", &data.has_branch());
+        self.set_property("needs-update", &data.needs_update());
     }
 }

@@ -108,15 +108,23 @@ impl SidBox {
             actions,
             "login",
             clone!(@weak self as sid_box => move |_, _| {
-                let self_ = sid_box.imp();
-                let text = self_.sid_entry.text();
-                if let Some(window) = self_.window.get() {
-                    gtk4::prelude::ActionGroupExt::activate_action(window, "login", Some(&text.to_variant()));
-                }
-                self_.sid_entry.set_text("");
+                sid_box.login();
             })
         );
 
         get_action!(self_.actions, @login).set_enabled(false);
+    }
+
+    fn login(&self) {
+        let self_ = self.imp();
+        let text = self_.sid_entry.text();
+        if let Some(window) = self_.window.get() {
+            gtk4::prelude::ActionGroupExt::activate_action(
+                window,
+                "login",
+                Some(&text.to_variant()),
+            );
+        }
+        self_.sid_entry.set_text("");
     }
 }

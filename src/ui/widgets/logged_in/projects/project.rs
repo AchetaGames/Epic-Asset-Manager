@@ -228,13 +228,19 @@ impl EpicProject {
             "finished",
             false,
             clone!(@weak self as project, @weak data => @default-return None, move |_| {
-                let self_ = project.imp();
-                if let Some(pix) = data.image() {
-                    self_.thumbnail.set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
-                }
+                project.finished(&data);
                 None
             }),
         )));
+    }
+
+    fn finished(&self, data: &crate::models::project_data::ProjectData) {
+        let self_ = self.imp();
+        if let Some(pix) = data.image() {
+            self_
+                .thumbnail
+                .set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
+        }
     }
 
     fn associated_engine(&self, uproject: &Uproject) -> Option<UnrealEngine> {

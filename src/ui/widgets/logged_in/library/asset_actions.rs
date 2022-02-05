@@ -313,18 +313,26 @@ impl EpicAssetActions {
             actions,
             "show",
             clone!(@weak self as download_details => move |_, _| {
-                let self_ = download_details.imp();
-                if self_.asset_details_revealer.reveals_child() {
-                    self_.asset_details_revealer.set_reveal_child(false);
-                    self_.asset_actions_button.set_icon_name("go-down-symbolic");
-                    self_.asset_actions_button.set_tooltip_text(Some("Show details"));
-                } else {
-                    self_.asset_details_revealer.set_reveal_child(true);
-                    self_.asset_actions_button.set_icon_name("go-up-symbolic");
-                    self_.asset_actions_button.set_tooltip_text(Some("Hide details"));
-                }
+                download_details.show();
             })
         );
+    }
+
+    fn show(&self) {
+        let self_ = self.imp();
+        if self_.asset_details_revealer.reveals_child() {
+            self_.asset_details_revealer.set_reveal_child(false);
+            self_.asset_actions_button.set_icon_name("go-down-symbolic");
+            self_
+                .asset_actions_button
+                .set_tooltip_text(Some("Show details"));
+        } else {
+            self_.asset_details_revealer.set_reveal_child(true);
+            self_.asset_actions_button.set_icon_name("go-up-symbolic");
+            self_
+                .asset_actions_button
+                .set_tooltip_text(Some("Hide details"));
+        }
     }
 
     pub fn set_action(&self, action: Action) {

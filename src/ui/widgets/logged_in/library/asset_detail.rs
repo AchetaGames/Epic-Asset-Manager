@@ -184,19 +184,28 @@ impl EpicAssetDetails {
             "start-download",
             false,
             clone!(@weak self as ead => @default-return None, move |_| {
-                let self_ = ead.imp();
-                get_action!(self_.actions, @show_download_confirmation).activate(None);
-                glib::timeout_add_seconds_local(
-                    2,
-                    clone!(@weak ead as obj => @default-panic, move || {
-                        let self_ = obj.imp();
-                        get_action!(self_.actions, @show_asset_details).activate(None);
-                        glib::Continue(false)
-                    }),
-                );
+                ead.start_download();
+
                 None
             }),
         );
+    }
+
+    fn start_download(&self) {
+        let self_ = self.imp();
+        get_action!(self_.actions, @show_download_confirmation).activate(None);
+        glib::timeout_add_seconds_local(
+            2,
+            clone!(@weak self as obj => @default-panic, move || {
+                obj.hide_confirmation();
+                glib::Continue(false)
+            }),
+        );
+    }
+
+    fn hide_confirmation(&self) {
+        let self_ = self.imp();
+        get_action!(self_.actions, @show_asset_details).activate(None);
     }
 
     pub fn setup_actions(&self) {
@@ -216,17 +225,7 @@ impl EpicAssetDetails {
             actions,
             "show_download_details",
             clone!(@weak self as details => move |_, _| {
-                let self_ = details.imp();
-                self_.details_revealer.set_reveal_child(false);
-                self_.details_revealer.set_vexpand_set(true);
-                self_.actions_revealer.set_reveal_child(true);
-                self_.actions_revealer.set_vexpand(true);
-                self_.download_confirmation_revealer.set_reveal_child(false);
-                self_.download_confirmation_revealer.set_vexpand(false);
-                get_action!(self_.actions, @show_download_details).set_enabled(false);
-                get_action!(self_.actions, @show_asset_details).set_enabled(true);
-                self_.asset_actions.set_action(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
-                self_.actions_menu.popdown()
+                details.show_download_details();
             })
         );
 
@@ -234,15 +233,7 @@ impl EpicAssetDetails {
             actions,
             "show_download_confirmation",
             clone!(@weak self as details => move |_, _| {
-                let self_ = details.imp();
-                self_.download_confirmation_revealer.set_reveal_child(true);
-                self_.download_confirmation_revealer.set_vexpand(true);
-                self_.details_revealer.set_reveal_child(false);
-                self_.details_revealer.set_vexpand_set(true);
-                self_.actions_revealer.set_reveal_child(false);
-                self_.actions_revealer.set_vexpand(false);
-                get_action!(self_.actions, @show_download_details).set_enabled(true);
-                get_action!(self_.actions, @show_asset_details).set_enabled(true);
+                details.show_download_confirmation();
             })
         );
 
@@ -250,15 +241,7 @@ impl EpicAssetDetails {
             actions,
             "show_asset_details",
             clone!(@weak self as details => move |_, _| {
-                let self_ = details.imp();
-                self_.details_revealer.set_reveal_child(true);
-                self_.details_revealer.set_vexpand_set(false);
-                self_.actions_revealer.set_reveal_child(false);
-                self_.actions_revealer.set_vexpand(false);
-                self_.download_confirmation_revealer.set_reveal_child(false);
-                self_.download_confirmation_revealer.set_vexpand(false);
-                get_action!(self_.actions, @show_download_details).set_enabled(true);
-                get_action!(self_.actions, @show_asset_details).set_enabled(false);
+                details.show_asset_details();
             })
         );
 
@@ -269,6 +252,46 @@ impl EpicAssetDetails {
                 details.toggle_favorites();
             })
         );
+    }
+
+    fn show_download_details(&self) {
+        let self_ = self.imp();
+        self_.details_revealer.set_reveal_child(false);
+        self_.details_revealer.set_vexpand_set(true);
+        self_.actions_revealer.set_reveal_child(true);
+        self_.actions_revealer.set_vexpand(true);
+        self_.download_confirmation_revealer.set_reveal_child(false);
+        self_.download_confirmation_revealer.set_vexpand(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(false);
+        get_action!(self_.actions, @show_asset_details).set_enabled(true);
+        self_
+            .asset_actions
+            .set_action(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
+        self_.actions_menu.popdown();
+    }
+
+    fn show_download_confirmation(&self) {
+        let self_ = self.imp();
+        self_.download_confirmation_revealer.set_reveal_child(true);
+        self_.download_confirmation_revealer.set_vexpand(true);
+        self_.details_revealer.set_reveal_child(false);
+        self_.details_revealer.set_vexpand_set(true);
+        self_.actions_revealer.set_reveal_child(false);
+        self_.actions_revealer.set_vexpand(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(true);
+        get_action!(self_.actions, @show_asset_details).set_enabled(true);
+    }
+
+    fn show_asset_details(&self) {
+        let self_ = self.imp();
+        self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand_set(false);
+        self_.actions_revealer.set_reveal_child(false);
+        self_.actions_revealer.set_vexpand(false);
+        self_.download_confirmation_revealer.set_reveal_child(false);
+        self_.download_confirmation_revealer.set_vexpand(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(true);
+        get_action!(self_.actions, @show_asset_details).set_enabled(false);
     }
 
     fn build_box_with_icon_label(label: Option<&str>, icon: &str) -> gtk4::Box {
