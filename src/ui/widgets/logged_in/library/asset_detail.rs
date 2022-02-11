@@ -1,5 +1,6 @@
 use crate::models::asset_data::AssetType;
 use adw::prelude::ActionRowExt;
+use adw::ActionRow;
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
@@ -431,26 +432,12 @@ impl EpicAssetDetails {
         }
 
         if let Some(dev_name) = &asset.developer {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Developer").build();
-
-            row.add_prefix(&title);
-            let label = gtk4::Label::builder()
-                .label(dev_name)
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details_box.append(&row);
+            self_
+                .details_box
+                .append(&Self::build_info_row("Developer", &dev_name));
         }
 
         if let Some(categories) = &asset.categories {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Categories").build();
-
-            row.add_prefix(&title);
-
             let mut cats: Vec<String> = Vec::new();
             for category in categories {
                 let parts = category.path.split('/').collect::<Vec<&str>>();
@@ -466,59 +453,28 @@ impl EpicAssetDetails {
                     cats.push(category.path.clone());
                 }
             }
-            let label = gtk4::Label::builder()
-                .label(&cats.join(", "))
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details_box.append(&row);
+            self_
+                .details_box
+                .append(&Self::build_info_row("Categories", &cats.join(", ")));
         }
 
         if let Some(platforms) = &asset.platforms() {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Platforms").build();
-
-            row.add_prefix(&title);
-            let label = gtk4::Label::builder()
-                .label(&platforms.join(", "))
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details_box.append(&row);
+            self_
+                .details_box
+                .append(&Self::build_info_row("Platforms", &platforms.join(", ")));
         }
 
         if let Some(updated) = &asset.last_modified_date {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Updated").build();
-
-            row.add_prefix(&title);
-            let label = gtk4::Label::builder()
-                .label(&updated.to_rfc3339())
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details_box.append(&row);
+            self_
+                .details_box
+                .append(&Self::build_info_row("Updated", &updated.to_rfc3339()));
         }
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Compatible with").build();
-
-            row.add_prefix(&title);
-            let label = gtk4::Label::builder()
-                .label(&compatible_apps.join(", ").replace("UE_", ""))
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details_box.append(&row);
+            self_.details_box.append(&Self::build_info_row(
+                "Compatible with",
+                &compatible_apps.join(", ").replace("UE_", ""),
+            ));
         }
 
         if let Some(desc) = &asset.long_description {
@@ -538,6 +494,21 @@ impl EpicAssetDetails {
         }
 
         self.check_favorite();
+    }
+
+    fn build_info_row(title: &str, label: &str) -> ActionRow {
+        let row = adw::ActionRow::builder().activatable(true).build();
+        let title_widget = gtk4::Label::builder().label(title).build();
+
+        row.add_prefix(&title_widget);
+        let label_widget = gtk4::Label::builder()
+            .label(label)
+            .wrap(true)
+            .xalign(0.0)
+            .build();
+
+        row.add_suffix(&label_widget);
+        row
     }
 
     pub fn is_expanded(&self) -> bool {

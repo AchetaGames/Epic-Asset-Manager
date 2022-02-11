@@ -419,6 +419,7 @@ impl EpicAssetActions {
 
     pub fn version_selected(&self) {
         let self_ = self.imp();
+        // TODO: Get manifest for download size and other info
         if let Some(id) = self_.select_download_version.active_id() {
             self.set_property("selected-version", id.to_string());
             self_
