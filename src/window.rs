@@ -421,7 +421,7 @@ impl EpicAssetManagerWindow {
             "eam_epic_games_token",
             ud.access_token(),
             "token-expiration",
-            ud.refresh_expires_at,
+            ud.expires_at,
         );
         self.save_secret(
             "refresh",
