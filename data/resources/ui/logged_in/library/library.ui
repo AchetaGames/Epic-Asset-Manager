@@ -135,6 +135,19 @@
                         </property>
                         <child type="overlay">
                             <object class="GtkBox">
+                                <property name="valign">end</property>
+                                <child>
+                                    <object class="GtkProgressBar" id="refresh_progress">
+                                        <property name="hexpand">true</property>
+                                        <property name="valign">center</property>
+                                        <property name="can-focus">0</property>
+                                        <property name="show-text">true</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child type="overlay">
+                            <object class="GtkBox">
                                 <property name="css-classes">view</property>
                                 <property name="opacity">0.7</property>
                                 <property name="valign">end</property>

@@ -71,6 +71,12 @@ impl Update for EpicAssetManagerWindow {
                 self.show_login();
             }
             Msg::Logout => self.do_logout(),
+            Msg::StartAssetProcessing => {
+                self_.logged_in_stack.start_processing_asset();
+            }
+            Msg::EndAssetProcessing => {
+                self_.logged_in_stack.end_processing_asset();
+            }
         }
     }
 }

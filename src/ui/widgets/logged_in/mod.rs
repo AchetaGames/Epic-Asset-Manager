@@ -183,6 +183,16 @@ impl EpicLoggedInBox {
         self_.engine.update_docker();
     }
 
+    pub fn start_processing_asset(&self) {
+        let self_ = self.imp();
+        self_.library.start_processing_asset();
+    }
+
+    pub fn end_processing_asset(&self) {
+        let self_ = self.imp();
+        self_.library.end_processing_asset();
+    }
+
     pub(crate) fn process_epic_asset(
         &self,
         epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
