@@ -173,7 +173,7 @@ impl EpicCreateAssetProject {
         let self_ = self.imp();
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
-                dm.add_asset_download(self.selected_version(), asset_info.clone());
+                dm.add_asset_download(self.selected_version(), asset_info.clone(), None);
                 self.emit_by_name::<()>("start-download", &[]);
             }
         }

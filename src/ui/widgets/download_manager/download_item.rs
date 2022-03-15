@@ -22,6 +22,7 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         status: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
+        target: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         pub total_size: RefCell<u128>,
         pub downloaded_size: RefCell<u128>,
@@ -53,6 +54,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 status: RefCell::new(None),
                 label: RefCell::new(None),
+                target: RefCell::new(None),
                 path: RefCell::new(None),
                 total_size: RefCell::new(0),
                 downloaded_size: RefCell::new(0),
@@ -108,6 +110,13 @@ pub(crate) mod imp {
                         "label",
                         "Label",
                         "Label",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecString::new(
+                        "target",
+                        "Target",
+                        "Target",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
@@ -184,6 +193,12 @@ pub(crate) mod imp {
                     self.stack.set_visible_child_name("label");
                     self.status.replace(status);
                 }
+                "target" => {
+                    let target = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.target.replace(target);
+                }
                 "thumbnail" => {
                     let thumbnail: Option<Pixbuf> = value
                         .get()
@@ -199,6 +214,7 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
+                "target" => self.target.borrow().to_value(),
                 "status" => self.status.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
@@ -301,6 +317,10 @@ impl EpicDownloadItem {
 
     pub fn path(&self) -> Option<String> {
         self.property("path")
+    }
+
+    pub fn target(&self) -> Option<String> {
+        self.property("target")
     }
 
     pub fn set_total_files(&self, count: u64) {

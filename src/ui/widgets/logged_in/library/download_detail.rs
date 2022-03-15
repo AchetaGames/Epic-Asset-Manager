@@ -135,7 +135,18 @@ impl EpicDownloadDetails {
         let self_ = self.imp();
         self_.select_target_directory.remove_all();
         for dir in self_.settings.strv("unreal-vault-directories") {
-            self_.select_target_directory.append(Some(&dir), &dir);
+            self_.select_target_directory.append(
+                Some(&dir),
+                &format!(
+                    "{}{}",
+                    dir,
+                    if self_.select_target_directory.active_text().is_none() {
+                        " (default)"
+                    } else {
+                        ""
+                    }
+                ),
+            );
             if let None = self_.select_target_directory.active_text() {
                 self_.select_target_directory.set_active_id(Some(&dir));
             }
@@ -173,7 +184,14 @@ impl EpicDownloadDetails {
         let self_ = self.imp();
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
-                dm.add_asset_download(self.selected_version(), asset_info.clone());
+                dm.add_asset_download(
+                    self.selected_version(),
+                    asset_info.clone(),
+                    self_
+                        .select_target_directory
+                        .active_id()
+                        .map(|v| v.to_string()),
+                );
                 self.emit_by_name::<()>("start-download", &[]);
             }
         }
@@ -182,6 +200,7 @@ impl EpicDownloadDetails {
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_ = self.imp();
         self_.asset.replace(Some(asset.clone()));
+        self.set_target_directories();
     }
 
     pub fn selected_version(&self) -> String {
