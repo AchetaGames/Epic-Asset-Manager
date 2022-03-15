@@ -1,9 +1,11 @@
 pub(crate) mod docker;
 mod download_item;
 
+use crate::gio::glib::Sender;
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::docker::Docker;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
+use egs_api::api::types::download_manifest::{DownloadManifest, FileManifestList};
 use glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
@@ -524,59 +526,28 @@ impl EpicDownloadManager {
         target.push(dm[0].app_name_string.clone());
         let t = target.clone();
         let manifest = dm[0].clone();
-        // Create target directory in the vault
-        self_.download_pool.execute(move || {
-            if let Ok(w) = crate::RUNNING.read() {
-                if !*w {
-                    return;
-                }
-            }
-            std::fs::create_dir_all(t.clone()).expect("Unable to create target directory");
-            match File::create(t.as_path().join("manifest.json")) {
-                Ok(mut json_manifest_file) => match serde_json::to_string(&manifest) {
-                    Ok(json) => {
-                        json_manifest_file
-                            .write_all(json.as_bytes().as_ref())
-                            .unwrap();
-                    }
-                    Err(e) => {
-                        error!("Unable to save json manifest: {}", e)
-                    }
-                },
-                Err(e) => {
-                    error!("Unable to save Manifest: {:?}", e);
-                }
-            }
-            match File::create(t.as_path().join("manifest")) {
-                Ok(mut manifest_file) => {
-                    manifest_file.write_all(&manifest.to_vec()).unwrap();
-                }
-                Err(e) => {
-                    error!("Unable to save binary Manifest: {:?}", e);
-                }
-            }
-        });
+        // Create target directory in the vault and save manifests to it
+        self_
+            .download_pool
+            .execute(move || Self::save_asset_manifest(&t, &manifest));
+
         item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(dm[0].total_download_size());
         item.set_total_files(dm[0].file_manifest_list.len() as u64);
         item.set_property("path", target.as_path().display().to_string());
 
         // consolidate manifests
-
         for manifest in dm {
             for m in manifest.files().values() {
                 for chunk in m.file_chunk_parts.clone() {
-                    match chunk.link {
-                        None => {}
-                        Some(url) => {
-                            let mut chunks = self_.chunk_urls.borrow_mut();
-                            match chunks.get_mut(&chunk.guid) {
-                                None => {
-                                    chunks.insert(chunk.guid, vec![url.clone()]);
-                                }
-                                Some(v) => {
-                                    v.push(url.clone());
-                                }
+                    if let Some(url) = chunk.link {
+                        let mut chunks = self_.chunk_urls.borrow_mut();
+                        match chunks.get_mut(&chunk.guid) {
+                            None => {
+                                chunks.insert(chunk.guid, vec![url.clone()]);
+                            }
+                            Some(v) => {
+                                v.push(url.clone());
                             }
                         }
                     }
@@ -594,61 +565,104 @@ impl EpicDownloadManager {
             let m = manifest.clone();
             let full_path = target.clone().as_path().join("data").join(filename);
             self_.download_pool.execute(move || {
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
-                };
-                match File::open(full_path.clone()) {
-                    Ok(mut f) => {
-                        let mut buffer: [u8; 1024] = [0; 1024];
-                        let mut hasher = Sha1::new();
-                        loop {
-                            if let Ok(size) = f.read(&mut buffer) {
-                                if size > 0 {
-                                    hasher.update(&buffer[..size]);
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                        let hash = hasher.finalize();
-                        if m.file_hash.eq(&hash
-                            .iter()
-                            .map(|b| format!("{:02x}", b))
-                            .collect::<String>())
-                        {
-                            sender
-                                .send(DownloadMsg::FileAlreadyDownloaded(
-                                    r_id.to_string(),
-                                    m.size(),
-                                ))
-                                .unwrap();
+                Self::initiate_file_download(&r_id, &r_name, &f_name, &sender, m, &full_path);
+            });
+        }
+    }
+
+    fn initiate_file_download(
+        r_id: &str,
+        r_name: &str,
+        f_name: &str,
+        sender: &Sender<DownloadMsg>,
+        m: FileManifestList,
+        full_path: &PathBuf,
+    ) {
+        if let Ok(w) = crate::RUNNING.read() {
+            if !*w {
+                return;
+            }
+        };
+        match File::open(full_path.clone()) {
+            Ok(mut f) => {
+                let mut buffer: [u8; 1024] = [0; 1024];
+                let mut hasher = Sha1::new();
+                loop {
+                    if let Ok(size) = f.read(&mut buffer) {
+                        if size > 0 {
+                            hasher.update(&buffer[..size]);
                         } else {
-                            warn!("Hashes do not match, downloading again: {:?}", full_path);
-                            sender
-                                .send(DownloadMsg::PerformAssetDownload(
-                                    r_id.to_string(),
-                                    r_name,
-                                    f_name,
-                                    m,
-                                ))
-                                .unwrap();
-                        };
-                    }
-                    // File does not exist perform download
-                    Err(_) => {
-                        sender
-                            .send(DownloadMsg::PerformAssetDownload(
-                                r_id.to_string(),
-                                r_name,
-                                f_name,
-                                m,
-                            ))
-                            .unwrap();
+                            break;
+                        }
                     }
                 }
-            });
+                let hash = hasher.finalize();
+                if m.file_hash.eq(&hash
+                    .iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect::<String>())
+                {
+                    sender
+                        .send(DownloadMsg::FileAlreadyDownloaded(
+                            r_id.to_string(),
+                            m.size(),
+                        ))
+                        .unwrap();
+                } else {
+                    warn!("Hashes do not match, downloading again: {:?}", full_path);
+                    sender
+                        .send(DownloadMsg::PerformAssetDownload(
+                            r_id.to_string(),
+                            r_name.to_string(),
+                            f_name.to_string(),
+                            m,
+                        ))
+                        .unwrap();
+                };
+            }
+            // File does not exist perform download
+            Err(_) => {
+                sender
+                    .send(DownloadMsg::PerformAssetDownload(
+                        r_id.to_string(),
+                        r_name.to_string(),
+                        f_name.to_string(),
+                        m,
+                    ))
+                    .unwrap();
+            }
+        }
+    }
+
+    fn save_asset_manifest(t: &PathBuf, manifest: &DownloadManifest) {
+        if let Ok(w) = crate::RUNNING.read() {
+            if !*w {
+                return;
+            }
+        }
+        std::fs::create_dir_all(t.clone()).expect("Unable to create target directory");
+        match File::create(t.as_path().join("manifest.json")) {
+            Ok(mut json_manifest_file) => match serde_json::to_string(&manifest) {
+                Ok(json) => {
+                    json_manifest_file
+                        .write_all(json.as_bytes().as_ref())
+                        .unwrap();
+                }
+                Err(e) => {
+                    error!("Unable to save json manifest: {}", e)
+                }
+            },
+            Err(e) => {
+                error!("Unable to save Manifest: {:?}", e);
+            }
+        }
+        match File::create(t.as_path().join("manifest")) {
+            Ok(mut manifest_file) => {
+                manifest_file.write_all(&manifest.to_vec()).unwrap();
+            }
+            Err(e) => {
+                error!("Unable to save binary Manifest: {:?}", e);
+            }
         }
     }
 
