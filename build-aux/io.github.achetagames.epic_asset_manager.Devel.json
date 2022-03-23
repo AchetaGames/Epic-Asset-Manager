@@ -15,7 +15,7 @@
     "--talk-name=org.freedesktop.secrets",
     "--talk-name=org.freedesktop.Flatpak",
     "--device=dri",
-    "--env=RUST_LOG=epic_asset_manager:debug",
+    "--env=RUST_LOG=epic_asset_manager=debug",
     "--env=RUST_BACKTRACE=full"
   ],
   "build-options": {

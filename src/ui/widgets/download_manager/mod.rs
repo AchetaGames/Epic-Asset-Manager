@@ -466,10 +466,31 @@ impl EpicDownloadManager {
             }),
         );
 
+        let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+
+        receiver.attach(
+            None,
+            clone!(@weak self as download_manager => @default-panic, move |(id, manifest)| {
+                let self_ = download_manager.imp();
+                let sender = self_.sender.clone();
+                sender.send(DownloadMsg::StartAssetDownload(id, manifest)).unwrap();
+                glib::Continue(true)
+            }),
+        );
+
+        self.download_asset_manifest(release_id, asset, sender);
+    }
+
+    pub fn download_asset_manifest(
+        &self,
+        release_id: String,
+        asset: egs_api::api::types::asset_info::AssetInfo,
+        sender: Sender<(String, Vec<DownloadManifest>)>,
+    ) {
+        let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let sender = self_.sender.clone();
             let id = release_id.clone();
             self_.download_pool.execute(move || {
                 if let Ok(w) = crate::RUNNING.read() {
@@ -486,12 +507,12 @@ impl EpicDownloadManager {
                         Some(asset.id),
                         Some(release_info.app_id.unwrap_or_default()),
                     )) {
-                        debug!("Got asset manifest");
+                        debug!("Got asset manifest: {:?}", manifest);
                         let d = Runtime::new()
                             .unwrap()
                             .block_on(eg.asset_download_manifests(manifest));
                         debug!("Got asset download manifests");
-                        sender.send(DownloadMsg::StartAssetDownload(id, d)).unwrap();
+                        sender.send((id, d)).unwrap();
                         // TODO cache download manifest
                     };
                 }
