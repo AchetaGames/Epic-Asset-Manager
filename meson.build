@@ -23,7 +23,6 @@ cargo = find_program('cargo', required: true)
     cargo_script = find_program('build-aux/cargo.sh')
     cargo_sources = files(
       'Cargo.toml',
-      'Cargo.lock',
     )
 
 version = meson.project_version()
