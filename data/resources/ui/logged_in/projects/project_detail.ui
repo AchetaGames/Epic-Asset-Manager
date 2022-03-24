@@ -66,14 +66,9 @@
                                 <child>
                                     <object class="GtkScrolledWindow">
                                         <child>
-                                            <object class="GtkBox" id="details">
-                                                <property name="orientation">vertical</property>
-                                                <child>
-                                                    <object class="GtkBox" id="details_box">
-                                                        <property name="vexpand">True</property>
-                                                        <property name="orientation">vertical</property>
-                                                    </object>
-                                                </child>
+                                            <object class="GtkListBox" id="details">
+                                                <property name="vexpand">True</property>
+                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
                                             </object>
                                         </child>
                                     </object>

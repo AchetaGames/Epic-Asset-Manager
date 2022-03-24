@@ -8,7 +8,7 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*};
+use gtk4::{self, prelude::*, ListBoxRow};
 use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::{debug, error, warn};
@@ -436,6 +436,26 @@ impl EpicAssetManagerWindow {
         self_
             .logged_in_stack
             .set_download_manager(&self_.download_manager);
+    }
+
+    pub fn create_details_row(
+        label: &str,
+        widget: &impl IsA<gtk4::Widget>,
+        size_group: &gtk4::SizeGroup,
+    ) -> ListBoxRow {
+        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
+        b.set_margin_start(5);
+        b.set_margin_end(5);
+        b.set_margin_bottom(5);
+        b.set_margin_top(5);
+        let label = gtk4::Label::new(Some(label));
+        label.set_xalign(1.0);
+        label.set_valign(gtk4::Align::Start);
+        size_group.add_widget(&label);
+        b.append(&label);
+        b.append(widget);
+        let row = gtk4::ListBoxRow::builder().child(&b);
+        row.build()
     }
 
     fn save_secret(

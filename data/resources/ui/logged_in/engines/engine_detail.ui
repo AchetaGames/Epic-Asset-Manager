@@ -88,8 +88,8 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkBox" id="details">
-                                <property name="orientation">vertical</property>
+                            <object class="GtkListBox" id="details">
+                                <property name="selection-mode">GTK_SELECTION_NONE</property>
                             </object>
                         </child>
                     </object>

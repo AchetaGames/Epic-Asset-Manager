@@ -4,7 +4,7 @@ use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*, Align, Orientation, SizeGroupMode};
+use gtk4::{self, gio, prelude::*, SizeGroupMode};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
@@ -37,8 +37,6 @@ pub(crate) mod imp {
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
         #[template_child]
-        pub version_row: TemplateChild<adw::ActionRow>,
-        #[template_child]
         pub select_download_version: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
         pub asset_details_revealer: TemplateChild<gtk4::Revealer>,
@@ -54,6 +52,8 @@ pub(crate) mod imp {
         pub install_row: TemplateChild<adw::ExpanderRow>,
         #[template_child]
         pub asset_actions_button: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub version_label: TemplateChild<gtk4::Label>,
         #[template_child]
         pub download_details: TemplateChild<
             crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
@@ -87,7 +87,6 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
-                version_row: TemplateChild::default(),
                 select_download_version: TemplateChild::default(),
                 asset_details_revealer: TemplateChild::default(),
                 download_row: TemplateChild::default(),
@@ -96,6 +95,7 @@ pub(crate) mod imp {
                 engine_row: TemplateChild::default(),
                 install_row: TemplateChild::default(),
                 asset_actions_button: TemplateChild::default(),
+                version_label: TemplateChild::default(),
                 download_details: TemplateChild::default(),
                 additional_details: TemplateChild::default(),
                 add_to_project: TemplateChild::default(),
@@ -117,6 +117,7 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicAssetActions {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
+            self.details_group.add_widget(&*self.version_label);
             obj.setup_actions();
             obj.setup_events();
         }
@@ -362,7 +363,6 @@ impl EpicAssetActions {
             self_.additional_details.remove(&el);
         }
         self_.asset.replace(Some(asset.clone()));
-        self_.version_row.set_visible(true);
         self_.download_details.set_asset(&asset.clone());
         self_.select_download_version.remove_all();
         if let Some(releases) = asset.sorted_releases() {
@@ -445,18 +445,13 @@ impl EpicAssetActions {
 
     fn add_detail(&self, label: &str, widget: &impl IsA<gtk4::Widget>) {
         let self_ = self.imp();
-        let b = gtk4::Box::new(Orientation::Horizontal, 5);
-        b.set_margin_start(5);
-        b.set_margin_end(5);
-        b.set_margin_bottom(5);
-        b.set_margin_top(5);
-        let label = gtk4::Label::new(Some(label));
-        label.set_valign(Align::Start);
-        self_.details_group.add_widget(&label);
-        b.append(&label);
-        b.append(widget);
-        let row = gtk4::ListBoxRow::builder().child(&b);
-        self_.additional_details.append(&row.build());
+        self_.additional_details.append(
+            &crate::window::EpicAssetManagerWindow::create_details_row(
+                label,
+                widget,
+                &self_.details_group,
+            ),
+        );
     }
 
     pub fn version_selected(&self) {

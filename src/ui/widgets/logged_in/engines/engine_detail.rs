@@ -1,5 +1,4 @@
 use crate::ui::widgets::download_manager::docker::Docker;
-use adw::prelude::ActionRowExt;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -38,7 +37,7 @@ pub(crate) mod imp {
         #[template_child]
         pub install_button: TemplateChild<gtk4::Button>,
         #[template_child]
-        pub details: TemplateChild<gtk4::Box>,
+        pub details: TemplateChild<gtk4::ListBox>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
@@ -49,6 +48,7 @@ pub(crate) mod imp {
         pub docker_versions: RefCell<Option<HashMap<String, Vec<String>>>>,
         selected: RefCell<Option<String>>,
         download_size: RefCell<Option<String>>,
+        pub details_group: gtk4::SizeGroup,
     }
 
     #[glib::object_subclass]
@@ -76,6 +76,7 @@ pub(crate) mod imp {
                 docker_versions: RefCell::new(None),
                 selected: RefCell::new(None),
                 download_size: RefCell::new(None),
+                details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
             }
         }
 
@@ -294,41 +295,33 @@ impl EpicEngineDetails {
         self_.data.replace(Some(data.clone()));
 
         if let Some(path) = &data.path() {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Path").build();
-
-            row.add_prefix(&title);
-            let label = gtk4::Label::builder()
-                .label(path)
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details.append(&row);
+            self_
+                .details
+                .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                    "Path",
+                    &gtk4::Label::new(Some(path)),
+                    &self_.details_group,
+                ));
         }
 
         if let Some(branch) = &data.branch() {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Branch").build();
-
-            row.add_prefix(&title);
-            let label = gtk4::Label::builder()
-                .label(branch)
-                .wrap(true)
-                .xalign(0.0)
-                .build();
-
-            row.add_suffix(&label);
-            self_.details.append(&row);
+            self_
+                .details
+                .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                    "Branch",
+                    &gtk4::Label::new(Some(branch)),
+                    &self_.details_group,
+                ));
         }
 
         if data.needs_update() {
-            let row = adw::ActionRow::builder().activatable(true).build();
-            let title = gtk4::Label::builder().label("Needs update").build();
-
-            row.add_prefix(&title);
-            self_.details.append(&row);
+            self_
+                .details
+                .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                    "Needs update",
+                    &gtk4::Label::new(None),
+                    &self_.details_group,
+                ));
         }
     }
 
@@ -350,13 +343,15 @@ impl EpicEngineDetails {
             if let Some(versions) = &*self_.docker_versions.borrow() {
                 let combo = gtk4::ComboBoxText::new();
                 combo.set_hexpand(true);
-                let row = adw::ActionRow::builder().activatable(true).build();
-                let title = gtk4::Label::builder().label("Available Versions").build();
-                row.add_prefix(&title);
-                row.add_suffix(&combo);
-                self_.details.append(&row);
+                self_
+                    .details
+                    .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                        "Available Versions",
+                        &combo,
+                        &self_.details_group,
+                    ));
 
-                let row = adw::ActionRow::builder().activatable(true).build();
+                let row = gtk4::ListBoxRow::new();
                 row.set_tooltip_markup(Some(
                     "Include <b>Template Projects</b> and <b>Debug symbols</b>?",
                 ));
@@ -365,14 +360,17 @@ impl EpicEngineDetails {
                 b.append(&title);
                 let info = gtk4::Image::from_icon_name("dialog-information-symbolic");
                 b.append(&info);
-
-                row.add_prefix(&b);
+                self_.details_group.add_widget(&b);
+                let bo = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
+                bo.append(&b);
                 let check = gtk4::CheckButton::builder()
                     .active(true)
                     .hexpand(true)
                     .build();
-                row.add_suffix(&check);
+                bo.append(&check);
+                row.set_child(Some(&bo));
                 self_.details.append(&row);
+
                 combo.connect_changed(
                     clone!(@weak self as detail, @weak check as check => move |c| {
                         detail.version_selected(c, &check);
@@ -402,23 +400,22 @@ impl EpicEngineDetails {
                     }
                 }
 
-                let row = adw::ActionRow::builder()
-                    .activatable(true)
-                    .name("size_row")
-                    .build();
-                let title = gtk4::Label::builder().label("Download Size").build();
                 let size_label = gtk4::Label::builder()
                     .name("size_label")
-                    .hexpand(true)
                     .label("unknown")
                     .build();
                 size_label
                     .bind_property("label", self, "download-size")
                     .flags(glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE)
                     .build();
-                row.add_prefix(&title);
-                row.add_suffix(&size_label);
-                self_.details.append(&row);
+
+                self_
+                    .details
+                    .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                        "Download Size",
+                        &size_label,
+                        &self_.details_group,
+                    ));
             } else {
                 let label = gtk4::Label::builder()
                     .hexpand(true)

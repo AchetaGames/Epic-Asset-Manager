@@ -107,9 +107,9 @@
                                                     </object>
                                                 </child>
                                                 <child>
-                                                    <object class="GtkBox" id="details_box">
+                                                    <object class="GtkListBox" id="details_box">
+                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
                                                         <property name="vexpand">True</property>
-                                                        <property name="orientation">vertical</property>
                                                     </object>
                                                 </child>
                                             </object>

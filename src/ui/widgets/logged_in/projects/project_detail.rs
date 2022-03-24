@@ -1,13 +1,10 @@
-use adw::ActionRow;
-use std::path::PathBuf;
-
-use adw::traits::ActionRowExt;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
+use std::path::PathBuf;
 
 use crate::models::project_data::Uproject;
 use crate::schema::unreal_project_latest_engine;
@@ -31,9 +28,7 @@ pub(crate) mod imp {
         #[template_child]
         pub detail_slider: TemplateChild<gtk4::Revealer>,
         #[template_child]
-        pub details: TemplateChild<gtk4::Box>,
-        #[template_child]
-        pub details_box: TemplateChild<gtk4::Box>,
+        pub details: TemplateChild<gtk4::ListBox>,
         #[template_child]
         pub title: TemplateChild<gtk4::Label>,
         pub window: OnceCell<EpicAssetManagerWindow>,
@@ -42,6 +37,7 @@ pub(crate) mod imp {
         pub uproject: RefCell<Option<Uproject>>,
         pub engine: RefCell<Option<UnrealEngine>>,
         pub settings: gio::Settings,
+        pub details_group: gtk4::SizeGroup,
     }
 
     #[glib::object_subclass]
@@ -55,7 +51,6 @@ pub(crate) mod imp {
                 expanded: RefCell::new(false),
                 detail_slider: TemplateChild::default(),
                 details: TemplateChild::default(),
-                details_box: TemplateChild::default(),
                 title: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
@@ -63,6 +58,7 @@ pub(crate) mod imp {
                 uproject: RefCell::new(None),
                 engine: RefCell::new(None),
                 settings: gio::Settings::new(crate::config::APP_ID),
+                details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
             }
         }
 
@@ -230,8 +226,8 @@ impl UnrealProjectDetails {
         let self_ = self.imp();
         self.set_property("path", &path);
         self_.uproject.replace(Some(project.clone()));
-        while let Some(el) = self_.details_box.first_child() {
-            self_.details_box.remove(&el);
+        while let Some(el) = self_.details.first_child() {
+            self_.details.remove(&el);
         }
         if path.is_none() {
             return;
@@ -244,10 +240,6 @@ impl UnrealProjectDetails {
         ));
 
         // Engine
-        let row = adw::ActionRow::builder().activatable(true).build();
-        let title = gtk4::Label::builder().label("Engine").build();
-
-        row.add_prefix(&title);
         let combo = gtk4::ComboBoxText::new();
         let associated = self.associated_engine(project);
         self.set_launch_enabled(false);
@@ -310,37 +302,35 @@ impl UnrealProjectDetails {
         };
         // TODO: Change the project config based on the engine selected
 
-        row.add_suffix(&combo);
-        self_.details_box.append(&row);
+        self_
+            .details
+            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                "Engine",
+                &combo,
+                &self_.details_group,
+            ));
 
         // Path
-        self_.details_box.append(&Self::build_row_with_label(
-            "Path",
-            pathbuf.parent().unwrap().to_str().unwrap(),
-        ));
+        self_
+            .details
+            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                "Path",
+                &gtk4::Label::new(Some(pathbuf.parent().unwrap().to_str().unwrap())),
+                &self_.details_group,
+            ));
 
         // Engine Association
-        self_.details_box.append(&Self::build_row_with_label(
-            "Engine Association",
-            &project.engine_association,
-        ));
+        self_
+            .details
+            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                "Engine Association",
+                &gtk4::Label::new(Some(&project.engine_association)),
+                &self_.details_group,
+            ));
 
         if !self.is_expanded() {
             self.set_property("expanded", true);
         }
-    }
-
-    fn build_row_with_label(prefix: &str, suffix: &str) -> ActionRow {
-        let row = adw::ActionRow::builder().activatable(true).build();
-        let title = gtk4::Label::builder().label(prefix).build();
-        row.add_prefix(&title);
-        let label = gtk4::Label::builder()
-            .label(suffix)
-            .wrap(true)
-            .xalign(0.0)
-            .build();
-        row.add_suffix(&label);
-        row
     }
 
     fn engine_selected(&self, combo: &gtk4::ComboBoxText) {

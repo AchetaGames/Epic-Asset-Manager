@@ -10,17 +10,31 @@
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <child>
-                            <object class="AdwActionRow" id="version_row">
-                                <property name="activatable">True</property>
-                                <child type="prefix">
-                                    <object class="GtkLabel" id="version_label">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">Select version</property>
-                                    </object>
-                                </child>
-                                <child type="suffix">
-                                    <object class="GtkComboBoxText" id="select_download_version">
-                                        <property name="hexpand">true</property>
+                            <object class="GtkListBox">
+                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                <child>
+                                    <object class="GtkListBoxRow">
+                                        <child>
+                                            <object class="GtkBox" id="version_row">
+                                                <property name="spacing">5</property>
+                                                <property name="margin-start">5</property>
+                                                <property name="margin-end">5</property>
+                                                <property name="margin-top">5</property>
+                                                <property name="margin-bottom">5</property>
+                                                <child>
+                                                    <object class="GtkLabel" id="version_label">
+                                                        <property name="xalign">1.0</property>
+                                                        <property name="can-focus">0</property>
+                                                        <property name="label" translatable="yes">Select version</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkComboBoxText" id="select_download_version">
+                                                        <property name="hexpand">true</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
@@ -30,7 +44,7 @@
                                 <property name="reveal-child">true</property>
                                 <child>
                                     <object class="GtkListBox" id="additional_details">
-                                        <property name="selection-mode">None</property>
+                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
                                     </object>
                                 </child>
                             </object>
