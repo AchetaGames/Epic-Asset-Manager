@@ -1,23 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <object class="GtkSizeGroup">
-        <widgets>
-            <widget name="version_label"/>
-            <widget name="supported_label"/>
-            <widget name="platforms_label"/>
-            <widget name="release_date_label"/>
-            <widget name="release_notes_label"/>
-        </widgets>
-    </object>
-    <object class="GtkSizeGroup">
-        <widgets>
-            <widget name="select_download_version"/>
-            <widget name="supported_versions"/>
-            <widget name="platforms"/>
-            <widget name="release_date"/>
-            <widget name="release_notes"/>
-        </widgets>
-    </object>
     <template class="EpicAssetActions" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
@@ -47,88 +29,8 @@
                             <object class="GtkRevealer" id="asset_details_revealer">
                                 <property name="reveal-child">true</property>
                                 <child>
-                                    <object class="GtkBox">
-                                        <property name="orientation">vertical</property>
-                                        <child>
-                                            <object class="AdwActionRow" id="supported_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="supported_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Supported versions</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="supported_versions">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicAssetActions" bind-property="supported-versions" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="AdwActionRow" id="platforms_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="platforms_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Platforms</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="platforms">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicAssetActions" bind-property="platforms" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="AdwActionRow" id="release_date_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="release_date_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Release date</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="release_date">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicAssetActions" bind-property="release-date" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="AdwActionRow" id="release_notes_row">
-                                                <property name="activatable">True</property>
-                                                <child type="prefix">
-                                                    <object class="GtkLabel" id="release_notes_label">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Release notes</property>
-                                                    </object>
-                                                </child>
-                                                <child type="suffix">
-                                                    <object class="GtkLabel" id="release_notes">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="wrap">true</property>
-                                                        <property name="hexpand">true</property>
-                                                        <property name="xalign">0.0</property>
-                                                        <property name="label" translatable="yes" bind-source="EpicAssetActions" bind-property="release-notes" bind-flags="sync-create"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
+                                    <object class="GtkListBox" id="additional_details">
+                                        <property name="selection-mode">None</property>
                                     </object>
                                 </child>
                             </object>

@@ -4,7 +4,7 @@ use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*};
+use gtk4::{self, gio, prelude::*, Align, Orientation, SizeGroupMode};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
@@ -41,14 +41,6 @@ pub(crate) mod imp {
         #[template_child]
         pub select_download_version: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
-        pub supported_row: TemplateChild<adw::ActionRow>,
-        #[template_child]
-        pub platforms_row: TemplateChild<adw::ActionRow>,
-        #[template_child]
-        pub release_date_row: TemplateChild<adw::ActionRow>,
-        #[template_child]
-        pub release_notes_row: TemplateChild<adw::ActionRow>,
-        #[template_child]
         pub asset_details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub download_row: TemplateChild<adw::ExpanderRow>,
@@ -67,12 +59,15 @@ pub(crate) mod imp {
             crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
         >,
         #[template_child]
+        pub additional_details: TemplateChild<gtk4::ListBox>,
+        #[template_child]
         pub add_to_project:
             TemplateChild<crate::ui::widgets::logged_in::library::add_to_project::EpicAddToProject>,
         #[template_child]
         pub create_asset_project: TemplateChild<
             crate::ui::widgets::logged_in::library::create_asset_project::EpicCreateAssetProject,
         >,
+        pub details_group: gtk4::SizeGroup,
     }
 
     #[glib::object_subclass]
@@ -94,10 +89,6 @@ pub(crate) mod imp {
                 download_manager: OnceCell::new(),
                 version_row: TemplateChild::default(),
                 select_download_version: TemplateChild::default(),
-                supported_row: TemplateChild::default(),
-                platforms_row: TemplateChild::default(),
-                release_date_row: TemplateChild::default(),
-                release_notes_row: TemplateChild::default(),
                 asset_details_revealer: TemplateChild::default(),
                 download_row: TemplateChild::default(),
                 project_row: TemplateChild::default(),
@@ -106,8 +97,10 @@ pub(crate) mod imp {
                 install_row: TemplateChild::default(),
                 asset_actions_button: TemplateChild::default(),
                 download_details: TemplateChild::default(),
+                additional_details: TemplateChild::default(),
                 add_to_project: TemplateChild::default(),
                 create_asset_project: TemplateChild::default(),
+                details_group: gtk4::SizeGroup::new(SizeGroupMode::Both),
             }
         }
 
@@ -365,6 +358,9 @@ impl EpicAssetActions {
             }
         };
 
+        while let Some(el) = self_.additional_details.first_child() {
+            self_.additional_details.remove(&el);
+        }
         self_.asset.replace(Some(asset.clone()));
         self_.version_row.set_visible(true);
         self_.download_details.set_asset(&asset.clone());
@@ -417,9 +413,57 @@ impl EpicAssetActions {
         }
     }
 
+    fn process_download_manifest(
+        &self,
+        release_id: String,
+        manifests: Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+    ) {
+        let self_ = self.imp();
+        if let Some(id) = self_.select_download_version.active_id() {
+            if release_id.eq(&id) {
+                if let Some(manifest) = manifests.into_iter().next() {
+                    self.add_detail(
+                        "Download Size",
+                        &gtk4::Label::new(Some(&format!(
+                            "{}",
+                            byte_unit::Byte::from_bytes(manifest.total_download_size())
+                                .get_appropriate_unit(false)
+                        ))),
+                    );
+                    self.add_detail(
+                        "Size",
+                        &gtk4::Label::new(Some(&format!(
+                            "{}",
+                            byte_unit::Byte::from_bytes(manifest.total_size())
+                                .get_appropriate_unit(false)
+                        ))),
+                    );
+                }
+            }
+        };
+    }
+
+    fn add_detail(&self, label: &str, widget: &impl IsA<gtk4::Widget>) {
+        let self_ = self.imp();
+        let b = gtk4::Box::new(Orientation::Horizontal, 5);
+        b.set_margin_start(5);
+        b.set_margin_end(5);
+        b.set_margin_bottom(5);
+        b.set_margin_top(5);
+        let label = gtk4::Label::new(Some(label));
+        label.set_valign(Align::Start);
+        self_.details_group.add_widget(&label);
+        b.append(&label);
+        b.append(widget);
+        let row = gtk4::ListBoxRow::builder().child(&b);
+        self_.additional_details.append(&row.build());
+    }
+
     pub fn version_selected(&self) {
         let self_ = self.imp();
-        // TODO: Get manifest for download size and other info
+        while let Some(el) = self_.additional_details.first_child() {
+            self_.additional_details.remove(&el);
+        }
         if let Some(id) = self_.select_download_version.active_id() {
             self.set_property("selected-version", id.to_string());
             self_
@@ -428,38 +472,41 @@ impl EpicAssetActions {
             if let Some(asset_info) = &*self_.asset.borrow() {
                 if let Some(release) = asset_info.release_info(&id.to_string()) {
                     if let Some(ref compatible) = release.compatible_apps {
-                        self.set_property(
-                            "supported-versions",
-                            &compatible.join(", ").replace("UE_", ""),
+                        self.add_detail(
+                            "Supported versions",
+                            &gtk4::Label::new(Some(&compatible.join(", ").replace("UE_", ""))),
                         );
-                        self_.supported_row.get().set_visible(true);
-                    } else {
-                        self_.supported_row.get().set_visible(false);
                     }
                     if let Some(ref platforms) = release.platform {
-                        self.set_property("platforms", &platforms.join(", "));
-                        self_.platforms_row.get().set_visible(true);
-                    } else {
-                        self_.platforms_row.get().set_visible(false);
+                        self.add_detail(
+                            "Platforms",
+                            &gtk4::Label::new(Some(&platforms.join(", "))),
+                        );
                     }
                     if let Some(ref date) = release.date_added {
-                        self.set_property(
-                            "release-date",
-                            &date.naive_local().format("%F").to_string(),
+                        self.add_detail(
+                            "Release Date",
+                            &gtk4::Label::new(Some(&date.naive_local().format("%F").to_string())),
                         );
-                        self_.release_date_row.get().set_visible(true);
-                    } else {
-                        self_.release_date_row.get().set_visible(false);
                     }
                     if let Some(ref note) = release.release_note {
-                        if note.is_empty() {
-                            self_.release_notes_row.get().set_visible(false);
-                        } else {
-                            self_.release_notes_row.get().set_visible(true);
-                            self.set_property("release-notes", &note);
+                        if !note.is_empty() {
+                            self.add_detail("Release Note", &gtk4::Label::new(Some(note)));
                         }
-                    } else {
-                        self_.release_notes_row.get().set_visible(false);
+                    }
+                    let (sender, receiver) =
+                        gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+
+                    receiver.attach(
+                        None,
+                        clone!(@weak self as asset_actions => @default-panic, move |(id, manifest)| {
+                            asset_actions.process_download_manifest(id, manifest);
+                            glib::Continue(true)
+                        }),
+                    );
+
+                    if let Some(dm) = self_.download_manager.get() {
+                        dm.download_asset_manifest(id.to_string(), asset_info.clone(), sender);
                     }
                 }
             }
