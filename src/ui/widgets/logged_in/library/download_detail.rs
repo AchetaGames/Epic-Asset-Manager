@@ -15,6 +15,7 @@ pub(crate) mod imp {
     pub struct EpicDownloadDetails {
         selected_version: RefCell<Option<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub settings: gio::Settings,
@@ -32,6 +33,7 @@ pub(crate) mod imp {
             Self {
                 selected_version: RefCell::new(None),
                 asset: RefCell::new(None),
+                manifest: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
@@ -199,8 +201,22 @@ impl EpicDownloadDetails {
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_ = self.imp();
+        if let Some(asset_info) = &*self_.asset.borrow() {
+            // Remove old manifest if we are setting a new asset
+            if !asset_info.id.eq(&asset.id) {
+                self_.manifest.replace(None);
+            }
+        };
         self_.asset.replace(Some(asset.clone()));
         self.set_target_directories();
+    }
+
+    pub fn set_manifest(
+        &self,
+        manifest: &egs_api::api::types::download_manifest::DownloadManifest,
+    ) {
+        let self_ = self.imp();
+        self_.manifest.replace(Some(manifest.clone()));
     }
 
     pub fn selected_version(&self) -> String {

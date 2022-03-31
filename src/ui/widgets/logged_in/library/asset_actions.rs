@@ -364,6 +364,8 @@ impl EpicAssetActions {
         }
         self_.asset.replace(Some(asset.clone()));
         self_.download_details.set_asset(&asset.clone());
+        self_.add_to_project.set_asset(&asset.clone());
+        self_.create_asset_project.set_asset(&asset.clone());
         self_.select_download_version.remove_all();
         if let Some(releases) = asset.sorted_releases() {
             for (id, release) in releases.iter().enumerate() {
@@ -422,6 +424,9 @@ impl EpicAssetActions {
         if let Some(id) = self_.select_download_version.active_id() {
             if release_id.eq(&id) {
                 if let Some(manifest) = manifests.into_iter().next() {
+                    self_.add_to_project.set_manifest(&manifest);
+                    self_.download_details.set_manifest(&manifest);
+                    self_.create_asset_project.set_manifest(&manifest);
                     self.add_detail(
                         "Download Size",
                         &gtk4::Label::new(Some(&format!(
@@ -463,6 +468,12 @@ impl EpicAssetActions {
             self.set_property("selected-version", id.to_string());
             self_
                 .download_details
+                .set_property("selected-version", id.to_string());
+            self_
+                .create_asset_project
+                .set_property("selected-version", id.to_string());
+            self_
+                .add_to_project
                 .set_property("selected-version", id.to_string());
             if let Some(asset_info) = &*self_.asset.borrow() {
                 if let Some(release) = asset_info.release_info(&id.to_string()) {

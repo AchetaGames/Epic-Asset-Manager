@@ -7,6 +7,7 @@ use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::gio::prelude::SettingsExt;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
+use std::path::PathBuf;
 
 pub enum AssetType {
     Asset,
@@ -368,23 +369,34 @@ impl AssetData {
         let self_ = self.imp();
         let asset = &*self_.asset.borrow();
         if let Some(ass) = asset {
-            for vault in self_.settings.strv("unreal-vault-directories") {
-                let pathbuf = std::path::PathBuf::from(&vault);
-                if let Some(ris) = &ass.release_info {
-                    for ri in ris {
-                        let mut p = pathbuf.clone();
-                        if let Some(app) = &ri.app_id {
-                            p.push(&app);
-                            p.push("data");
-                            if p.exists() {
-                                self.set_property("downloaded", true);
-                                return;
-                            }
+            if let Some(ris) = &ass.release_info {
+                let vaults = self_.settings.strv("unreal-vault-directories");
+                for ri in ris {
+                    if let Some(app) = &ri.app_id {
+                        if !Self::downloaded_locations(&vaults, app).is_empty() {
+                            self.set_property("downloaded", true);
+                            return;
                         }
                     }
                 }
             }
         }
+    }
+
+    pub fn downloaded_locations(
+        directories: &[gtk4::glib::GString],
+        asset_id: &str,
+    ) -> Vec<PathBuf> {
+        let mut result: Vec<std::path::PathBuf> = Vec::new();
+        for directory in directories {
+            let mut path = std::path::PathBuf::from(&directory);
+            path.push(asset_id);
+            path.push("data");
+            if path.exists() {
+                result.push(path);
+            }
+        }
+        result
     }
 
     pub fn check_favorite(&self) {
