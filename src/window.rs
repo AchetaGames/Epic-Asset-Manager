@@ -26,7 +26,7 @@ pub(crate) mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/window.ui")]
     pub struct EpicAssetManagerWindow {
         #[template_child]
-        pub headerbar: TemplateChild<gtk4::HeaderBar>,
+        pub headerbar: TemplateChild<adw::HeaderBar>,
         #[template_child]
         pub main_stack: TemplateChild<gtk4::Stack>,
         #[template_child]
