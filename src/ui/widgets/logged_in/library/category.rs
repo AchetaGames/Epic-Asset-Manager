@@ -290,7 +290,7 @@ impl EpicSidebarCategory {
         ));
     }
 
-    pub fn filter(&self) -> String {
+    pub fn filter(&self) -> Option<String> {
         self.property("filter")
     }
 
