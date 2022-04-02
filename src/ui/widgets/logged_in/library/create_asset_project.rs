@@ -1,3 +1,4 @@
+use crate::ui::widgets::download_manager::asset::Asset;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -212,7 +213,6 @@ impl EpicCreateAssetProject {
     }
 
     fn directory_changed(&self) {
-        let self_ = self.imp();
         self.validate_target_directory();
     }
 

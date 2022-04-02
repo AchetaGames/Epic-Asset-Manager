@@ -1,5 +1,6 @@
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
+use crate::ui::widgets::download_manager::asset::Asset;
 use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
