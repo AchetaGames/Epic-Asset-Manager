@@ -57,6 +57,12 @@ pub enum DownloadStatus {
     Extracted,
 }
 
+#[derive(Debug, Clone)]
+pub enum PostDownloadAction {
+    Copy(String),
+    StripPrefix(String),
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct DownloadedFile {
     pub(crate) asset: String,
@@ -356,66 +362,60 @@ impl EpicDownloadManager {
         thumbnail: Option<egs_api::api::types::asset_info::KeyImage>,
     ) {
         let self_ = self.imp();
-        match thumbnail {
-            None => {}
-            Some(t) => {
-                let cache_dir = self_.settings.string("cache-directory").to_string();
-                let mut cache_path = std::path::PathBuf::from(cache_dir);
-                let sender = self_.sender.clone();
-                cache_path.push("images");
-                let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
-                cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
-                self_.thumbnail_pool.execute(move || {
-                    if let Ok(w) = crate::RUNNING.read() {
-                        if !*w {
-                            return;
-                        }
+        if let Some(t) = thumbnail {
+            let cache_dir = self_.settings.string("cache-directory").to_string();
+            let mut cache_path = std::path::PathBuf::from(cache_dir);
+            let sender = self_.sender.clone();
+            cache_path.push("images");
+            let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
+            cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
+            self_.thumbnail_pool.execute(move || {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
                     }
-                    match File::open(cache_path.as_path()) {
-                        Ok(mut f) => {
-                            let metadata = std::fs::metadata(&cache_path.as_path())
-                                .expect("unable to read metadata");
-                            let mut buffer = vec![0; metadata.len() as usize];
-                            f.read_exact(&mut buffer).expect("buffer overflow");
-                            let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
-                            pixbuf_loader.write(&buffer).unwrap();
-                            pixbuf_loader.close().ok();
-                            match pixbuf_loader.pixbuf() {
-                                None => {}
-                                Some(pb) => {
-                                    let width = pb.width();
-                                    let height = pb.height();
+                }
+                match File::open(cache_path.as_path()) {
+                    Ok(mut f) => {
+                        let metadata = std::fs::metadata(&cache_path.as_path())
+                            .expect("unable to read metadata");
+                        let mut buffer = vec![0; metadata.len() as usize];
+                        f.read_exact(&mut buffer).expect("buffer overflow");
+                        let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
+                        pixbuf_loader.write(&buffer).unwrap();
+                        pixbuf_loader.close().ok();
+                        if let Some(pb) = pixbuf_loader.pixbuf() {
+                            let width = pb.width();
+                            let height = pb.height();
 
-                                    let width_percent = 64.0 / width as f64;
-                                    let height_percent = 64.0 / height as f64;
-                                    let percent = if height_percent < width_percent {
-                                        height_percent
-                                    } else {
-                                        width_percent
-                                    };
-                                    let desired = (width as f64 * percent, height as f64 * percent);
-                                    sender
-                                        .send(DownloadMsg::ProcessItemThumbnail(
-                                            id.clone(),
-                                            pb.scale_simple(
-                                                desired.0.round() as i32,
-                                                desired.1.round() as i32,
-                                                gtk4::gdk_pixbuf::InterpType::Bilinear,
-                                            )
-                                            .unwrap()
-                                            .save_to_bufferv("png", &[])
-                                            .unwrap(),
-                                        ))
-                                        .unwrap();
-                                }
+                            let width_percent = 64.0 / width as f64;
+                            let height_percent = 64.0 / height as f64;
+                            let percent = if height_percent < width_percent {
+                                height_percent
+                            } else {
+                                width_percent
                             };
-                        }
-                        Err(_) => {
-                            warn!("Need to load image");
-                        }
-                    };
-                });
-            }
+                            let desired = (width as f64 * percent, height as f64 * percent);
+                            sender
+                                .send(DownloadMsg::ProcessItemThumbnail(
+                                    id.clone(),
+                                    pb.scale_simple(
+                                        desired.0.round() as i32,
+                                        desired.1.round() as i32,
+                                        gtk4::gdk_pixbuf::InterpType::Bilinear,
+                                    )
+                                    .unwrap()
+                                    .save_to_bufferv("png", &[])
+                                    .unwrap(),
+                                ))
+                                .unwrap();
+                        };
+                    }
+                    Err(_) => {
+                        warn!("Need to load image");
+                    }
+                };
+            });
         }
     }
 
@@ -432,7 +432,8 @@ impl EpicDownloadManager {
         &self,
         release_id: String,
         asset: egs_api::api::types::asset_info::AssetInfo,
-        target: Option<String>,
+        target: &Option<String>,
+        actions: Option<Vec<PostDownloadAction>>,
     ) {
         debug!("Adding download: {:?}", asset.title);
 

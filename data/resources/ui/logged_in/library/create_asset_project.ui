@@ -26,6 +26,7 @@
                         </child>
                         <child>
                             <object class="AdwActionRow" id="warning_row">
+                                <property name="visible">false</property>
                                 <property name="activatable">True</property>
                                 <child type="prefix">
                                     <object class="GtkLabel">

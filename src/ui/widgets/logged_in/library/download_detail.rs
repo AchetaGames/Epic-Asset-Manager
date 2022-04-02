@@ -189,10 +189,11 @@ impl EpicDownloadDetails {
                 dm.add_asset_download(
                     self.selected_version(),
                     asset_info.clone(),
-                    self_
+                    &self_
                         .select_target_directory
                         .active_id()
                         .map(|v| v.to_string()),
+                    None,
                 );
                 self.emit_by_name::<()>("start-download", &[]);
             }

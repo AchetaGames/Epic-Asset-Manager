@@ -24,6 +24,8 @@ pub(crate) mod imp {
         pub settings: gio::Settings,
         #[template_child]
         pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
+        #[template_child]
+        pub warning_row: TemplateChild<adw::ActionRow>,
     }
 
     #[glib::object_subclass]
@@ -42,6 +44,7 @@ pub(crate) mod imp {
                 download_manager: OnceCell::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 select_target_directory: TemplateChild::default(),
+                warning_row: TemplateChild::default(),
             }
         }
 
@@ -210,9 +213,7 @@ impl EpicCreateAssetProject {
 
     fn directory_changed(&self) {
         let self_ = self.imp();
-        if let Some(id) = self_.select_target_directory.active_id() {
-            self.validate_target_directory()
-        }
+        self.validate_target_directory();
     }
 
     fn validate_target_directory(&self) {
@@ -222,7 +223,7 @@ impl EpicCreateAssetProject {
                 let mut path = PathBuf::from_str(id.as_str()).unwrap();
                 path.push(project);
                 if path.exists() {
-                    println!("Project already exits in {:?}", path);
+                    self_.warning_row.set_visible(true);
                 }
             }
         }
@@ -232,8 +233,23 @@ impl EpicCreateAssetProject {
         let self_ = self.imp();
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
-                dm.add_asset_download(self.selected_version(), asset_info.clone(), None);
-                self.emit_by_name::<()>("start-download", &[]);
+                if let Some(project) = self.project_name() {
+                    if let Some(id) = self_.select_target_directory.active_id() {
+                        let mut path = PathBuf::from_str(id.as_str()).unwrap();
+                        path.push(project);
+                        dm.add_asset_download(
+                            self.selected_version(),
+                            asset_info.clone(),
+                            &None,
+                            Some(vec![
+                                crate::ui::widgets::download_manager::PostDownloadAction::Copy(
+                                    path.to_str().unwrap().to_string(),
+                                ),
+                            ]),
+                        );
+                        self.emit_by_name::<()>("start-download", &[]);
+                    }
+                }
             }
         }
     }
@@ -246,6 +262,7 @@ impl EpicCreateAssetProject {
                 self_.manifest.replace(None);
             }
         };
+        self_.warning_row.set_visible(false);
         self_.asset.replace(Some(asset.clone()));
     }
 
