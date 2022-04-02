@@ -123,8 +123,12 @@ impl Asset for super::EpicDownloadManager {
                 items.insert(release_id.clone(), item.clone());
             }
             Some(_) => {
+                // Item is already downloading do nothing
                 return;
             }
+        };
+        if let Some(actions) = actions {
+            item.add_actions(&actions)
         };
         item.set_property("label", asset.title.clone());
         item.set_property("target", target.clone());

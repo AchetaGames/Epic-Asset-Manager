@@ -56,7 +56,6 @@ pub enum DownloadStatus {
 #[derive(Debug, Clone)]
 pub enum PostDownloadAction {
     Copy(String),
-    StripPrefix(String),
 }
 
 pub(crate) mod imp {

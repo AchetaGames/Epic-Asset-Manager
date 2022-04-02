@@ -1,3 +1,4 @@
+use crate::ui::widgets::download_manager::PostDownloadAction;
 use gtk4::glib::clone;
 use gtk4::{glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
@@ -28,6 +29,7 @@ pub(crate) mod imp {
         pub downloaded_size: RefCell<u128>,
         pub total_files: RefCell<u64>,
         pub extracted_files: RefCell<u64>,
+        pub post_actions: RefCell<Vec<crate::ui::widgets::download_manager::PostDownloadAction>>,
         pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
         thumbnail: RefCell<Option<Pixbuf>>,
         #[template_child]
@@ -60,6 +62,7 @@ pub(crate) mod imp {
                 downloaded_size: RefCell::new(0),
                 total_files: RefCell::new(0),
                 extracted_files: RefCell::new(0),
+                post_actions: RefCell::new(vec![]),
                 speed_queue: RefCell::new(VecDeque::new()),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
@@ -81,27 +84,6 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicDownloadItem {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
-            obj.setup_messaging();
-            obj.setup_timer();
-        }
-
-        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
-                once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "finished",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
-                });
-            SIGNALS.as_ref()
-        }
-
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -145,6 +127,20 @@ pub(crate) mod imp {
             });
 
             PROPERTIES.as_ref()
+        }
+
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk4::glib::subclass::Signal::builder(
+                        "finished",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
         }
 
         fn set_property(
@@ -219,6 +215,13 @@ pub(crate) mod imp {
                 "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
             }
+        }
+
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+            obj.setup_actions();
+            obj.setup_messaging();
+            obj.setup_timer();
         }
     }
 
@@ -392,5 +395,32 @@ impl EpicDownloadItem {
             } else {
                 new_count as f32 / total_count as f32
             }) / 2.0)
+    }
+
+    pub fn add_actions(&self, actions: &[super::PostDownloadAction]) {
+        let self_ = self.imp();
+        let mut current = self_.post_actions.borrow_mut();
+        let mut result: Vec<PostDownloadAction> = Vec::new();
+        for a in current.iter() {
+            match a {
+                PostDownloadAction::Copy(s) => {
+                    for new in actions {
+                        match new {
+                            PostDownloadAction::Copy(n) => {
+                                if !n.eq(s) {
+                                    result.push(new.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        current.append(&mut result);
+    }
+
+    pub fn actions(&self) -> Vec<PostDownloadAction> {
+        let self_ = self.imp();
+        self_.post_actions.borrow().clone()
     }
 }
