@@ -8,6 +8,7 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
+use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
@@ -21,6 +22,7 @@ pub(crate) mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/asset_detail.ui")]
     pub struct EpicAssetDetails {
         pub expanded: RefCell<bool>,
+        pub downloaded_location: RefCell<Option<std::path::PathBuf>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         #[template_child]
         pub detail_slider: TemplateChild<gtk4::Revealer>,
@@ -52,6 +54,7 @@ pub(crate) mod imp {
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub details_group: gtk4::SizeGroup,
+        pub settings: gtk4::gio::Settings,
     }
 
     #[glib::object_subclass]
@@ -63,6 +66,7 @@ pub(crate) mod imp {
         fn new() -> Self {
             Self {
                 expanded: RefCell::new(false),
+                downloaded_location: RefCell::new(None),
                 asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -80,6 +84,7 @@ pub(crate) mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
+                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
         }
 
@@ -261,6 +266,14 @@ impl EpicAssetDetails {
                 details.toggle_favorites();
             })
         );
+
+        action!(
+            self_.actions,
+            "open_vault",
+            clone!(@weak self as details => move |_, _| {
+                details.open_vault_directory();
+            })
+        );
     }
 
     fn show_download_details(
@@ -274,10 +287,29 @@ impl EpicAssetDetails {
         self_.actions_revealer.set_vexpand(true);
         self_.download_confirmation_revealer.set_reveal_child(false);
         self_.download_confirmation_revealer.set_vexpand(false);
-        get_action!(self_.actions, @show_download_details).set_enabled(false);
         get_action!(self_.actions, @show_asset_details).set_enabled(true);
         self_.asset_actions.set_action(action);
         self_.actions_menu.popdown();
+    }
+
+    fn open_vault_directory(&self) {
+        let self_ = self.imp();
+        if let Some(v) = self_.downloaded_location.borrow().deref() {
+            debug!("Trying to open {}", v.to_str().unwrap());
+            #[cfg(target_os = "linux")]
+            {
+                if let Ok(dir) = std::fs::File::open(v) {
+                    let ctx = glib::MainContext::default();
+                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
+                        ashpd::desktop::open_uri::open_directory(
+                            &ashpd::WindowIdentifier::default(),
+                            &dir,
+                        )
+                        .await.unwrap();
+                    }));
+                };
+            };
+        }
     }
 
     fn show_download_confirmation(&self) {
@@ -318,82 +350,92 @@ impl EpicAssetDetails {
         }
 
         if let Some(asset) = self.asset() {
+            self.create_open_vault_button(&asset);
             if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
                 match kind {
                     AssetType::Asset => {
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Add to Project"),
-                                "edit-select-all-symbolic",
-                            ))
-                            .action_name("details.add_to_project")
-                            .build();
-                        self_.actions_box.append(&button);
+                        self.create_actions_button(
+                            "Add to Project",
+                            "edit-select-all-symbolic",
+                            "details.add_to_project",
+                        );
                     }
                     AssetType::Project => {
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Add to Project"),
-                                "edit-select-all-symbolic",
-                            ))
-                            .action_name("details.add_to_project")
-                            .build();
-                        self_.actions_box.append(&button);
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Create Project"),
-                                "folder-new-symbolic",
-                            ))
-                            .action_name("details.create_project")
-                            .build();
-                        self_.actions_box.append(&button);
+                        self.create_actions_button(
+                            "Add to Project",
+                            "edit-select-all-symbolic",
+                            "details.add_to_project",
+                        );
+                        self.create_actions_button(
+                            "Create Project",
+                            "folder-new-symbolic",
+                            "details.create_project",
+                        );
                     }
                     AssetType::Game => {
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Play"),
-                                "media-playback-start-symbolic",
-                            ))
-                            .action_name("details.play_game")
-                            .build();
-                        self_.actions_box.append(&button);
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Install"),
-                                "system-software-install-symbolic",
-                            ))
-                            .action_name("details.install_game")
-                            .build();
-                        self_.actions_box.append(&button);
+                        self.create_actions_button(
+                            "Play",
+                            "media-playback-start-symbolic",
+                            "details.play_game",
+                        );
+                        self.create_actions_button(
+                            "Install",
+                            "system-software-install-symbolic",
+                            "details.install_game",
+                        );
                     }
                     AssetType::Engine => {}
                     AssetType::Plugin => {
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Add to Project"),
-                                "edit-select-all-symbolic",
-                            ))
-                            .action_name("details.add_to_project")
-                            .build();
-                        self_.actions_box.append(&button);
-                        let button = gtk4::Button::builder()
-                            .child(&Self::build_box_with_icon_label(
-                                Some("Add to Engine"),
-                                "application-x-addon-symbolic",
-                            ))
-                            .action_name("details.add_to_project")
-                            .build();
-                        self_.actions_box.append(&button);
+                        self.create_actions_button(
+                            "Add to Project",
+                            "edit-select-all-symbolic",
+                            "details.add_to_project",
+                        );
+                        self.create_actions_button(
+                            "Add to Engine",
+                            "application-x-addon-symbolic",
+                            "details.add_to_project",
+                        );
                     }
                 }
             }
         }
+        self.create_actions_button(
+            "Download",
+            "folder-download-symbolic",
+            "details.show_download_details",
+        );
+    }
+
+    fn create_open_vault_button(&self, asset: &AssetInfo) {
+        let self_ = self.imp();
+        if let Some(ris) = &asset.release_info {
+            let vaults = self_.settings.strv("unreal-vault-directories");
+            for ri in ris {
+                if let Some(app) = &ri.app_id {
+                    if let Some(loc) =
+                        crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
+                            .into_iter()
+                            .next()
+                    {
+                        self.create_actions_button(
+                            "Open Vault",
+                            "folder-open-symbolic",
+                            "details.open_vault",
+                        );
+                        self_.downloaded_location.replace(Some(loc));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    fn create_actions_button(&self, label: &str, icon: &str, action_name: &str) {
+        let self_ = self.imp();
         let button = gtk4::Button::builder()
-            .child(&Self::build_box_with_icon_label(
-                Some("Download"),
-                "folder-download-symbolic",
-            ))
-            .action_name("details.show_download_details")
+            .child(&Self::build_box_with_icon_label(Some(label), icon))
+            .action_name(action_name)
             .build();
         self_.actions_box.append(&button);
     }

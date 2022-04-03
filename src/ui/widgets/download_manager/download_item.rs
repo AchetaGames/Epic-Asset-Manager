@@ -2,7 +2,6 @@ use crate::ui::widgets::download_manager::PostDownloadAction;
 use gtk4::glib::clone;
 use gtk4::{glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
-use log::warn;
 
 pub(crate) mod imp {
     use super::*;
@@ -145,7 +144,7 @@ pub(crate) mod imp {
 
         fn set_property(
             &self,
-            _obj: &Self::Type,
+            obj: &Self::Type,
             _id: usize,
             value: &glib::Value,
             pspec: &glib::ParamSpec,
@@ -168,16 +167,24 @@ pub(crate) mod imp {
                     self.path.replace(path.clone());
                     if init {
                         if let Some(p) = path {
-                            action!(self.actions, "open", move |_, _| {
-                                if gtk4::gio::AppInfo::launch_default_for_uri(
-                                    &format!("file://{}/data", p),
-                                    None::<&gtk4::gio::AppLaunchContext>,
-                                )
-                                .is_err()
-                                {
-                                    warn!("Unable to open path");
-                                }
-                            });
+                            action!(
+                                self.actions,
+                                "open",
+                                clone!(@weak obj as item =>  move |_, _| {
+                                    if let Ok(dir) = std::fs::File::open(&p) {
+                                        let ctx = glib::MainContext::default();
+                                        ctx.spawn_local(
+                                            clone!(@weak item => async move {
+                                                ashpd::desktop::open_uri::open_directory(
+                                                    &ashpd::WindowIdentifier::default(),
+                                                    &dir,
+                                                )
+                                                .await.unwrap();
+                                            }),
+                                        );
+                                    };
+                                })
+                            );
                         }
                     }
                 }

@@ -6,7 +6,8 @@ use gtk4::glib::Sender;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use rand::Rng;
-use sha1::{Digest, Sha1};
+use sha1::digest::core_api::CoreWrapper;
+use sha1::{Digest, Sha1, Sha1Core};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -815,41 +816,8 @@ impl AssetPriv for super::EpicDownloadManager {
             debug!("Created target directory: {:?}", vault.to_str());
             match File::create(vault.clone()) {
                 Ok(mut target) => {
-                    let mut hasher = Sha1::new();
-                    for chunk in finished.chunks {
-                        let mut t = temp.clone();
-                        t.push(format!("{}.chunk", chunk.guid));
-                        match File::open(t) {
-                            Ok(mut f) => {
-                                let metadata = f.metadata().expect("Unable to read metadata");
-                                let mut buffer = vec![0_u8; metadata.len() as usize];
-                                f.read_exact(&mut buffer).expect("Read failed");
-                                let ch =
-                                    egs_api::api::types::chunk::Chunk::from_vec(buffer).unwrap();
-                                if u128::from(ch.uncompressed_size.unwrap_or(ch.data.len() as u32))
-                                    < chunk.offset + chunk.size
-                                {
-                                    error!("Chunk is not big enough");
-                                    break;
-                                };
-                                hasher.update(
-                                    &ch.data[chunk.offset as usize
-                                        ..(chunk.offset + chunk.size) as usize],
-                                );
-                                target
-                                    .write_all(
-                                        &ch.data[chunk.offset as usize
-                                            ..(chunk.offset + chunk.size) as usize],
-                                    )
-                                    .unwrap();
-                            }
-                            Err(e) => {
-                                error!("Error opening the chunk file: {:?}", e);
-                            }
-                        }
-                        debug!("chunk: {:?}", chunk);
-                    }
-                    let hash = hasher.finalize();
+                    let hash =
+                        extract_chunks(finished.chunks, &temp.clone(), &mut target).finalize();
                     if finished.hash.eq(&hash
                         .iter()
                         .map(|b| format!("{:02x}", b))
@@ -875,6 +843,44 @@ impl AssetPriv for super::EpicDownloadManager {
     }
 }
 
+fn extract_chunks(
+    chunks: Vec<egs_api::api::types::download_manifest::FileChunkPart>,
+    temp: &PathBuf,
+    target: &mut File,
+) -> CoreWrapper<Sha1Core> {
+    let mut hasher = Sha1::new();
+    for chunk in chunks {
+        let mut t = temp.clone();
+        t.push(format!("{}.chunk", chunk.guid));
+        match File::open(t) {
+            Ok(mut f) => {
+                let metadata = f.metadata().expect("Unable to read metadata");
+                let mut buffer = vec![0_u8; metadata.len() as usize];
+                f.read_exact(&mut buffer).expect("Read failed");
+                let ch = egs_api::api::types::chunk::Chunk::from_vec(buffer).unwrap();
+                if u128::from(ch.uncompressed_size.unwrap_or(ch.data.len() as u32))
+                    < chunk.offset + chunk.size
+                {
+                    error!("Chunk is not big enough");
+                    break;
+                };
+                hasher
+                    .update(&ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize]);
+                target
+                    .write_all(
+                        &ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize],
+                    )
+                    .unwrap();
+            }
+            Err(e) => {
+                error!("Error opening the chunk file: {:?}", e);
+            }
+        }
+        debug!("chunk: {:?}", chunk);
+    }
+    hasher
+}
+
 fn copy_files(from: &PathBuf, targets: Vec<(String, bool)>, filename: &str) {
     for t in targets {
         let mut tar = PathBuf::from_str(&t.0).unwrap();
@@ -883,6 +889,8 @@ fn copy_files(from: &PathBuf, targets: Vec<(String, bool)>, filename: &str) {
             continue;
         }
         std::fs::create_dir_all(tar.parent().unwrap()).unwrap();
-        std::fs::copy(from.clone(), tar);
+        if let Err(e) = std::fs::copy(from.clone(), tar) {
+            error!("Unable to copy file: {:?}", e)
+        };
     }
 }
