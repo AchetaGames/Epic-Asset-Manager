@@ -397,24 +397,15 @@ impl EpicDownloadItem {
             }) / 2.0)
     }
 
-    pub fn add_actions(&self, actions: &[super::PostDownloadAction]) {
+    pub fn add_actions(&self, act: &[super::PostDownloadAction]) {
         let self_ = self.imp();
         let mut current = self_.post_actions.borrow_mut();
         let mut result: Vec<PostDownloadAction> = Vec::new();
-        for a in current.iter() {
-            match a {
-                PostDownloadAction::Copy(s) => {
-                    for new in actions {
-                        match new {
-                            PostDownloadAction::Copy(n) => {
-                                if !n.eq(s) {
-                                    result.push(new.clone());
-                                }
-                            }
-                        }
-                    }
-                }
+        for a in act {
+            if current.contains(a) {
+                continue;
             }
+            result.push(a.clone());
         }
         current.append(&mut result);
     }

@@ -1,4 +1,5 @@
 use crate::tools::asset_info::Search;
+use crate::ui::widgets::download_manager::PostDownloadAction;
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -9,6 +10,7 @@ use sha1::{Digest, Sha1};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[derive(Default, Debug, Clone)]
 pub struct DownloadedFile {
@@ -81,6 +83,16 @@ pub(crate) trait Asset {
     fn chunk_progress_report(&self, _guid: &str, _progress: u128, _finished: bool) {
         unimplemented!()
     }
+
+    fn file_already_extracted(
+        &self,
+        _asset_id: String,
+        _progress: u128,
+        _fullname: String,
+        _filename: String,
+    ) {
+        unimplemented!()
+    }
 }
 
 trait AssetPriv {
@@ -128,7 +140,7 @@ impl Asset for super::EpicDownloadManager {
             }
         };
         if let Some(actions) = actions {
-            item.add_actions(&actions)
+            item.add_actions(&actions);
         };
         item.set_property("label", asset.title.clone());
         item.set_property("target", target.clone());
@@ -227,13 +239,36 @@ impl Asset for super::EpicDownloadManager {
             item.set_property("status", "Failed to get download manifests".to_string());
             return;
         }
-        let mut target = match self.unreal_vault_dir(id) {
-            None => {
-                return;
+        let mut targets: Vec<(String, bool)> = Vec::new();
+        let mut to_vault = true;
+        {
+            let actions = item.actions();
+
+            for act in actions {
+                match act {
+                    PostDownloadAction::Copy(t, over) => {
+                        targets.push((t.clone(), over));
+                    }
+                    PostDownloadAction::NoVault => {
+                        to_vault = false;
+                    }
+                }
             }
-            Some(s) => PathBuf::from(s),
         };
-        target.push(dm[0].app_name_string.clone());
+
+        let target = if to_vault || targets.is_empty() {
+            let mut v = match self.unreal_vault_dir(id) {
+                None => {
+                    return;
+                }
+                Some(s) => PathBuf::from(s),
+            };
+            v.push(dm[0].app_name_string.clone());
+            v.push("data");
+            v
+        } else {
+            PathBuf::from_str(&targets.pop().unwrap().0).unwrap()
+        };
         let t = target.clone();
         let manifest = dm[0].clone();
         // Create target directory in the vault and save manifests to it
@@ -265,6 +300,7 @@ impl Asset for super::EpicDownloadManager {
             }
         }
 
+        item.set_property("status", "validating".to_string());
         for (filename, manifest) in dm[0].files() {
             info!("Starting download of {}", filename);
             let r_id = id.to_string();
@@ -273,7 +309,7 @@ impl Asset for super::EpicDownloadManager {
             let sender = self_.sender.clone();
 
             let m = manifest.clone();
-            let full_path = target.clone().as_path().join("data").join(filename);
+            let full_path = target.clone().as_path().join(filename);
             self_.download_pool.execute(move || {
                 initiate_file_download(&r_id, &r_name, &f_name, &sender, m, &full_path);
             });
@@ -507,6 +543,43 @@ impl Asset for super::EpicDownloadManager {
             }
         }
     }
+    fn file_already_extracted(
+        &self,
+        asset_id: String,
+        progress: u128,
+        fullname: String,
+        filename: String,
+    ) {
+        let self_ = self.imp();
+        let item = match self.get_item(&asset_id) {
+            None => {
+                return;
+            }
+            Some(i) => i,
+        };
+
+        let mut targets: Vec<(String, bool)> = Vec::new();
+        {
+            let actions = item.actions();
+
+            for act in actions {
+                if let PostDownloadAction::Copy(t, over) = act {
+                    targets.push((t.clone(), over));
+                }
+            }
+        }
+
+        self_.file_pool.execute(move || {
+            copy_files(&PathBuf::from_str(&fullname).unwrap(), targets, &filename);
+        });
+
+        item.add_downloaded_size(progress);
+        self.emit_by_name::<()>("tick", &[]);
+        self_
+            .sender
+            .send(super::DownloadMsg::FileExtracted(asset_id))
+            .unwrap();
+    }
 }
 
 fn save_asset_manifest(
@@ -580,6 +653,8 @@ fn initiate_file_download(
                     .send(super::DownloadMsg::FileAlreadyDownloaded(
                         r_id.to_string(),
                         m.size(),
+                        full_path.to_str().unwrap().to_string(),
+                        f_name.to_string(),
                     ))
                     .unwrap();
             } else {
@@ -680,12 +755,6 @@ impl AssetPriv for super::EpicDownloadManager {
         file: &str,
         f: &mut DownloadedFile,
     ) {
-        let vault_dir = match self.unreal_vault_dir(&f.asset) {
-            None => {
-                return;
-            }
-            Some(s) => PathBuf::from(s),
-        };
         let self_ = self.imp();
         let temp_dir = PathBuf::from(
             self_
@@ -693,16 +762,45 @@ impl AssetPriv for super::EpicDownloadManager {
                 .string("temporary-download-directory")
                 .to_string(),
         );
+        let mut targets: Vec<(String, bool)> = Vec::new();
+        let mut to_vault = true;
+        {
+            let actions = match self.get_item(&f.asset) {
+                None => vec![],
+                Some(i) => i.actions(),
+            };
+
+            for act in actions {
+                match act {
+                    PostDownloadAction::Copy(t, over) => {
+                        targets.push((t.clone(), over));
+                    }
+                    PostDownloadAction::NoVault => {
+                        to_vault = false;
+                    }
+                }
+            }
+        }
 
         debug!("File finished {}", f.name);
         finished_files.push(file.to_string());
         let finished = f.clone();
         let mut temp = temp_dir.clone();
-        let mut vault = vault_dir.clone();
         temp.push(f.release.clone());
         temp.push("temp");
-        vault.push(f.release.clone());
-        vault.push("data");
+        let mut vault = if to_vault || targets.is_empty() {
+            let mut v = match self.unreal_vault_dir(&f.asset) {
+                None => {
+                    return;
+                }
+                Some(s) => PathBuf::from(s),
+            };
+            v.push(f.release.clone());
+            v.push("data");
+            v
+        } else {
+            PathBuf::from_str(&targets.pop().unwrap().0).unwrap()
+        };
         let sender = self_.sender.clone();
         let f_c = f.clone();
         let file_c = file.to_string();
@@ -712,7 +810,7 @@ impl AssetPriv for super::EpicDownloadManager {
                     return;
                 }
             };
-            vault.push(finished.name);
+            vault.push(&finished.name);
             std::fs::create_dir_all(vault.parent().unwrap()).unwrap();
             debug!("Created target directory: {:?}", vault.to_str());
             match File::create(vault.clone()) {
@@ -757,6 +855,7 @@ impl AssetPriv for super::EpicDownloadManager {
                         .map(|b| format!("{:02x}", b))
                         .collect::<String>())
                     {
+                        copy_files(&vault.clone(), targets, &finished.name);
                         sender
                             .send(super::DownloadMsg::FinalizeFileDownload(
                                 file_c.to_string(),
@@ -773,5 +872,17 @@ impl AssetPriv for super::EpicDownloadManager {
                 }
             }
         });
+    }
+}
+
+fn copy_files(from: &PathBuf, targets: Vec<(String, bool)>, filename: &str) {
+    for t in targets {
+        let mut tar = PathBuf::from_str(&t.0).unwrap();
+        tar.push(filename);
+        if tar.exists() && !t.1 {
+            continue;
+        }
+        std::fs::create_dir_all(tar.parent().unwrap()).unwrap();
+        std::fs::copy(from.clone(), tar);
     }
 }

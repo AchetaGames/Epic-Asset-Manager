@@ -35,7 +35,7 @@
                                     </object>
                                 </child>
                                 <child type="suffix">
-                                    <object class="GtkCheckButton">
+                                    <object class="GtkCheckButton" id="overwrite">
                                         <property name="label">Overwrite?</property>
                                     </object>
                                 </child>

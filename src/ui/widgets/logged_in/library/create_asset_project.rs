@@ -27,6 +27,8 @@ pub(crate) mod imp {
         pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
         pub warning_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub overwrite: TemplateChild<gtk4::CheckButton>,
     }
 
     #[glib::object_subclass]
@@ -46,6 +48,7 @@ pub(crate) mod imp {
                 settings: gio::Settings::new(crate::config::APP_ID),
                 select_target_directory: TemplateChild::default(),
                 warning_row: TemplateChild::default(),
+                overwrite: TemplateChild::default(),
             }
         }
 
@@ -188,6 +191,7 @@ impl EpicCreateAssetProject {
         if self_.download_manager.get().is_some() {
             return;
         }
+        debug!("Set Download manager");
 
         self_.download_manager.set(dm.clone()).unwrap();
     }
@@ -231,10 +235,15 @@ impl EpicCreateAssetProject {
 
     fn create(&self) {
         let self_ = self.imp();
+        debug!("Clicked create");
         if let Some(dm) = self_.download_manager.get() {
+            debug!("Got DM");
             if let Some(asset_info) = &*self_.asset.borrow() {
+                debug!("Got Asset");
                 if let Some(project) = self.project_name() {
+                    debug!("Got Project");
                     if let Some(id) = self_.select_target_directory.active_id() {
+                        debug!("Got Target");
                         let mut path = PathBuf::from_str(id.as_str()).unwrap();
                         path.push(project);
                         dm.add_asset_download(
@@ -244,6 +253,7 @@ impl EpicCreateAssetProject {
                             Some(vec![
                                 crate::ui::widgets::download_manager::PostDownloadAction::Copy(
                                     path.to_str().unwrap().to_string(),
+                                    self_.overwrite.is_active(),
                                 ),
                             ]),
                         );

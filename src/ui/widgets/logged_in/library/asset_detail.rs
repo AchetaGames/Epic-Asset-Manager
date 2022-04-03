@@ -226,7 +226,15 @@ impl EpicAssetDetails {
             actions,
             "show_download_details",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details();
+                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
+            })
+        );
+
+        action!(
+            actions,
+            "create_project",
+            clone!(@weak self as details => move |_, _| {
+                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::CreateProject);
             })
         );
 
@@ -255,7 +263,10 @@ impl EpicAssetDetails {
         );
     }
 
-    fn show_download_details(&self) {
+    fn show_download_details(
+        &self,
+        action: crate::ui::widgets::logged_in::library::asset_actions::Action,
+    ) {
         let self_ = self.imp();
         self_.details_revealer.set_reveal_child(false);
         self_.details_revealer.set_vexpand_set(true);
@@ -265,9 +276,7 @@ impl EpicAssetDetails {
         self_.download_confirmation_revealer.set_vexpand(false);
         get_action!(self_.actions, @show_download_details).set_enabled(false);
         get_action!(self_.actions, @show_asset_details).set_enabled(true);
-        self_
-            .asset_actions
-            .set_action(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
+        self_.asset_actions.set_action(action);
         self_.actions_menu.popdown();
     }
 

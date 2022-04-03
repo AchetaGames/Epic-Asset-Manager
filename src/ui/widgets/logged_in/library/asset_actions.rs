@@ -277,6 +277,7 @@ impl EpicAssetActions {
         }
 
         self_.download_details.set_download_manager(&dm.clone());
+        self_.create_asset_project.set_download_manager(&dm.clone());
         self_.download_manager.set(dm.clone()).unwrap();
     }
 

@@ -35,7 +35,7 @@ pub enum DownloadMsg {
     RedownloadChunk(Url, PathBuf, String),
     ChunkDownloadProgress(String, u128, bool),
     FinalizeFileDownload(String, asset::DownloadedFile),
-    FileAlreadyDownloaded(String, u128),
+    FileAlreadyDownloaded(String, u128, String, String),
     FileExtracted(String),
     PerformDockerEngineDownload(String, u64, Vec<(String, u64)>),
     DockerDownloadProgress(String, u64),
@@ -53,9 +53,10 @@ pub enum DownloadStatus {
     Extracted,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PostDownloadAction {
-    Copy(String),
+    Copy(String, bool),
+    NoVault,
 }
 
 pub(crate) mod imp {
@@ -286,16 +287,8 @@ impl EpicDownloadManager {
             DownloadMsg::FinalizeFileDownload(file, file_details) => {
                 self.finalize_file_download(&file, file_details);
             }
-            DownloadMsg::FileAlreadyDownloaded(id, progress) => {
-                let item = match self.get_item(&id) {
-                    None => {
-                        return;
-                    }
-                    Some(i) => i,
-                };
-                item.add_downloaded_size(progress);
-                self.emit_by_name::<()>("tick", &[]);
-                self_.sender.send(DownloadMsg::FileExtracted(id)).unwrap();
+            DownloadMsg::FileAlreadyDownloaded(id, progress, fullname, filename) => {
+                self.file_already_extracted(id, progress, fullname, filename);
             }
             DownloadMsg::FileExtracted(id) => {
                 let item = match self.get_item(&id) {
