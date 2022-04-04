@@ -264,6 +264,7 @@ impl EpicAssetActions {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.add_to_project.set_window(&window.clone());
     }
 
     pub fn set_download_manager(
@@ -278,6 +279,7 @@ impl EpicAssetActions {
 
         self_.download_details.set_download_manager(&dm.clone());
         self_.create_asset_project.set_download_manager(&dm.clone());
+        self_.add_to_project.set_download_manager(&dm.clone());
         self_.download_manager.set(dm.clone()).unwrap();
     }
 

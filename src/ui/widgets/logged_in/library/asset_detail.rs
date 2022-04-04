@@ -170,6 +170,7 @@ impl EpicAssetDetails {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.asset_actions.set_window(&window.clone());
     }
 
     pub fn set_download_manager(
@@ -240,6 +241,14 @@ impl EpicAssetDetails {
             "create_project",
             clone!(@weak self as details => move |_, _| {
                 details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::CreateProject);
+            })
+        );
+
+        action!(
+            actions,
+            "add_to_project",
+            clone!(@weak self as details => move |_, _| {
+                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::AddToProject);
             })
         );
 

@@ -417,6 +417,7 @@ impl AssetData {
 
     pub fn refresh(&self) {
         self.check_favorite();
+        self.check_downloaded();
         self.emit_by_name::<()>("refreshed", &[]);
     }
 }

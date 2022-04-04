@@ -235,15 +235,10 @@ impl EpicCreateAssetProject {
 
     fn create(&self) {
         let self_ = self.imp();
-        debug!("Clicked create");
         if let Some(dm) = self_.download_manager.get() {
-            debug!("Got DM");
             if let Some(asset_info) = &*self_.asset.borrow() {
-                debug!("Got Asset");
                 if let Some(project) = self.project_name() {
-                    debug!("Got Project");
                     if let Some(id) = self_.select_target_directory.active_id() {
-                        debug!("Got Target");
                         let mut path = PathBuf::from_str(id.as_str()).unwrap();
                         path.push(project);
                         dm.add_asset_download(

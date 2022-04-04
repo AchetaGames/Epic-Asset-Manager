@@ -1,20 +1,16 @@
-use std::path::{Path, PathBuf};
-
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 use log::info;
-
 use project::EpicProject;
-
+use std::path::{Path, PathBuf};
 mod project;
 mod project_detail;
 
 pub(crate) mod imp {
-    use std::cell::RefCell;
-
+    use super::*;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
-
-    use super::*;
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
@@ -28,6 +24,7 @@ pub(crate) mod imp {
         pub details: TemplateChild<
             crate::ui::widgets::logged_in::projects::project_detail::UnrealProjectDetails,
         >,
+        pub projects: RefCell<BTreeMap<String, String>>,
         pub grid_model: gtk4::gio::ListStore,
         pub expanded: RefCell<bool>,
         selected: RefCell<Option<String>>,
@@ -48,6 +45,7 @@ pub(crate) mod imp {
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
                 projects_grid: TemplateChild::default(),
                 details: TemplateChild::default(),
+                projects: RefCell::new(BTreeMap::new()),
                 grid_model: gtk4::gio::ListStore::new(
                     crate::models::project_data::ProjectData::static_type(),
                 ),
@@ -239,8 +237,31 @@ impl EpicProjectsBox {
         }
     }
 
-    fn check_path_for_uproject(&self, path: &Path) {
+    fn add_project(&self, uproject_file: &PathBuf) {
         let self_ = self.imp();
+        if let Some(directory) = uproject_file.parent() {
+            if let Some(oname) = uproject_file.file_stem() {
+                match oname.to_str() {
+                    None => {}
+                    Some(name) => {
+                        self_
+                            .projects
+                            .borrow_mut()
+                            .insert(directory.to_str().unwrap().to_string(), name.to_string());
+                        self_
+                            .grid_model
+                            .append(&crate::models::project_data::ProjectData::new(
+                                uproject_file.to_str().unwrap(),
+                                name,
+                            ));
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO this should probably be done in a thread in case we loop
+    fn check_path_for_uproject(&self, path: &Path) {
         if let Ok(rd) = path.read_dir() {
             for d in rd {
                 match d {
@@ -248,12 +269,7 @@ impl EpicProjectsBox {
                         let p = entry.path();
                         if p.is_dir() {
                             if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
-                                self_.grid_model.append(
-                                    &crate::models::project_data::ProjectData::new(
-                                        uproject_file.to_str().unwrap(),
-                                        uproject_file.file_stem().unwrap().to_str().unwrap(),
-                                    ),
-                                );
+                                self.add_project(&uproject_file);
                             } else {
                                 self.check_path_for_uproject(&p);
                             };
