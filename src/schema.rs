@@ -10,3 +10,10 @@ table! {
         asset -> Text,
     }
 }
+
+table! {
+    user_data (name) {
+        name -> Text,
+        value -> Text,
+    }
+}

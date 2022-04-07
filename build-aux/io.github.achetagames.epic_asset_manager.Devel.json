@@ -1,7 +1,7 @@
 {
   "app-id": "io.github.achetagames.epic_asset_manager.Devel",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "41",
+  "runtime-version": "42",
   "sdk": "org.gnome.Sdk",
   "command": "epic_asset_manager",
   "sdk-extensions": [
@@ -13,11 +13,10 @@
     "--share=network",
     "--filesystem=host",
     "--talk-name=org.freedesktop.secrets",
+    "--talk-name=org.freedesktop.Flatpak",
     "--device=dri",
-    "--env=RUST_LOG=debug",
-    "--env=RUST_BACKTRACE=full",
-    "--env=G_MESSAGES_DEBUG=none",
-    "--env=GTK_PATH=/app/lib/gtk-4.0"
+    "--env=RUST_LOG=epic_asset_manager=debug",
+    "--env=RUST_BACKTRACE=full"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",
@@ -33,26 +32,6 @@
     }
   },
   "modules": [
-    {
-      "name": "libadwaita",
-      "buildsystem": "meson",
-      "config-opts": [
-        "-Dintrospection=disabled",
-        "-Dgtk_doc=false",
-        "-Dtests=false",
-        "-Dexamples=false",
-        "-Dvapi=false",
-        "-Dglade_catalog=disabled"
-      ],
-      "sources" : [
-        {
-          "type" : "git",
-          "url" : "https://gitlab.gnome.org/GNOME/libadwaita.git",
-          "tag": "1.0.0.alpha.4",
-          "commit" : "6b447fde8f270001a0dc29ef59d3e9bf6d32dae9"
-        }
-      ]
-    },
     {
       "name": "epic_asset_manager",
       "buildsystem": "meson",

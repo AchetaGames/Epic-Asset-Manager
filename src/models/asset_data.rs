@@ -7,6 +7,7 @@ use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::gio::prelude::SettingsExt;
 use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
+use std::path::PathBuf;
 
 pub enum AssetType {
     Asset,
@@ -22,6 +23,7 @@ mod imp {
     use glib::ToValue;
     use gtk4::gdk_pixbuf::prelude::StaticType;
     use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::glib::ParamSpecObject;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -84,35 +86,35 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "name",
                         "Name",
                         "Name",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "id",
                         "ID",
                         "ID",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecObject::new(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
                         Pixbuf::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "favorite",
                         "favorite",
                         "Is favorite",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "downloaded",
                         "downloaded",
                         "Is Downloaded",
@@ -191,11 +193,11 @@ glib::wrapper! {
 impl AssetData {
     pub fn new(asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> AssetData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create AssetData");
-        let self_: &imp::AssetData = imp::AssetData::from_instance(&data);
+        let self_ = data.imp();
 
-        data.set_property("id", &asset.id).unwrap();
+        data.set_property("id", &asset.id);
         data.check_favorite();
-        data.set_property("name", &asset.title).unwrap();
+        data.set_property("name", &asset.title);
         self_.asset.replace(Some(asset.clone()));
         data.check_downloaded();
         let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
@@ -205,84 +207,83 @@ impl AssetData {
         data.configure_kind(asset);
 
         if let Some(pix) = pixbuf_loader.pixbuf() {
-            data.set_property("thumbnail", &pix).unwrap();
+            data.set_property("thumbnail", &pix);
         };
         data
     }
 
+    pub fn decide_kind(asset: &AssetInfo) -> Option<AssetType> {
+        return if let Some(cat) = &asset.categories {
+            for c in cat {
+                match c.path.as_str() {
+                    "assets" => {
+                        return Some(AssetType::Asset);
+                    }
+                    "games" => {
+                        return Some(AssetType::Game);
+                    }
+                    "plugins" => {
+                        return Some(AssetType::Plugin);
+                    }
+                    "projects" => {
+                        return Some(AssetType::Project);
+                    }
+                    "engines" => {
+                        return Some(AssetType::Engine);
+                    }
+                    _ => {}
+                };
+            }
+            None
+        } else {
+            None
+        };
+    }
+
     fn configure_kind(&self, asset: &AssetInfo) {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
-        match &asset.categories {
-            None => {}
-            Some(cat) => {
-                for c in cat {
-                    match c.path.as_str() {
-                        "asset" => {
-                            self_.kind.replace(Some("asset".to_string()));
-                            return;
-                        }
-                        "games" => {
-                            self_.kind.replace(Some("games".to_string()));
-                            return;
-                        }
-                        "plugins" => {
-                            self_.kind.replace(Some("plugins".to_string()));
-                            return;
-                        }
-                        "projects" => {
-                            self_.kind.replace(Some("projects".to_string()));
-                            return;
-                        }
-                        "engines" => {
-                            self_.kind.replace(Some("engines".to_string()));
-                            return;
-                        }
-                        _ => {}
-                    };
-                }
+        let self_ = self.imp();
+        match Self::decide_kind(asset) {
+            None => {
                 self_.kind.replace(None);
             }
-        };
+            Some(kind) => match kind {
+                AssetType::Asset => {
+                    self_.kind.replace(Some("asset".to_string()));
+                }
+                AssetType::Project => {
+                    self_.kind.replace(Some("projects".to_string()));
+                }
+                AssetType::Game => {
+                    self_.kind.replace(Some("games".to_string()));
+                }
+                AssetType::Engine => {
+                    self_.kind.replace(Some("engines".to_string()));
+                }
+                AssetType::Plugin => {
+                    self_.kind.replace(Some("plugins".to_string()));
+                }
+            },
+        }
     }
 
     pub fn id(&self) -> String {
-        if let Ok(value) = self.property("id") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
-        "".to_string()
+        self.property("id")
     }
 
     pub fn name(&self) -> String {
-        if let Ok(value) = self.property("name") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
-        "".to_string()
+        self.property("name")
     }
 
     pub fn favorite(&self) -> bool {
-        if let Ok(value) = self.property("favorite") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return id_opt;
-            }
-        };
-        false
+        self.property("favorite")
     }
 
     pub fn downloaded(&self) -> bool {
-        if let Ok(value) = self.property("downloaded") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return id_opt;
-            }
-        };
-        false
+        self.property("downloaded")
     }
 
     pub fn release(&self) -> Option<DateTime<Utc>> {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match &*self_.asset.borrow() {
             Some(a) => match a.latest_release() {
                 None => a.last_modified_date,
@@ -293,7 +294,7 @@ impl AssetData {
     }
 
     pub fn kind(&self) -> Option<AssetType> {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match &*self_.kind.borrow() {
             Some(a) => match a.as_str() {
                 "asset" => Some(AssetType::Asset),
@@ -308,7 +309,7 @@ impl AssetData {
     }
 
     pub fn last_modified(&self) -> Option<DateTime<Utc>> {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         match &*self_.asset.borrow() {
             Some(a) => a.last_modified_date,
             None => None,
@@ -316,16 +317,11 @@ impl AssetData {
     }
 
     pub fn image(&self) -> Option<Pixbuf> {
-        if let Ok(value) = self.property("thumbnail") {
-            if let Ok(id_opt) = value.get::<Pixbuf>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("thumbnail")
     }
 
     pub fn check_category(&self, cat: &str) -> bool {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         if cat.eq("favorites") {
             self.favorite()
         } else if cat.eq("downloaded") {
@@ -370,26 +366,37 @@ impl AssetData {
     }
 
     pub fn check_downloaded(&self) {
-        let self_: &imp::AssetData = imp::AssetData::from_instance(self);
+        let self_ = self.imp();
         let asset = &*self_.asset.borrow();
         if let Some(ass) = asset {
-            for vault in self_.settings.strv("unreal-vault-directories") {
-                let pathbuf = std::path::PathBuf::from(&vault);
-                if let Some(ris) = &ass.release_info {
-                    for ri in ris {
-                        let mut p = pathbuf.clone();
-                        if let Some(app) = &ri.app_id {
-                            p.push(&app);
-                            p.push("data");
-                            if p.exists() {
-                                self.set_property("downloaded", true).unwrap();
-                                return;
-                            }
+            if let Some(ris) = &ass.release_info {
+                let vaults = self_.settings.strv("unreal-vault-directories");
+                for ri in ris {
+                    if let Some(app) = &ri.app_id {
+                        if !Self::downloaded_locations(&vaults, app).is_empty() {
+                            self.set_property("downloaded", true);
+                            return;
                         }
                     }
                 }
             }
         }
+    }
+
+    pub fn downloaded_locations(
+        directories: &[gtk4::glib::GString],
+        asset_id: &str,
+    ) -> Vec<PathBuf> {
+        let mut result: Vec<std::path::PathBuf> = Vec::new();
+        for directory in directories {
+            let mut path = std::path::PathBuf::from(&directory);
+            path.push(asset_id);
+            path.push("data");
+            if path.exists() {
+                result.push(path);
+            }
+        }
+        result
     }
 
     pub fn check_favorite(&self) {
@@ -401,15 +408,16 @@ impl AssetData {
             ))
             .get_result(&conn);
             if let Ok(fav) = ex {
-                self.set_property("favorite", fav).unwrap();
+                self.set_property("favorite", fav);
                 return;
             }
         }
-        self.set_property("favorite", false).unwrap();
+        self.set_property("favorite", false);
     }
 
     pub fn refresh(&self) {
         self.check_favorite();
-        self.emit_by_name("refreshed", &[]).unwrap();
+        self.check_downloaded();
+        self.emit_by_name::<()>("refreshed", &[]);
     }
 }

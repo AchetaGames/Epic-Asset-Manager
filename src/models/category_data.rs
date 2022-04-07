@@ -32,14 +32,14 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "name",
                         "Name",
                         "Name",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         "filter",
                         "Filter",
                         "Filter",
@@ -98,20 +98,10 @@ impl CategoryData {
     }
 
     pub fn name(&self) -> String {
-        if let Ok(value) = self.property("name") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
-        "".to_string()
+        self.property("name")
     }
 
     pub fn filter(&self) -> String {
-        if let Ok(value) = self.property("filter") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
-        "".to_string()
+        self.property("filter")
     }
 }

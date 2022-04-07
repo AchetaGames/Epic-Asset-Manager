@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicAssetActions" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkScrolledWindow">
+                <property name="vexpand">true</property>
+                <property name="hscrollbar-policy">never</property>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkListBox">
+                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                <child>
+                                    <object class="GtkListBoxRow">
+                                        <child>
+                                            <object class="GtkBox" id="version_row">
+                                                <property name="spacing">5</property>
+                                                <property name="margin-start">5</property>
+                                                <property name="margin-end">5</property>
+                                                <property name="margin-top">5</property>
+                                                <property name="margin-bottom">5</property>
+                                                <child>
+                                                    <object class="GtkLabel" id="version_label">
+                                                        <property name="xalign">1.0</property>
+                                                        <property name="can-focus">0</property>
+                                                        <property name="label" translatable="yes">Select version</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkComboBoxText" id="select_download_version">
+                                                        <property name="hexpand">true</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkRevealer" id="asset_details_revealer">
+                                <property name="reveal-child">true</property>
+                                <child>
+                                    <object class="GtkListBox" id="additional_details">
+                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="halign">end</property>
+                                <property name="hexpand">True</property>
+                                <child>
+                                    <object class="GtkButton" id="asset_actions_button">
+                                        <property name="icon-name">go-up-symbolic</property>
+                                        <property name="action-name">asset_actions.show</property>
+                                        <property name="tooltip-text" translatable="yes">Hide Details</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkSeparator">
+                                <property name="orientation">horizontal</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow" id="download_row">
+                                <property name="title" translatable="yes">Download</property>
+                                <property name="expanded">0</property>
+                                <child>
+                                    <object class="EpicDownloadDetails" id="download_details">
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow" id="project_row">
+                                <property name="title" translatable="yes">Add to project</property>
+                                <property name="expanded">0</property>
+                                <child>
+                                    <object class="EpicAddToProject" id="add_to_project">
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow" id="new_project_row">
+                                <property name="title" translatable="yes">Create Project</property>
+                                <property name="expanded">0</property>
+                                <child>
+                                    <object class="EpicCreateAssetProject" id="create_asset_project">
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow" id="engine_row">
+                                <property name="title" translatable="yes">Add to Engine</property>
+                                <property name="expanded">0</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwExpanderRow" id="install_row">
+                                <property name="title" translatable="yes">Install</property>
+                                <property name="expanded">0</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

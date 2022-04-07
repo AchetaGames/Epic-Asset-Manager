@@ -1,4 +1,5 @@
 subdir('icons')
+subdir('resources')
 # Desktop file
 if not get_option('windows')
     desktop_conf = configuration_data()
@@ -22,7 +23,8 @@ if not get_option('windows')
         desktop_file_validate,
         args: [
           desktop_file.full_path()
-        ]
+        ],
+        depends: desktop_file,
       )
     endif
 endif
@@ -49,7 +51,8 @@ if not get_option('windows')
         'validate-appdata', appstream_util,
         args: [
           'validate', '--nonet', appdata_file.full_path()
-        ]
+        ],
+        depends: appdata_file,
       )
     endif
 endif
@@ -72,16 +75,6 @@ if glib_compile_schemas.found()
     'validate-gschema', glib_compile_schemas,
     args: [
       '--strict', '--dry-run', meson.current_build_dir()
-    ]
+    ],
   )
 endif
-
-# Resources
-resources = gnome.compile_resources(
-  'resources',
-  'resources.gresource.xml',
-  gresource_bundle: true,
-  source_dir: meson.current_build_dir(),
-  install: true,
-  install_dir: pkgdatadir,
-)

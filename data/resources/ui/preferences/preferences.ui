@@ -7,6 +7,7 @@
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
                 <property name="title" translatable="yes">General</property>
+                <property name="name">general</property>
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Startup</property>
@@ -55,6 +56,7 @@
             <object class="AdwPreferencesPage">
                 <property name="icon-name">folder-symbolic</property>
                 <property name="title" translatable="yes">Directories</property>
+                <property name="name">directories</property>
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Download Targets</property>
@@ -134,14 +136,8 @@
                                 <property name="expanded">1</property>
                                 <property name="title" translatable="yes">Unreal Vault Directories</property>
                                 <child>
-                                    <object class="GtkScrolledWindow">
-                                        <property name="min-content-height">100</property>
-                                        <property name="max-content-height">100</property>
-                                        <child>
-                                            <object class="GtkBox" id="unreal_engine_vault_directories_box">
-                                                <property name="orientation">vertical</property>
-                                            </object>
-                                        </child>
+                                    <object class="GtkBox" id="unreal_engine_vault_directories_box">
+                                        <property name="orientation">vertical</property>
                                     </object>
                                 </child>
                                 <child>
@@ -162,14 +158,8 @@
                                 <property name="title" translatable="yes">Unreal Engine Directories</property>
                                 <property name="expanded">1</property>
                                 <child>
-                                    <object class="GtkScrolledWindow">
-                                        <property name="min-content-height">100</property>
-                                        <property name="max-content-height">100</property>
-                                        <child>
-                                            <object class="GtkBox" id="unreal_engine_directories_box">
-                                                <property name="orientation">vertical</property>
-                                            </object>
-                                        </child>
+                                    <object class="GtkBox" id="unreal_engine_directories_box">
+                                        <property name="orientation">vertical</property>
                                     </object>
                                 </child>
                                 <child>
@@ -190,14 +180,8 @@
                                 <property name="title" translatable="yes">Unreal Projects Directories</property>
                                 <property name="expanded">1</property>
                                 <child>
-                                    <object class="GtkScrolledWindow">
-                                        <property name="min-content-height">100</property>
-                                        <property name="max-content-height">100</property>
-                                        <child>
-                                            <object class="GtkBox" id="unreal_engine_project_directories_box">
-                                                <property name="orientation">vertical</property>
-                                            </object>
-                                        </child>
+                                    <object class="GtkBox" id="unreal_engine_project_directories_box">
+                                        <property name="orientation">vertical</property>
                                     </object>
                                 </child>
                                 <child>
@@ -221,6 +205,7 @@
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
                 <property name="title" translatable="yes">GitHub</property>
+                <property name="name">github</property>
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Secrets</property>

@@ -65,7 +65,7 @@ pub enum EngineMsg {
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -141,42 +141,30 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
-                        "guid",
-                        "GUID",
-                        "GUID",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
-                        "path",
-                        "Path",
-                        "Path",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "version",
                         "Version",
                         "Version",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "needs-update",
                         "needs update",
                         "Check if engine needs update",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "branch",
                         "Branch",
                         "Branch",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "has-branch",
                         "Has Branch",
                         "Has Branch",
@@ -256,13 +244,13 @@ impl EngineData {
         model: &gtk4::gio::ListStore,
     ) -> EngineData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create EngineData");
-        let self_: &imp::EngineData = imp::EngineData::from_instance(&data);
+        let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
-        data.set_property("path", &path).unwrap();
-        data.set_property("guid", &guid).unwrap();
+        data.set_property("path", &path);
+        data.set_property("guid", &guid);
         self_.ueversion.replace(Some(version.clone()));
-        data.set_property("version", version.format()).unwrap();
+        data.set_property("version", version.format());
         if let Some(path) = data.path() {
             let sender = self_.sender.clone();
             thread::spawn(move || {
@@ -280,14 +268,14 @@ impl EngineData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return Some(json5::from_str(&contents).unwrap_or_default());
+                return Some(serde_json::from_str(&contents).unwrap_or_default());
             }
         }
         None
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::EngineData = imp::EngineData::from_instance(self);
+        let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
@@ -301,14 +289,14 @@ impl EngineData {
     pub fn update(&self, msg: EngineMsg) {
         match msg {
             EngineMsg::Update(waiting) => {
-                self.set_property("needs-update", waiting).unwrap();
+                self.set_property("needs-update", waiting);
             }
             EngineMsg::Branch(branch) => {
-                self.set_property("has-branch", !branch.is_empty()).unwrap();
-                self.set_property("branch", branch).unwrap();
+                self.set_property("has-branch", !branch.is_empty());
+                self.set_property("branch", branch);
             }
         };
-        self.emit_by_name("finished", &[]).unwrap();
+        self.emit_by_name::<()>("finished", &[]);
     }
 
     fn needs_repo_update(path: &str, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {
@@ -382,62 +370,32 @@ impl EngineData {
     }
 
     pub fn guid(&self) -> Option<String> {
-        if let Ok(value) = self.property("guid") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("guid")
     }
 
     pub fn path(&self) -> Option<String> {
-        if let Ok(value) = self.property("path") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("path")
     }
 
     pub fn branch(&self) -> Option<String> {
-        if let Ok(value) = self.property("branch") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("branch")
     }
 
     pub fn ueversion(&self) -> Option<UnrealVersion> {
-        let self_: &imp::EngineData = imp::EngineData::from_instance(self);
+        let self_ = self.imp();
         self_.ueversion.borrow().clone()
     }
 
     pub fn version(&self) -> Option<String> {
-        if let Ok(value) = self.property("version") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("version")
     }
 
-    pub fn has_branch(&self) -> Option<bool> {
-        if let Ok(value) = self.property("has-branch") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return Some(id_opt);
-            }
-        };
-        None
+    pub fn has_branch(&self) -> bool {
+        self.property("has-branch")
     }
 
-    pub fn needs_update(&self) -> Option<bool> {
-        if let Ok(value) = self.property("needs-update") {
-            if let Ok(id_opt) = value.get::<bool>() {
-                return Some(id_opt);
-            }
-        };
-        None
+    pub fn needs_update(&self) -> bool {
+        self.property("needs-update")
     }
 
     #[cfg(target_os = "linux")]

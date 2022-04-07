@@ -1,8 +1,8 @@
 project('epic_asset_manager',
         'rust',
-        version: '2.9.4',
+        version: '3.0.0',
         license: 'MIT',
-  meson_version: '>= 0.50')
+  meson_version: '>= 0.59')
 
 i18n = import('i18n')
 gnome = import('gnome')
@@ -11,7 +11,7 @@ base_id = 'io.github.achetagames.epic_asset_manager'
 
 dependency('glib-2.0', version: '>= 2.66')
 dependency('gio-2.0', version: '>= 2.66')
-dependency('gtk4', version: '>= 4.3.2')
+dependency('gtk4', version: '>= 4.6.0')
 dependency('libadwaita-1', version: '>= 1.0.0')
 
 glib_compile_resources = find_program('glib-compile-resources', required: true)
@@ -19,16 +19,13 @@ glib_compile_schemas = find_program('glib-compile-schemas', required: true)
 desktop_file_validate = find_program('desktop-file-validate', required: false)
 appstream_util = find_program('appstream-util', required: false)
 cargo = find_program('cargo', required: true)
-cargo_script = find_program('build-aux/cargo.sh')
-cargo_sources = files(
-  'Cargo.toml',
-)
+
+    cargo_script = find_program('build-aux/cargo.sh')
+    cargo_sources = files(
+      'Cargo.toml',
+    )
 
 version = meson.project_version()
-version_array = version.split('.')
-major_version = version_array[0].to_int()
-minor_version = version_array[1].to_int()
-version_micro = version_array[2].to_int()
 
 if get_option('windows')
     prefix = ''
@@ -81,4 +78,8 @@ subdir('data')
 subdir('po')
 subdir('src')
 
-meson.add_install_script('build-aux/meson_post_install.py')
+gnome.post_install(
+  gtk_update_icon_cache: true,
+  glib_compile_schemas: true,
+  update_desktop_database: true,
+)

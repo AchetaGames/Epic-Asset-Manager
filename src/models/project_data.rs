@@ -68,7 +68,7 @@ mod imp {
     use glib::ToValue;
     use gtk4::gdk_pixbuf::prelude::StaticType;
     use gtk4::gdk_pixbuf::Pixbuf;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -135,28 +135,10 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
-                        "guid",
-                        "GUID",
-                        "GUID",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
-                        "path",
-                        "Path",
-                        "Path",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
-                        "name",
-                        "Name",
-                        "Name",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
+                    ParamSpecObject::new(
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
@@ -221,9 +203,9 @@ glib::wrapper! {
 impl ProjectData {
     pub fn new(path: &str, name: &str) -> ProjectData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create ProjectData");
-        let self_: &imp::ProjectData = imp::ProjectData::from_instance(&data);
-        data.set_property("path", &path).unwrap();
-        data.set_property("name", &name).unwrap();
+        let self_ = data.imp();
+        data.set_property("path", &path);
+        data.set_property("name", &name);
         let mut uproject = Self::read_uproject(path);
         uproject.engine_association = uproject
             .engine_association
@@ -241,39 +223,19 @@ impl ProjectData {
     }
 
     pub fn guid(&self) -> Option<String> {
-        if let Ok(value) = self.property("guid") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("guid")
     }
 
     pub fn path(&self) -> Option<String> {
-        if let Ok(value) = self.property("path") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("path")
     }
 
     pub fn name(&self) -> Option<String> {
-        if let Ok(value) = self.property("name") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("name")
     }
 
     pub fn image(&self) -> Option<Pixbuf> {
-        if let Ok(value) = self.property("thumbnail") {
-            if let Ok(id_opt) = value.get::<Pixbuf>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("thumbnail")
     }
 
     pub fn read_uproject(path: &str) -> Uproject {
@@ -281,19 +243,19 @@ impl ProjectData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return json5::from_str(&contents).unwrap();
+                return serde_json::from_str(&contents).unwrap();
             }
         }
         Uproject::default()
     }
 
     pub fn uproject(&self) -> Option<Uproject> {
-        let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
+        let self_ = self.imp();
         self_.uproject.borrow().clone()
     }
 
     pub fn setup_messaging(&self) {
-        let self_: &imp::ProjectData = imp::ProjectData::from_instance(self);
+        let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
@@ -312,11 +274,11 @@ impl ProjectData {
                 pixbuf_loader.close().ok();
 
                 if let Some(pix) = pixbuf_loader.pixbuf() {
-                    self.set_property("thumbnail", &pix).unwrap();
+                    self.set_property("thumbnail", &pix);
                 };
             }
         };
-        self.emit_by_name("finished", &[]).unwrap();
+        self.emit_by_name::<()>("finished", &[]);
     }
 
     pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<ProjectMsg>) {

@@ -1,6 +1,7 @@
 use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
 use gtk4::prelude::SettingsExt;
+use gtk4::subclass::prelude::ObjectSubclassIsExt;
 // use log::debug;
 // use std::thread;
 
@@ -12,8 +13,7 @@ pub(crate) trait Update {
 
 impl Update for EpicAssetManagerWindow {
     fn update(&self, event: Msg) {
-        // let start = std::time::Instant::now();
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
 
         match event {
             Msg::ShowLogin => self.show_login(),
@@ -70,12 +70,13 @@ impl Update for EpicAssetManagerWindow {
                 self.add_notification("login", &reason, gtk4::MessageType::Error);
                 self.show_login();
             }
+            Msg::Logout => self.do_logout(),
+            Msg::StartAssetProcessing => {
+                self_.logged_in_stack.start_processing_asset();
+            }
+            Msg::EndAssetProcessing => {
+                self_.logged_in_stack.end_processing_asset();
+            }
         }
-        // debug!(
-        //     "{:?} - {} took {:?}",
-        //     thread::current().id(),
-        //     event,
-        //     start.elapsed()
-        // );
     }
 }

@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="EpicEngineDetails" parent="GtkBox">
+    <template class="UnrealProjectDetails" parent="GtkBox">
         <child>
             <object class="GtkRevealer" id="detail_slider">
-                <property name="hexpand" bind-source="EpicEngineDetails" bind-property="expanded" bind-flags="sync-create"/>
-                <property name="reveal-child" bind-source="EpicEngineDetails" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="hexpand" bind-source="UnrealProjectDetails" bind-property="expanded" bind-flags="sync-create"/>
+                <property name="reveal-child" bind-source="UnrealProjectDetails" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="transition-type">slide-left</property>
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <child>
-                            <object class="GtkBox">
-                                <child>
-                                    <object class="GtkLabel" id="title">
-                                        <property name="ellipsize">middle</property>
-                                        <property name="halign">start</property>
-                                        <property name="use-markup">true</property>
-                                    </object>
-                                </child>
+                            <object class="GtkLabel" id="title">
+                                <property name="ellipsize">middle</property>
+                                <property name="halign">start</property>
                             </object>
                         </child>
                         <child>
@@ -26,7 +21,7 @@
                                     <object class="GtkButton">
                                         <property name="halign">start</property>
                                         <property name="valign">start</property>
-                                        <property name="action-name">engine_details.close</property>
+                                        <property name="action-name">project_details.close</property>
                                         <property name="icon-name">go-next-symbolic</property>
                                     </object>
                                 </child>
@@ -36,8 +31,8 @@
                                         <property name="halign">end</property>
                                         <child>
                                             <object class="GtkButton" id="launch_button">
-                                                <property name="name">engine_launch_button</property>
-                                                <property name="action-name">engine_details.launch</property>
+                                                <property name="name">project_launch_button</property>
+                                                <property name="action-name">project_details.launch_project</property>
                                                 <child>
                                                     <object class="GtkBox">
                                                         <property name="valign">center</property>
@@ -56,28 +51,6 @@
                                                 </child>
                                             </object>
                                         </child>
-                                        <child>
-                                            <object class="GtkButton" id="install_button">
-                                                <property name="name">engine_install_button</property>
-                                                <property name="action-name">engine_details.install</property>
-                                                <child>
-                                                    <object class="GtkBox">
-                                                        <property name="valign">center</property>
-                                                        <property name="halign">center</property>
-                                                        <child>
-                                                            <object class="GtkImage">
-                                                                <property name="icon-name">system-software-install-symbolic</property>
-                                                            </object>
-                                                        </child>
-                                                        <child>
-                                                            <object class="GtkLabel">
-                                                                <property name="label" translatable="yes">Install</property>
-                                                            </object>
-                                                        </child>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
                                     </object>
                                 </child>
                             </object>
@@ -88,8 +61,18 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkBox" id="details">
-                                <property name="orientation">vertical</property>
+                            <object class="GtkRevealer" id="details_revealer">
+                                <property name="reveal-child">true</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <child>
+                                            <object class="GtkListBox" id="details">
+                                                <property name="vexpand">True</property>
+                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                     </object>

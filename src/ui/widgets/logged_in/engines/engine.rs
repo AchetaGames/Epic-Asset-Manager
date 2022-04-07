@@ -3,7 +3,7 @@ use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeT
 
 pub(crate) mod imp {
     use super::*;
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -64,48 +64,36 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "needs-update",
                         "needs update",
                         "Check if engine needs update",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new(
                         "version",
                         "Version",
                         "Version",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
-                        "path",
-                        "Path",
-                        "Path",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "branch",
                         "Branch",
                         "Branch",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_boolean(
+                    ParamSpecBoolean::new(
                         "has-branch",
                         "Has Branch",
                         "Has Branch",
                         false,
                         glib::ParamFlags::READWRITE,
                     ),
-                    ParamSpec::new_string(
-                        "guid",
-                        "GUID",
-                        "GUID",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
                 ]
             });
             PROPERTIES.as_ref()
@@ -187,16 +175,11 @@ impl EpicEngine {
     }
 
     pub fn path(&self) -> Option<String> {
-        if let Ok(value) = self.property("path") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return Some(id_opt);
-            }
-        };
-        None
+        self.property("path")
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -209,7 +192,7 @@ impl EpicEngine {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -218,32 +201,30 @@ impl EpicEngine {
     }
 
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
-        let self_: &imp::EpicEngine = imp::EpicEngine::from_instance(self);
+        let self_ = self.imp();
         if let Some(d) = self_.data.take() {
             if let Some(id) = self_.handler.take() {
                 d.disconnect(id);
             }
         }
         self_.data.replace(Some(data.clone()));
-        self.set_property("path", &data.path()).unwrap();
-        self.set_property("guid", &data.guid()).unwrap();
-        self.set_property("version", &data.version()).unwrap();
-        self.set_property("tooltip-text", &data.path()).unwrap();
-        if let Ok(id) = data.connect_local(
+        self.set_property("path", &data.path());
+        self.set_property("guid", &data.guid());
+        self.set_property("version", &data.version());
+        self.set_property("tooltip-text", &data.path());
+        self_.handler.replace(Some(data.connect_local(
             "finished",
             false,
             clone!(@weak self as engine, @weak data => @default-return None, move |_| {
-                engine.set_property("branch", &data.branch()).unwrap();
-                engine
-                    .set_property("has-branch", &data.has_branch().unwrap_or(false))
-                    .unwrap();
-                engine
-                    .set_property("needs-update", &data.needs_update().unwrap_or(false))
-                    .unwrap();
+                engine.finished(&data);
                 None
             }),
-        ) {
-            self_.handler.replace(Some(id));
-        }
+        )));
+    }
+
+    fn finished(&self, data: &crate::models::engine_data::EngineData) {
+        self.set_property("branch", &data.branch());
+        self.set_property("has-branch", &data.has_branch());
+        self.set_property("needs-update", &data.needs_update());
     }
 }

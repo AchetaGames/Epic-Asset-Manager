@@ -4,12 +4,12 @@
     <menu id="primary_menu">
         <section>
             <item>
-                <attribute name="label" translatable="yes">_Preferences</attribute>
-                <attribute name="action">app.preferences</attribute>
+                <attribute name="label" translatable="yes">_Logout</attribute>
+                <attribute name="action">window.logout</attribute>
             </item>
             <item>
-                <attribute name="label" translatable="yes">_Keyboard Shortcuts</attribute>
-                <attribute name="action">win.show-help-overlay</attribute>
+                <attribute name="label" translatable="yes">_Preferences</attribute>
+                <attribute name="action">app.preferences</attribute>
             </item>
             <item>
                 <attribute name="label" translatable="yes">_About</attribute>

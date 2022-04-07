@@ -74,7 +74,7 @@ pub(crate) mod imp {
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![glib::ParamSpec::new_string(
+                vec![glib::ParamSpecString::new(
                     "asset",
                     "Asset",
                     "Asset",
@@ -140,11 +140,9 @@ impl EpicImageOverlay {
     }
 
     pub fn clear(&self) {
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
-        if self_.stack.n_pages() > 0 {
-            while let Some(el) = self_.stack.nth_page(0) {
-                self_.stack.remove(&el);
-            }
+        let self_ = self.imp();
+        while self_.stack.n_pages() > 0 {
+            self_.stack.remove(&self_.stack.nth_page(0));
         }
         self.check_actions();
     }
@@ -153,7 +151,7 @@ impl EpicImageOverlay {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -163,7 +161,7 @@ impl EpicImageOverlay {
     }
 
     pub fn setup_receiver(&self) {
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        let self_ = self.imp();
         self_.receiver.borrow_mut().take().unwrap().attach(
             None,
             clone!(@weak self as img => @default-panic, move |msg| {
@@ -174,7 +172,7 @@ impl EpicImageOverlay {
     }
 
     pub fn update(&self, msg: ImageMsg) {
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        let self_ = self.imp();
         match msg {
             ImageMsg::DownloadImage(asset, image) => {
                 if let Some(dm) = self_.download_manager.get() {
@@ -193,7 +191,7 @@ impl EpicImageOverlay {
                 let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(img.as_slice()).unwrap();
                 pixbuf_loader.close().ok();
-                let image = gtk4::Picture::for_pixbuf(pixbuf_loader.pixbuf().as_ref());
+                let image = gtk4::Picture::for_pixbuf(&pixbuf_loader.pixbuf().unwrap());
                 image.set_hexpand(true);
                 image.set_vexpand(true);
                 self_.stack.append(&image);
@@ -203,7 +201,7 @@ impl EpicImageOverlay {
     }
 
     pub fn setup_actions(&self) {
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        let self_ = self.imp();
 
         let actions = &self_.actions;
         self.insert_action_group("image_stack", Some(actions));
@@ -215,10 +213,7 @@ impl EpicImageOverlay {
             actions,
             "next",
             clone!(@weak self as image_stack => move |_, _| {
-                let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
-                if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32) + 1) {
-                    self_.stack.scroll_to(&image, true);
-                };
+                image_stack.next();
             })
         );
 
@@ -226,16 +221,29 @@ impl EpicImageOverlay {
             actions,
             "prev",
             clone!(@weak self as image_stack => move |_, _| {
-                let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(&image_stack);
-                if let Some(image) = self_.stack.nth_page((self_.stack.position().round() as u32).saturating_sub(1)) {
-                    self_.stack.scroll_to(&image, true);
-                };
+                image_stack.prev();
             })
         );
     }
 
+    fn next(&self) {
+        let self_ = self.imp();
+        let image = self_
+            .stack
+            .nth_page((self_.stack.position().round() as u32) + 1);
+        self_.stack.scroll_to(&image, true);
+    }
+
+    fn prev(&self) {
+        let self_ = self.imp();
+        let image = self_
+            .stack
+            .nth_page((self_.stack.position().round() as u32).saturating_sub(1));
+        self_.stack.scroll_to(&image, true);
+    }
+
     pub fn check_actions(&self) {
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @prev).set_enabled(
             match self_.stack.position().partial_cmp(&1.0) {
                 None | Some(Ordering::Less) => false,
@@ -255,17 +263,12 @@ impl EpicImageOverlay {
     }
 
     pub fn asset(&self) -> String {
-        if let Ok(value) = self.property("asset") {
-            if let Ok(id_opt) = value.get::<String>() {
-                return id_opt;
-            }
-        };
-        "".to_string()
+        self.property("asset")
     }
 
     pub fn add_image(&self, image: &egs_api::api::types::asset_info::KeyImage) {
         debug!("Adding image: {}", image.url);
-        let self_: &imp::EpicImageOverlay = imp::EpicImageOverlay::from_instance(self);
+        let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
         let mut cache_path = PathBuf::from(cache_dir);
         cache_path.push("images");

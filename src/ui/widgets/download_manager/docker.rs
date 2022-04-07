@@ -1,4 +1,4 @@
-use crate::ui::widgets::download_manager::DownloadStatus;
+use crate::ui::widgets::download_manager::{download_item, DownloadStatus};
 use glib::clone;
 use gtk4::glib;
 use gtk4::subclass::prelude::*;
@@ -40,21 +40,23 @@ pub(crate) trait Docker {
     fn docker_extraction_finished(&self, _version: &str) {
         unimplemented!()
     }
+
+    fn docker_finished(&self, _item: &download_item::EpicDownloadItem) {
+        unimplemented!()
+    }
 }
 
 impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     #[cfg(target_os = "linux")]
     fn perform_docker_blob_downloads(&self, version: &str, size: u64, digests: Vec<(String, u64)>) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
         let item = match self.get_item(version) {
             None => {
                 return;
             }
             Some(i) => i,
         };
-        item.set_property("status", "waiting for download slot".to_string())
-            .unwrap();
+        item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(size as u128);
         item.set_total_files(digests.len() as u64);
 
@@ -77,8 +79,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn download_docker_digest(&self, version: &str, digest: (String, u64)) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
                 crate::window::imp::EpicAssetManagerWindow::from_instance(window);
@@ -142,8 +143,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     #[cfg(target_os = "linux")]
     fn download_engine_from_docker(&self, version: &str) {
         debug!("Initializing docker engine download of {}", version);
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
         let item = crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
         let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
         let mut items = self_.download_items.borrow_mut();
@@ -157,30 +157,24 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
         };
         for cap in re.captures_iter(version) {
-            item.set_property("label", cap[1].to_string()).unwrap();
+            item.set_property("label", cap[1].to_string());
         }
-        item.set_property("status", "initializing...".to_string())
-            .unwrap();
+        item.set_property("status", "initializing...".to_string());
 
         item.connect_local(
             "finished",
             false,
             clone!(@weak self as edm, @weak item => @default-return None, move |_| {
-                let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(&edm);
-                self_.downloads.remove(&item);
-                edm.set_property("has-items", self_.downloads.first_child().is_some()).unwrap();
-                edm.emit_by_name("tick", &[]).unwrap();
+                edm.docker_finished(&item);
                 None
             }),
-        )
-        .unwrap();
+        );
 
         match gtk4::gdk_pixbuf::Pixbuf::from_resource(
             "/io/github/achetagames/epic_asset_manager/icons/ue-logo-symbolic.svg",
         ) {
             Ok(pix) => {
-                item.set_property("thumbnail", &pix).unwrap();
+                item.set_property("thumbnail", &pix);
             }
             Err(e) => {
                 error!("Unable to load icon: {}", e);
@@ -188,8 +182,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         };
         self_.downloads.append(&item);
 
-        self.set_property("has-items", self_.downloads.first_child().is_some())
-            .unwrap();
+        self.set_property("has-items", self_.downloads.first_child().is_some());
 
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
@@ -223,6 +216,13 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
+    fn docker_finished(&self, item: &download_item::EpicDownloadItem) {
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        self_.downloads.remove(item);
+        self.set_property("has-items", self_.downloads.first_child().is_some());
+        self.emit_by_name::<()>("tick", &[]);
+    }
+
     #[cfg(target_os = "linux")]
     fn docker_download_progress(&self, version: &str, progress: u64) {
         let item = match self.get_item(version) {
@@ -233,13 +233,12 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         };
         item.add_downloaded_size(progress as u128);
 
-        self.emit_by_name("tick", &[]).unwrap();
+        self.emit_by_name::<()>("tick", &[]);
     }
 
     #[cfg(target_os = "linux")]
     fn docker_blob_finished(&self, version: &str, digest: &str) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             for d in digests {
                 if d.0.eq(digest) {
@@ -252,8 +251,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn docker_extract_digests(&self, version: &str) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             let mut to_extract: Vec<String> = Vec::new();
             let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
@@ -327,8 +325,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn docker_extraction_finished(&self, version: &str) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager =
-            crate::ui::widgets::download_manager::imp::EpicDownloadManager::from_instance(self);
+        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             let item = match self.get_item(version) {
                 None => {
@@ -364,12 +361,8 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
             if remaining == 0 {
                 if let Some(window) = self_.window.get() {
-                    let win_: &crate::window::imp::EpicAssetManagerWindow =
-                        crate::window::imp::EpicAssetManagerWindow::from_instance(window);
-                    let l_: &crate::ui::widgets::logged_in::imp::EpicLoggedInBox =
-                        crate::ui::widgets::logged_in::imp::EpicLoggedInBox::from_instance(
-                            &win_.logged_in_stack,
-                        );
+                    let win_: &crate::window::imp::EpicAssetManagerWindow = window.imp();
+                    let l_ = win_.logged_in_stack.imp();
                     l_.engine.load_engines();
                 }
             }

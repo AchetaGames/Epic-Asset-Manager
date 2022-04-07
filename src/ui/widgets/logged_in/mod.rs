@@ -9,7 +9,7 @@ mod projects;
 pub(crate) mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::ParamSpec;
+    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
     use once_cell::sync::OnceCell;
 
     use super::*;
@@ -29,8 +29,6 @@ pub(crate) mod imp {
         pub adwstack: TemplateChild<adw::ViewStack>,
         pub settings: gtk4::gio::Settings,
         stack: RefCell<Option<adw::ViewStack>>,
-        item: RefCell<Option<String>>,
-        product: RefCell<Option<String>>,
     }
 
     #[glib::object_subclass]
@@ -49,8 +47,6 @@ pub(crate) mod imp {
                 adwstack: TemplateChild::default(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
                 stack: RefCell::new(None),
-                item: RefCell::new(None),
-                product: RefCell::new(None),
             }
         }
 
@@ -73,21 +69,15 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpec::new_string(
-                        "item",
-                        "item",
-                        "item",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpec::new_string(
+                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::new(
                         "product",
                         "product",
                         "product",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
-                    glib::ParamSpec::new_object(
+                    ParamSpecObject::new(
                         "stack",
                         "Stack",
                         "Stack",
@@ -109,11 +99,11 @@ pub(crate) mod imp {
             match pspec.name() {
                 "item" => {
                     let item: Option<String> = value.get().unwrap();
-                    self.library.set_property("item", item).unwrap();
+                    self.library.set_property("item", item);
                 }
                 "product" => {
                     let product: Option<String> = value.get().unwrap();
-                    self.library.set_property("product", product).unwrap();
+                    self.library.set_property("product", product);
                 }
                 "stack" => {
                     let stack = value
@@ -127,14 +117,8 @@ pub(crate) mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "item" => self
-                    .library
-                    .property("item")
-                    .unwrap_or_else(|_| "".to_value()),
-                "product" => self
-                    .library
-                    .property("product")
-                    .unwrap_or_else(|_| "".to_value()),
+                "item" => self.library.property("item"),
+                "product" => self.library.property("product"),
                 "stack" => self.stack.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -162,7 +146,7 @@ impl EpicLoggedInBox {
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.window.get().is_some() {
             return;
@@ -184,7 +168,7 @@ impl EpicLoggedInBox {
         &self,
         dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
     ) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         // Do not run this twice
         if self_.download_manager.get().is_some() {
             return;
@@ -195,39 +179,49 @@ impl EpicLoggedInBox {
     }
 
     pub fn update_docker(&self) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.engine.update_docker();
+    }
+
+    pub fn start_processing_asset(&self) {
+        let self_ = self.imp();
+        self_.library.start_processing_asset();
+    }
+
+    pub fn end_processing_asset(&self) {
+        let self_ = self.imp();
+        self_.library.end_processing_asset();
     }
 
     pub(crate) fn process_epic_asset(
         &self,
         epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
     ) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.process_epic_asset(epic_asset);
     }
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.load_thumbnail(asset);
     }
 
     pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.add_asset(asset, image);
     }
 
     pub fn flush_assets(&self) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         self_.library.flush_assets();
     }
 
     pub fn activate(&self, active: bool) {
-        let self_: &imp::EpicLoggedInBox = imp::EpicLoggedInBox::from_instance(self);
+        let self_ = self.imp();
         if active {
-            self.set_property("stack", &*self_.adwstack).unwrap();
+            self.set_property("stack", &*self_.adwstack);
         } else {
-            self.set_property("stack", None::<adw::ViewStack>).unwrap();
+            self.set_property("stack", None::<adw::ViewStack>);
         }
     }
 }

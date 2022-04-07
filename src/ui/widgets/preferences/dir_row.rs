@@ -5,6 +5,7 @@ use gtk_macros::{action, get_action};
 pub mod imp {
     use super::*;
     use adw::subclass::action_row::ActionRowImpl;
+    use adw::subclass::prelude::PreferencesRowImpl;
     use glib::subclass::{self};
     use gtk4::glib::subclass::Signal;
     use once_cell::sync::Lazy;
@@ -63,6 +64,7 @@ pub mod imp {
     }
     impl WidgetImpl for DirectoryRow {}
     impl ActionRowImpl for DirectoryRow {}
+    impl PreferencesRowImpl for DirectoryRow {}
     impl ListBoxRowImpl for DirectoryRow {}
 }
 
@@ -75,7 +77,7 @@ impl DirectoryRow {
     pub fn new(dir: &str, window: &crate::ui::widgets::preferences::PreferencesWindow) -> Self {
         let row: Self = glib::Object::new(&[]).expect("Failed to create DirectoryRow");
         adw::prelude::PreferencesRowExt::set_title(&row, dir);
-        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(&row);
+        let self_ = row.imp();
         self_.window.set(window.clone()).unwrap();
 
         row.insert_action_group("dir_row", Some(&self_.actions));
@@ -84,7 +86,7 @@ impl DirectoryRow {
             self_.actions,
             "remove",
             clone!(@weak row as row => move |_, _| {
-                row.emit_by_name("remove", &[]).unwrap();
+                row.emit_by_name::<()>("remove", &[]);
             })
         );
 
@@ -92,7 +94,7 @@ impl DirectoryRow {
             self_.actions,
             "up",
             clone!(@weak row as row => move |_, _| {
-                row.emit_by_name("move-up", &[]).unwrap();
+                row.emit_by_name::<()>("move-up", &[]);
             })
         );
 
@@ -100,7 +102,7 @@ impl DirectoryRow {
             self_.actions,
             "down",
             clone!(@weak row as row => move |_, _| {
-                row.emit_by_name("move-down", &[]).unwrap();
+                row.emit_by_name::<()>("move-down", &[]);
             })
         );
         row.set_down_enabled(false);
@@ -108,12 +110,12 @@ impl DirectoryRow {
     }
 
     pub fn set_up_enabled(&self, enabled: bool) {
-        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @up).set_enabled(enabled);
     }
 
     pub fn set_down_enabled(&self, enabled: bool) {
-        let self_: &imp::DirectoryRow = imp::DirectoryRow::from_instance(self);
+        let self_ = self.imp();
         get_action!(self_.actions, @down).set_enabled(enabled);
     }
 }

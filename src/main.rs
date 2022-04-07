@@ -16,6 +16,8 @@ extern crate diesel;
 extern crate diesel_migrations;
 #[macro_use]
 extern crate lazy_static;
+#[cfg(target_os = "linux")]
+extern crate ashpd;
 extern crate fs2;
 extern crate futures;
 

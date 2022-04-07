@@ -4,6 +4,8 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
+use std::path::PathBuf;
+use std::str::FromStr;
 
 pub(crate) mod imp {
     use super::*;
@@ -12,9 +14,10 @@ pub(crate) mod imp {
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
-    #[template(resource = "/io/github/achetagames/epic_asset_manager/download_detail.ui")]
-    pub struct EpicDownloadDetails {
+    #[template(resource = "/io/github/achetagames/epic_asset_manager/create_asset_project.ui")]
+    pub struct EpicCreateAssetProject {
         selected_version: RefCell<Option<String>>,
+        project_name: RefCell<Option<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         pub manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub actions: gio::SimpleActionGroup,
@@ -22,23 +25,30 @@ pub(crate) mod imp {
         pub settings: gio::Settings,
         #[template_child]
         pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
+        #[template_child]
+        pub warning_row: TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub overwrite: TemplateChild<gtk4::CheckButton>,
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for EpicDownloadDetails {
-        const NAME: &'static str = "EpicDownloadDetails";
-        type Type = super::EpicDownloadDetails;
+    impl ObjectSubclass for EpicCreateAssetProject {
+        const NAME: &'static str = "EpicCreateAssetProject";
+        type Type = super::EpicCreateAssetProject;
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
                 selected_version: RefCell::new(None),
+                project_name: RefCell::new(None),
                 asset: RefCell::new(None),
                 manifest: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 select_target_directory: TemplateChild::default(),
+                warning_row: TemplateChild::default(),
+                overwrite: TemplateChild::default(),
             }
         }
 
@@ -52,7 +62,7 @@ pub(crate) mod imp {
         }
     }
 
-    impl ObjectImpl for EpicDownloadDetails {
+    impl ObjectImpl for EpicCreateAssetProject {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
@@ -76,13 +86,22 @@ pub(crate) mod imp {
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![glib::ParamSpecString::new(
-                    "selected-version",
-                    "selected_version",
-                    "selected_version",
-                    None, // Default value
-                    glib::ParamFlags::READWRITE,
-                )]
+                vec![
+                    glib::ParamSpecString::new(
+                        "selected-version",
+                        "selected_version",
+                        "selected_version",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecString::new(
+                        "project-name",
+                        "Project Name",
+                        "Project Name",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
             });
 
             PROPERTIES.as_ref()
@@ -102,6 +121,12 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.selected_version.replace(selected_version);
                 }
+                "project-name" => {
+                    let project_name = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.project_name.replace(project_name);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -109,27 +134,28 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "selected-version" => self.selected_version.borrow().to_value(),
+                "project-name" => self.project_name.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
     }
 
-    impl WidgetImpl for EpicDownloadDetails {}
-    impl BoxImpl for EpicDownloadDetails {}
+    impl WidgetImpl for EpicCreateAssetProject {}
+    impl BoxImpl for EpicCreateAssetProject {}
 }
 
 glib::wrapper! {
-    pub struct EpicDownloadDetails(ObjectSubclass<imp::EpicDownloadDetails>)
+    pub struct EpicCreateAssetProject(ObjectSubclass<imp::EpicCreateAssetProject>)
         @extends gtk4::Widget, gtk4::Box;
 }
 
-impl Default for EpicDownloadDetails {
+impl Default for EpicCreateAssetProject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EpicDownloadDetails {
+impl EpicCreateAssetProject {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
@@ -137,7 +163,7 @@ impl EpicDownloadDetails {
     pub fn set_target_directories(&self) {
         let self_ = self.imp();
         self_.select_target_directory.remove_all();
-        for dir in self_.settings.strv("unreal-vault-directories") {
+        for dir in self_.settings.strv("unreal-projects-directories") {
             self_.select_target_directory.append(
                 Some(&dir),
                 &format!(
@@ -165,6 +191,7 @@ impl EpicDownloadDetails {
         if self_.download_manager.get().is_some() {
             return;
         }
+        debug!("Set Download manager");
 
         self_.download_manager.set(dm.clone()).unwrap();
     }
@@ -172,31 +199,62 @@ impl EpicDownloadDetails {
     pub fn setup_actions(&self) {
         let self_ = self.imp();
         let actions = &self_.actions;
-        self.insert_action_group("download_details", Some(actions));
+        self.insert_action_group("create_asset_project", Some(actions));
 
         action!(
             actions,
-            "download_all",
-            clone!(@weak self as download_details => move |_, _| {
-                download_details.download_all();
+            "create",
+            clone!(@weak self as cap => move |_, _| {
+                cap.create();
             })
         );
+
+        self_
+            .select_target_directory
+            .connect_changed(clone!(@weak self as cap => move |_| {
+                cap.directory_changed();
+            }));
     }
 
-    fn download_all(&self) {
+    fn directory_changed(&self) {
+        self.validate_target_directory();
+    }
+
+    fn validate_target_directory(&self) {
+        let self_ = self.imp();
+        if let Some(project) = self.project_name() {
+            if let Some(id) = self_.select_target_directory.active_id() {
+                let mut path = PathBuf::from_str(id.as_str()).unwrap();
+                path.push(project);
+                if path.exists() {
+                    self_.warning_row.set_visible(true);
+                }
+            }
+        }
+    }
+
+    fn create(&self) {
         let self_ = self.imp();
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
-                dm.add_asset_download(
-                    self.selected_version(),
-                    asset_info.clone(),
-                    &self_
-                        .select_target_directory
-                        .active_id()
-                        .map(|v| v.to_string()),
-                    None,
-                );
-                self.emit_by_name::<()>("start-download", &[]);
+                if let Some(project) = self.project_name() {
+                    if let Some(id) = self_.select_target_directory.active_id() {
+                        let mut path = PathBuf::from_str(id.as_str()).unwrap();
+                        path.push(project);
+                        dm.add_asset_download(
+                            self.selected_version(),
+                            asset_info.clone(),
+                            &None,
+                            Some(vec![
+                                crate::ui::widgets::download_manager::PostDownloadAction::Copy(
+                                    path.to_str().unwrap().to_string(),
+                                    self_.overwrite.is_active(),
+                                ),
+                            ]),
+                        );
+                        self.emit_by_name::<()>("start-download", &[]);
+                    }
+                }
             }
         }
     }
@@ -209,8 +267,8 @@ impl EpicDownloadDetails {
                 self_.manifest.replace(None);
             }
         };
+        self_.warning_row.set_visible(false);
         self_.asset.replace(Some(asset.clone()));
-        self.set_target_directories();
     }
 
     pub fn set_manifest(
@@ -219,9 +277,27 @@ impl EpicDownloadDetails {
     ) {
         let self_ = self.imp();
         self_.manifest.replace(Some(manifest.clone()));
+        self.process_manifest();
+    }
+
+    fn process_manifest(&self) {
+        let self_ = self.imp();
+        if let Some(manifest) = &*self_.manifest.borrow() {
+            for file in manifest.files().keys() {
+                if file.ends_with(".uproject") {
+                    self.set_property("project-name", file[..file.len() - 9].to_string());
+                    self.validate_target_directory();
+                    break;
+                }
+            }
+        }
     }
 
     pub fn selected_version(&self) -> String {
         self.property("selected-version")
+    }
+
+    pub fn project_name(&self) -> Option<String> {
+        self.property("project-name")
     }
 }

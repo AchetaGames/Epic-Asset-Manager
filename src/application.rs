@@ -11,7 +11,6 @@ use once_cell::sync::OnceCell;
 
 pub(crate) mod imp {
     use super::*;
-    use crate::ui::PreferencesWindow;
     use log::error;
     use std::cell::RefCell;
 
@@ -89,15 +88,15 @@ pub(crate) mod imp {
         fn activate(&self, app: &Self::Type) {
             debug!("GtkApplication<EpicAssetManager>::activate");
 
-            let priv_ = EpicAssetManager::from_instance(app);
-            if let Some(window) = priv_.window.get() {
+            let self_ = app.imp();
+            if let Some(window) = self_.window.get() {
                 window.show();
 
                 if let Ok(item) = self.item.borrow().to_value().get::<String>() {
-                    window.set_property("item", item).unwrap();
+                    window.set_property("item", item);
                 }
                 if let Ok(product) = self.product.borrow().to_value().get::<String>() {
-                    window.set_property("product", product).unwrap();
+                    window.set_property("product", product);
                 }
                 self.product.replace(None);
                 self.item.replace(None);
@@ -108,10 +107,10 @@ pub(crate) mod imp {
             let mut window = EpicAssetManagerWindow::new(app);
 
             if let Ok(item) = self.item.borrow().to_value().get::<String>() {
-                window.set_property("item", item).unwrap();
+                window.set_property("item", item);
             }
             if let Ok(product) = self.product.borrow().to_value().get::<String>() {
-                window.set_property("product", product).unwrap();
+                window.set_property("product", product);
             }
             self.product.replace(None);
             self.item.replace(None);
@@ -129,7 +128,7 @@ pub(crate) mod imp {
 
             self.settings
                 .connect_changed(Some("dark-mode"), |_settings, _key| {
-                    let style_manager = adw::StyleManager::default().unwrap();
+                    let style_manager = adw::StyleManager::default();
                     if style_manager.is_dark() {
                         style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
                     } else {
@@ -149,10 +148,7 @@ pub(crate) mod imp {
                 app_d,
                 "preferences",
                 clone!(@weak app as app => move |_,_| {
-                    let preferences = PreferencesWindow::new();
-                    preferences.set_transient_for(Some(app.main_window()));
-                    preferences.set_window(app.main_window());
-                    preferences.show();
+                    app.main_window().show_preferences();
                 })
             );
 
@@ -189,12 +185,12 @@ impl EpicAssetManager {
     }
 
     pub fn main_window(&self) -> &EpicAssetManagerWindow {
-        let self_ = crate::application::imp::EpicAssetManager::from_instance(self);
+        let self_ = self.imp();
         self_.window.get().unwrap()
     }
 
     pub fn setup_gactions(&self) {
-        let self_ = crate::application::imp::EpicAssetManager::from_instance(self);
+        let self_ = self.imp();
         self.connect_shutdown(|_| {
             if let Ok(mut w) = crate::RUNNING.write() {
                 *w = false;
@@ -206,11 +202,7 @@ impl EpicAssetManager {
             self,
             "quit",
             clone!(@weak self as app => move |_, _| {
-                if let Ok(mut w) = crate::RUNNING.write() {
-                    *w = false;
-                }
-                app.main_window().close();
-                app.quit();
+                app.exit();
             })
         );
 
@@ -219,14 +211,8 @@ impl EpicAssetManager {
             self,
             "dark-mode",
             is_dark_mode,
-            clone!(@weak self_.settings as settings =>  move |action, _| {
-                let state = action.state().unwrap();
-                let action_state: bool = state.get().unwrap();
-                let is_dark_mode = !action_state;
-                action.set_state(&is_dark_mode.to_variant());
-                if let Err(err) = settings.set_boolean("dark-mode", is_dark_mode) {
-                    error!("Failed to switch dark mode: {} ", err);
-                }
+            clone!(@weak self as app =>  move |action, _| {
+                app.toggle_dark_mode(action);
             })
         );
 
@@ -246,6 +232,25 @@ impl EpicAssetManager {
         self.set_accels_for_action("win.show-help-overlay", &["<primary>question"]);
     }
 
+    fn toggle_dark_mode(&self, action: &gtk4::gio::SimpleAction) {
+        let self_ = self.imp();
+        let state = action.state().unwrap();
+        let action_state: bool = state.get().unwrap();
+        let is_dark_mode = !action_state;
+        action.set_state(&is_dark_mode.to_variant());
+        if let Err(err) = self_.settings.set_boolean("dark-mode", is_dark_mode) {
+            error!("Failed to switch dark mode: {} ", err);
+        }
+    }
+
+    fn exit(&self) {
+        if let Ok(mut w) = crate::RUNNING.write() {
+            *w = false;
+        }
+        self.main_window().close();
+        self.quit();
+    }
+
     pub fn setup_css() {
         let provider = gtk4::CssProvider::new();
         provider.load_from_resource("/io/github/achetagames/epic_asset_manager/style.css");
@@ -259,7 +264,7 @@ impl EpicAssetManager {
     }
 
     fn show_about_dialog(&self) {
-        let dialog = gtk4::AboutDialogBuilder::new()
+        let dialog = gtk4::AboutDialog::builder()
             .program_name("Epic Asset Manager")
             .logo_icon_name(config::APP_ID)
             .license_type(gtk4::License::MitX11)
@@ -267,7 +272,7 @@ impl EpicAssetManager {
             .version(config::VERSION)
             .transient_for(self.main_window())
             .modal(true)
-            .authors(vec!["Milan Stastny".into()])
+            .authors(vec!["Acheta Games".into()])
             .build();
 
         dialog.show();

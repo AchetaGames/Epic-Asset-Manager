@@ -4,6 +4,7 @@ use gtk4::subclass::prelude::*;
 
 pub(crate) mod imp {
     use super::*;
+    use gtk4::glib::ParamSpecFloat;
     use gtk4::{graphene, gsk};
     use once_cell::sync::Lazy;
     use std::cell::RefCell;
@@ -34,7 +35,7 @@ pub(crate) mod imp {
         fn properties() -> &'static [glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpec::new_float(
+                    ParamSpecFloat::new(
                         "fraction",
                         "Progress",
                         "Progress of the icon",
@@ -43,14 +44,14 @@ pub(crate) mod imp {
                         0.0,
                         glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "inverted",
                         "Inverted",
                         "Invert icon colors",
                         false,
                         glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
                     ),
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         "clockwise",
                         "Clockwise",
                         "Direction of the icon",
@@ -105,20 +106,20 @@ pub(crate) mod imp {
             };
 
             let rect = graphene::Rect::new(0.0, 0.0, size, size);
-            let circle = gsk::RoundedRect::from_rect(rect.clone(), radius);
+            let circle = gsk::RoundedRect::from_rect(rect, radius);
             let center = graphene::Point::new(size / 2.0, size / 2.0);
 
             if widget.inverted() {
-                color.alpha = 1.0;
+                color.set_alpha(1.0);
             } else {
-                color.alpha = 0.15;
+                color.set_alpha(0.15);
             }
             let color_stop = gsk::ColorStop::new(fraction as f32, color);
 
             if widget.inverted() {
-                color.alpha = 0.15;
+                color.set_alpha(0.15);
             } else {
-                color.alpha = 1.0;
+                color.set_alpha(1.0);
             }
             let color_stop_end = gsk::ColorStop::new(fraction as f32, color);
 

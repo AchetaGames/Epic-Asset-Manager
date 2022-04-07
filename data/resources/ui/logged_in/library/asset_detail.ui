@@ -64,25 +64,18 @@
                                             </object>
                                         </child>
                                         <child>
-                                            <object class="GtkButton" id="download_button">
-                                                <property name="name">download_details_button</property>
-                                                <property name="action-name">details.show_download_details</property>
-                                                <child>
-                                                    <object class="GtkBox">
-                                                        <property name="valign">center</property>
-                                                        <property name="halign">center</property>
+                                            <object class="GtkMenuButton" id="actions_menu">
+                                                <property name="direction">down</property>
+                                                <property name="label" translatable="yes">Actions</property>
+                                                <property name="popover">
+                                                    <object class="GtkPopover">
                                                         <child>
-                                                            <object class="GtkImage">
-                                                                <property name="icon-name">folder-download-symbolic</property>
-                                                            </object>
-                                                        </child>
-                                                        <child>
-                                                            <object class="GtkLabel">
-                                                                <property name="label" translatable="yes">Download</property>
+                                                            <object class="GtkBox" id="actions_box">
+                                                                <property name="orientation">vertical</property>
                                                             </object>
                                                         </child>
                                                     </object>
-                                                </child>
+                                                </property>
                                             </object>
                                         </child>
                                     </object>
@@ -114,9 +107,9 @@
                                                     </object>
                                                 </child>
                                                 <child>
-                                                    <object class="GtkBox" id="details_box">
+                                                    <object class="GtkListBox" id="details_box">
+                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
                                                         <property name="vexpand">True</property>
-                                                        <property name="orientation">vertical</property>
                                                     </object>
                                                 </child>
                                             </object>
@@ -126,12 +119,12 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkRevealer" id="download_revealer">
+                            <object class="GtkRevealer" id="actions_revealer">
                                 <property name="reveal-child">false</property>
                                 <property name="vexpand-set">True</property>
                                 <property name="transition-type">slide-up</property>
                                 <child>
-                                    <object class="EpicDownloadDetails" id="download_details">
+                                    <object class="EpicAssetActions" id="asset_actions">
                                     </object>
                                 </child>
                             </object>

@@ -10,12 +10,11 @@ use gtk4::gio;
 use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT};
 use gtk4::prelude::*;
 use log::{debug, error, info};
+use std::cell::RefCell;
+use std::thread;
 
 #[cfg(target_os = "linux")]
 use secret_service::{EncryptionType, SecretService};
-
-use std::cell::RefCell;
-use std::thread;
 
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
@@ -83,27 +82,44 @@ impl Model {
         }
 
         if self.settings.strv("unreal-projects-directories").is_empty() {
-            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
-            dir.push("Unreal Projects");
-            self.settings
-                .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
-                .unwrap();
+            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
+                None => { //TODO: Handle non standard directories
+                }
+                Some(mut dir) => {
+                    dir.push("Unreal Projects");
+                    self.settings
+                        .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
+                        .unwrap();
+                }
+            };
         }
 
         if self.settings.strv("unreal-vault-directories").is_empty() {
-            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
-            dir.push("EpicVault");
-            self.settings
-                .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
-                .unwrap();
+            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
+                None => {
+                    //TODO: Handle non standard directories
+                }
+                Some(mut dir) => {
+                    dir.push("EpicVault");
+                    self.settings
+                        .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
+                        .unwrap();
+                }
+            };
         }
 
         if self.settings.strv("unreal-engine-directories").is_empty() {
-            let mut dir = gtk4::glib::user_special_dir(UserDirectory::Documents);
-            dir.push("Unreal Engine");
-            self.settings
-                .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
-                .unwrap();
+            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
+                None => {
+                    //TODO: Handle non standard directories
+                }
+                Some(mut dir) => {
+                    dir.push("Unreal Engine");
+                    self.settings
+                        .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
+                        .unwrap();
+                }
+            };
         }
     }
 
@@ -173,70 +189,25 @@ impl Model {
                                 if let Ok(attributes) = item.get_attributes() {
                                     match label.as_str() {
                                         "eam_epic_games_token" => {
-                                            let t = match attributes.get("type") {
-                                                None => {
-                                                    debug!("Access token does not have type");
-                                                    continue;
-                                                }
-                                                Some(v) => v.clone(),
-                                            };
-                                            let exp = match chrono::DateTime::parse_from_rfc3339(
-                                                self.settings.string("token-expiration").as_str(),
+                                            if let Some((token, t, exp)) = self.load_egs_secrets(
+                                                &item,
+                                                &attributes,
+                                                "token-expiration",
                                             ) {
-                                                Ok(d) => d.with_timezone(&chrono::Utc),
-                                                Err(e) => {
-                                                    debug!(
-                                                        "Failed to parse token expiration date {}",
-                                                        e
-                                                    );
-                                                    continue;
-                                                }
-                                            };
-                                            let now = chrono::offset::Utc::now();
-                                            let td = exp - now;
-                                            if td.num_seconds() < 600 {
-                                                info!("Token {} is expired, removing", label);
-                                                item.delete().unwrap_or_default();
-                                                continue;
+                                                ud.expires_at = Some(exp);
+                                                ud.token_type = Some(t);
+                                                ud.set_access_token(Some(token));
                                             }
-                                            ud.expires_at = Some(exp);
-                                            ud.token_type = Some(t);
-                                            if let Ok(d) = item.get_secret() {
-                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                                    debug!("Loaded access token");
-                                                    ud.set_access_token(Some(s.to_string()));
-                                                }
-                                            };
                                         }
                                         "eam_epic_games_refresh_token" => {
-                                            let exp = match chrono::DateTime::parse_from_rfc3339(
-                                                self.settings
-                                                    .string("refresh-token-expiration")
-                                                    .as_str(),
+                                            if let Some((token, _t, exp)) = self.load_egs_secrets(
+                                                &item,
+                                                &attributes,
+                                                "refresh-token-expiration",
                                             ) {
-                                                Ok(d) => d.with_timezone(&chrono::Utc),
-                                                Err(e) => {
-                                                    debug!(
-                                                "Failed to parse refresh token expiration date {}",
-                                                e
-                                            );
-                                                    continue;
-                                                }
-                                            };
-                                            let now = chrono::offset::Utc::now();
-                                            let td = exp - now;
-                                            if td.num_seconds() < 600 {
-                                                info!("Token {} is expired, removing", label);
-                                                item.delete().unwrap_or_default();
-                                                continue;
+                                                ud.refresh_expires_at = Some(exp);
+                                                ud.set_refresh_token(Some(token));
                                             }
-                                            ud.refresh_expires_at = Some(exp);
-                                            if let Ok(d) = item.get_secret() {
-                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                                    debug!("Loaded refresh token");
-                                                    ud.set_refresh_token(Some(s.to_string()));
-                                                }
-                                            };
                                         }
                                         "eam_github_token" => {
                                             if let Ok(d) = item.get_secret() {
@@ -260,5 +231,43 @@ impl Model {
                 }
             }
         }
+    }
+
+    fn load_egs_secrets(
+        &self,
+        item: &secret_service::Item,
+        attributes: &std::collections::HashMap<String, String>,
+        expiration: &str,
+    ) -> Option<(String, String, chrono::DateTime<chrono::Utc>)> {
+        let t = match attributes.get("type") {
+            None => {
+                debug!("Access token does not have type");
+                return None;
+            }
+            Some(v) => v.clone(),
+        };
+        let exp =
+            match chrono::DateTime::parse_from_rfc3339(self.settings.string(expiration).as_str()) {
+                Ok(d) => d.with_timezone(&chrono::Utc),
+                Err(e) => {
+                    debug!("Failed to parse token expiration date {}", e);
+                    return None;
+                }
+            };
+        let now = chrono::offset::Utc::now();
+        let td = exp - now;
+        if td.num_seconds() < 600 {
+            info!("Token {} is expired, removing", expiration);
+            item.delete().unwrap_or_default();
+            return None;
+        }
+
+        if let Ok(d) = item.get_secret() {
+            if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                debug!("Loaded {}", expiration);
+                return Some((s.to_string(), t, exp));
+            }
+        };
+        None
     }
 }

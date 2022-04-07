@@ -1,13 +1,14 @@
 use crate::window::EpicAssetManagerWindow;
 use chrono::{DateTime, Utc};
 use gtk4::prelude::SettingsExt;
+use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use log::debug;
 use std::thread;
 use tokio::runtime::Runtime;
 
 impl EpicAssetManagerWindow {
     pub fn login(&self, sid: String) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
         self_.main_stack.set_visible_child_name("progress");
         self_.progress_message.set_text("Authenticating");
         let sender = self_.model.borrow().sender.clone();
@@ -47,7 +48,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn token_time(&self, key: &str) -> Option<DateTime<Utc>> {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
         match chrono::DateTime::parse_from_rfc3339(
             self_.model.borrow().settings.string(key).as_str(),
         ) {
@@ -57,7 +58,7 @@ impl EpicAssetManagerWindow {
     }
 
     pub fn can_relogin(&self) -> bool {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+        let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
         let now = chrono::Utc::now();
         if let Some(te) = self.token_time("token-expiration") {
             let td = te - now;
@@ -94,8 +95,8 @@ impl EpicAssetManagerWindow {
         false
     }
 
-    pub fn relogin(&mut self) {
-        let self_: &crate::window::imp::EpicAssetManagerWindow = (*self).data();
+    pub fn relogin(&self) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
         let sender = self_.model.borrow().sender.clone();
         let mut eg = self_.model.borrow().epic_games.borrow().clone();
         thread::spawn(move || {
@@ -119,26 +120,14 @@ impl EpicAssetManagerWindow {
         });
     }
 
-    // fn logout(&mut self) {
-    //     self.model.epic_games.set_user_details(UserData::new());
-    //     self.widgets
-    //         .title_right_box
-    //         .foreach(|el| self.widgets.details_content.remove(el));
-    //     let stream = self.model.relm.stream().clone();
-    //     let (_channel, sender) = Channel::new(move |_| {
-    //         stream.emit(crate::ui::messages::Msg::ShowLogin);
-    //     });
-    //
-    //     let mut eg = self.model.epic_games.clone();
-    //     thread::spawn(move || {
-    //         let start = std::time::Instant::now();
-    //         Runtime::new().unwrap().block_on(eg.logout());
-    //         sender.send(true).unwrap();
-    //         debug!(
-    //             "{:?} - Logout requests took {:?}",
-    //             thread::current().id(),
-    //             start.elapsed()
-    //         );
-    //     });
-    // }
+    pub fn logout(&self) {
+        let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
+        let sender = self_.model.borrow().sender.clone();
+        let mut eg = self_.model.borrow().epic_games.borrow().clone();
+
+        thread::spawn(move || {
+            Runtime::new().unwrap().block_on(eg.logout());
+            sender.send(crate::ui::messages::Msg::Logout).unwrap();
+        });
+    }
 }
