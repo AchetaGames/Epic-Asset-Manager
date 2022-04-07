@@ -49,6 +49,32 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.0.0" date="2022-04-07">
+       <description>
+              <p>Asset management release</p>
+              <ul>
+                  <li>Add to project functionality</li>
+                  <li>Add open vault directory on already downloaded assets</li>
+                  <li>Add create project functionality</li>
+                  <li>Account for None filter</li>
+                  <li>Add additional details from download manifest</li>
+                  <li>Update to stable gnome 42</li>
+                  <li>Refactor the download manager</li>
+                  <li>Download respects the target download directory</li>
+                  <li>Add progress bar to asset loading</li>
+                  <li>Properly display the initial sorting choice</li>
+                  <li>Fix login issue</li>
+                  <li>Add logout button to the menu</li>
+                  <li>Add target directory selection</li>
+                  <li>Launch the engine properly from inside the flatpak</li>
+                  <li>Add donation link</li>
+                  <li>Load dark mode properly</li>
+                  <li>Add Actions button</li>
+                  <li>Open preferences on a correct page if GitHub token is not set up</li>
+                  <li>Save user details in DB</li>
+		</ul>
+       </description>
+    </release>
     <release version="2.9.4" date="2022-01-21">
        <description>
               <p>Dark mode Fix</p>
