@@ -382,29 +382,29 @@ impl EpicAssetDetails {
                         );
                     }
                     AssetType::Game => {
-                        self.create_actions_button(
-                            "Play",
-                            "media-playback-start-symbolic",
-                            "details.play_game",
-                        );
-                        self.create_actions_button(
-                            "Install",
-                            "system-software-install-symbolic",
-                            "details.install_game",
-                        );
+                        // self.create_actions_button(
+                        //     "Play",
+                        //     "media-playback-start-symbolic",
+                        //     "details.play_game",
+                        // );
+                        // self.create_actions_button(
+                        //     "Install",
+                        //     "system-software-install-symbolic",
+                        //     "details.install_game",
+                        // );
                     }
                     AssetType::Engine => {}
                     AssetType::Plugin => {
-                        self.create_actions_button(
-                            "Add to Project",
-                            "edit-select-all-symbolic",
-                            "details.add_to_project",
-                        );
-                        self.create_actions_button(
-                            "Add to Engine",
-                            "application-x-addon-symbolic",
-                            "details.add_to_project",
-                        );
+                        // self.create_actions_button(
+                        //     "Add to Project",
+                        //     "edit-select-all-symbolic",
+                        //     "details.add_to_project",
+                        // );
+                        // self.create_actions_button(
+                        //     "Add to Engine",
+                        //     "application-x-addon-symbolic",
+                        //     "details.add_to_project",
+                        // );
                     }
                 }
             }

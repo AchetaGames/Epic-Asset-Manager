@@ -408,12 +408,12 @@ impl EpicAssetActions {
                     self_.new_project_row.set_visible(true);
                 }
                 AssetType::Game => {
-                    self_.install_row.set_visible(true);
+                    // self_.install_row.set_visible(true);
                 }
                 AssetType::Engine => {}
                 AssetType::Plugin => {
-                    self_.project_row.set_visible(true);
-                    self_.engine_row.set_visible(true);
+                    // self_.project_row.set_visible(true);
+                    // self_.engine_row.set_visible(true);
                 }
             };
         }
