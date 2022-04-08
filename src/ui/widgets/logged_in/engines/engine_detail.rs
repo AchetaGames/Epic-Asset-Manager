@@ -595,27 +595,38 @@ impl EpicEngineDetails {
                         let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
                         let mut result: HashMap<String, Vec<String>> = HashMap::new();
 
-                        client
-                            .get_tags("epicgames/unreal-engine", None)
-                            .unwrap()
-                            .into_iter()
-                            .for_each(|tag| {
-                                if re.is_match(&tag) {
-                                    for cap in re.captures_iter(&tag) {
-                                        match result.get_mut(&cap[1]) {
-                                            None => {
-                                                result.insert(
-                                                    cap[1].to_string(),
-                                                    vec![tag.to_string()],
-                                                );
-                                            }
-                                            Some(v) => {
-                                                v.push(tag.to_string());
+                        match client.get_tags("epicgames/unreal-engine", None) {
+                            Ok(tags) => {
+                                if let Some(w) = self_.window.get() {
+                                    w.clear_notification("ghcr authentication");
+                                }
+                                for tag in tags {
+                                    if re.is_match(&tag) {
+                                        for cap in re.captures_iter(&tag) {
+                                            match result.get_mut(&cap[1]) {
+                                                None => {
+                                                    result.insert(
+                                                        cap[1].to_string(),
+                                                        vec![tag.to_string()],
+                                                    );
+                                                }
+                                                Some(v) => {
+                                                    v.push(tag.to_string());
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            });
+                            }
+                            Err(e) => {
+                                error!("Failed to get tags: {:?}", e);
+                                if let Some(w) = self_.window.get() {
+                                    w.add_notification("ghcr authentication", "Unable to authenticate to ghcr please check your setup(did you link with Epic Account?)", gtk4::MessageType::Error);
+                                    get_action!(self_.actions, @install).set_enabled(false);
+                                }
+                            }
+                        }
+
                         sender
                             .send(DockerMsg::DockerEngineVersions(result))
                             .unwrap();
