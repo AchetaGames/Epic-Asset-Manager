@@ -49,9 +49,9 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
-    <release version="3.0.1" date="2022-04-08">
+    <release version="3.0.2" date="2022-04-08">
        <description>
-              <p></p>
+              <p>Minor fixes</p>
               <ul>
                   <li>Update asset item after asset is finished downloading</li>
                   <li>Create copy of duplicate file for safety</li>
