@@ -46,6 +46,10 @@ pub(crate) mod imp {
         pub color_scheme_btn: TemplateChild<gtk4::Button>,
         #[template_child]
         pub notifications: TemplateChild<gtk4::Box>,
+        #[template_child]
+        pub progress_button: TemplateChild<gtk4::MenuButton>,
+        #[template_child]
+        pub download_popover: TemplateChild<gtk4::Popover>,
         pub model: RefCell<Model>,
     }
 
@@ -71,6 +75,8 @@ pub(crate) mod imp {
                 appmenu_button: TemplateChild::default(),
                 color_scheme_btn: TemplateChild::default(),
                 notifications: TemplateChild::default(),
+                progress_button: TemplateChild::default(),
+                download_popover: TemplateChild::default(),
                 model: RefCell::new(Model::new()),
             }
         }
@@ -516,5 +522,11 @@ impl EpicAssetManagerWindow {
                 },
             }
         }
+    }
+
+    pub fn close_download_manager(&self) {
+        let self_ = self.imp();
+        self_.progress_button.popdown();
+        self_.download_popover.popdown();
     }
 }

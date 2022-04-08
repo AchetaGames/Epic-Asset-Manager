@@ -130,6 +130,10 @@ impl Asset for super::EpicDownloadManager {
 
         let self_ = self.imp();
         let item = super::download_item::EpicDownloadItem::new();
+        if let Some(w) = self_.window.get() {
+            item.set_window(w);
+        }
+
         let mut items = self_.download_items.borrow_mut();
         match items.get_mut(&release_id) {
             None => {
