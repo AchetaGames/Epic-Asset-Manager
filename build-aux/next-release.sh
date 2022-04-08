@@ -44,3 +44,4 @@ ninja -C _build
 git push origin v"$next"
 
 meson dist -C _build
+cat _build/meson-dist/*.tar.xz.sha256sum
