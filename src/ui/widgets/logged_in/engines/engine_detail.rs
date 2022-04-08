@@ -14,6 +14,7 @@ use version_compare::Cmp;
 #[derive(Debug, Clone)]
 pub enum DockerMsg {
     DockerEngineVersions(HashMap<String, Vec<String>>),
+    DockerError(String),
     DockerManifestSize(u64),
 }
 
@@ -509,6 +510,9 @@ impl EpicEngineDetails {
         let self_ = self.imp();
         match msg {
             DockerMsg::DockerEngineVersions(ver) => {
+                if let Some(w) = self_.window.get() {
+                    w.clear_notification("ghcr authentication");
+                }
                 self.updated_docker_versions(&ver);
             }
             DockerMsg::DockerManifestSize(size) => {
@@ -536,6 +540,12 @@ impl EpicEngineDetails {
                     }
                 };
                 self.set_property("download-size", Some(byte.format(1)));
+            }
+            DockerMsg::DockerError(_error) => {
+                if let Some(w) = self_.window.get() {
+                    w.add_notification("ghcr authentication", "Unable to authenticate to ghcr please check your setup(did you link with Epic Account?)", gtk4::MessageType::Error);
+                    get_action!(self_.actions, @install).set_enabled(false);
+                }
             }
         };
     }
@@ -597,9 +607,6 @@ impl EpicEngineDetails {
 
                         match client.get_tags("epicgames/unreal-engine", None) {
                             Ok(tags) => {
-                                if let Some(w) = self_.window.get() {
-                                    w.clear_notification("ghcr authentication");
-                                }
                                 for tag in tags {
                                     if re.is_match(&tag) {
                                         for cap in re.captures_iter(&tag) {
@@ -620,10 +627,12 @@ impl EpicEngineDetails {
                             }
                             Err(e) => {
                                 error!("Failed to get tags: {:?}", e);
-                                if let Some(w) = self_.window.get() {
-                                    w.add_notification("ghcr authentication", "Unable to authenticate to ghcr please check your setup(did you link with Epic Account?)", gtk4::MessageType::Error);
-                                    get_action!(self_.actions, @install).set_enabled(false);
-                                }
+                                sender
+                                    .send(DockerMsg::DockerError(format!(
+                                        "Failed to get tags: {:?}",
+                                        e
+                                    )))
+                                    .unwrap();
                             }
                         }
 

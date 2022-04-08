@@ -8,6 +8,7 @@ use gtk4::{self, prelude::*};
 use rand::Rng;
 use sha1::digest::core_api::CoreWrapper;
 use sha1::{Digest, Sha1, Sha1Core};
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -888,9 +889,24 @@ fn copy_files(from: &PathBuf, targets: Vec<(String, bool)>, filename: &str) {
         if tar.exists() && !t.1 {
             continue;
         }
+        if tar.exists() {
+            let ext = match tar.extension() {
+                None => OsString::from_str(".bak").unwrap(),
+                Some(ext) => {
+                    let mut new = ext.to_os_string();
+                    new.push(".bak");
+                    new
+                }
+            };
+            let mut bak = tar.clone();
+            bak.set_extension(ext);
+            if let Err(err) = std::fs::rename(&tar, bak) {
+                error!("Unable to create backup: {:?}", err);
+            };
+        }
         std::fs::create_dir_all(tar.parent().unwrap()).unwrap();
         if let Err(e) = std::fs::copy(from.clone(), tar) {
-            error!("Unable to copy file: {:?}", e)
+            error!("Unable to copy file: {:?}", e);
         };
     }
 }
