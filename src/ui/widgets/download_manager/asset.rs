@@ -144,6 +144,7 @@ impl Asset for super::EpicDownloadManager {
         if let Some(actions) = actions {
             item.add_actions(&actions);
         };
+        item.set_property("asset", asset.id.clone());
         item.set_property("label", asset.title.clone());
         item.set_property("target", target.clone());
         item.set_property("status", "initializing...".to_string());

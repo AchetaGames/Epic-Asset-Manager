@@ -22,6 +22,7 @@ pub(crate) mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         status: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
+        asset: RefCell<Option<String>>,
         target: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         pub total_size: RefCell<u128>,
@@ -55,6 +56,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 status: RefCell::new(None),
                 label: RefCell::new(None),
+                asset: RefCell::new(None),
                 target: RefCell::new(None),
                 path: RefCell::new(None),
                 total_size: RefCell::new(0),
@@ -91,6 +93,13 @@ pub(crate) mod imp {
                         "label",
                         "Label",
                         "Label",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecString::new(
+                        "asset",
+                        "Asset",
+                        "Asset",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
@@ -202,6 +211,12 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.target.replace(target);
                 }
+                "asset" => {
+                    let asset = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.asset.replace(asset);
+                }
                 "thumbnail" => {
                     let thumbnail: Option<Pixbuf> = value
                         .get()
@@ -218,6 +233,7 @@ pub(crate) mod imp {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "target" => self.target.borrow().to_value(),
+                "asset" => self.asset.borrow().to_value(),
                 "status" => self.status.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
@@ -333,6 +349,10 @@ impl EpicDownloadItem {
         self.property("target")
     }
 
+    pub fn asset(&self) -> Option<String> {
+        self.property("asset")
+    }
+
     pub fn set_total_files(&self, count: u64) {
         let self_ = self.imp();
         self_.total_files.replace(count);
@@ -354,6 +374,14 @@ impl EpicDownloadItem {
             };
             self_.downloaded_size.replace(*self_.total_size.borrow());
             self_.download_progress.set_fraction(1.0);
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                if let Some(id) = self.asset() {
+                    l_.library.refresh_asset(&id);
+                }
+            }
             self.set_property("status", "Finished".to_string());
             glib::timeout_add_seconds_local(
                 15,
