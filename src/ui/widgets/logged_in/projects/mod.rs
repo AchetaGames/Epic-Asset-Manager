@@ -70,7 +70,6 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
-            obj.load_projects();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -206,6 +205,7 @@ impl EpicProjectsBox {
         }));
         self_.projects_grid.set_model(Some(&selection_model));
         self_.projects_grid.set_factory(Some(&factory));
+        self.load_projects();
     }
 
     fn project_selected(&self, model: &gtk4::SingleSelection) {
