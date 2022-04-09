@@ -49,6 +49,18 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.0.3" date="2022-04-09">
+       <description>
+              <p>Further fixes</p>
+              <ul>
+                  <li>Save the manifest to the correct path</li>
+                  <li>Unselect item on details closed</li>
+                  <li>Do not have project selected on start</li>
+                  <li>Close the download manager when you click open directory button</li>
+                  <li>Fix download URL case</li>
+</ul>
+       </description>
+    </release>
     <release version="3.0.2" date="2022-04-08">
        <description>
               <p>Minor fixes</p>
