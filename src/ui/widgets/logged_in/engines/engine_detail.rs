@@ -21,7 +21,7 @@ pub enum DockerMsg {
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -48,6 +48,7 @@ pub(crate) mod imp {
         pub receiver: RefCell<Option<gtk4::glib::Receiver<super::DockerMsg>>>,
         pub docker_versions: RefCell<Option<HashMap<String, Vec<String>>>>,
         selected: RefCell<Option<String>>,
+        position: RefCell<u32>,
         download_size: RefCell<Option<String>>,
         pub details_group: gtk4::SizeGroup,
     }
@@ -76,6 +77,7 @@ pub(crate) mod imp {
                 data: RefCell::new(None),
                 docker_versions: RefCell::new(None),
                 selected: RefCell::new(None),
+                position: RefCell::new(0),
                 download_size: RefCell::new(None),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
             }
@@ -123,6 +125,15 @@ pub(crate) mod imp {
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
+                    ParamSpecUInt::new(
+                        "position",
+                        "position",
+                        "item_position",
+                        0,
+                        u32::MAX,
+                        0,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -148,6 +159,10 @@ pub(crate) mod imp {
                     let size = value.get().unwrap();
                     self.download_size.replace(size);
                 }
+                "position" => {
+                    let position = value.get().unwrap();
+                    self.position.replace(position);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -156,6 +171,7 @@ pub(crate) mod imp {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
+                "position" => self.position.borrow().to_value(),
                 "download-size" => self.download_size.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -203,7 +219,7 @@ impl EpicEngineDetails {
             actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                details.set_property("expanded", false);
+                details.collapse();
             })
         );
 
@@ -286,6 +302,11 @@ impl EpicEngineDetails {
         while let Some(el) = self_.details.first_child() {
             self_.details.remove(&el);
         }
+
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+        }
+
         if let Some(title) = &data.version() {
             self_
                 .title
@@ -326,8 +347,15 @@ impl EpicEngineDetails {
         }
     }
 
+    pub fn is_expanded(&self) -> bool {
+        self.property("expanded")
+    }
+
     pub fn add_engine(&self) {
         let self_ = self.imp();
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+        }
         #[cfg(target_os = "linux")]
         {
             self_.data.replace(None);
@@ -684,6 +712,24 @@ impl EpicEngineDetails {
 
     pub fn selected(&self) -> Option<String> {
         self.property("selected")
+    }
+
+    pub fn position(&self) -> u32 {
+        self.property("position")
+    }
+
+    pub fn collapse(&self) {
+        let self_ = self.imp();
+        self.set_property("expanded", false);
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            let l = w_.logged_in_stack.clone();
+            let l_ = l.imp();
+            let e = l_.engine.imp();
+            if let Some(m) = e.engine_grid.model() {
+                m.unselect_item(self.position());
+            }
+        }
     }
 
     // fn is_expanded(&self) -> bool {

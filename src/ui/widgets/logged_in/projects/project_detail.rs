@@ -13,7 +13,7 @@ use crate::ui::widgets::logged_in::engines::UnrealEngine;
 pub(crate) mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
     use once_cell::sync::OnceCell;
 
     use crate::models::project_data::Uproject;
@@ -38,6 +38,7 @@ pub(crate) mod imp {
         pub engine: RefCell<Option<UnrealEngine>>,
         pub settings: gio::Settings,
         pub details_group: gtk4::SizeGroup,
+        position: RefCell<u32>,
     }
 
     #[glib::object_subclass]
@@ -59,6 +60,7 @@ pub(crate) mod imp {
                 engine: RefCell::new(None),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
+                position: RefCell::new(0),
             }
         }
 
@@ -85,6 +87,15 @@ pub(crate) mod imp {
                         glib::ParamFlags::READWRITE,
                     ),
                     ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
+                    ParamSpecUInt::new(
+                        "position",
+                        "position",
+                        "item_position",
+                        0,
+                        u32::MAX,
+                        0,
+                        glib::ParamFlags::READWRITE,
+                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -106,6 +117,10 @@ pub(crate) mod imp {
                     let path = value.get().unwrap();
                     self.path.replace(path);
                 }
+                "position" => {
+                    let position = value.get().unwrap();
+                    self.position.replace(position);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -113,6 +128,7 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
+                "position" => self.position.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -153,7 +169,7 @@ impl UnrealProjectDetails {
             actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                details.set_property("expanded", false);
+                details.collapse();
             })
         );
 
@@ -225,6 +241,9 @@ impl UnrealProjectDetails {
     ) {
         let self_ = self.imp();
         self.set_property("path", &path);
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+        }
         self_.uproject.replace(Some(project.clone()));
         while let Some(el) = self_.details.first_child() {
             self_.details.remove(&el);
@@ -327,10 +346,6 @@ impl UnrealProjectDetails {
                 &gtk4::Label::new(Some(&project.engine_association)),
                 &self_.details_group,
             ));
-
-        if !self.is_expanded() {
-            self.set_property("expanded", true);
-        }
     }
 
     fn engine_selected(&self, combo: &gtk4::ComboBoxText) {
@@ -383,5 +398,23 @@ impl UnrealProjectDetails {
 
     fn path(&self) -> Option<String> {
         self.property("path")
+    }
+
+    pub fn position(&self) -> u32 {
+        self.property("position")
+    }
+
+    pub fn collapse(&self) {
+        let self_ = self.imp();
+        self.set_property("expanded", false);
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            let l = w_.logged_in_stack.clone();
+            let l_ = l.imp();
+            let p = l_.projects.imp();
+            if let Some(m) = p.projects_grid.model() {
+                m.unselect_item(self.position());
+            }
+        }
     }
 }

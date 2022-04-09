@@ -14,7 +14,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecUInt};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -55,6 +55,7 @@ pub(crate) mod imp {
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub details_group: gtk4::SizeGroup,
         pub settings: gtk4::gio::Settings,
+        position: RefCell<u32>,
     }
 
     #[glib::object_subclass]
@@ -85,6 +86,7 @@ pub(crate) mod imp {
                 download_manager: OnceCell::new(),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
+                position: RefCell::new(0),
             }
         }
 
@@ -107,13 +109,24 @@ pub(crate) mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpecBoolean::new(
-                    "expanded",
-                    "expanded",
-                    "Is expanded",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
+                vec![
+                    ParamSpecBoolean::new(
+                        "expanded",
+                        "expanded",
+                        "Is expanded",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    ParamSpecUInt::new(
+                        "position",
+                        "position",
+                        "item_position",
+                        0,
+                        u32::MAX,
+                        0,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                ]
             });
             PROPERTIES.as_ref()
         }
@@ -130,6 +143,10 @@ pub(crate) mod imp {
                     let expanded = value.get().unwrap();
                     self.expanded.replace(expanded);
                 }
+                "position" => {
+                    let position = value.get().unwrap();
+                    self.position.replace(position);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -137,6 +154,7 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
+                "position" => self.position.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -224,7 +242,7 @@ impl EpicAssetDetails {
             actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                details.set_property("expanded", false);
+                details.collapse();
             })
         );
 
@@ -451,6 +469,11 @@ impl EpicAssetDetails {
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_ = self.imp();
+
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+        }
+
         if let Some(a) = &*self_.asset.borrow() {
             if asset.id.eq(&a.id) {
                 return;
@@ -541,10 +564,6 @@ impl EpicAssetDetails {
             self.add_info_row("", &label);
         }
 
-        if !self.is_expanded() {
-            self.set_property("expanded", true);
-        }
-
         self.check_favorite();
     }
 
@@ -629,5 +648,23 @@ impl EpicAssetDetails {
             }
         }
         self_.favorite.set_icon_name("non-starred-symbolic");
+    }
+
+    pub fn position(&self) -> u32 {
+        self.property("position")
+    }
+
+    pub fn collapse(&self) {
+        let self_ = self.imp();
+        self.set_property("expanded", false);
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            let l = w_.logged_in_stack.clone();
+            let l_ = l.imp();
+            let a = l_.library.imp();
+            if let Some(m) = a.asset_grid.model() {
+                m.unselect_item(self.position());
+            }
+        }
     }
 }

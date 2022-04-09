@@ -217,6 +217,7 @@ impl EpicProjectsBox {
             if let Some(uproject) = project.uproject() {
                 self_.details.set_project(&uproject, project.path());
             }
+            self_.details.set_property("position", model.selected());
             self.set_property("selected", project.path());
             self_.selected_uproject.replace(project.uproject());
             self.set_property("expanded", true);
