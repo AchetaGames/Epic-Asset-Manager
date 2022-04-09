@@ -353,9 +353,6 @@ impl EpicEngineDetails {
 
     pub fn add_engine(&self) {
         let self_ = self.imp();
-        if !self.is_expanded() {
-            self.set_property("expanded", true);
-        }
         #[cfg(target_os = "linux")]
         {
             self_.data.replace(None);
