@@ -598,8 +598,26 @@ fn save_asset_manifest(
             return;
         }
     }
+    let tar = match t.file_name() {
+        None => {
+            return;
+        }
+        Some(fname) => {
+            if fname.eq("data") {
+                match t.parent() {
+                    None => {
+                        return;
+                    }
+                    Some(p) => p,
+                }
+            } else {
+                t
+            }
+        }
+    };
+
     std::fs::create_dir_all(t).expect("Unable to create target directory");
-    match File::create(t.join("manifest.json")) {
+    match File::create(tar.join("manifest.json")) {
         Ok(mut json_manifest_file) => match serde_json::to_string(&manifest) {
             Ok(json) => {
                 json_manifest_file
@@ -614,7 +632,7 @@ fn save_asset_manifest(
             error!("Unable to save Manifest: {:?}", e);
         }
     }
-    match File::create(t.join("manifest")) {
+    match File::create(tar.join("manifest")) {
         Ok(mut manifest_file) => {
             manifest_file.write_all(&manifest.to_vec()).unwrap();
         }
