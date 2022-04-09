@@ -255,7 +255,7 @@ impl EpicEnginesBox {
                 .downcast::<crate::models::engine_data::EngineData>()
                 .unwrap();
             self.set_property("selected", engine.path());
-            self_.details.set_property("expanded", true);
+            self_.details.set_property("position", model.selected());
             self_.details.set_data(&engine);
         }
     }

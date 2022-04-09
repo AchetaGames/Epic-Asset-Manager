@@ -175,26 +175,13 @@ pub(crate) mod imp {
 
                     self.path.replace(path.clone());
                     if init {
-                        if let Some(p) = path {
-                            action!(
-                                self.actions,
-                                "open",
-                                clone!(@weak obj as item =>  move |_, _| {
-                                    if let Ok(dir) = std::fs::File::open(&p) {
-                                        let ctx = glib::MainContext::default();
-                                        ctx.spawn_local(
-                                            clone!(@weak item => async move {
-                                                ashpd::desktop::open_uri::open_directory(
-                                                    &ashpd::WindowIdentifier::default(),
-                                                    &dir,
-                                                )
-                                                .await.unwrap();
-                                            }),
-                                        );
-                                    };
-                                })
-                            );
-                        }
+                        action!(
+                            self.actions,
+                            "open",
+                            clone!(@weak obj as item =>  move |_, _| {
+                                item.open_path();
+                            })
+                        );
                     }
                 }
                 "status" => {
@@ -448,5 +435,24 @@ impl EpicDownloadItem {
     pub fn actions(&self) -> Vec<PostDownloadAction> {
         let self_ = self.imp();
         self_.post_actions.borrow().clone()
+    }
+
+    pub fn open_path(&self) {
+        let self_ = self.imp();
+        if let Some(p) = self.path() {
+            if let Ok(dir) = std::fs::File::open(&p) {
+                if let Some(w) = self_.window.get() {
+                    w.close_download_manager();
+                }
+                let ctx = glib::MainContext::default();
+                ctx.spawn_local(clone!(@weak self as item => async move {
+                    ashpd::desktop::open_uri::open_directory(
+                        &ashpd::WindowIdentifier::default(),
+                        &dir,
+                    )
+                    .await.unwrap();
+                }));
+            };
+        }
     }
 }

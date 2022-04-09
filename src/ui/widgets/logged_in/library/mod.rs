@@ -393,8 +393,9 @@ impl EpicLibraryBox {
                 .unwrap();
             let assets = self_.loaded_assets.borrow();
             if let Some(a) = assets.get(&asset.id()) {
-                self_.details.set_asset(a)
+                self_.details.set_asset(a);
             }
+            self_.details.set_property("position", model.selected());
         }
     }
 
