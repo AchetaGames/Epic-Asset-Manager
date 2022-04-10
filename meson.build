@@ -1,6 +1,6 @@
 project('epic_asset_manager',
         'rust',
-        version: '3.0.3',
+        version: '3.0.4',
         license: 'MIT',
   meson_version: '>= 0.59')
 

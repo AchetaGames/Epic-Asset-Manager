@@ -49,6 +49,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.0.4" date="2022-04-11">
+       <description>
+              <p>Dark mode changes</p>
+              <ul>
+                  <li>Add force dark back so the app can be dark while rest of the system is light</li>
+                  <li>Remove Dark Theme button</li>
+                  <li>Do not have engine tab open by default</li>
+</ul>
+       </description>
+    </release>
     <release version="3.0.3" date="2022-04-09">
        <description>
               <p>Further fixes</p>
