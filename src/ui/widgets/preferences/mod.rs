@@ -150,6 +150,18 @@ impl PreferencesWindow {
             .build();
         self_
             .settings
+            .connect_changed(Some("dark-mode"), |settings, _key| {
+                let style_manager = adw::StyleManager::default();
+                if settings.boolean("dark-mode") {
+                    style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
+                } else if !style_manager.system_supports_color_schemes() {
+                    style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
+                } else {
+                    style_manager.set_color_scheme(adw::ColorScheme::Default);
+                };
+            });
+        self_
+            .settings
             .bind("cache-directory", &*self_.cache_directory_row, "subtitle")
             .flags(SettingsBindFlags::DEFAULT)
             .build();
@@ -236,11 +248,6 @@ impl PreferencesWindow {
 
         let view = self_.settings.string("default-view");
         self_.default_view_selection.set_active_id(Some(&view));
-
-        let style_manager = adw::StyleManager::default();
-        if style_manager.system_supports_color_schemes() {
-            self_.dark_theme_group.set_visible(false);
-        }
     }
 
     fn load_secrets(&self) {

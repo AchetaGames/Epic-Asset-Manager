@@ -37,7 +37,7 @@
                         <property name="title" translatable="yes">Appearance</property>
                         <child>
                             <object class="AdwActionRow">
-                                <property name="title" translatable="yes">_Dark Theme</property>
+                                <property name="title" translatable="yes">Force _Dark Theme</property>
                                 <property name="use-underline">True</property>
                                 <property name="activatable-widget">dark_theme_switch</property>
                                 <property name="subtitle" translatable="yes">Whether the application should use a dark theme</property>
