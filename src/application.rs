@@ -126,16 +126,6 @@ pub(crate) mod imp {
         fn startup(&self, app: &Self::Type) {
             debug!("GtkApplication<EpicAssetManager>::startup");
 
-            self.settings
-                .connect_changed(Some("dark-mode"), |_settings, _key| {
-                    let style_manager = adw::StyleManager::default();
-                    if style_manager.is_dark() {
-                        style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
-                    } else {
-                        style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
-                    }
-                });
-
             self.parent_startup(app);
 
             adw::functions::init();
