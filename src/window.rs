@@ -146,7 +146,7 @@ pub(crate) mod imp {
 
             style_manager.connect_color_scheme_notify(move |style_manager| {
                 let supported = style_manager.system_supports_color_schemes();
-                button.set_visible(supported);
+                button.set_visible(!supported);
                 if supported {
                     if style_manager.is_dark() {
                         button.set_icon_name("light-mode-symbolic");
@@ -223,7 +223,11 @@ impl EpicAssetManagerWindow {
             self.maximize();
         }
         let style_manager = adw::StyleManager::default();
+        let button = self_.color_scheme_btn.get();
         if style_manager.system_supports_color_schemes() {
+            button.set_visible(false);
+        } else {
+            button.set_visible(true);
             if settings.boolean("dark-mode") {
                 style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
             } else {

@@ -37,6 +37,8 @@ pub mod imp {
         #[template_child]
         pub temp_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
+        pub dark_theme_group: TemplateChild<adw::PreferencesGroup>,
+        #[template_child]
         pub unreal_engine_project_directories_box: TemplateChild<gtk4::Box>,
         #[template_child]
         pub unreal_engine_vault_directories_box: TemplateChild<gtk4::Box>,
@@ -69,6 +71,7 @@ pub mod imp {
                 file_chooser: RefCell::new(None),
                 cache_directory_row: TemplateChild::default(),
                 temp_directory_row: TemplateChild::default(),
+                dark_theme_group: TemplateChild::default(),
                 unreal_engine_project_directories_box: TemplateChild::default(),
                 unreal_engine_vault_directories_box: TemplateChild::default(),
                 unreal_engine_directories_box: TemplateChild::default(),
@@ -233,6 +236,11 @@ impl PreferencesWindow {
 
         let view = self_.settings.string("default-view");
         self_.default_view_selection.set_active_id(Some(&view));
+
+        let style_manager = adw::StyleManager::default();
+        if style_manager.system_supports_color_schemes() {
+            self_.dark_theme_group.set_visible(false);
+        }
     }
 
     fn load_secrets(&self) {
