@@ -6,7 +6,6 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use gtk_macros::action;
 use log::{debug, error, warn};
 
 use engine::EpicEngine;
@@ -223,6 +222,13 @@ impl EpicEnginesBox {
                 .downcast_ref::<crate::models::engine_data::EngineData>()
                 .unwrap();
 
+            if !info1.valid() {
+                return gtk4::Ordering::Larger;
+            }
+            if !info2.valid() {
+                return gtk4::Ordering::Smaller;
+            }
+
             match version_compare::compare(
                 &info1.version().unwrap_or_default(),
                 &info2.version().unwrap_or_default(),
@@ -232,7 +238,7 @@ impl EpicEnginesBox {
                     Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
                     Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
                 },
-                Err(_) => gtk4::Ordering::Equal,
+                Err(_) => gtk4::Ordering::Smaller,
             }
         });
         let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
@@ -245,6 +251,25 @@ impl EpicEnginesBox {
         selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
             engines.engine_selected(model);
         }));
+
+        let data = crate::models::engine_data::EngineData::new(
+            "",
+            "",
+            &crate::models::engine_data::UnrealVersion {
+                major_version: -1,
+                minor_version: -1,
+                patch_version: -1,
+                changelist: -1,
+                compatible_changelist: -1,
+                is_licensee_version: -1,
+                is_promoted_build: -1,
+                branch_name: "Install Engine".to_string(),
+            },
+            &self_.grid_model,
+        );
+
+        self_.grid_model.append(&data);
+
         self.load_engines();
     }
 
@@ -254,24 +279,20 @@ impl EpicEnginesBox {
             let engine = a
                 .downcast::<crate::models::engine_data::EngineData>()
                 .unwrap();
-            self.set_property("selected", engine.path());
             self_.details.set_property("position", model.selected());
-            self_.details.set_data(&engine);
+            if engine.valid() {
+                self.set_property("selected", engine.path());
+                self_.details.set_data(&engine);
+            } else {
+                self_.details.set_property("expanded", true);
+                self_.details.add_engine();
+            }
         }
     }
 
     pub fn setup_actions(&self) {
         let self_ = self.imp();
         self.insert_action_group("engines", Some(&self_.actions));
-        action!(
-            self_.actions,
-            "add",
-            clone!(@weak self as engines => move |_, _| {
-                let self_ = engines.imp();
-                self_.details.set_property("expanded", true);
-                self_.details.add_engine();
-            })
-        );
     }
 
     pub fn selected(&self) -> Option<String> {
