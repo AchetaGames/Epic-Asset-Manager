@@ -258,11 +258,13 @@ impl EpicAssetManager {
             .program_name("Epic Asset Manager")
             .logo_icon_name(config::APP_ID)
             .license_type(gtk4::License::MitX11)
-            .website("https://github.com/AchetaGames/Epic-Asset-Manager")
+            .website("https://github.com/AchetaGames/Epic-Asset-Manager/wiki")
+            .website_label("Wiki")
             .version(config::VERSION)
             .transient_for(self.main_window())
             .modal(true)
             .authors(vec!["Acheta Games".into()])
+            .documenters(vec!["Osayami".into()])
             .build();
 
         dialog.show();
