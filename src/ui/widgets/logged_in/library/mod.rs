@@ -1,4 +1,5 @@
 use crate::tools::asset_info::Search;
+use crate::ui::widgets::logged_in::refresh::Refresh;
 use asset::EpicAsset;
 use glib::clone;
 use gtk4::{self, gdk_pixbuf, prelude::*, CustomSorter};
@@ -527,6 +528,9 @@ impl EpicLibraryBox {
                 Some(adj) => adj.set_value(0.0),
             };
         }
+        if self.can_be_refreshed() {
+            self.refresh_state_changed();
+        }
         self.open_asset();
         // debug!("Finished flushing {:?}", start.elapsed());
     }
@@ -998,6 +1002,7 @@ impl EpicLibraryBox {
                         .unwrap();
                 }
             });
+            self.refresh_state_changed();
             glib::idle_add_local(clone!(@weak self as library => @default-panic, move || {
                 glib::Continue(library.flush_loop())
             }));
@@ -1006,12 +1011,8 @@ impl EpicLibraryBox {
 
     fn flush_loop(&self) -> bool {
         self.flush_assets();
-        let self_ = self.imp();
-        (self_.asset_load_pool.queued_count()
-            + self_.asset_load_pool.active_count()
-            + self_.image_load_pool.queued_count()
-            + self_.image_load_pool.active_count())
-            > 0
+        self.refresh_state_changed();
+        !self.can_be_refreshed()
     }
 
     pub(crate) fn process_epic_asset(
@@ -1073,5 +1074,24 @@ impl EpicLibraryBox {
             data.refresh();
         }
         self.apply_filter();
+    }
+}
+
+impl crate::ui::widgets::logged_in::refresh::Refresh for EpicLibraryBox {
+    fn run_refresh(&self) {}
+    fn can_be_refreshed(&self) -> bool {
+        let self_ = self.imp();
+        self_.asset_load_pool.queued_count()
+            + self_.asset_load_pool.active_count()
+            + self_.image_load_pool.queued_count()
+            + self_.image_load_pool.active_count()
+            == 0
+    }
+    fn refresh_state_changed(&self) {
+        let self_ = self.imp();
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            w_.logged_in_stack.tab_switched();
+        }
     }
 }

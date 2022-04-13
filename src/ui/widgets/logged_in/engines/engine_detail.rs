@@ -722,7 +722,7 @@ impl EpicEngineDetails {
             let w_ = w.imp();
             let l = w_.logged_in_stack.clone();
             let l_ = l.imp();
-            let e = l_.engine.imp();
+            let e = l_.engines.imp();
             if let Some(m) = e.engine_grid.model() {
                 m.unselect_item(self.position());
             }

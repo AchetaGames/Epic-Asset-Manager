@@ -363,7 +363,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 if let Some(window) = self_.window.get() {
                     let win_: &crate::window::imp::EpicAssetManagerWindow = window.imp();
                     let l_ = win_.logged_in_stack.imp();
-                    l_.engine.load_engines();
+                    l_.engines.load_engines();
                 }
             }
         }

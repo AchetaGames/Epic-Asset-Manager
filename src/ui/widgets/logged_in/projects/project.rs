@@ -249,7 +249,7 @@ impl EpicProject {
             let w_ = w.imp();
             let l_ = w_.logged_in_stack.imp();
             return l_
-                .engine
+                .engines
                 .engine_from_assoociation(&uproject.engine_association);
         }
         None

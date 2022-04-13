@@ -487,3 +487,17 @@ impl EpicEnginesBox {
         result
     }
 }
+
+impl crate::ui::widgets::logged_in::refresh::Refresh for EpicEnginesBox {
+    fn run_refresh(&self) {}
+    fn can_be_refreshed(&self) -> bool {
+        true
+    }
+    fn refresh_state_changed(&self) {
+        let self_ = self.imp();
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            w_.logged_in_stack.tab_switched();
+        }
+    }
+}
