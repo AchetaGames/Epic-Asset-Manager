@@ -49,6 +49,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.1.0" date="2022-04-15">
+       <description>
+              <p>Refresh button</p>
+              <ul>
+                  <li>Add refresh button and optimize Engine and Project loading</li>
+                  <li>Update the about dialog</li>
+                  <li>Move the Install Engine button</li>
+             </ul>
+       </description>
+    </release>
     <release version="3.0.4" date="2022-04-11">
        <description>
               <p>Dark mode changes</p>
