@@ -8,11 +8,20 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use log::{debug, error, warn};
 
+use crate::ui::widgets::logged_in::refresh::Refresh;
 use engine::EpicEngine;
 use version_compare::Cmp;
 
 pub mod engine;
 pub mod engine_detail;
+
+pub enum Msg {
+    AddEngine {
+        guid: String,
+        path: String,
+        version: crate::models::engine_data::UnrealVersion,
+    },
+}
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct UnrealEngine {
@@ -52,6 +61,7 @@ pub(crate) mod imp {
 
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
+    use threadpool::ThreadPool;
 
     use super::*;
 
@@ -67,10 +77,13 @@ pub(crate) mod imp {
             TemplateChild<crate::ui::widgets::logged_in::engines::engine_detail::EpicEngineDetails>,
         pub grid_model: gtk4::gio::ListStore,
         pub expanded: RefCell<bool>,
+        pub file_pool: ThreadPool,
         selected: RefCell<Option<String>>,
         pub actions: gtk4::gio::SimpleActionGroup,
         pub engines: RefCell<HashMap<String, super::UnrealEngine>>,
         pub settings: gio::Settings,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
     }
 
     #[glib::object_subclass]
@@ -80,6 +93,7 @@ pub(crate) mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
+            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
@@ -93,6 +107,9 @@ pub(crate) mod imp {
                 actions: gtk4::gio::SimpleActionGroup::new(),
                 engines: RefCell::new(HashMap::new()),
                 settings: gio::Settings::new(crate::config::APP_ID),
+                sender,
+                receiver: RefCell::new(Some(receiver)),
+                file_pool: ThreadPool::with_name("File Pool".to_string(), 1),
             }
         }
 
@@ -110,6 +127,7 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+            obj.setup_messaging();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -182,6 +200,28 @@ impl Default for EpicEnginesBox {
 impl EpicEnginesBox {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+    }
+
+    pub fn setup_messaging(&self) {
+        let self_ = self.imp();
+        let receiver = self_.receiver.borrow_mut().take().unwrap();
+        receiver.attach(
+            None,
+            clone!(@weak self as engines => @default-panic, move |msg| {
+                engines.update(msg);
+                glib::Continue(true)
+            }),
+        );
+    }
+
+    fn update(&self, msg: Msg) {
+        match msg {
+            Msg::AddEngine {
+                guid,
+                path,
+                version,
+            } => self.add_engine(guid, path, version),
+        }
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -312,26 +352,16 @@ impl EpicEnginesBox {
         self_.details.set_download_manager(dm);
     }
 
-    pub fn load_engines(&self) {
+    fn add_engine(
+        &self,
+        guid: String,
+        path: String,
+        version: crate::models::engine_data::UnrealVersion,
+    ) {
         let self_ = self.imp();
-        'outer: for (guid, path) in Self::read_engines_ini() {
-            let mut engines = self_.engines.borrow_mut();
-            if let Some(version) =
-                crate::models::engine_data::EngineData::read_engine_version(&path)
-            {
-                for eng in engines.values() {
-                    if eng.path.eq(&path) {
-                        engines.insert(
-                            guid.clone(),
-                            UnrealEngine {
-                                version: version.clone(),
-                                path: path.clone(),
-                                guid: Some(guid.clone()),
-                            },
-                        );
-                        continue 'outer;
-                    }
-                }
+        let mut engines = self_.engines.borrow_mut();
+        for eng in engines.values() {
+            if eng.path.eq(&path) {
                 engines.insert(
                     guid.clone(),
                     UnrealEngine {
@@ -340,86 +370,84 @@ impl EpicEnginesBox {
                         guid: Some(guid.clone()),
                     },
                 );
-                let data = crate::models::engine_data::EngineData::new(
-                    &path,
-                    &guid,
-                    &version,
-                    &self_.grid_model,
-                );
-
-                self_.grid_model.append(&data);
-            };
+                return;
+            }
         }
+        engines.insert(
+            guid.clone(),
+            UnrealEngine {
+                version: version.clone(),
+                path: path.clone(),
+                guid: Some(guid.clone()),
+            },
+        );
+
+        let data =
+            crate::models::engine_data::EngineData::new(&path, &guid, &version, &self_.grid_model);
+
+        self_.grid_model.append(&data);
+        self.refresh_state_changed();
+    }
+
+    pub fn load_engines(&self) {
+        let self_ = self.imp();
+        let s = self_.sender.clone();
+        self_.file_pool.execute(move || {
+            for (guid, path) in Self::read_engines_ini() {
+                if let Some(version) =
+                    crate::models::engine_data::EngineData::read_engine_version(&path)
+                {
+                    s.send(Msg::AddEngine {
+                        guid,
+                        path,
+                        version,
+                    })
+                    .unwrap();
+                };
+            }
+        });
         self.load_engines_from_fs();
     }
 
     pub fn load_engines_from_fs(&self) {
         let self_ = self.imp();
-        'outer: for dir in self_.settings.strv("unreal-engine-directories") {
-            match crate::models::engine_data::EngineData::read_engine_version(&dir.to_string()) {
-                None => {
-                    let path = std::path::PathBuf::from(dir.to_string());
-                    if let Ok(rd) = path.read_dir() {
-                        'inner: for d in rd.flatten() {
-                            let p = d.path();
-                            if p.is_dir() {
-                                if let Some(version) =
-                                    crate::models::engine_data::EngineData::read_engine_version(
-                                        p.to_str().unwrap(),
-                                    )
-                                {
-                                    let mut engines = self_.engines.borrow_mut();
-                                    for engine in engines.values() {
-                                        if engine.path.eq(p.to_str().unwrap()) {
-                                            continue 'inner;
-                                        }
-                                    }
-                                    engines.insert(
-                                        p.to_str().unwrap().to_string(),
-                                        UnrealEngine {
-                                            version: version.clone(),
+        for dir in self_.settings.strv("unreal-engine-directories") {
+            let s = self_.sender.clone();
+            self_.file_pool.execute(move || {
+                match crate::models::engine_data::EngineData::read_engine_version(&dir.to_string())
+                {
+                    None => {
+                        let path = std::path::PathBuf::from(dir.to_string());
+                        if let Ok(rd) = path.read_dir() {
+                            for d in rd.flatten() {
+                                let p = d.path();
+                                if p.is_dir() {
+                                    if let Some(version) =
+                                        crate::models::engine_data::EngineData::read_engine_version(
+                                            p.to_str().unwrap(),
+                                        )
+                                    {
+                                        s.send(Msg::AddEngine {
+                                            guid: p.to_str().unwrap().to_string(),
                                             path: p.to_str().unwrap().to_string(),
-                                            guid: Some(p.to_str().unwrap().to_string()),
-                                        },
-                                    );
-                                    let data = crate::models::engine_data::EngineData::new(
-                                        p.to_str().unwrap(),
-                                        p.to_str().unwrap(),
-                                        &version,
-                                        &self_.grid_model,
-                                    );
-
-                                    self_.grid_model.append(&data);
+                                            version,
+                                        })
+                                        .unwrap();
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                Some(version) => {
-                    let mut engines = self_.engines.borrow_mut();
-                    for engine in engines.values() {
-                        if engine.path.eq(&dir.to_string()) {
-                            continue 'outer;
-                        }
-                    }
-                    engines.insert(
-                        dir.to_string(),
-                        UnrealEngine {
-                            version: version.clone(),
+                    Some(version) => {
+                        s.send(Msg::AddEngine {
+                            guid: dir.to_string(),
                             path: dir.to_string(),
-                            guid: Some(dir.to_string()),
-                        },
-                    );
-                    let data = crate::models::engine_data::EngineData::new(
-                        &dir,
-                        &dir,
-                        &version,
-                        &self_.grid_model,
-                    );
-
-                    self_.grid_model.append(&data);
+                            version,
+                        })
+                        .unwrap();
+                    }
                 }
-            }
+            });
         }
     }
 
@@ -489,10 +517,15 @@ impl EpicEnginesBox {
 }
 
 impl crate::ui::widgets::logged_in::refresh::Refresh for EpicEnginesBox {
-    fn run_refresh(&self) {}
-    fn can_be_refreshed(&self) -> bool {
-        true
+    fn run_refresh(&self) {
+        self.load_engines();
     }
+
+    fn can_be_refreshed(&self) -> bool {
+        let self_ = self.imp();
+        self_.file_pool.queued_count() + self_.file_pool.active_count() == 0
+    }
+
     fn refresh_state_changed(&self) {
         let self_ = self.imp();
         if let Some(w) = self_.window.get() {

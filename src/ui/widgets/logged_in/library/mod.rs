@@ -1078,7 +1078,9 @@ impl EpicLibraryBox {
 }
 
 impl crate::ui::widgets::logged_in::refresh::Refresh for EpicLibraryBox {
-    fn run_refresh(&self) {}
+    fn run_refresh(&self) {
+        self.fetch_assets();
+    }
     fn can_be_refreshed(&self) -> bool {
         let self_ = self.imp();
         self_.asset_load_pool.queued_count()

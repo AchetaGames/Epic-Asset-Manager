@@ -1,9 +1,15 @@
+use crate::ui::widgets::logged_in::refresh::Refresh;
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 use log::info;
 use project::EpicProject;
 use std::path::{Path, PathBuf};
+
 mod project;
 mod project_detail;
+
+pub enum Msg {
+    AddProject { uproject_file: PathBuf },
+}
 
 pub(crate) mod imp {
     use super::*;
@@ -11,6 +17,7 @@ pub(crate) mod imp {
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::BTreeMap;
+    use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
@@ -30,6 +37,9 @@ pub(crate) mod imp {
         selected: RefCell<Option<String>>,
         pub selected_uproject: RefCell<Option<crate::models::project_data::Uproject>>,
         pub actions: gtk4::gio::SimpleActionGroup,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub file_pool: ThreadPool,
     }
 
     #[glib::object_subclass]
@@ -39,6 +49,7 @@ pub(crate) mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
+            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
@@ -53,6 +64,9 @@ pub(crate) mod imp {
                 selected: RefCell::new(None),
                 selected_uproject: RefCell::new(None),
                 actions: gtk4::gio::SimpleActionGroup::new(),
+                sender,
+                receiver: RefCell::new(Some(receiver)),
+                file_pool: ThreadPool::with_name("File Pool".to_string(), 1),
             }
         }
 
@@ -70,6 +84,7 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+            obj.setup_messaging();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -142,6 +157,24 @@ impl Default for EpicProjectsBox {
 impl EpicProjectsBox {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+    }
+
+    pub fn setup_messaging(&self) {
+        let self_ = self.imp();
+        let receiver = self_.receiver.borrow_mut().take().unwrap();
+        receiver.attach(
+            None,
+            clone!(@weak self as projects => @default-panic, move |msg| {
+                projects.update(msg);
+                glib::Continue(true)
+            }),
+        );
+    }
+
+    fn update(&self, msg: Msg) {
+        match msg {
+            Msg::AddProject { uproject_file } => self.add_project(&uproject_file),
+        }
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -234,7 +267,10 @@ impl EpicProjectsBox {
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
             let path = std::path::PathBuf::from(dir.to_string());
-            self.check_path_for_uproject(&path);
+            let s = self_.sender.clone();
+            self_.file_pool.execute(move || {
+                Self::check_path_for_uproject(&path, s);
+            });
         }
     }
 
@@ -242,27 +278,26 @@ impl EpicProjectsBox {
         let self_ = self.imp();
         if let Some(directory) = uproject_file.parent() {
             if let Some(oname) = uproject_file.file_stem() {
-                match oname.to_str() {
-                    None => {}
-                    Some(name) => {
-                        self_
-                            .projects
-                            .borrow_mut()
-                            .insert(directory.to_str().unwrap().to_string(), name.to_string());
+                if let Some(name) = oname.to_str() {
+                    if let None = self_
+                        .projects
+                        .borrow_mut()
+                        .insert(directory.to_str().unwrap().to_string(), name.to_string())
+                    {
                         self_
                             .grid_model
                             .append(&crate::models::project_data::ProjectData::new(
                                 uproject_file.to_str().unwrap(),
                                 name,
                             ));
-                    }
+                    };
                 }
             }
         }
+        self.refresh_state_changed();
     }
 
-    // TODO this should probably be done in a thread in case we loop
-    fn check_path_for_uproject(&self, path: &Path) {
+    fn check_path_for_uproject(path: &Path, sender: gtk4::glib::Sender<Msg>) {
         if let Ok(rd) = path.read_dir() {
             for d in rd {
                 match d {
@@ -270,9 +305,9 @@ impl EpicProjectsBox {
                         let p = entry.path();
                         if p.is_dir() {
                             if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
-                                self.add_project(&uproject_file);
+                                sender.send(Msg::AddProject { uproject_file }).unwrap();
                             } else {
-                                self.check_path_for_uproject(&p);
+                                Self::check_path_for_uproject(&p, sender.clone());
                             };
                         } else {
                             continue;
@@ -301,15 +336,18 @@ impl EpicProjectsBox {
         };
         None
     }
-
-    pub fn refresh(&self) {}
 }
 
 impl crate::ui::widgets::logged_in::refresh::Refresh for EpicProjectsBox {
-    fn run_refresh(&self) {}
-    fn can_be_refreshed(&self) -> bool {
-        true
+    fn run_refresh(&self) {
+        self.load_projects();
     }
+
+    fn can_be_refreshed(&self) -> bool {
+        let self_ = self.imp();
+        self_.file_pool.queued_count() + self_.file_pool.active_count() == 0
+    }
+
     fn refresh_state_changed(&self) {
         let self_ = self.imp();
         if let Some(w) = self_.window.get() {
