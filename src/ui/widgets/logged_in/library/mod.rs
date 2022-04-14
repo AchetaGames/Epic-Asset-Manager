@@ -782,7 +782,7 @@ impl EpicLibraryBox {
                             .chars()
                             .filter(|c| c.is_ascii_alphanumeric() || c.is_ascii_whitespace())
                             .collect();
-                        let title: String = title.to_lowercase().replace(" ", "-");
+                        let title: String = title.to_lowercase().replace(' ', "-");
                         asset_products.insert(title, asset.id.clone());
                     }
                     true
@@ -799,7 +799,7 @@ impl EpicLibraryBox {
                                 .chars()
                                 .filter(|c| c.is_ascii_alphanumeric() || c.is_ascii_whitespace())
                                 .collect();
-                            let title: String = title.to_lowercase().replace(" ", "-");
+                            let title: String = title.to_lowercase().replace(' ', "-");
                             asset_products.insert(title, asset.id.clone());
                         }
                         true
@@ -833,7 +833,7 @@ impl EpicLibraryBox {
             .set_fraction(f64::from(self.loaded()) / f64::from(self.loading()));
         self_
             .refresh_progress
-            .set_visible(!(self.loaded() == self.loading()));
+            .set_visible(self.loaded() != self.loading());
     }
 
     fn add_category(&self, path: &str) {

@@ -13,9 +13,9 @@ use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
 pub enum DockerMsg {
-    DockerEngineVersions(HashMap<String, Vec<String>>),
-    DockerError(String),
-    DockerManifestSize(u64),
+    EngineVersions(HashMap<String, Vec<String>>),
+    Error(String),
+    ManifestSize(u64),
 }
 
 pub(crate) mod imp {
@@ -534,13 +534,13 @@ impl EpicEngineDetails {
     pub fn update(&self, msg: DockerMsg) {
         let self_ = self.imp();
         match msg {
-            DockerMsg::DockerEngineVersions(ver) => {
+            DockerMsg::EngineVersions(ver) => {
                 if let Some(w) = self_.window.get() {
                     w.clear_notification("ghcr authentication");
                 }
                 self.updated_docker_versions(&ver);
             }
-            DockerMsg::DockerManifestSize(size) => {
+            DockerMsg::ManifestSize(size) => {
                 let byte = byte_unit::Byte::from_bytes(size as u128).get_appropriate_unit(false);
                 match self_.settings.strv("unreal-engine-directories").get(0) {
                     None => {
@@ -566,7 +566,7 @@ impl EpicEngineDetails {
                 };
                 self.set_property("download-size", Some(byte.format(1)));
             }
-            DockerMsg::DockerError(_error) => {
+            DockerMsg::Error(_error) => {
                 if let Some(w) = self_.window.get() {
                     w.add_notification("ghcr authentication", "Unable to authenticate to ghcr please check your setup(did you link with Epic Account?)", gtk4::MessageType::Error);
                     get_action!(self_.actions, @install).set_enabled(false);
@@ -601,7 +601,7 @@ impl EpicEngineDetails {
                     match client.get_manifest("epicgames/unreal-engine", &version) {
                         Ok(manifest) => match manifest.download_size() {
                             Ok(size) => {
-                                sender.send(DockerMsg::DockerManifestSize(size)).unwrap();
+                                sender.send(DockerMsg::ManifestSize(size)).unwrap();
                             }
                             Err(e) => {
                                 error!("Unable to get manifest size: {:?}", e);
@@ -653,17 +653,12 @@ impl EpicEngineDetails {
                             Err(e) => {
                                 error!("Failed to get tags: {:?}", e);
                                 sender
-                                    .send(DockerMsg::DockerError(format!(
-                                        "Failed to get tags: {:?}",
-                                        e
-                                    )))
+                                    .send(DockerMsg::Error(format!("Failed to get tags: {:?}", e)))
                                     .unwrap();
                             }
                         }
 
-                        sender
-                            .send(DockerMsg::DockerEngineVersions(result))
-                            .unwrap();
+                        sender.send(DockerMsg::EngineVersions(result)).unwrap();
                     });
                 } else {
                     self_.docker_versions.replace(None);

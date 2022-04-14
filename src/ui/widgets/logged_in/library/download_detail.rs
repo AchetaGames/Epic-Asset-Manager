@@ -150,7 +150,7 @@ impl EpicDownloadDetails {
                     }
                 ),
             );
-            if let None = self_.select_target_directory.active_text() {
+            if self_.select_target_directory.active_text().is_none() {
                 self_.select_target_directory.set_active_id(Some(&dir));
             }
         }

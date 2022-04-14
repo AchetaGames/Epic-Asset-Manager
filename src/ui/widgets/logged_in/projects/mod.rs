@@ -274,15 +274,16 @@ impl EpicProjectsBox {
         }
     }
 
-    fn add_project(&self, uproject_file: &PathBuf) {
+    fn add_project(&self, uproject_file: &Path) {
         let self_ = self.imp();
         if let Some(directory) = uproject_file.parent() {
             if let Some(oname) = uproject_file.file_stem() {
                 if let Some(name) = oname.to_str() {
-                    if let None = self_
+                    if self_
                         .projects
                         .borrow_mut()
                         .insert(directory.to_str().unwrap().to_string(), name.to_string())
+                        .is_none()
                     {
                         self_
                             .grid_model

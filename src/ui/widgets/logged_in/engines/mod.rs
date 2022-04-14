@@ -365,9 +365,9 @@ impl EpicEnginesBox {
                 engines.insert(
                     guid.clone(),
                     UnrealEngine {
-                        version: version.clone(),
-                        path: path.clone(),
-                        guid: Some(guid.clone()),
+                        version,
+                        path,
+                        guid: Some(guid),
                     },
                 );
                 return;
