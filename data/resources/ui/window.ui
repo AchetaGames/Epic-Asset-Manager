@@ -35,6 +35,15 @@
                     </object>
                 </property>
                 <child type="start">
+                    <object class="GtkButton" id="refresh">
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="action-name">window.refresh</property>
+                        <property name="tooltip-text" translatable="yes">Refresh</property>
+                        <property name="icon-name">view-refresh-symbolic</property>
+                    </object>
+                </child>
+                <child type="start">
                     <object class="GtkButton" id="color_scheme_btn">
                         <property name="halign">center</property>
                         <property name="valign">center</property>
@@ -44,32 +53,28 @@
                     </object>
                 </child>
                 <child type="end">
+                    <object class="GtkMenuButton" id="appmenu_button">
+                        <property name="icon-name">open-menu-symbolic</property>
+                        <property name="menu-model">primary_menu</property>
+                    </object>
+                </child>
+                <child type="end">
                     <object class="GtkBox">
+                        <property name="visible" bind-source="download_manager" bind-property="has-items" bind-flags="sync-create"/>
                         <child>
-                            <object class="GtkBox">
-                                <property name="visible" bind-source="download_manager" bind-property="has-items" bind-flags="sync-create"/>
-                                <child>
-                                    <object class="ProgressIcon" id="progress_icon"/>
-                                </child>
-                                <child>
-                                    <object class="GtkMenuButton" id="progress_button">
-                                        <property name="always-show-arrow">false</property>
-                                        <property name="direction">down</property>
-                                        <property name="popover">
-                                            <object class="GtkPopover" id="download_popover">
-                                                <child>
-                                                    <object class="EpicDownloadManager" id="download_manager"/>
-                                                </child>
-                                            </object>
-                                        </property>
-                                    </object>
-                                </child>
-                            </object>
+                            <object class="ProgressIcon" id="progress_icon"/>
                         </child>
                         <child>
-                            <object class="GtkMenuButton" id="appmenu_button">
-                                <property name="icon-name">open-menu-symbolic</property>
-                                <property name="menu-model">primary_menu</property>
+                            <object class="GtkMenuButton" id="progress_button">
+                                <property name="always-show-arrow">false</property>
+                                <property name="direction">down</property>
+                                <property name="popover">
+                                    <object class="GtkPopover" id="download_popover">
+                                        <child>
+                                            <object class="EpicDownloadManager" id="download_manager"/>
+                                        </child>
+                                    </object>
+                                </property>
                             </object>
                         </child>
                     </object>

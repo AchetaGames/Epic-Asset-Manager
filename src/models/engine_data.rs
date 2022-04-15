@@ -30,15 +30,33 @@ pub struct UnrealVersion {
 
 impl UnrealVersion {
     pub fn format(&self) -> String {
-        format!(
-            "{}.{}.{}",
-            self.major_version, self.minor_version, self.patch_version
-        )
+        if self.valid() {
+            format!(
+                "{}.{}.{}",
+                self.major_version, self.minor_version, self.patch_version
+            )
+        } else {
+            self.branch_name.to_string()
+        }
     }
-}
 
-impl UnrealVersion {
+    pub fn valid(&self) -> bool {
+        !(self.major_version == -1
+            && self.minor_version == -1
+            && self.patch_version == -1
+            && self.changelist == -1
+            && self.compatible_changelist == -1
+            && self.is_licensee_version == -1
+            && self.is_promoted_build == -1)
+    }
+
     pub fn compare(&self, other: &UnrealVersion) -> Ordering {
+        if !self.valid() {
+            return Ordering::Greater;
+        }
+        if !other.valid() {
+            return Ordering::Less;
+        }
         match self.major_version.cmp(&other.major_version) {
             Ordering::Less => Ordering::Less,
             Ordering::Equal => match self.minor_version.cmp(&other.minor_version) {
@@ -384,6 +402,13 @@ impl EngineData {
     pub fn ueversion(&self) -> Option<UnrealVersion> {
         let self_ = self.imp();
         self_.ueversion.borrow().clone()
+    }
+
+    pub fn valid(&self) -> bool {
+        match self.ueversion() {
+            None => false,
+            Some(v) => v.valid(),
+        }
     }
 
     pub fn version(&self) -> Option<String> {

@@ -18,9 +18,12 @@ pub(crate) mod imp {
         branch: RefCell<Option<String>>,
         updatable: RefCell<bool>,
         has_branch: RefCell<bool>,
-        pub ueversion: RefCell<Option<crate::models::engine_data::UnrealVersion>>,
         pub data: RefCell<Option<crate::models::engine_data::EngineData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
+        #[template_child]
+        pub logo: TemplateChild<gtk4::Image>,
+        #[template_child]
+        pub add: TemplateChild<adw::Avatar>,
     }
 
     #[glib::object_subclass]
@@ -39,9 +42,10 @@ pub(crate) mod imp {
                 branch: RefCell::new(None),
                 updatable: RefCell::new(false),
                 has_branch: RefCell::new(false),
-                ueversion: RefCell::new(None),
                 data: RefCell::new(None),
                 handler: RefCell::new(None),
+                logo: TemplateChild::default(),
+                add: TemplateChild::default(),
             }
         }
 
@@ -207,6 +211,14 @@ impl EpicEngine {
                 d.disconnect(id);
             }
         }
+        if data.valid() {
+            self_.logo.set_visible(true);
+            self_.add.set_visible(false);
+        } else {
+            self_.logo.set_visible(false);
+            self_.add.set_visible(true);
+        }
+
         self_.data.replace(Some(data.clone()));
         self.set_property("path", &data.path());
         self.set_property("guid", &data.guid());

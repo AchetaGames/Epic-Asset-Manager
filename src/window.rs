@@ -1,6 +1,7 @@
 use crate::application::EpicAssetManager;
 use crate::config::{APP_ID, PROFILE};
 use crate::ui::update::Update;
+use crate::ui::widgets::logged_in::refresh::Refresh;
 use crate::ui::widgets::progress_icon::ProgressIconExt;
 use crate::ui::PreferencesWindow;
 use chrono::TimeZone;
@@ -45,6 +46,8 @@ pub(crate) mod imp {
         #[template_child]
         pub color_scheme_btn: TemplateChild<gtk4::Button>,
         #[template_child]
+        pub refresh: TemplateChild<gtk4::Button>,
+        #[template_child]
         pub notifications: TemplateChild<gtk4::Box>,
         #[template_child]
         pub progress_button: TemplateChild<gtk4::MenuButton>,
@@ -74,6 +77,7 @@ pub(crate) mod imp {
                 progress_icon: TemplateChild::default(),
                 appmenu_button: TemplateChild::default(),
                 color_scheme_btn: TemplateChild::default(),
+                refresh: TemplateChild::default(),
                 notifications: TemplateChild::default(),
                 progress_button: TemplateChild::default(),
                 download_popover: TemplateChild::default(),
@@ -284,6 +288,14 @@ impl EpicAssetManagerWindow {
             })
         );
 
+        action!(
+            self,
+            "refresh",
+            clone!(@weak self as window => move |_,_| {
+                window.refresh();
+            })
+        );
+
         self_.download_manager.connect_local(
             "tick",
             false,
@@ -309,6 +321,7 @@ impl EpicAssetManagerWindow {
     pub fn show_login(&self) {
         let self_ = self.imp();
         self_.sid_box.set_window(self);
+        self_.refresh.set_visible(false);
         self_.logged_in_stack.activate(false);
         self_.main_stack.set_visible_child_name("sid_box");
         get_action!(self, @logout).set_enabled(false);
@@ -323,6 +336,7 @@ impl EpicAssetManagerWindow {
         let self_ = self.imp();
         get_action!(self, @logout).set_enabled(true);
         self_.logged_in_stack.activate(true);
+        self_.refresh.set_visible(true);
         self_.main_stack.set_visible_child_name("logged_in_stack");
     }
 
@@ -399,6 +413,7 @@ impl EpicAssetManagerWindow {
             .epic_games
             .borrow_mut()
             .set_user_details(ud.clone());
+        self_.refresh.set_visible(true);
         self_.logged_in_stack.set_window(self);
         self_.download_manager.set_window(self);
         self_
@@ -536,5 +551,10 @@ impl EpicAssetManagerWindow {
         let self_ = self.imp();
         self_.progress_button.popdown();
         self_.download_popover.popdown();
+    }
+
+    pub fn refresh(&self) {
+        let self_ = self.imp();
+        self_.logged_in_stack.run_refresh();
     }
 }

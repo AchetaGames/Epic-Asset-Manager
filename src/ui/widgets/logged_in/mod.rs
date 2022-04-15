@@ -1,3 +1,6 @@
+use crate::gio::glib::GString;
+use crate::ui::widgets::logged_in::refresh::Refresh;
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -5,6 +8,7 @@ use gtk4::{glib, CompositeTemplate};
 mod engines;
 pub mod library;
 mod projects;
+pub mod refresh;
 
 pub(crate) mod imp {
     use std::cell::RefCell;
@@ -22,7 +26,7 @@ pub(crate) mod imp {
         #[template_child]
         pub library: TemplateChild<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         #[template_child]
-        pub engine: TemplateChild<crate::ui::widgets::logged_in::engines::EpicEnginesBox>,
+        pub engines: TemplateChild<crate::ui::widgets::logged_in::engines::EpicEnginesBox>,
         #[template_child]
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
         #[template_child]
@@ -42,7 +46,7 @@ pub(crate) mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 library: TemplateChild::default(),
-                engine: TemplateChild::default(),
+                engines: TemplateChild::default(),
                 projects: TemplateChild::default(),
                 adwstack: TemplateChild::default(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
@@ -154,14 +158,20 @@ impl EpicLoggedInBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.library.set_window(&window.clone());
-        self_.engine.set_window(&window.clone());
+        self_.engines.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
 
         match self_.settings.string("default-view").as_str() {
-            "engine" => self_.adwstack.set_visible_child_name("engine"),
+            "engines" => self_.adwstack.set_visible_child_name("engines"),
             "projects" => self_.adwstack.set_visible_child_name("projects"),
             _ => self_.adwstack.set_visible_child_name("library"),
         }
+
+        self_
+            .adwstack
+            .connect_visible_child_notify(clone!(@weak self as li => move |_| {
+                li.tab_switched();
+            }));
     }
 
     pub fn set_download_manager(
@@ -175,12 +185,12 @@ impl EpicLoggedInBox {
         }
         self_.download_manager.set(dm.clone()).unwrap();
         self_.library.set_download_manager(dm);
-        self_.engine.set_download_manager(dm);
+        self_.engines.set_download_manager(dm);
     }
 
     pub fn update_docker(&self) {
         let self_ = self.imp();
-        self_.engine.update_docker();
+        self_.engines.update_docker();
     }
 
     pub fn start_processing_asset(&self) {
@@ -216,12 +226,49 @@ impl EpicLoggedInBox {
         self_.library.flush_assets();
     }
 
+    fn active_page(&self) -> Option<GString> {
+        let self_ = self.imp();
+        self_.adwstack.visible_child_name()
+    }
+
     pub fn activate(&self, active: bool) {
         let self_ = self.imp();
         if active {
             self.set_property("stack", &*self_.adwstack);
         } else {
             self.set_property("stack", None::<adw::ViewStack>);
+        }
+    }
+
+    pub fn tab_switched(&self) {
+        let self_ = self.imp();
+        let available = if let Some(page) = self.active_page() {
+            match page.as_str() {
+                "library" => self_.library.can_be_refreshed(),
+                "projects" => self_.projects.can_be_refreshed(),
+                "engines" => self_.engines.can_be_refreshed(),
+                _ => return,
+            }
+        } else {
+            return;
+        };
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            w_.refresh.set_sensitive(available);
+        }
+    }
+}
+
+impl Refresh for EpicLoggedInBox {
+    fn run_refresh(&self) {
+        let self_ = self.imp();
+        if let Some(page) = self.active_page() {
+            match page.as_str() {
+                "library" => self_.library.run_refresh(),
+                "projects" => self_.projects.run_refresh(),
+                "engines" => self_.engines.run_refresh(),
+                _ => {}
+            }
         }
     }
 }

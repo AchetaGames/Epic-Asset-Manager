@@ -366,7 +366,7 @@ impl UnrealProjectDetails {
             let w_ = w.imp();
             let l_ = w_.logged_in_stack.imp();
             return l_
-                .engine
+                .engines
                 .engine_from_assoociation(&uproject.engine_association);
         }
         None
@@ -377,7 +377,7 @@ impl UnrealProjectDetails {
         if let Some(w) = self_.window.get() {
             let w_ = w.imp();
             let l_ = w_.logged_in_stack.imp();
-            return l_.engine.engines();
+            return l_.engines.engines();
         }
         Vec::new()
     }

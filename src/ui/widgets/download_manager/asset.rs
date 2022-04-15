@@ -648,14 +648,14 @@ fn initiate_file_download(
     f_name: &str,
     sender: &Sender<super::DownloadMsg>,
     m: egs_api::api::types::download_manifest::FileManifestList,
-    full_path: &PathBuf,
+    full_path: &Path,
 ) {
     if let Ok(w) = crate::RUNNING.read() {
         if !*w {
             return;
         }
     };
-    match File::open(full_path.clone()) {
+    match File::open(full_path) {
         Ok(mut f) => {
             let mut buffer: [u8; 1024] = [0; 1024];
             let mut hasher = sha1::Sha1::new();
@@ -810,7 +810,7 @@ impl AssetPriv for super::EpicDownloadManager {
         debug!("File finished {}", f.name);
         finished_files.push(file.to_string());
         let finished = f.clone();
-        let mut temp = temp_dir.clone();
+        let mut temp = temp_dir;
         temp.push(f.release.clone());
         temp.push("temp");
         let mut vault = if to_vault || targets.is_empty() {
@@ -869,12 +869,12 @@ impl AssetPriv for super::EpicDownloadManager {
 
 fn extract_chunks(
     chunks: Vec<egs_api::api::types::download_manifest::FileChunkPart>,
-    temp: &PathBuf,
+    temp: &Path,
     target: &mut File,
 ) -> CoreWrapper<Sha1Core> {
     let mut hasher = Sha1::new();
     for chunk in chunks {
-        let mut t = temp.clone();
+        let mut t = temp.to_path_buf();
         t.push(format!("{}.chunk", chunk.guid));
         match File::open(t) {
             Ok(mut f) => {
@@ -905,7 +905,7 @@ fn extract_chunks(
     hasher
 }
 
-fn copy_files(from: &PathBuf, targets: Vec<(String, bool)>, filename: &str) {
+fn copy_files(from: &Path, targets: Vec<(String, bool)>, filename: &str) {
     for t in targets {
         let mut tar = PathBuf::from_str(&t.0).unwrap();
         tar.push(filename);
@@ -928,7 +928,7 @@ fn copy_files(from: &PathBuf, targets: Vec<(String, bool)>, filename: &str) {
             };
         }
         std::fs::create_dir_all(tar.parent().unwrap()).unwrap();
-        if let Err(e) = std::fs::copy(from.clone(), tar) {
+        if let Err(e) = std::fs::copy(from, tar) {
             error!("Unable to copy file: {:?}", e);
         };
     }

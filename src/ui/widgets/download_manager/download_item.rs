@@ -173,7 +173,7 @@ pub(crate) mod imp {
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`");
 
-                    self.path.replace(path.clone());
+                    self.path.replace(path);
                     if init {
                         action!(
                             self.actions,

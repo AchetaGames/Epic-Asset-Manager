@@ -28,11 +28,11 @@
                 </child>
                 <child>
                     <object class="AdwViewStackPage">
-                        <property name="name">engine</property>
+                        <property name="name">engines</property>
                         <property name="title">Engines</property>
                         <property name="icon-name">system-run-symbolic</property>
                         <property name="child">
-                            <object class="EpicEnginesBox" id="engine"/>
+                            <object class="EpicEnginesBox" id="engines"/>
                         </property>
                     </object>
                 </child>

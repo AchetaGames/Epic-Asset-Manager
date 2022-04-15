@@ -5,40 +5,16 @@
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
         <child>
-            <object class="GtkOverlay">
+            <object class="GtkScrolledWindow">
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
                 <property name="child">
-                    <object class="GtkScrolledWindow">
-                        <property name="hexpand">true</property>
-                        <property name="vexpand">true</property>
-                        <property name="child">
-                            <object class="GtkGridView" id="engine_grid">
-                                <property name="halign">fill</property>
-                                <property name="valign">fill</property>
-                                <property name="max-columns">255</property>
-                            </object>
-                        </property>
+                    <object class="GtkGridView" id="engine_grid">
+                        <property name="halign">fill</property>
+                        <property name="valign">fill</property>
+                        <property name="max-columns">255</property>
                     </object>
                 </property>
-                <child type="overlay">
-                    <object class="GtkBox">
-                        <property name="margin-end">6</property>
-                        <property name="margin-bottom">6</property>
-                        <property name="css-classes">background</property>
-                        <property name="halign">end</property>
-                        <property name="valign">end</property>
-                        <child>
-                            <object class="GtkButton">
-                                <property name="action-name">engines.add</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="icon-name">list-add-symbolic</property>
-                                        <property name="pixel-size">64</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                    </object>
-                </child>
             </object>
         </child>
         <child>
