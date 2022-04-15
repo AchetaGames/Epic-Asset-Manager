@@ -3,6 +3,7 @@ use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeT
 use log::info;
 use project::EpicProject;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 mod project;
 mod project_detail;
@@ -262,8 +263,54 @@ impl EpicProjectsBox {
         self.insert_action_group("projects", Some(&self_.actions));
     }
 
+    pub fn remove_invalid(&self) {
+        let self_ = self.imp();
+        for item in self_.grid_model.snapshot() {
+            let data = item
+                .clone()
+                .downcast::<crate::models::project_data::ProjectData>()
+                .unwrap();
+            match data.path() {
+                None => self.remove_item(&item, data.path()),
+                Some(path) => {
+                    match PathBuf::from_str(&path) {
+                        Ok(p) => {
+                            if !p.exists() {
+                                self.remove_item(&item, data.path())
+                            }
+                        }
+                        Err(_) => self.remove_item(&item, data.path()),
+                    };
+                }
+            }
+        }
+    }
+
+    fn remove_item(&self, item: &gtk4::glib::Object, path: Option<String>) {
+        let self_ = self.imp();
+        if let Some(id) = self_.grid_model.find(item) {
+            self_.grid_model.remove(id);
+        }
+        if let Some(p) = path {
+            if let Some(project) = self_.details.path() {
+                if project.eq(&p) {
+                    self_.details.collapse();
+                }
+            }
+            if let Ok(file) = PathBuf::from_str(&p) {
+                if let Some(directory) = file.parent() {
+                    self_
+                        .projects
+                        .borrow_mut()
+                        .remove(directory.to_str().unwrap());
+                }
+            }
+        }
+    }
+
     fn load_projects(&self) {
         let self_ = self.imp();
+        self.remove_invalid();
         for dir in self_.settings.strv("unreal-projects-directories") {
             info!("Checking directory {}", dir);
             let path = std::path::PathBuf::from(dir.to_string());

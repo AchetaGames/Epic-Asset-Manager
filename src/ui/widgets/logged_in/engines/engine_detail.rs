@@ -353,6 +353,7 @@ impl EpicEngineDetails {
 
     pub fn add_engine(&self) {
         let self_ = self.imp();
+        self_.data.replace(None);
         #[cfg(target_os = "linux")]
         {
             self_.data.replace(None);
@@ -694,7 +695,7 @@ impl EpicEngineDetails {
         None
     }
 
-    fn path(&self) -> Option<String> {
+    pub fn path(&self) -> Option<String> {
         let self_ = self.imp();
         if let Some(d) = &*self_.data.borrow() {
             return d.path();

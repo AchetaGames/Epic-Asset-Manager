@@ -396,7 +396,7 @@ impl UnrealProjectDetails {
         self_.engine.borrow().clone()
     }
 
-    fn path(&self) -> Option<String> {
+    pub fn path(&self) -> Option<String> {
         self.property("path")
     }
 
