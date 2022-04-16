@@ -31,6 +31,10 @@ pub(crate) mod imp {
         pub details: TemplateChild<gtk4::ListBox>,
         #[template_child]
         pub title: TemplateChild<gtk4::Label>,
+        #[template_child]
+        pub details_revealer: TemplateChild<gtk4::Revealer>,
+        #[template_child]
+        pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         path: RefCell<Option<String>>,
@@ -53,6 +57,8 @@ pub(crate) mod imp {
                 detail_slider: TemplateChild::default(),
                 details: TemplateChild::default(),
                 title: TemplateChild::default(),
+                details_revealer: TemplateChild::default(),
+                confirmation_revealer: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 path: RefCell::new(None),
@@ -217,6 +223,18 @@ impl UnrealProjectDetails {
                     .expect("Failed to launch application");
             }
         };
+        let self_ = self.imp();
+        self_.details_revealer.set_reveal_child(false);
+        self_.details_revealer.set_vexpand(false);
+        self_.confirmation_revealer.set_reveal_child(true);
+        self_.confirmation_revealer.set_vexpand_set(true);
+        glib::timeout_add_seconds_local(
+            2,
+            clone!(@weak self as obj => @default-panic, move || {
+                obj.show_details();
+                glib::Continue(false)
+            }),
+        );
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -234,12 +252,21 @@ impl UnrealProjectDetails {
         get_action!(self_.actions, @launch_project).set_enabled(enabled);
     }
 
+    fn show_details(&self) {
+        let self_ = self.imp();
+        self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand(true);
+        self_.confirmation_revealer.set_reveal_child(false);
+        self_.confirmation_revealer.set_vexpand_set(false);
+    }
+
     pub fn set_project(
         &self,
         project: &crate::models::project_data::Uproject,
         path: Option<String>,
     ) {
         let self_ = self.imp();
+        self.show_details();
         self.set_property("path", &path);
         if !self.is_expanded() {
             self.set_property("expanded", true);

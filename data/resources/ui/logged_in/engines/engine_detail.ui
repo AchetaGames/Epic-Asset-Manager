@@ -88,8 +88,36 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkListBox" id="details">
-                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                            <object class="GtkRevealer" id="details_revealer">
+                                <property name="reveal-child">true</property>
+                                <property name="vexpand">True</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <child>
+                                            <object class="GtkListBox" id="details">
+                                                <property name="vexpand">True</property>
+                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkRevealer" id="confirmation_revealer">
+                                <property name="reveal-child">false</property>
+                                <property name="vexpand-set">True</property>
+                                <property name="vexpand">True</property>
+                                <property name="transition-type">slide-up</property>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;</property>
+                                        <property name="use-markup">1</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="halign">center</property>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                     </object>

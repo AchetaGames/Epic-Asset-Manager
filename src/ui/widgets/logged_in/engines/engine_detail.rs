@@ -39,6 +39,10 @@ pub(crate) mod imp {
         pub install_button: TemplateChild<gtk4::Button>,
         #[template_child]
         pub details: TemplateChild<gtk4::ListBox>,
+        #[template_child]
+        pub details_revealer: TemplateChild<gtk4::Revealer>,
+        #[template_child]
+        pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
@@ -68,6 +72,8 @@ pub(crate) mod imp {
                 launch_button: TemplateChild::default(),
                 install_button: TemplateChild::default(),
                 details: TemplateChild::default(),
+                details_revealer: TemplateChild::default(),
+                confirmation_revealer: TemplateChild::default(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
@@ -294,10 +300,31 @@ impl EpicEngineDetails {
                 }
             }
         };
+        let self_ = self.imp();
+        self_.details_revealer.set_reveal_child(false);
+        self_.details_revealer.set_vexpand(false);
+        self_.confirmation_revealer.set_reveal_child(true);
+        self_.confirmation_revealer.set_vexpand_set(true);
+        glib::timeout_add_seconds_local(
+            2,
+            clone!(@weak self as obj => @default-panic, move || {
+                obj.show_details();
+                glib::Continue(false)
+            }),
+        );
+    }
+
+    fn show_details(&self) {
+        let self_ = self.imp();
+        self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand(true);
+        self_.confirmation_revealer.set_reveal_child(false);
+        self_.confirmation_revealer.set_vexpand_set(false);
     }
 
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
         let self_ = self.imp();
+        self.show_details();
         // remove old details
         while let Some(el) = self_.details.first_child() {
             self_.details.remove(&el);
