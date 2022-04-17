@@ -10,8 +10,8 @@
     </a>
 </p>
 
-# Epic-Asset-Manager
-A frontend to Assets purchased on Epic Games Store
+# Epic Asset Manager
+An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store.
 
 ## Current Screenshot
 ![Main view](https://github.com/AchetaGames/Epic-Asset-Manager/blob/main/data/resources/screenshots/default.png?raw=true)

@@ -8,7 +8,15 @@
     <summary>Manage your Epic assets</summary>
     <icon type="remote" height="256" width="256">https://github.com/AchetaGames/Epic-Asset-Manager/raw/main/data/icons/io.github.achetagames.epic_asset_manager.png</icon>
     <description>
-        <p>A native GTK application to access Assets owned through Epic Games Store including Games and Unreal Engine assets.</p>
+      <p>An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store</p>
+      <p>Features:</p>
+      <ul>
+        <li>Downloading purchased assets from unreal marketplace</li>
+        <li>Downloading official binary Unreal Engine packages from ghcr</li>
+        <li>Adding assets to projects and creating new projects from assets</li>
+        <li>Listing and launching Unreal projects</li>
+        <li>Listing and launching Unreal Engine installations</li>
+      </ul>
     </description>
     <categories>
         <category>Development</category>
@@ -18,6 +26,13 @@
         <category>GTK</category>
         <category>FileTools</category>
     </categories>
+    <keywords>
+      <keyword>unreal</keyword>
+      <keyword>engine</keyword>
+      <keyword>gamedev</keyword>
+      <keyword>assets</keyword>
+      <keyword>epic</keyword>
+    </keywords>
     <screenshots>
         <screenshot type="default">
             <image>https://raw.githubusercontent.com/AchetaGames/Epic-Asset-Manager/main/data/resources/screenshots/default.png</image>
