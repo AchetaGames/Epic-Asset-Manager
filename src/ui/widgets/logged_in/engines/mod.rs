@@ -1,15 +1,14 @@
-use std::collections::HashMap;
-use std::ffi::OsString;
-use std::str::FromStr;
-
+use crate::ui::widgets::logged_in::refresh::Refresh;
+use engine::EpicEngine;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use log::{debug, error, warn};
-
-use crate::ui::widgets::logged_in::refresh::Refresh;
-use engine::EpicEngine;
+use std::collections::HashMap;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::str::FromStr;
 use version_compare::Cmp;
 
 pub mod engine;
@@ -389,9 +388,64 @@ impl EpicEnginesBox {
         self.refresh_state_changed();
     }
 
+    pub fn remove_invalid(&self) {
+        let self_ = self.imp();
+        for item in self_.grid_model.snapshot() {
+            let data = item
+                .clone()
+                .downcast::<crate::models::engine_data::EngineData>()
+                .unwrap();
+            // Skipping the Add Engine item
+            if !data.valid() {
+                continue;
+            }
+            match data.path() {
+                None => self.remove_item(&item, data.guid()),
+                Some(path) => {
+                    match PathBuf::from_str(&path) {
+                        Ok(mut p) => {
+                            if !p.exists() {
+                                self.remove_item(&item, data.guid())
+                            }
+                            p.push("Engine");
+                            p.push("Build");
+                            p.push("Build.version");
+                            if !p.exists() {
+                                self.remove_item(&item, data.guid())
+                            }
+                        }
+                        Err(_) => self.remove_item(&item, data.guid()),
+                    };
+                }
+            }
+        }
+    }
+
+    fn remove_item(&self, item: &gtk4::glib::Object, guid: Option<String>) {
+        let self_ = self.imp();
+        let engine = item
+            .clone()
+            .downcast::<crate::models::engine_data::EngineData>()
+            .unwrap();
+        if let Some(id) = self_.grid_model.find(item) {
+            self_.grid_model.remove(id);
+        }
+        if let Some(g) = guid {
+            self_.engines.borrow_mut().remove(&g);
+        }
+        if let Some(path) = engine.path() {
+            if let Some(p) = self_.details.path() {
+                if path.eq(&p) {
+                    self_.details.collapse();
+                }
+            }
+        }
+    }
+
     pub fn load_engines(&self) {
         let self_ = self.imp();
         let s = self_.sender.clone();
+        self.remove_invalid();
         self_.file_pool.execute(move || {
             for (guid, path) in Self::read_engines_ini() {
                 if let Some(version) =
