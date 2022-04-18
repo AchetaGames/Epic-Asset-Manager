@@ -35,7 +35,7 @@
                                         </child>
                                         <child>
                                             <object class="EpicSidebarCategory" id="home_category">
-                                                <property name="icon-name">globe-alt-symbolic</property>
+                                                <property name="icon-name">input-dialpad-symbolic</property>
                                                 <property name="tooltip-text" translatable="yes">All</property>
                                             </object>
                                         </child>
