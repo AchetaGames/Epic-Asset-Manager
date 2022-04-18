@@ -209,11 +209,25 @@ impl EpicSidebarCategory {
                 .downcast_ref::<crate::models::category_data::CategoryData>()
                 .unwrap();
 
-            info1
-                .name()
-                .to_lowercase()
-                .cmp(&info2.name().to_lowercase())
-                .into()
+            if info1.name().to_lowercase().eq("all") {
+                gtk4::Ordering::Smaller
+            } else if info2.name().to_lowercase().eq("all") {
+                gtk4::Ordering::Larger
+            } else if info1.name().to_lowercase().eq("downloaded") {
+                gtk4::Ordering::Smaller
+            } else if info2.name().to_lowercase().eq("downloaded") {
+                gtk4::Ordering::Larger
+            } else if info1.name().to_lowercase().eq("favorites") {
+                gtk4::Ordering::Smaller
+            } else if info2.name().to_lowercase().eq("favorites") {
+                gtk4::Ordering::Larger
+            } else {
+                info1
+                    .name()
+                    .to_lowercase()
+                    .cmp(&info2.name().to_lowercase())
+                    .into()
+            }
         });
 
         let sorted_model = gtk4::SortListModel::new(Some(&self_.categories), Some(&sorter));
@@ -254,7 +268,7 @@ impl EpicSidebarCategory {
         self.insert_action_group("category", Some(&self_.actions));
     }
 
-    fn clicked(&self) {
+    pub fn clicked(&self) {
         let v: glib::Value = self.property("expanded");
         let self_ = self.imp();
         if v.get::<bool>().unwrap() {

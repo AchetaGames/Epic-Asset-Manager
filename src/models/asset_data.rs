@@ -320,48 +320,62 @@ impl AssetData {
         self.property("thumbnail")
     }
 
-    pub fn check_category(&self, cat: &str) -> bool {
-        let self_ = self.imp();
+    fn has_category(&self, cat: &str) -> bool {
         if cat.eq("favorites") {
             self.favorite()
         } else if cat.eq("downloaded") {
             self.downloaded()
-        } else if cat.starts_with("!other") {
-            match self_.asset.borrow().as_ref() {
-                None => false,
-                Some(b) => {
-                    for category in b.categories.as_ref().unwrap() {
-                        for split in cat.split('|') {
-                            if category
-                                .path
-                                .to_ascii_lowercase()
-                                .contains(&split.to_ascii_lowercase())
-                            {
-                                return false;
-                            }
+        } else {
+            let self_ = self.imp();
+            if let Some(b) = self_.asset.borrow().as_ref() {
+                if let Some(categories) = &b.categories {
+                    for category in categories {
+                        if category
+                            .path
+                            .to_ascii_lowercase()
+                            .contains(&cat.to_ascii_lowercase())
+                        {
+                            return true;
                         }
                     }
-                    true
+                }
+            }
+            false
+        }
+    }
+
+    pub fn check_category(&self, cat: &str) -> bool {
+        if let Some(c) = cat.split(&['|', '&']).next() {
+            let result = if c.starts_with('!') {
+                let mut chars = c.chars();
+                chars.next();
+                !self.has_category(chars.as_str())
+            } else {
+                self.has_category(c)
+            };
+
+            match cat.chars().nth(c.len()) {
+                None => result,
+                Some(operator) => {
+                    let remainder: String = cat.chars().into_iter().skip(c.len() + 1).collect();
+                    match operator {
+                        '&' => {
+                            if result {
+                                self.check_category(&remainder)
+                            } else {
+                                result
+                            }
+                        }
+                        '|' => result || self.check_category(&remainder),
+                        _ => {
+                            error!("Unimplemented operator");
+                            false
+                        }
+                    }
                 }
             }
         } else {
-            match self_.asset.borrow().as_ref() {
-                None => false,
-                Some(b) => {
-                    for category in b.categories.as_ref().unwrap() {
-                        for split in cat.split('|') {
-                            if category
-                                .path
-                                .to_ascii_lowercase()
-                                .contains(&split.to_ascii_lowercase())
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                    false
-                }
-            }
+            false
         }
     }
 
