@@ -26,6 +26,8 @@ pub(crate) mod imp {
         pub image_load_pool: ThreadPool,
         #[template_child]
         pub stack: TemplateChild<adw::Carousel>,
+        #[template_child]
+        pub revealer: TemplateChild<gtk4::Revealer>,
         pub settings: gio::Settings,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
@@ -45,6 +47,7 @@ pub(crate) mod imp {
             Self {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 stack: TemplateChild::default(),
+                revealer: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
@@ -144,6 +147,7 @@ impl EpicImageOverlay {
         while self_.stack.n_pages() > 0 {
             self_.stack.remove(&self_.stack.nth_page(0));
         }
+        self_.revealer.set_reveal_child(false);
         self.check_actions();
     }
 
@@ -195,6 +199,7 @@ impl EpicImageOverlay {
                 image.set_hexpand(true);
                 image.set_vexpand(true);
                 self_.stack.append(&image);
+                self_.revealer.set_reveal_child(true);
                 self.check_actions();
             }
         }
@@ -264,6 +269,11 @@ impl EpicImageOverlay {
 
     pub fn asset(&self) -> String {
         self.property("asset")
+    }
+
+    pub fn n_items(&self) -> u32 {
+        let self_ = self.imp();
+        self_.stack.n_pages()
     }
 
     pub fn add_image(&self, image: &egs_api::api::types::asset_info::KeyImage) {

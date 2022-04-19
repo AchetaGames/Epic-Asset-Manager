@@ -40,6 +40,9 @@ pub(crate) mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/library.ui")]
     pub struct EpicLibraryBox {
         #[template_child]
+        pub unreal_category:
+            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
+        #[template_child]
         pub home_category:
             TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
         #[template_child]
@@ -111,6 +114,7 @@ pub(crate) mod imp {
 
         fn new() -> Self {
             Self {
+                unreal_category: TemplateChild::default(),
                 home_category: TemplateChild::default(),
                 assets_category: TemplateChild::default(),
                 plugins_category: TemplateChild::default(),
@@ -302,10 +306,56 @@ pub(crate) mod imp {
             obj.bind_properties();
             obj.setup_actions();
             obj.setup_widgets();
+            // All
             self.home_category.add_category("all", "");
             self.home_category.add_category("favorites", "favorites");
             self.home_category.add_category("downloaded", "downloaded");
-            self.home_category.activate(false);
+            // Unreal
+            self.unreal_category
+                .add_category("all", "plugins|projects|assets");
+            self.unreal_category.add_category("assets", "assets");
+            self.unreal_category.add_category("projects", "projects");
+            self.unreal_category.add_category("plugins", "plugins");
+            self.unreal_category
+                .add_category("favorites", "favorites&plugins|projects|assets");
+            self.unreal_category
+                .add_category("downloaded", "downloaded&plugins|projects|assets");
+            self.unreal_category.clicked();
+            // Assets
+            self.assets_category.add_category("all", "assets");
+            self.assets_category
+                .add_category("favorites", "favorites&assets");
+            self.assets_category
+                .add_category("downloaded", "downloaded&assets");
+            // Projects
+            self.projects_category.add_category("all", "projects");
+            self.projects_category
+                .add_category("favorites", "favorites&projects");
+            self.projects_category
+                .add_category("downloaded", "downloaded&projects");
+            // Plugin
+            self.plugins_category.add_category("all", "plugins");
+            self.plugins_category
+                .add_category("favorites", "favorites&plugins");
+            self.plugins_category
+                .add_category("downloaded", "downloaded&plugins");
+            // Games
+            self.games_category.add_category("all", "games|dlc");
+            self.games_category
+                .add_category("favorites", "favorites&games|dlc");
+            self.games_category
+                .add_category("downloaded", "downloaded&games|dlc");
+            // Other
+            self.other_category
+                .add_category("all", "!games&!dlc&!plugins&!projects&!assets");
+            self.other_category.add_category(
+                "favorites",
+                "favorites&!games&!dlc&!plugins&!projects&!assets",
+            );
+            self.other_category.add_category(
+                "downloaded",
+                "downloaded&!games&!dlc&!plugins&!projects&!assets",
+            );
         }
     }
 
@@ -547,6 +597,9 @@ impl EpicLibraryBox {
 
     pub fn bind_properties(&self) {
         let self_ = self.imp();
+        self.bind_property("sidebar-expanded", &*self_.unreal_category, "expanded")
+            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
+            .build();
         self.bind_property("sidebar-expanded", &*self_.home_category, "expanded")
             .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
             .build();
@@ -580,6 +633,7 @@ impl EpicLibraryBox {
         self_.other_category.set_logged_in(self);
         self_.games_category.set_logged_in(self);
         self_.home_category.set_logged_in(self);
+        self_.unreal_category.set_logged_in(self);
 
         self_
             .select_order_by
@@ -709,6 +763,7 @@ impl EpicLibraryBox {
             None => "".to_string(),
             Some(f) => f,
         };
+        self_.unreal_category.unselect_except(&filter);
         self_.projects_category.unselect_except(&filter);
         self_.assets_category.unselect_except(&filter);
         self_.plugins_category.unselect_except(&filter);
@@ -725,6 +780,7 @@ impl EpicLibraryBox {
         self_.other_category.activate(true);
         self_.games_category.activate(true);
         self_.home_category.activate(true);
+        self_.unreal_category.activate(true);
     }
 
     pub fn apply_filter(&self) {

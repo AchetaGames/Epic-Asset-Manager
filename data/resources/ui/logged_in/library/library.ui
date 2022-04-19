@@ -2,6 +2,7 @@
 <interface>
     <object class="GtkSizeGroup">
         <widgets>
+            <widget name="unreal_category"/>
             <widget name="home_category"/>
             <widget name="assets_category"/>
             <widget name="plugins_category"/>
@@ -26,9 +27,16 @@
                                         <property name="orientation">vertical</property>
                                         <property name="hexpand">false</property>
                                         <child>
+                                            <object class="EpicSidebarCategory" id="unreal_category">
+                                                <property name="icon-name">ue-logo-symbolic</property>
+                                                <property name="filter">plugins|projects|assets</property>
+                                                <property name="tooltip-text" translatable="yes">Unreal Assets</property>
+                                            </object>
+                                        </child>
+                                        <child>
                                             <object class="EpicSidebarCategory" id="home_category">
-                                                <property name="icon-name">go-home-symbolic</property>
-                                                <property name="tooltip-text" translatable="yes">Home</property>
+                                                <property name="icon-name">input-dialpad-symbolic</property>
+                                                <property name="tooltip-text" translatable="yes">All</property>
                                             </object>
                                         </child>
                                         <child>
@@ -62,7 +70,7 @@
                                         <child>
                                             <object class="EpicSidebarCategory" id="other_category">
                                                 <property name="icon-name">image-x-generic-symbolic</property>
-                                                <property name="filter">!other|games|dlc|plugins|projects|assets</property>
+                                                <property name="filter">!games&amp;!dlc&amp;!plugins&amp;!projects&amp;!assets</property>
                                                 <property name="tooltip-text" translatable="yes">Other</property>
                                             </object>
                                         </child>

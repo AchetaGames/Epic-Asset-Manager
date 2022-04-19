@@ -28,6 +28,17 @@
                             </object>
                         </child>
                         <child>
+                            <object class="GtkInfoBar" id="warning">
+                                <property name="message-type">GTK_MESSAGE_ERROR</property>
+                                <property name="revealed">false</property>
+                                <child>
+                                    <object class="GtkLabel" id="warning_message">
+
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
                             <object class="GtkBox">
                                 <child>
                                     <object class="GtkButton">
@@ -96,9 +107,15 @@
                                             <object class="GtkBox" id="details">
                                                 <property name="orientation">vertical</property>
                                                 <child>
-                                                    <object class="EpicImageOverlay" id="images">
-                                                        <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
-                                                        <property name="vexpand-set">True</property>
+                                                    <object class="AdwClamp">
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="maximum-size">510</property>
+                                                        <child>
+                                                            <object class="EpicImageOverlay" id="images">
+                                                                <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
+                                                                <property name="vexpand-set">True</property>
+                                                            </object>
+                                                        </child>
                                                     </object>
                                                 </child>
                                                 <child>

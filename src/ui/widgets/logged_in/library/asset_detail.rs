@@ -45,6 +45,10 @@ pub(crate) mod imp {
         #[template_child]
         pub actions_menu: TemplateChild<gtk4::MenuButton>,
         #[template_child]
+        pub warning: TemplateChild<gtk4::InfoBar>,
+        #[template_child]
+        pub warning_message: TemplateChild<gtk4::Label>,
+        #[template_child]
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
         #[template_child]
@@ -79,6 +83,8 @@ pub(crate) mod imp {
                 title: TemplateChild::default(),
                 favorite: TemplateChild::default(),
                 actions_menu: TemplateChild::default(),
+                warning: TemplateChild::default(),
+                warning_message: TemplateChild::default(),
                 images: TemplateChild::default(),
                 asset_actions: TemplateChild::default(),
                 window: OnceCell::new(),
@@ -301,6 +307,29 @@ impl EpicAssetDetails {
                 details.open_vault_directory();
             })
         );
+
+        self_.warning_message.connect_activate_link(
+            clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
+                details.process_uri(uri);
+                gtk4::Inhibit(true)
+            }),
+        );
+    }
+
+    fn process_uri(&self, uri: &str) {
+        match uri {
+            "engines" => {
+                let self_ = self.imp();
+                if let Some(w) = self_.window.get() {
+                    let w_ = w.imp();
+                    let l = w_.logged_in_stack.clone();
+                    l.switch_tab("engines");
+                }
+            }
+            _ => {
+                error!("Unhandled uri clicked: {}", uri);
+            }
+        }
     }
 
     fn show_download_details(
@@ -381,6 +410,7 @@ impl EpicAssetDetails {
             if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
                 match kind {
                     AssetType::Asset => {
+                        self_.warning.set_revealed(false);
                         self.create_actions_button(
                             "Add to Project",
                             "edit-select-all-symbolic",
@@ -388,6 +418,7 @@ impl EpicAssetDetails {
                         );
                     }
                     AssetType::Project => {
+                        self_.warning.set_revealed(false);
                         self.create_actions_button(
                             "Add to Project",
                             "edit-select-all-symbolic",
@@ -400,6 +431,11 @@ impl EpicAssetDetails {
                         );
                     }
                     AssetType::Game => {
+                        #[cfg(target_os = "linux")]
+                        {
+                            self_.warning.set_revealed(true);
+                            self_.warning_message.set_markup("Games can currently only be downloaded, installing and running them is out of scope of the project right now.");
+                        }
                         // self.create_actions_button(
                         //     "Play",
                         //     "media-playback-start-symbolic",
@@ -411,8 +447,15 @@ impl EpicAssetDetails {
                         //     "details.install_game",
                         // );
                     }
-                    AssetType::Engine => {}
+                    AssetType::Engine => {
+                        #[cfg(target_os = "linux")]
+                        {
+                            self_.warning.set_revealed(true);
+                            self_.warning_message.set_markup("This is a Windows Build of the Engine. To install Linux version please use the <a href=\"engines\">Engines</a> tab.");
+                        }
+                    }
                     AssetType::Plugin => {
+                        self_.warning.set_revealed(false);
                         // self.create_actions_button(
                         //     "Add to Project",
                         //     "edit-select-all-symbolic",

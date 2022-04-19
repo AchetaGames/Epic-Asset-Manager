@@ -257,6 +257,11 @@ impl EpicLoggedInBox {
             w_.refresh.set_sensitive(available);
         }
     }
+
+    pub fn switch_tab(&self, name: &str) {
+        let self_ = self.imp();
+        self_.adwstack.set_visible_child_name(name);
+    }
 }
 
 impl Refresh for EpicLoggedInBox {
