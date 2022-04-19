@@ -64,6 +64,17 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.1.2" date="2022-04-19">
+       <description>
+              <p>Category fixes</p>
+              <ul>
+                  <li>Use existing icon for "All" category</li>
+                  <li>Rework category filtering and add some subcategories by default to all</li>
+                  <li>Hide Images if there are no images to show Scale images properly</li>
+                  <li>Add warning message to Engine and Games</li>
+</ul>
+       </description>
+    </release>
     <release version="3.1.1" date="2022-04-17">
        <description>
               <p>Refresh fixes</p>
