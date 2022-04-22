@@ -23,6 +23,7 @@ pub(crate) mod imp {
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub settings: gtk4::gio::Settings,
         pub loggedin: OnceCell<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         pub expanded: RefCell<bool>,
         #[template_child]
@@ -67,6 +68,7 @@ pub(crate) mod imp {
                 games_category: TemplateChild::default(),
                 downloaded_switch: TemplateChild::default(),
                 favorites_switch: TemplateChild::default(),
+                settings: gio::Settings::new(crate::config::APP_ID),
             }
         }
 
@@ -212,6 +214,9 @@ impl EpicSidebar {
             .connect_state_notify(clone!(@weak self as sidebar => move |_| {
                 sidebar.filter_changed();
             }));
+        if self_.settings.boolean("sidebar-expanded") {
+            self.expand();
+        };
     }
 
     fn category_by_name(&self, name: &str) -> Option<EpicSidebarCategories> {
@@ -243,6 +248,9 @@ impl EpicSidebar {
             self_.expand_image.set_icon_name(Some("go-next-symbolic"));
             self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
             self_.expand_label.set_label("");
+        };
+        if let Err(e) = self_.settings.set_boolean("sidebar-expanded", new_value) {
+            warn!("Unable to save sidebar state: {}", e);
         };
         self.set_property("expanded", &new_value);
         self_.all_category.set_property("expanded", &new_value);
