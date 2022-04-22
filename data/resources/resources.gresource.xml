@@ -7,13 +7,17 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="sid.ui">ui/sid_login/sid.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="preferences.ui">ui/preferences/preferences.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="dir_row.ui">ui/preferences/dir_row.ui</file>
-        <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_category.ui">ui/logged_in/library/sidebar_category.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_categories.ui">ui/logged_in/library/sidebar/sidebar_categories.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_category.ui">ui/logged_in/library/sidebar/sidebar_category.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="sidebar_button.ui">ui/logged_in/library/sidebar/sidebar_button.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="sidebar.ui">ui/logged_in/library/sidebar/sidebar.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_detail.ui">ui/logged_in/library/download_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="add_to_project.ui">ui/logged_in/library/add_to_project.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="create_asset_project.ui">ui/logged_in/library/create_asset_project.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="asset.ui">ui/logged_in/library/asset.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="asset_detail.ui">ui/logged_in/library/asset_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="image_stack.ui">ui/logged_in/library/image_stack.ui</file>
+
         <file compressed="true" preprocess="xml-stripblanks" alias="asset_actions.ui">ui/logged_in/library/asset_actions.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="projects.ui">ui/logged_in/projects/projects.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="project.ui">ui/logged_in/projects/project.ui</file>

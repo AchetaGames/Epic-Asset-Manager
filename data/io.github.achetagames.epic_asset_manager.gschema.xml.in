@@ -1,59 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <schemalist>
-  <schema path="/io/github/achetagames/epic_asset_manager/" id="@app-id@" gettext-domain="@gettext-package@">
-    <key name="window-width" type="i">
-      <default>-1</default>
-      <summary>Default window width</summary>
-      <description>Default window width</description>
-    </key>
-    <key name="window-height" type="i">
-      <default>-1</default>
-      <summary>Default window height</summary>
-      <description>Default window height</description>
-    </key>
-    <key name="is-maximized" type="b">
-      <default>false</default>
-      <summary>Default window maximized behaviour</summary>
-    </key>
-    <key name="token-expiration" type="s">
-      <default>""</default>
-      <summary>Access token expiration</summary>
-    </key>
-    <key name="refresh-token-expiration" type="s">
-      <default>""</default>
-      <summary>Refresh token expiration</summary>
-    </key>
-    <key name="cache-directory" type="s">
-      <default>""</default>
-      <summary>Cache directory</summary>
-    </key>
-    <key name="github-user" type="s">
-      <default>""</default>
-      <summary>Github User</summary>
-    </key>
-    <key name="temporary-download-directory" type="s">
-      <default>""</default>
-      <summary>Temporary download directory</summary>
-    </key>
-    <key name="default-view" type="s">
-      <default>"library"</default>
-      <summary>Default View</summary>
-    </key>
-    <key name="unreal-vault-directories" type="as">
-      <default>[]</default>
-      <summary>Unreal Vault Directories</summary>
-    </key>
-    <key name="unreal-engine-directories" type="as">
-      <default>[]</default>
-      <summary>Unreal Engine Directories</summary>
-    </key>
-    <key name="unreal-projects-directories" type="as">
-      <default>[]</default>
-      <summary>Unreal Projects Directories</summary>
-    </key>
-    <key name="dark-mode" type="b">
-      <default>false</default>
-      <summary>Enable or disable dark mode</summary>
-    </key>
-  </schema>
+    <schema path="/io/github/achetagames/epic_asset_manager/" id="@app-id@" gettext-domain="@gettext-package@">
+        <key name="window-width" type="i">
+            <default>-1</default>
+            <summary>Default window width</summary>
+            <description>Default window width</description>
+        </key>
+        <key name="window-height" type="i">
+            <default>-1</default>
+            <summary>Default window height</summary>
+            <description>Default window height</description>
+        </key>
+        <key name="is-maximized" type="b">
+            <default>false</default>
+            <summary>Default window maximized behaviour</summary>
+        </key>
+        <key name="token" type="s">
+            <default>""</default>
+            <summary>Epic Token - Fallback for Secret Manager</summary>
+        </key>
+        <key name="token-expiration" type="s">
+            <default>""</default>
+            <summary>Access token expiration</summary>
+        </key>
+        <key name="refresh-token" type="s">
+            <default>""</default>
+            <summary>Epic Refresh Token - Fallback for Secret Manager</summary>
+        </key>
+        <key name="refresh-token-expiration" type="s">
+            <default>""</default>
+            <summary>Refresh token expiration</summary>
+        </key>
+        <key name="cache-directory" type="s">
+            <default>""</default>
+            <summary>Cache directory</summary>
+        </key>
+        <key name="github-user" type="s">
+            <default>""</default>
+            <summary>Github User</summary>
+        </key>
+        <key name="github-token" type="s">
+            <default>""</default>
+            <summary>Github Token - Fallback for Secret Manager</summary>
+        </key>
+        <key name="temporary-download-directory" type="s">
+            <default>""</default>
+            <summary>Temporary download directory</summary>
+        </key>
+        <key name="default-view" type="s">
+            <default>"library"</default>
+            <summary>Default View</summary>
+        </key>
+        <key name="unreal-vault-directories" type="as">
+            <default>[]</default>
+            <summary>Unreal Vault Directories</summary>
+        </key>
+        <key name="unreal-engine-directories" type="as">
+            <default>[]</default>
+            <summary>Unreal Engine Directories</summary>
+        </key>
+        <key name="unreal-projects-directories" type="as">
+            <default>[]</default>
+            <summary>Unreal Projects Directories</summary>
+        </key>
+        <key name="dark-mode" type="b">
+            <default>false</default>
+            <summary>Enable or disable dark mode</summary>
+        </key>
+        <key name="sidebar-expanded" type="b">
+            <default>false</default>
+            <summary>Is sidebar expanded</summary>
+        </key>
+    </schema>
 </schemalist>

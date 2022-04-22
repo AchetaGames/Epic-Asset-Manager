@@ -1,122 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <object class="GtkSizeGroup">
-        <widgets>
-            <widget name="unreal_category"/>
-            <widget name="home_category"/>
-            <widget name="assets_category"/>
-            <widget name="plugins_category"/>
-            <widget name="games_category"/>
-        </widgets>
-    </object>
     <template class="EpicLibraryBox" parent="GtkBox">
         <property name="hexpand">1</property>
         <property name="vexpand">1</property>
         <child>
             <object class="GtkBox">
                 <child>
-                    <object class="GtkBox" id="navigation">
-                        <property name="orientation">vertical</property>
-                        <property name="hexpand">false</property>
-                        <child>
-                            <object class="GtkScrolledWindow">
-                                <property name="vexpand">true</property>
-                                <property name="hscrollbar-policy">never</property>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="orientation">vertical</property>
-                                        <property name="hexpand">false</property>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="unreal_category">
-                                                <property name="icon-name">ue-logo-symbolic</property>
-                                                <property name="filter">plugins|projects|assets</property>
-                                                <property name="tooltip-text" translatable="yes">Unreal Assets</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="home_category">
-                                                <property name="icon-name">input-dialpad-symbolic</property>
-                                                <property name="tooltip-text" translatable="yes">All</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="assets_category">
-                                                <property name="icon-name">package-x-generic-symbolic</property>
-                                                <property name="filter">assets</property>
-                                                <property name="tooltip-text" translatable="yes">Assets</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="projects_category">
-                                                <property name="icon-name">folder-symbolic</property>
-                                                <property name="filter">projects</property>
-                                                <property name="tooltip-text" translatable="yes">Projects</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="plugins_category">
-                                                <property name="icon-name">application-x-addon-symbolic</property>
-                                                <property name="filter">plugins</property>
-                                                <property name="tooltip-text" translatable="yes">Plugins</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="games_category">
-                                                <property name="icon-name">input-gaming-symbolic</property>
-                                                <property name="filter">games|dlc</property>
-                                                <property name="tooltip-text" translatable="yes">Games</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarCategory" id="other_category">
-                                                <property name="icon-name">image-x-generic-symbolic</property>
-                                                <property name="filter">!games&amp;!dlc&amp;!plugins&amp;!projects&amp;!assets</property>
-                                                <property name="tooltip-text" translatable="yes">Other</property>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkBox">
-                                <property name="valign">end</property>
-                                <property name="halign">fill</property>
-                                <property name="hexpand">true</property>
-                                <child>
-                                    <object class="GtkButton" id="expand_button">
-                                        <property name="name">category_button</property>
-                                        <property name="action-name">library.expand</property>
-                                        <property name="halign">fill</property>
-                                        <property name="hexpand">true</property>
-                                        <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
-                                        <property name="valign">center</property>
-                                        <child>
-                                            <object class="GtkBox">
-                                                <property name="valign">center</property>
-                                                <property name="halign">center</property>
-                                                <child>
-                                                    <object class="GtkImage" id="expand_image">
-                                                        <property name="icon-name">go-next-symbolic</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel" id="expand_label">
-                                                        <property name="label" translatable="yes"/>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkSeparator">
-                        <property name="orientation">vertical</property>
-                    </object>
+                    <object class="EpicSidebar" id="sidebar"></object>
                 </child>
                 <child>
                     <object class="GtkOverlay" id="MainOverlay">
