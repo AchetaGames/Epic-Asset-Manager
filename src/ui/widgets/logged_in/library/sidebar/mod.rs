@@ -307,21 +307,29 @@ impl EpicSidebar {
         if parts.len() > 1 {
             if let Some(mut cat) = self.category_by_name("unreal") {
                 let mut p = String::from("unreal");
-                for part in &parts {
+                for (id, part) in parts.iter().enumerate() {
                     p.push('/');
                     p.push_str(part);
-                    cat.add_category(part, &p);
-                    cat = self.add_category_by_name(part, &p);
+                    if id == parts.len() - 1 {
+                        cat.add_category(part, &p, true);
+                    } else {
+                        cat.add_category(part, &p, false);
+                        cat = self.add_category_by_name(part, &p);
+                    }
                 }
             }
         }
         if let Some(mut cat) = self.category_by_name("all") {
             let mut p = String::from("all");
-            for part in parts {
+            for (id, part) in parts.iter().enumerate() {
                 p.push('/');
                 p.push_str(part);
-                cat.add_category(part, &p);
-                cat = self.add_category_by_name(part, &p);
+                if id == parts.len() - 1 {
+                    cat.add_category(part, &p, true);
+                } else {
+                    cat.add_category(part, &p, false);
+                    cat = self.add_category_by_name(part, &p);
+                }
             }
         }
     }

@@ -11,6 +11,7 @@ mod imp {
         filter: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
+        leaf: RefCell<bool>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -25,6 +26,7 @@ mod imp {
                 filter: RefCell::new(None),
                 name: RefCell::new(None),
                 path: RefCell::new(None),
+                leaf: RefCell::new(false),
             }
         }
     }
@@ -53,6 +55,13 @@ mod imp {
                         "Filter",
                         "Filter",
                         None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecBoolean::new(
+                        "leaf",
+                        "Leaf",
+                        "Is leaf",
+                        false,
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -87,6 +96,12 @@ mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.filter.replace(id);
                 }
+                "leaf" => {
+                    let id = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.leaf.replace(id);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -95,6 +110,7 @@ mod imp {
             match pspec.name() {
                 "name" => self.name.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
+                "leaf" => self.leaf.borrow().to_value(),
                 "filter" => self.filter.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -107,10 +123,14 @@ glib::wrapper! {
 }
 
 impl CategoryData {
-    pub fn new(name: &str, filter: &str, path: &str) -> CategoryData {
-        let data: Self =
-            glib::Object::new(&[("name", &name), ("filter", &filter), ("path", &path)])
-                .expect("Failed to create CategoryData");
+    pub fn new(name: &str, filter: &str, path: &str, leaf: bool) -> CategoryData {
+        let data: Self = glib::Object::new(&[
+            ("name", &name),
+            ("filter", &filter),
+            ("path", &path),
+            ("leaf", &leaf),
+        ])
+        .expect("Failed to create CategoryData");
         data
     }
 
@@ -123,5 +143,9 @@ impl CategoryData {
 
     pub fn filter(&self) -> String {
         self.property("filter")
+    }
+
+    pub fn leaf(&self) -> bool {
+        self.property("leaf")
     }
 }

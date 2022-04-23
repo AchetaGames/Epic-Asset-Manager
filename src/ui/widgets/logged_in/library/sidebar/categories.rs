@@ -119,9 +119,6 @@ pub(crate) mod imp {
                 }
                 "path" => {
                     let path: Option<String> = value.get().unwrap();
-                    if let Some(p) = &path {
-                        self.previous.set_tooltip_text(Some(p));
-                    }
                     self.path.replace(path);
                     obj.has_previous();
                 }
@@ -272,7 +269,7 @@ impl EpicSidebarCategories {
 
             let child = list_item.child().unwrap().downcast::<crate::ui::widgets::logged_in::library::sidebar::category::EpicSidebarCategory>().unwrap();
             child.set_property("title", &data.name());
-            child.set_tooltip_text(Some(&data.path()));
+            child.set_property("leaf", data.leaf());
         });
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
@@ -331,7 +328,7 @@ impl EpicSidebarCategories {
         }
     }
 
-    pub(crate) fn add_category(&self, name: &str, path: &str) {
+    pub(crate) fn add_category(&self, name: &str, path: &str, leaf: bool) {
         let self_ = self.imp();
         let mut cats = self_.categories_set.borrow_mut();
         if cats.insert(path.to_string()) {
@@ -339,8 +336,21 @@ impl EpicSidebarCategories {
                 &Self::capitalize_first_letter(name),
                 name,
                 path,
+                leaf,
             );
             self_.cats.append(&category);
+        } else if !leaf {
+            for i in 0..self_.cats.n_items() {
+                let child = self_.cats.item(i).unwrap();
+                let item = child
+                    .downcast::<crate::models::category_data::CategoryData>()
+                    .unwrap();
+                if item.path().eq(path) {
+                    item.set_property("leaf", false);
+                    self_.cats.items_changed(i, 1, 1);
+                    break;
+                }
+            }
         }
     }
 }

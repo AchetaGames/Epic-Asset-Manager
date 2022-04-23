@@ -7,17 +7,16 @@ pub(crate) mod imp {
     use glib::ParamSpec;
     use gtk4::gio;
     use gtk4::glib::ParamSpecString;
-    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/sidebar_category.ui")]
     pub struct EpicSidebarCategory {
-        pub sidebar: OnceCell<crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
         pub actions: gio::SimpleActionGroup,
         pub title: RefCell<Option<String>>,
         pub icon_name: RefCell<Option<String>>,
         pub filter: RefCell<Option<String>>,
+        leaf: RefCell<bool>,
     }
 
     #[glib::object_subclass]
@@ -28,11 +27,11 @@ pub(crate) mod imp {
 
         fn new() -> Self {
             Self {
-                sidebar: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 title: RefCell::new(None),
                 icon_name: RefCell::new(None),
                 filter: RefCell::new(None),
+                leaf: RefCell::new(false),
             }
         }
 
@@ -49,7 +48,6 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicSidebarCategory {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
-            obj.setup_actions();
         }
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
@@ -74,6 +72,13 @@ pub(crate) mod imp {
                         "Filter",
                         "Filter",
                         None,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecBoolean::new(
+                        "leaf",
+                        "Leaf",
+                        "Is leaf",
+                        false,
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -101,6 +106,12 @@ pub(crate) mod imp {
                     let icon_name = value.get().unwrap();
                     self.icon_name.replace(icon_name);
                 }
+                "leaf" => {
+                    let id = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.leaf.replace(id);
+                }
                 _ => unimplemented!(),
             }
         }
@@ -109,6 +120,7 @@ pub(crate) mod imp {
             match pspec.name() {
                 "title" => self.title.borrow().to_value(),
                 "icon-name" => self.icon_name.borrow().to_value(),
+                "leaf" => self.leaf.borrow().to_value(),
                 "filter" => self.filter.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -134,23 +146,5 @@ impl EpicSidebarCategory {
     pub fn new() -> Self {
         let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategory");
         stack
-    }
-
-    pub fn set_sidebar(
-        &self,
-        sidebar: &crate::ui::widgets::logged_in::library::sidebar::EpicSidebar,
-    ) {
-        let self_ = self.imp();
-        // Do not run this twice
-        if self_.sidebar.get().is_some() {
-            return;
-        }
-
-        self_.sidebar.set(sidebar.clone()).unwrap();
-    }
-
-    pub fn setup_actions(&self) {
-        let self_ = self.imp();
-        self.insert_action_group("sidebar_category", Some(&self_.actions));
     }
 }

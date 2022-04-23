@@ -22,6 +22,7 @@
         <child>
             <object class="GtkImage">
                 <property name="icon_name">go-next-symbolic</property>
+                <property name="visible" bind-source="EpicSidebarCategory" bind-property="leaf" bind-flags="sync-create|invert-boolean"/>
             </object>
         </child>
 
