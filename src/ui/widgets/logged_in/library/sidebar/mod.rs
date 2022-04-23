@@ -268,7 +268,9 @@ impl EpicSidebar {
     pub fn set_filter(&self, filter: Option<String>, path: Option<String>) {
         let self_ = self.imp();
         if let Some(p) = path {
-            self_.stack.set_visible_child_name(&p);
+            if self_.stack.child_by_name(&p).is_some() {
+                self_.stack.set_visible_child_name(&p);
+            }
             if let Some(l) = self_.loggedin.get() {
                 match self.category_by_name(&p) {
                     None => {
