@@ -48,8 +48,10 @@ pub mod imp {
         pub github_token: TemplateChild<gtk4::PasswordEntry>,
         #[template_child]
         pub github_user: TemplateChild<gtk4::Entry>,
-        #[template_child(id = "dark_theme_switch")]
-        pub dark_theme: TemplateChild<gtk4::Switch>,
+        #[template_child]
+        pub dark_theme_switch: TemplateChild<gtk4::Switch>,
+        #[template_child]
+        pub sidebar_switch: TemplateChild<gtk4::Switch>,
         #[template_child]
         pub default_view_selection: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
@@ -79,7 +81,8 @@ pub mod imp {
                 unreal_engine_directories_box: TemplateChild::default(),
                 github_token: TemplateChild::default(),
                 github_user: TemplateChild::default(),
-                dark_theme: TemplateChild::default(),
+                dark_theme_switch: TemplateChild::default(),
+                sidebar_switch: TemplateChild::default(),
                 default_view_selection: TemplateChild::default(),
                 default_category_selection: TemplateChild::default(),
             }
@@ -149,7 +152,11 @@ impl PreferencesWindow {
         let self_ = self.imp();
         self_
             .settings
-            .bind("dark-mode", &*self_.dark_theme, "active")
+            .bind("dark-mode", &*self_.dark_theme_switch, "active")
+            .build();
+        self_
+            .settings
+            .bind("sidebar-expanded", &*self_.sidebar_switch, "active")
             .build();
         self_
             .settings

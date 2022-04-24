@@ -73,6 +73,19 @@
                                 </child>
                             </object>
                         </child>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Expand sidebar</property>
+                                <property name="use-underline">True</property>
+                                <property name="activatable-widget">sidebar_switch</property>
+                                <property name="subtitle" translatable="yes">Whether the sidebar should be expanded by default</property>
+                                <child>
+                                    <object class="GtkSwitch" id="sidebar_switch">
+                                        <property name="valign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
                 </child>
             </object>
