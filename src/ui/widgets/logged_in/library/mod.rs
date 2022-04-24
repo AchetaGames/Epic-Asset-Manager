@@ -17,10 +17,10 @@ mod add_to_project;
 mod asset;
 mod asset_actions;
 pub mod asset_detail;
-pub mod category;
 mod create_asset_project;
 mod download_detail;
 pub mod image_stack;
+mod sidebar;
 
 pub(crate) mod imp {
     use super::*;
@@ -40,35 +40,10 @@ pub(crate) mod imp {
     #[template(resource = "/io/github/achetagames/epic_asset_manager/library.ui")]
     pub struct EpicLibraryBox {
         #[template_child]
-        pub unreal_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
-        pub home_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
-        pub assets_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
-        pub plugins_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
-        pub games_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
-        pub other_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
-        pub projects_category:
-            TemplateChild<crate::ui::widgets::logged_in::library::category::EpicSidebarCategory>,
-        #[template_child]
         pub details:
             TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
         #[template_child]
-        pub expand_button: TemplateChild<gtk4::Button>,
-        #[template_child]
-        pub expand_image: TemplateChild<gtk4::Image>,
-        #[template_child]
-        pub expand_label: TemplateChild<gtk4::Label>,
+        pub sidebar: TemplateChild<sidebar::EpicSidebar>,
         #[template_child]
         pub asset_grid: TemplateChild<gtk4::GridView>,
         #[template_child]
@@ -114,17 +89,8 @@ pub(crate) mod imp {
 
         fn new() -> Self {
             Self {
-                unreal_category: TemplateChild::default(),
-                home_category: TemplateChild::default(),
-                assets_category: TemplateChild::default(),
-                plugins_category: TemplateChild::default(),
-                games_category: TemplateChild::default(),
-                other_category: TemplateChild::default(),
-                projects_category: TemplateChild::default(),
                 details: TemplateChild::default(),
-                expand_button: TemplateChild::default(),
-                expand_image: TemplateChild::default(),
-                expand_label: TemplateChild::default(),
+                sidebar: TemplateChild::default(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
                 search_toggle: TemplateChild::default(),
@@ -255,7 +221,6 @@ pub(crate) mod imp {
                             }
                         }
                     });
-                    obj.unselect_categories_except();
                     obj.apply_filter();
                 }
                 "search" => {
@@ -306,56 +271,6 @@ pub(crate) mod imp {
             obj.bind_properties();
             obj.setup_actions();
             obj.setup_widgets();
-            // All
-            self.home_category.add_category("all", "");
-            self.home_category.add_category("favorites", "favorites");
-            self.home_category.add_category("downloaded", "downloaded");
-            // Unreal
-            self.unreal_category
-                .add_category("all", "plugins|projects|assets");
-            self.unreal_category.add_category("assets", "assets");
-            self.unreal_category.add_category("projects", "projects");
-            self.unreal_category.add_category("plugins", "plugins");
-            self.unreal_category
-                .add_category("favorites", "favorites&plugins|projects|assets");
-            self.unreal_category
-                .add_category("downloaded", "downloaded&plugins|projects|assets");
-            self.unreal_category.clicked();
-            // Assets
-            self.assets_category.add_category("all", "assets");
-            self.assets_category
-                .add_category("favorites", "favorites&assets");
-            self.assets_category
-                .add_category("downloaded", "downloaded&assets");
-            // Projects
-            self.projects_category.add_category("all", "projects");
-            self.projects_category
-                .add_category("favorites", "favorites&projects");
-            self.projects_category
-                .add_category("downloaded", "downloaded&projects");
-            // Plugin
-            self.plugins_category.add_category("all", "plugins");
-            self.plugins_category
-                .add_category("favorites", "favorites&plugins");
-            self.plugins_category
-                .add_category("downloaded", "downloaded&plugins");
-            // Games
-            self.games_category.add_category("all", "games|dlc");
-            self.games_category
-                .add_category("favorites", "favorites&games|dlc");
-            self.games_category
-                .add_category("downloaded", "downloaded&games|dlc");
-            // Other
-            self.other_category
-                .add_category("all", "!games&!dlc&!plugins&!projects&!assets");
-            self.other_category.add_category(
-                "favorites",
-                "favorites&!games&!dlc&!plugins&!projects&!assets",
-            );
-            self.other_category.add_category(
-                "downloaded",
-                "downloaded&!games&!dlc&!plugins&!projects&!assets",
-            );
         }
     }
 
@@ -597,27 +512,6 @@ impl EpicLibraryBox {
 
     pub fn bind_properties(&self) {
         let self_ = self.imp();
-        self.bind_property("sidebar-expanded", &*self_.unreal_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
-        self.bind_property("sidebar-expanded", &*self_.home_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
-        self.bind_property("sidebar-expanded", &*self_.assets_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
-        self.bind_property("sidebar-expanded", &*self_.plugins_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
-        self.bind_property("sidebar-expanded", &*self_.games_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
-        self.bind_property("sidebar-expanded", &*self_.other_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
-        self.bind_property("sidebar-expanded", &*self_.projects_category, "expanded")
-            .flags(glib::BindingFlags::DEFAULT | glib::BindingFlags::SYNC_CREATE)
-            .build();
         self_
             .asset_search
             .bind_property("text", self, "search")
@@ -627,13 +521,8 @@ impl EpicLibraryBox {
 
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
-        self_.projects_category.set_logged_in(self);
-        self_.assets_category.set_logged_in(self);
-        self_.plugins_category.set_logged_in(self);
-        self_.other_category.set_logged_in(self);
-        self_.games_category.set_logged_in(self);
-        self_.home_category.set_logged_in(self);
-        self_.unreal_category.set_logged_in(self);
+
+        self_.sidebar.set_logged_in(self);
 
         self_
             .select_order_by
@@ -661,37 +550,8 @@ impl EpicLibraryBox {
         };
     }
 
-    fn expand(&self) {
-        let v: glib::Value = self.property("sidebar-expanded");
-        let self_ = self.imp();
-        let new_value = !v.get::<bool>().unwrap();
-        self.enable_all_categories();
-        if new_value {
-            self_
-                .expand_image
-                .set_icon_name(Some("go-previous-symbolic"));
-            self_
-                .expand_button
-                .set_tooltip_text(Some("Collapse Sidebar"));
-            self_.expand_label.set_label("Collapse");
-        } else {
-            self_.expand_image.set_icon_name(Some("go-next-symbolic"));
-            self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
-            self_.expand_label.set_label("");
-        };
-        self.set_property("sidebar-expanded", &new_value);
-    }
-
     pub fn setup_actions(&self) {
         let self_ = self.imp();
-
-        action!(
-            self_.actions,
-            "expand",
-            clone!(@weak self as library => move |_, _| {
-                library.expand();
-            })
-        );
 
         action!(
             self_.actions,
@@ -757,32 +617,6 @@ impl EpicLibraryBox {
         self.property("product")
     }
 
-    pub fn unselect_categories_except(&self) {
-        let self_ = self.imp();
-        let filter = match self.filter() {
-            None => "".to_string(),
-            Some(f) => f,
-        };
-        self_.unreal_category.unselect_except(&filter);
-        self_.projects_category.unselect_except(&filter);
-        self_.assets_category.unselect_except(&filter);
-        self_.plugins_category.unselect_except(&filter);
-        self_.other_category.unselect_except(&filter);
-        self_.games_category.unselect_except(&filter);
-        self_.home_category.unselect_except(&filter);
-    }
-
-    pub fn enable_all_categories(&self) {
-        let self_ = self.imp();
-        self_.projects_category.activate(true);
-        self_.assets_category.activate(true);
-        self_.plugins_category.activate(true);
-        self_.other_category.activate(true);
-        self_.games_category.activate(true);
-        self_.home_category.activate(true);
-        self_.unreal_category.activate(true);
-    }
-
     pub fn apply_filter(&self) {
         let self_ = self.imp();
         let search = self.search();
@@ -818,7 +652,7 @@ impl EpicLibraryBox {
             for category in categories {
                 let mut cats = self_.categories.borrow_mut();
                 if cats.insert(category.path.clone()) {
-                    self.add_category(&category.path);
+                    self_.sidebar.add_category(&category.path);
                 }
             }
         };
@@ -890,21 +724,6 @@ impl EpicLibraryBox {
         self_
             .refresh_progress
             .set_visible(self.loaded() != self.loading());
-    }
-
-    fn add_category(&self, path: &str) {
-        let self_ = self.imp();
-        let parts = path.split('/').collect::<Vec<&str>>();
-        if parts.len() > 1 {
-            let name = parts[1..].join("/");
-            match parts.get(0) {
-                Some(&"assets") => &self_.assets_category,
-                Some(&"plugins") => &self_.plugins_category,
-                Some(&"projects") => &self_.projects_category,
-                _ => &self_.other_category,
-            }
-            .add_category(&name, path);
-        }
     }
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {

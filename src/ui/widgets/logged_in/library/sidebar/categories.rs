@@ -1,9 +1,8 @@
-use crate::models::category_data::CategoryData;
 use glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*, Label};
+use gtk4::{self, prelude::*};
 use gtk4::{gio, glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 
 pub(crate) mod imp {
     use super::*;
@@ -13,45 +12,47 @@ pub(crate) mod imp {
     use gtk4::{gio, gio::ListStore, SingleSelection};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
+    use std::collections::HashSet;
 
     #[derive(Debug, CompositeTemplate)]
-    #[template(resource = "/io/github/achetagames/epic_asset_manager/sidebar_category.ui")]
-    pub struct EpicSidebarCategory {
-        pub tooltip_text: RefCell<Option<String>>,
+    #[template(resource = "/io/github/achetagames/epic_asset_manager/sidebar_categories.ui")]
+    pub struct EpicSidebarCategories {
+        pub title: RefCell<Option<String>>,
         pub icon_name: RefCell<Option<String>>,
+        pub path: RefCell<Option<String>>,
         pub filter: RefCell<Option<String>>,
-        pub loggedin: OnceCell<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
+        pub sidebar: OnceCell<crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
         pub expanded: RefCell<bool>,
         pub actions: gio::SimpleActionGroup,
         #[template_child]
-        pub sub_revealer: TemplateChild<gtk4::Revealer>,
+        pub categories: TemplateChild<gtk4::ListView>,
         #[template_child]
-        pub sub_box: TemplateChild<gtk4::ListView>,
-        #[template_child]
-        pub category_button: TemplateChild<gtk4::Button>,
-        pub categories: ListStore,
+        pub previous: TemplateChild<gtk4::Button>,
         pub selection_model: SingleSelection,
+        pub cats: ListStore,
+        pub categories_set: RefCell<HashSet<String>>,
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for EpicSidebarCategory {
-        const NAME: &'static str = "EpicSidebarCategory";
-        type Type = super::EpicSidebarCategory;
+    impl ObjectSubclass for EpicSidebarCategories {
+        const NAME: &'static str = "EpicSidebarCategories";
+        type Type = super::EpicSidebarCategories;
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
-                tooltip_text: RefCell::new(None),
+                title: RefCell::new(None),
                 icon_name: RefCell::new(None),
+                path: RefCell::new(None),
                 filter: RefCell::new(None),
-                loggedin: OnceCell::new(),
+                sidebar: OnceCell::new(),
                 expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
-                sub_revealer: TemplateChild::default(),
-                sub_box: TemplateChild::default(),
-                category_button: TemplateChild::default(),
-                categories: ListStore::new(CategoryData::static_type()),
+                categories: TemplateChild::default(),
+                cats: ListStore::new(CategoryData::static_type()),
                 selection_model: SingleSelection::new(None::<&gtk4::SortListModel>),
+                categories_set: RefCell::new(HashSet::new()),
+                previous: TemplateChild::default(),
             }
         }
 
@@ -65,15 +66,15 @@ pub(crate) mod imp {
         }
     }
 
-    impl ObjectImpl for EpicSidebarCategory {
+    impl ObjectImpl for EpicSidebarCategories {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
                     ParamSpecString::new(
-                        "tooltip-text",
-                        "tooltip text",
-                        "The category name",
+                        "title",
+                        "title",
+                        "The category title",
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
@@ -84,6 +85,7 @@ pub(crate) mod imp {
                         None,
                         glib::ParamFlags::READWRITE,
                     ),
+                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
                     ParamSpecString::new(
                         "filter",
                         "Filter",
@@ -105,15 +107,20 @@ pub(crate) mod imp {
 
         fn set_property(
             &self,
-            _obj: &Self::Type,
+            obj: &Self::Type,
             _id: usize,
             value: &glib::Value,
             pspec: &ParamSpec,
         ) {
             match pspec.name() {
-                "tooltip-text" => {
-                    let tooltip_text = value.get().unwrap();
-                    self.tooltip_text.replace(tooltip_text);
+                "title" => {
+                    let title = value.get().unwrap();
+                    self.title.replace(title);
+                }
+                "path" => {
+                    let path: Option<String> = value.get().unwrap();
+                    self.path.replace(path);
+                    obj.has_previous();
                 }
                 "filter" => {
                     let filter = value.get().unwrap();
@@ -133,9 +140,10 @@ pub(crate) mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "tooltip-text" => self.tooltip_text.borrow().to_value(),
+                "title" => self.title.borrow().to_value(),
                 "icon-name" => self.icon_name.borrow().to_value(),
                 "expanded" => self.expanded.borrow().to_value(),
+                "path" => self.path.borrow().to_value(),
                 "filter" => self.filter.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -148,46 +156,108 @@ pub(crate) mod imp {
         }
     }
 
-    impl WidgetImpl for EpicSidebarCategory {}
-    impl BoxImpl for EpicSidebarCategory {}
+    impl WidgetImpl for EpicSidebarCategories {}
+    impl BoxImpl for EpicSidebarCategories {}
 }
 
 glib::wrapper! {
-    pub struct EpicSidebarCategory(ObjectSubclass<imp::EpicSidebarCategory>)
+    pub struct EpicSidebarCategories(ObjectSubclass<imp::EpicSidebarCategories>)
         @extends gtk4::Widget, gtk4::Box;
 }
 
-impl Default for EpicSidebarCategory {
+impl Default for EpicSidebarCategories {
     fn default() -> Self {
-        Self::new()
+        Self::new("", "", None, None)
     }
 }
 
-impl EpicSidebarCategory {
-    pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategory");
+impl EpicSidebarCategories {
+    pub fn new(
+        title: &str,
+        path: &str,
+        filter: Option<&str>,
+        sidebar: Option<&crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
+    ) -> Self {
+        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategories");
+
+        stack.set_property("title", title);
+        stack.set_property("path", path);
+        stack.set_property("filter", filter);
+        if let Some(s) = sidebar {
+            stack.set_sidebar(s);
+        }
 
         stack
     }
 
-    pub fn set_logged_in(&self, loggedin: &crate::ui::widgets::logged_in::library::EpicLibraryBox) {
+    pub fn set_sidebar(
+        &self,
+        sidebar: &crate::ui::widgets::logged_in::library::sidebar::EpicSidebar,
+    ) {
         let self_ = self.imp();
         // Do not run this twice
-        if self_.loggedin.get().is_some() {
+        if self_.sidebar.get().is_some() {
             return;
         }
 
-        self_.loggedin.set(loggedin.clone()).unwrap();
+        self_.sidebar.set(sidebar.clone()).unwrap();
+    }
+
+    fn has_previous(&self) {
+        let self_ = self.imp();
+        if let Some(path) = self.path() {
+            get_action!(self_.actions, @previous).set_enabled(path.contains('/'));
+        }
+    }
+
+    pub fn setup_actions(&self) {
+        let self_ = self.imp();
+        self.insert_action_group("categories", Some(&self_.actions));
+        action!(
+            self_.actions,
+            "previous",
+            clone!(@weak self as category => move |_, _| {
+                category.back();
+            })
+        );
+        self.has_previous();
+    }
+
+    fn back(&self) {
+        let self_ = self.imp();
+        if let Some(s) = self_.sidebar.get() {
+            if let Some(path) = self.path() {
+                let mut parts = path.split('/').collect::<Vec<&str>>();
+                parts.pop();
+                s.set_filter(None, Some(parts.join("/")));
+            }
+        };
+    }
+
+    pub fn capitalize_first_letter(s: &str) -> String {
+        let mut c = s.chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        }
+    }
+    pub fn title(&self) -> Option<String> {
+        self.property("title")
+    }
+
+    pub fn path(&self) -> Option<String> {
+        self.property("path")
+    }
+
+    pub fn filter(&self) -> Option<String> {
+        self.property("filter")
     }
 
     pub fn setup_categories(&self) {
         let self_ = self.imp();
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
-            let row = Label::new(None);
-            row.set_halign(gtk4::Align::Fill);
-            row.set_xalign(0.0);
-            item.set_child(Some(&row));
+            item.set_child(Some(&crate::ui::widgets::logged_in::library::sidebar::category::EpicSidebarCategory::new()));
         });
 
         factory.connect_bind(move |_factory, list_item| {
@@ -197,9 +267,9 @@ impl EpicSidebarCategory {
                 .downcast::<crate::models::category_data::CategoryData>()
                 .unwrap();
 
-            let child = list_item.child().unwrap().downcast::<Label>().unwrap();
-            child.set_label(&data.name());
-            child.set_tooltip_text(Some(&data.filter()));
+            let child = list_item.child().unwrap().downcast::<crate::ui::widgets::logged_in::library::sidebar::category::EpicSidebarCategory>().unwrap();
+            child.set_property("title", &data.name());
+            child.set_property("leaf", data.leaf());
         });
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
@@ -230,12 +300,12 @@ impl EpicSidebarCategory {
             }
         });
 
-        let sorted_model = gtk4::SortListModel::new(Some(&self_.categories), Some(&sorter));
+        let sorted_model = gtk4::SortListModel::new(Some(&self_.cats), Some(&sorter));
         self_.selection_model.set_model(Some(&sorted_model));
         self_.selection_model.set_autoselect(false);
         self_.selection_model.set_can_unselect(true);
-        self_.sub_box.set_model(Some(&self_.selection_model));
-        self_.sub_box.set_factory(Some(&factory));
+        self_.categories.set_model(Some(&self_.selection_model));
+        self_.categories.set_factory(Some(&factory));
 
         self_.selection_model.connect_selected_notify(
             clone!(@weak self as category => move |model| {
@@ -246,83 +316,41 @@ impl EpicSidebarCategory {
 
     fn category_selected(&self, model: &gtk4::SingleSelection) {
         let self_ = self.imp();
+
         if let Some(item) = model.selected_item() {
+            model.unselect_item(model.selected());
             let filter = item
                 .downcast::<crate::models::category_data::CategoryData>()
                 .unwrap();
-            if let Some(l) = self_.loggedin.get() {
-                l.set_property("filter", filter.filter());
+            if let Some(s) = self_.sidebar.get() {
+                s.set_filter(Some(filter.filter()), Some(filter.path()));
             };
         }
     }
 
-    pub fn setup_actions(&self) {
+    pub(crate) fn add_category(&self, name: &str, path: &str, leaf: bool) {
         let self_ = self.imp();
-        action!(
-            self_.actions,
-            "clicked",
-            clone!(@weak self as category => move |_, _| {
-                category.clicked();
-            })
-        );
-        self.insert_action_group("category", Some(&self_.actions));
-    }
-
-    pub fn clicked(&self) {
-        let v: glib::Value = self.property("expanded");
-        let self_ = self.imp();
-        if v.get::<bool>().unwrap() {
-            if self_.sub_box.first_child().is_none() {
-                if let Some(l) = self_.loggedin.get() {
-                    l.set_property("filter", self.filter());
-                };
-            } else {
-                self_
-                    .sub_revealer
-                    .set_reveal_child(!self_.sub_revealer.reveals_child());
-            }
-        } else if let Some(l) = self_.loggedin.get() {
-            l.enable_all_categories();
-            l.set_property("filter", self.filter());
-            self.activate(false);
-        };
-    }
-
-    fn capitalize_first_letter(s: &str) -> String {
-        let mut c = s.chars();
-        match c.next() {
-            None => String::new(),
-            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-        }
-    }
-
-    pub fn add_category(&self, name: &str, filter: &str) {
-        let self_ = self.imp();
-        self_.categories.append(&CategoryData::new(
-            &EpicSidebarCategory::capitalize_first_letter(name),
-            filter,
-        ));
-    }
-
-    pub fn filter(&self) -> Option<String> {
-        self.property("filter")
-    }
-
-    pub fn unselect_except(&self, category: &str) {
-        let self_ = self.imp();
-        let selected_id = self_.selection_model.selected();
-        if let Some(item) = self_.selection_model.selected_item() {
-            let cat = item
-                .downcast::<crate::models::category_data::CategoryData>()
-                .unwrap();
-            if !cat.filter().eq(category) {
-                self_.selection_model.unselect_item(selected_id);
+        let mut cats = self_.categories_set.borrow_mut();
+        if cats.insert(path.to_string()) {
+            let category = crate::models::category_data::CategoryData::new(
+                &Self::capitalize_first_letter(name),
+                name,
+                path,
+                leaf,
+            );
+            self_.cats.append(&category);
+        } else if !leaf {
+            for i in 0..self_.cats.n_items() {
+                let child = self_.cats.item(i).unwrap();
+                let item = child
+                    .downcast::<crate::models::category_data::CategoryData>()
+                    .unwrap();
+                if item.path().eq(path) {
+                    item.set_property("leaf", false);
+                    self_.cats.items_changed(i, 1, 1);
+                    break;
+                }
             }
         }
-    }
-
-    pub fn activate(&self, activate: bool) {
-        let self_ = self.imp();
-        self_.category_button.set_sensitive(activate);
     }
 }

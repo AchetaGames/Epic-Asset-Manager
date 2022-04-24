@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicSidebar" parent="GtkBox">
+        <property name="vexpand">true</property>
+        <property name="hexpand-set">true</property>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="GtkBox">
+                        <child>
+                            <object class="GtkBox" id="navigation">
+                                <property name="orientation">vertical</property>
+                                <property name="hexpand">false</property>
+                                <child>
+                                    <object class="GtkScrolledWindow">
+                                        <property name="vexpand">true</property>
+                                        <property name="hscrollbar-policy">never</property>
+                                        <child>
+                                            <object class="GtkBox">
+                                                <property name="orientation">vertical</property>
+                                                <property name="name">main</property>
+                                                <child>
+                                                    <object class="EpicSidebarButton" id="all_category">
+                                                        <property name="icon-name">input-dialpad-symbolic</property>
+                                                        <property name="tooltip-text" translatable="yes">All</property>
+                                                        <property name="path">all</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="EpicSidebarButton" id="unreal_category">
+                                                        <property name="icon-name">ue-logo-symbolic</property>
+                                                        <property name="filter">plugins|projects|assets</property>
+                                                        <property name="path">unreal</property>
+                                                        <property name="tooltip-text" translatable="yes">Unreal Assets</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="EpicSidebarButton" id="games_category">
+                                                        <property name="icon-name">input-gaming-symbolic</property>
+                                                        <property name="filter">games|dlc</property>
+                                                        <property name="path">games</property>
+                                                        <property name="tooltip-text" translatable="yes">Games</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="vexpand">True</property>
+                                                        <property name="halign">end</property>
+                                                        <child>
+                                                            <object class="GtkSeparator">
+                                                                <property name="visible" bind-source="EpicSidebar" bind-property="expanded" bind-flags="sync-create"/>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkRevealer" id="detail_slider">
+                                <property name="hexpand" bind-source="EpicSidebar" bind-property="expanded" bind-flags="sync-create"/>
+                                <property name="reveal-child" bind-source="EpicSidebar" bind-property="expanded" bind-flags="sync-create"/>
+                                <property name="transition-type">slide-left</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                            <object class="GtkStack" id="stack">
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkBox">
+                                                <property name="margin-start">6</property>
+                                                <property name="margin-end">6</property>
+                                                <property name="margin-top">12</property>
+                                                <property name="margin-bottom">12</property>
+                                                <property name="spacing">12</property>
+                                                <child>
+                                                    <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Downloaded</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkSwitch" id="downloaded_switch">
+                                                        <property name="hexpand">True</property>
+                                                        <property name="halign">end</property>
+                                                        <property name="valign">center</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkBox">
+                                                <property name="margin-start">6</property>
+                                                <property name="margin-end">6</property>
+                                                <property name="margin-top">12</property>
+                                                <property name="margin-bottom">12</property>
+                                                <property name="spacing">12</property>
+                                                <child>
+                                                    <object class="GtkLabel">
+                                                        <property name="halign">start</property>
+                                                        <property name="label" translatable="yes">Favorites</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkSwitch" id="favorites_switch">
+                                                        <property name="hexpand">True</property>
+                                                        <property name="halign">end</property>
+                                                        <property name="valign">center</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="valign">end</property>
+                        <property name="halign">fill</property>
+                        <property name="hexpand">true</property>
+                        <child>
+                            <object class="GtkButton" id="expand_button">
+                                <property name="name">category_button</property>
+                                <property name="action-name">sidebar.expand</property>
+                                <property name="halign">fill</property>
+                                <property name="hexpand">true</property>
+                                <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage" id="expand_image">
+                                                <property name="icon-name">go-next-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel" id="expand_label">
+                                                <property name="label" translatable="yes"/>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkSeparator">
+
+            </object>
+        </child>
+    </template>
+</interface>
