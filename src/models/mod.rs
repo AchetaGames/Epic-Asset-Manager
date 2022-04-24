@@ -168,6 +168,7 @@ impl Model {
             match &self.secret_service {
                 None => {
                     error!("Unable to load secrets from Secret service");
+                    self.load_secrets_insecure();
                 }
                 Some(ss) => {
                     if let Ok(collection) = ss.get_any_collection() {
@@ -231,6 +232,32 @@ impl Model {
                 }
             }
         }
+        #[cfg(target_os = "windows")]
+        {
+            self.load_secrets_insecure();
+        }
+    }
+
+    fn load_secrets_insecure(&self) {
+        let mut ud = egs_api::api::UserData::new();
+        if let Some((token, exp)) = self.load_egs_secrets_insecure("token") {
+            ud.expires_at = Some(exp);
+            ud.token_type = Some("bearer".to_string());
+            ud.set_access_token(Some(token));
+        };
+        if let Some((token, exp)) = self.load_egs_secrets_insecure("refresh-token") {
+            ud.refresh_expires_at = Some(exp);
+            ud.set_refresh_token(Some(token));
+        };
+        self.epic_games.borrow_mut().set_user_details(ud);
+
+        let gh_token = self.settings.string("github-token");
+        if !gh_token.is_empty() {
+            self.validate_registry_login(
+                self.settings.string("github-user").to_string(),
+                gh_token.to_string(),
+            );
+        }
     }
 
     fn load_egs_secrets(
@@ -269,5 +296,36 @@ impl Model {
             }
         };
         None
+    }
+
+    fn load_egs_secrets_insecure(
+        &self,
+        item: &str,
+    ) -> Option<(String, chrono::DateTime<chrono::Utc>)> {
+        let exp = match chrono::DateTime::parse_from_rfc3339(
+            self.settings
+                .string(&format!("{}-expiration", item))
+                .as_str(),
+        ) {
+            Ok(d) => d.with_timezone(&chrono::Utc),
+            Err(e) => {
+                debug!("Failed to parse token expiration date {}", e);
+                return None;
+            }
+        };
+        let now = chrono::offset::Utc::now();
+        let td = exp - now;
+        if td.num_seconds() < 600 {
+            info!("Token {} is expired, removing", item);
+            self.settings.set_string(item, "").unwrap();
+            return None;
+        }
+
+        let secret = self.settings.string(item);
+        if secret.is_empty() {
+            None
+        } else {
+            Some((secret.to_string(), exp))
+        }
     }
 }

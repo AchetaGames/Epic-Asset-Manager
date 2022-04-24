@@ -517,34 +517,76 @@ impl EpicAssetManagerWindow {
             debug!("Saving {} secret", secret_name);
             match &self_.model.borrow().secret_service {
                 None => {
-                    self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, you will need to log in every time", gtk4::MessageType::Warning);
+                    self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                    self.save_insecure(secret_name, secret);
                 }
-                Some(ss) => match secret {
-                    None => {
-                        if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                            secret_name,
-                            attributes,
-                            "".as_bytes(),
-                            true,
-                            "text/plain",
-                        ) {
-                            error!("Failed to save secret {}", e);
+                Some(ss) => {
+                    // Clear the insecure storage if any
+                    self_
+                        .model
+                        .borrow()
+                        .settings
+                        .set_string(
+                            match secret_name {
+                                "eam_epic_games_token" => "token",
+                                "eam_epic_games_refresh_token" => "refresh-token",
+                                _ => {
+                                    return;
+                                }
+                            },
+                            "",
+                        )
+                        .unwrap();
+                    match secret {
+                        None => {
+                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                                secret_name,
+                                attributes,
+                                "".as_bytes(),
+                                true,
+                                "text/plain",
+                            ) {
+                                error!("Failed to save secret {}", e);
+                            }
+                        }
+                        Some(rt) => {
+                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                                secret_name,
+                                attributes,
+                                rt.as_bytes(),
+                                true,
+                                "text/plain",
+                            ) {
+                                error!("Failed to save secret {}", e);
+                            }
                         }
                     }
-                    Some(rt) => {
-                        if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                            secret_name,
-                            attributes,
-                            rt.as_bytes(),
-                            true,
-                            "text/plain",
-                        ) {
-                            error!("Failed to save secret {}", e);
-                        }
-                    }
-                },
+                }
             }
         }
+        #[cfg(target_os = "windows")]
+        {
+            self.save_insecure(secret_name, secret);
+        }
+    }
+
+    fn save_insecure(&self, secret_name: &str, secret: Option<String>) {
+        let self_ = self.imp();
+        self_
+            .model
+            .borrow()
+            .settings
+            .set_string(
+                match secret_name {
+                    "eam_epic_games_token" => "token",
+                    "eam_epic_games_refresh_token" => "refresh-token",
+                    _ => {
+                        return;
+                    }
+                },
+                &secret.unwrap_or_default(),
+            )
+            .unwrap();
     }
 
     pub fn close_download_manager(&self) {
