@@ -32,6 +32,7 @@
                         </child>
                     </object>
                 </child>
+
                 <child>
                     <object class="AdwPreferencesGroup" id="dark_theme_group">
                         <property name="title" translatable="yes">Appearance</property>
@@ -44,6 +45,30 @@
                                 <child>
                                     <object class="GtkSwitch" id="dark_theme_switch">
                                         <property name="valign">center</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Library</property>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">Sidebar _category</property>
+                                <property name="use-underline">True</property>
+                                <property name="activatable-widget">default_category_selection</property>
+                                <property name="subtitle" translatable="yes">What category to have selected in library</property>
+                                <child>
+                                    <object class="GtkComboBoxText" id="default_category_selection">
+                                        <property name="valign">center</property>
+                                        <property name="active-id">unreal</property>
+                                        <items>
+                                            <item translatable="yes" id="all">All</item>
+                                            <item translatable="yes" id="unreal">Unreal Engine</item>
+                                            <item translatable="yes" id="games">Games</item>
+                                        </items>
                                     </object>
                                 </child>
                             </object>

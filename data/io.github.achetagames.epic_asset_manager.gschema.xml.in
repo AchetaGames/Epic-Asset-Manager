@@ -71,5 +71,9 @@
             <default>false</default>
             <summary>Is sidebar expanded</summary>
         </key>
+        <key name="default-category" type="s">
+            <default>"unreal"</default>
+            <summary>Default Sidebar Category</summary>
+        </key>
     </schema>
 </schemalist>

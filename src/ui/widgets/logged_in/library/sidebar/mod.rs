@@ -169,7 +169,12 @@ impl EpicSidebar {
         }
 
         self_.loggedin.set(loggedin.clone()).unwrap();
-        self_.unreal_category.clicked();
+        match self_.settings.string("default-category").as_str() {
+            "all" => &self_.all_category,
+            "games" => &self_.games_category,
+            _ => &self_.unreal_category,
+        }
+        .clicked();
     }
 
     pub fn setup_actions(&self) {
@@ -189,21 +194,25 @@ impl EpicSidebar {
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
 
+        // Unreal Category
         let c = categories::EpicSidebarCategories::new(
-            "Unreal Assets",
+            "Unreal Engine",
             "unreal",
             Some("assets|projects|plugins|engines"),
             Some(self),
         );
         c.set_widget_name("unreal");
         self_.stack.add_named(&c, Some("unreal"));
+        // Games Category
         let c =
             categories::EpicSidebarCategories::new("Games", "games", Some("games|dlc"), Some(self));
         c.set_widget_name("games");
         self_.stack.add_named(&c, Some("games"));
+        // All Category
         let c = categories::EpicSidebarCategories::new("All", "all", None, Some(self));
         c.set_widget_name("all");
         self_.stack.add_named(&c, Some("all"));
+
         self_
             .favorites_switch
             .connect_state_notify(clone!(@weak self as sidebar => move |_| {
@@ -214,6 +223,7 @@ impl EpicSidebar {
             .connect_state_notify(clone!(@weak self as sidebar => move |_| {
                 sidebar.filter_changed();
             }));
+
         if self_.settings.boolean("sidebar-expanded") {
             self.expand();
         };
