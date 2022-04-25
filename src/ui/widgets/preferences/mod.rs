@@ -290,35 +290,49 @@ impl PreferencesWindow {
             let self_ = self.imp();
             if let Some(w) = self_.window.get() {
                 let win_ = w.imp();
-                match &win_.model.borrow().secret_service {
-                    None => w.add_notification("ss_none", "org.freedesktop.Secret.Service not available for use, secrets will not be stored", gtk4::MessageType::Warning),
-                    Some(ss) => {
-                        if let Ok(collection) = ss.get_any_collection() {
-                            if let Ok(items) = collection.search_items(
-                                [("application", crate::config::APP_ID)].iter().copied().collect(),
-                            ) {
-                                for item in items {
-                                    let label = if let Ok(l) = item.get_label() {
-                                        l
-                                    } else {
-                                        debug!("No label skipping");
-                                        continue;
-                                    };
-                                    debug!("Loading: {}", label);
-                                    match label.as_str() {
-                                        "eam_github_token" => {
-                                            if let Ok(d) = item.get_secret() {
-                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                                    self_.github_token.set_text(s);
-                                                }
-                                            };
+                #[cfg(target_os = "linux")]
+                {
+                    match &win_.model.borrow().secret_service {
+                        None => {
+                            w.add_notification("ss_none", "org.freedesktop.Secret.Service not available for use, secrets will not be stored securely", gtk4::MessageType::Warning);
+                            self.load_secrets_insecure();
+                        }
+                        Some(ss) => {
+                            if let Ok(collection) = ss.get_any_collection() {
+                                if let Ok(items) = collection.search_items(
+                                    [("application", crate::config::APP_ID)]
+                                        .iter()
+                                        .copied()
+                                        .collect(),
+                                ) {
+                                    for item in items {
+                                        let label = if let Ok(l) = item.get_label() {
+                                            l
+                                        } else {
+                                            debug!("No label skipping");
+                                            continue;
+                                        };
+                                        debug!("Loading: {}", label);
+                                        match label.as_str() {
+                                            "eam_github_token" => {
+                                                if let Ok(d) = item.get_secret() {
+                                                    if let Ok(s) = std::str::from_utf8(d.as_slice())
+                                                    {
+                                                        self_.github_token.set_text(s);
+                                                    }
+                                                };
+                                            }
+                                            &_ => {}
                                         }
-                                        &_ => {}
                                     }
-                                }
+                                };
                             };
-                        };
+                        }
                     }
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    self.load_secrets_insecure();
                 }
             };
             self_
@@ -329,6 +343,22 @@ impl PreferencesWindow {
         }
     }
 
+    fn load_secrets_insecure(&self) {
+        let self_ = self.imp();
+        let gh_token = self_.settings.string("github-token");
+        if !gh_token.is_empty() {
+            self_.github_token.set_text(&gh_token);
+        }
+    }
+
+    fn save_github_token_insecure(&self) {
+        let self_ = self.imp();
+        self_
+            .settings
+            .set_string("github-token", &self_.github_token.text())
+            .unwrap();
+    }
+
     fn github_token_changed(&self) {
         let self_ = self.imp();
         if let Some(w) = self_.window.get() {
@@ -337,21 +367,30 @@ impl PreferencesWindow {
             attributes.insert("type", "token");
             let win_ = w.imp();
             let model = win_.model.borrow();
-            match &model.secret_service {
-                None => {
-                    w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be persisted over application restarts", gtk4::MessageType::Warning)
+            #[cfg(target_os = "linux")]
+            {
+                match &model.secret_service {
+                    None => {
+                        w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
+                        self.save_github_token_insecure();
+                    }
+                    Some(ss) => {
+                        self_.settings.set_string("github-token", "").unwrap();
+                        if let Err(e) = ss.get_any_collection().unwrap().create_item(
+                            "eam_github_token",
+                            attributes.clone(),
+                            self_.github_token.text().as_bytes(),
+                            true,
+                            "text/plain",
+                        ) {
+                            error!("Failed to save secret {}", e);
+                        };
+                    }
                 }
-                Some(ss) => {
-                    if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                        "eam_github_token",
-                        attributes.clone(),
-                        self_.github_token.text().as_bytes(),
-                        true,
-                        "text/plain",
-                    ) {
-                        error!("Failed to save secret {}", e);
-                    };
-                }
+            }
+            #[cfg(target_os = "windows")]
+            {
+                self.save_github_token_insecure();
             }
 
             model.validate_registry_login(
