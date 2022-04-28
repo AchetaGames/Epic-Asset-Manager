@@ -230,7 +230,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         );
 
         match gtk4::gdk_pixbuf::Pixbuf::from_resource(
-            "/io/github/achetagames/epic_asset_manager/icons/ue-logo-symbolic.svg",
+            "/io/github/achetagames/epic_asset_manager/icons/scalable/emblems/ue-logo-symbolic.svg",
         ) {
             Ok(pix) => {
                 item.set_property("thumbnail", &pix);
