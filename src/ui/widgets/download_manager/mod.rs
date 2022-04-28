@@ -369,6 +369,12 @@ impl EpicDownloadManager {
                 if let Some(i) = row.first_child() {
                     if i.eq(item) {
                         self_.downloads.remove(&row);
+                        if let Some(v) = item.version() {
+                            self_.download_items.borrow_mut().remove(&v);
+                        }
+                        if let Some(r) = item.release() {
+                            self_.download_items.borrow_mut().remove(&r);
+                        }
                         break;
                     }
                 }
