@@ -254,9 +254,7 @@ impl EpicEngineDetails {
         if let Some(ver) = self.selected() {
             if let Some(dm) = self_.download_manager.get() {
                 dm.download_engine_from_docker(&ver);
-                self.show_confirmation(
-                    "&lt;b&gt;&lt;big&gt;Engine Install Initialized&lt;/big&gt;&lt;/b&gt;",
-                );
+                self.show_confirmation("<b><big>Engine Install Initialized</big></b>");
             }
         }
     }
@@ -286,7 +284,7 @@ impl EpicEngineDetails {
                 }
             }
         };
-        self.show_confirmation("&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;");
+        self.show_confirmation("<b><big>Engine Launched</big></b>");
     }
 
     fn show_confirmation(&self, markup: &str) {
