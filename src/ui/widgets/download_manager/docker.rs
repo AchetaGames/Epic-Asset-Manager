@@ -441,6 +441,12 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             self.send_to_thread_sender(version.clone(), ThreadMessages::Cancel);
             item.set_property("status", "Canceled".to_string());
             item.set_property("speed", "".to_string());
+            if let Some(v) = item.version() {
+                self_.download_items.borrow_mut().remove(&v);
+            }
+            if let Some(r) = item.release() {
+                self_.download_items.borrow_mut().remove(&r);
+            }
             if item.paused() {
                 if let Some(values) = self_.paused_docker_digests.borrow_mut().remove(&version) {
                     for digest in values {

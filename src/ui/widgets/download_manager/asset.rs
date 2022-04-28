@@ -92,6 +92,10 @@ pub(crate) trait Asset {
         unimplemented!()
     }
 
+    fn asset_finished(&self, _item: &super::download_item::EpicDownloadItem) {
+        unimplemented!()
+    }
+
     fn file_already_extracted(
         &self,
         _asset_id: String,
@@ -103,6 +107,10 @@ pub(crate) trait Asset {
     }
 
     fn pause_asset_download(&self, _asset: String) {
+        unimplemented!()
+    }
+
+    fn asset_cleanup(&self, _asset: String) {
         unimplemented!()
     }
 
@@ -345,7 +353,6 @@ impl Asset for super::EpicDownloadManager {
             });
         }
     }
-
     /// Download individual files
     /// This is a third step in the asset download process
     /// Splits files into chunks
@@ -409,6 +416,7 @@ impl Asset for super::EpicDownloadManager {
             }
         }
     }
+
     fn redownload_chunk(&self, link: &reqwest::Url, p: PathBuf, g: &str) {
         let self_ = self.imp();
         let sender = self_.sender.clone();
@@ -604,6 +612,13 @@ impl Asset for super::EpicDownloadManager {
         }
     }
 
+    fn asset_finished(&self, item: &super::download_item::EpicDownloadItem) {
+        self.finish(item);
+        if let Some(r) = item.release() {
+            self.asset_cleanup(r);
+        };
+    }
+
     fn file_already_extracted(
         &self,
         asset_id: String,
@@ -655,6 +670,30 @@ impl Asset for super::EpicDownloadManager {
         }
     }
 
+    fn asset_cleanup(&self, asset: String) {
+        let self_ = self.imp();
+        if let Some(guids) = self_.asset_guids.borrow_mut().remove(&asset) {
+            if let Some(item) = self.get_item(&asset) {
+                if let Some(v) = item.version() {
+                    self_.download_items.borrow_mut().remove(&v);
+                }
+                if let Some(r) = item.release() {
+                    self_.download_items.borrow_mut().remove(&r);
+                }
+                for guid in guids {
+                    for file in self_
+                        .downloaded_chunks
+                        .borrow_mut()
+                        .remove(guid.as_str())
+                        .unwrap_or_default()
+                    {
+                        self_.downloaded_files.borrow_mut().remove(&file);
+                    }
+                }
+            }
+        }
+    }
+
     fn pause_asset_chunk(&self, url: Url, path: PathBuf, guid: String) {
         let self_ = self.imp();
         self_
@@ -687,13 +726,27 @@ impl Asset for super::EpicDownloadManager {
 
     fn cancel_asset_download(&self, asset: String) {
         let self_ = self.imp();
-        if let Some(guids) = self_.asset_guids.borrow().get(&asset) {
+        if let Some(guids) = self_.asset_guids.borrow_mut().remove(&asset) {
             if let Some(item) = self.get_item(&asset) {
                 item.set_property("status", "Canceled".to_string());
                 item.set_property("speed", "".to_string());
+                if let Some(v) = item.version() {
+                    self_.download_items.borrow_mut().remove(&v);
+                }
+                if let Some(r) = item.release() {
+                    self_.download_items.borrow_mut().remove(&r);
+                }
                 let paused = item.paused();
                 for guid in guids {
                     self.send_to_thread_sender(guid.clone(), ThreadMessages::Cancel);
+                    for file in self_
+                        .downloaded_chunks
+                        .borrow_mut()
+                        .remove(guid.as_str())
+                        .unwrap_or_default()
+                    {
+                        self_.downloaded_files.borrow_mut().remove(&file);
+                    }
                     // Remove chunks if we are already in paused state
                     if paused {
                         if let Some(values) =
