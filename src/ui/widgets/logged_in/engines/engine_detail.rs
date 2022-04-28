@@ -103,12 +103,6 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEngineDetails {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
-            obj.setup_messaging();
-        }
-
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
@@ -184,6 +178,12 @@ pub(crate) mod imp {
                 "download-size" => self.download_size.borrow().to_value(),
                 _ => unimplemented!(),
             }
+        }
+
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+            obj.setup_actions();
+            obj.setup_messaging();
         }
     }
 

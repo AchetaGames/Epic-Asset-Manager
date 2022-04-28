@@ -13,12 +13,9 @@ use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-mod add_to_project;
+mod actions;
 mod asset;
-mod asset_actions;
 pub mod asset_detail;
-mod create_asset_project;
-mod download_detail;
 pub mod image_stack;
 mod sidebar;
 

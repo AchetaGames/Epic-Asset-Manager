@@ -1,3 +1,7 @@
+mod add_to_project;
+mod create_asset_project;
+mod download_detail;
+
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
@@ -56,18 +60,13 @@ pub(crate) mod imp {
         #[template_child]
         pub version_label: TemplateChild<gtk4::Label>,
         #[template_child]
-        pub download_details: TemplateChild<
-            crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
-        >,
+        pub download_details: TemplateChild<download_detail::EpicDownloadDetails>,
         #[template_child]
         pub additional_details: TemplateChild<gtk4::ListBox>,
         #[template_child]
-        pub add_to_project:
-            TemplateChild<crate::ui::widgets::logged_in::library::add_to_project::EpicAddToProject>,
+        pub add_to_project: TemplateChild<add_to_project::EpicAddToProject>,
         #[template_child]
-        pub create_asset_project: TemplateChild<
-            crate::ui::widgets::logged_in::library::create_asset_project::EpicCreateAssetProject,
-        >,
+        pub create_asset_project: TemplateChild<create_asset_project::EpicCreateAssetProject>,
         pub details_group: gtk4::SizeGroup,
     }
 

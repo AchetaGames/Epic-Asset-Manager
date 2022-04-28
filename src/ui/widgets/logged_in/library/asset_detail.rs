@@ -13,6 +13,7 @@ use std::ops::Deref;
 pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use crate::ui::widgets::logged_in::library::actions;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecUInt};
     use once_cell::sync::OnceCell;
@@ -52,8 +53,7 @@ pub(crate) mod imp {
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
         #[template_child]
-        pub asset_actions:
-            TemplateChild<crate::ui::widgets::logged_in::library::asset_actions::EpicAssetActions>,
+        pub asset_actions: TemplateChild<actions::EpicAssetActions>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
@@ -251,12 +251,11 @@ impl EpicAssetDetails {
                 details.collapse();
             })
         );
-
         action!(
             actions,
             "show_download_details",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::Download);
             })
         );
 
@@ -264,7 +263,7 @@ impl EpicAssetDetails {
             actions,
             "create_project",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::CreateProject);
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::CreateProject);
             })
         );
 
@@ -272,7 +271,7 @@ impl EpicAssetDetails {
             actions,
             "add_to_project",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::AddToProject);
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::AddToProject);
             })
         );
 
@@ -334,7 +333,7 @@ impl EpicAssetDetails {
 
     fn show_download_details(
         &self,
-        action: crate::ui::widgets::logged_in::library::asset_actions::Action,
+        action: crate::ui::widgets::logged_in::library::actions::Action,
     ) {
         let self_ = self.imp();
         self_.details_revealer.set_reveal_child(false);
