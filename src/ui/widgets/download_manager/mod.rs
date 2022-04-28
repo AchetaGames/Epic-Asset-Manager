@@ -7,8 +7,7 @@ use crate::ui::widgets::download_manager::docker::Docker;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
 use glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, prelude::*};
-use gtk4::{gio, glib, CompositeTemplate};
+use gtk4::{self, gio, glib, prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, info};
 use reqwest::Url;
@@ -33,6 +32,8 @@ pub enum DownloadMsg {
     ),
     PerformChunkDownload(Url, PathBuf, String),
     RedownloadChunk(Url, PathBuf, String),
+    PauseChunk(Url, PathBuf, String),
+    CancelChunk(Url, PathBuf, String),
     ChunkDownloadProgress(String, u128, bool),
     FinalizeFileDownload(String, asset::DownloadedFile),
     FileAlreadyDownloaded(String, u128, String, String),
@@ -42,6 +43,8 @@ pub enum DownloadMsg {
     DockerBlobFinished(String, String),
     DockerBlobFailed(String, (String, u64)),
     DockerExtractionFinished(String),
+    DockerCanceled(String, (String, u64)),
+    DockerPaused(String, (String, u64)),
     IOError(String),
 }
 
@@ -57,6 +60,12 @@ pub enum DownloadStatus {
 pub enum PostDownloadAction {
     Copy(String, bool),
     NoVault,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ThreadMessages {
+    Cancel,
+    Pause,
 }
 
 pub(crate) mod imp {
@@ -86,11 +95,14 @@ pub(crate) mod imp {
         >,
         pub downloaded_files: RefCell<HashMap<String, super::asset::DownloadedFile>>,
         pub downloaded_chunks: RefCell<HashMap<String, Vec<String>>>,
+        pub asset_guids: RefCell<HashMap<String, Vec<String>>>,
+        pub paused_asset_chunks: RefCell<HashMap<String, Vec<(Url, PathBuf)>>>,
+        pub paused_docker_digests: RefCell<HashMap<String, Vec<(String, u64)>>>,
+        pub thread_senders: RefCell<HashMap<String, Vec<std::sync::mpsc::Sender<ThreadMessages>>>>,
         pub chunk_urls: RefCell<HashMap<String, Vec<Url>>>,
-        pub asset_files: RefCell<HashMap<String, Vec<String>>>,
         pub docker_digests: RefCell<HashMap<String, Vec<(String, DownloadStatus)>>>,
         #[template_child]
-        pub downloads: TemplateChild<gtk4::Box>,
+        pub downloads: TemplateChild<gtk4::ListBox>,
         has_children: RefCell<bool>,
     }
 
@@ -112,8 +124,11 @@ pub(crate) mod imp {
                 download_items: RefCell::new(HashMap::new()),
                 downloaded_files: RefCell::new(HashMap::new()),
                 downloaded_chunks: RefCell::new(HashMap::new()),
+                asset_guids: RefCell::new(HashMap::new()),
+                paused_asset_chunks: RefCell::new(HashMap::new()),
+                paused_docker_digests: RefCell::new(HashMap::new()),
+                thread_senders: RefCell::new(HashMap::new()),
                 chunk_urls: RefCell::new(HashMap::new()),
-                asset_files: RefCell::new(HashMap::new()),
                 docker_digests: RefCell::new(HashMap::new()),
                 downloads: TemplateChild::default(),
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
@@ -325,6 +340,18 @@ impl EpicDownloadManager {
                     );
                 }
             }
+            DownloadMsg::PauseChunk(url, path, guid) => {
+                self.pause_asset_chunk(url, path, guid);
+            }
+            DownloadMsg::CancelChunk(_url, path, guid) => {
+                self.remove_chunk(path, guid);
+            }
+            DownloadMsg::DockerCanceled(version, digest) => {
+                self.cancel_docker_digest(&version, digest);
+            }
+            DownloadMsg::DockerPaused(version, digest) => {
+                self.pause_docker_digest(version, digest);
+            }
         }
     }
 
@@ -336,7 +363,22 @@ impl EpicDownloadManager {
 
     fn finish(&self, item: &download_item::EpicDownloadItem) {
         let self_: &imp::EpicDownloadManager = self.imp();
-        self_.downloads.remove(item);
+        if let Some(mut child) = self_.downloads.first_child() {
+            loop {
+                let row = child.clone().downcast::<gtk4::ListBoxRow>().unwrap();
+                if let Some(i) = row.first_child() {
+                    if i.eq(item) {
+                        self_.downloads.remove(&row);
+                        break;
+                    }
+                }
+                if let Some(next_child) = row.next_sibling() {
+                    child = next_child;
+                } else {
+                    break;
+                }
+            }
+        }
         self.set_property("has-items", self_.downloads.first_child().is_some());
         self.emit_by_name::<()>("tick", &[]);
     }
@@ -445,6 +487,31 @@ impl EpicDownloadManager {
                 }
             };
         });
+    }
+
+    pub(crate) fn add_thread_sender(
+        &self,
+        key: String,
+        sender: std::sync::mpsc::Sender<ThreadMessages>,
+    ) {
+        let self_ = self.imp();
+        self_
+            .thread_senders
+            .borrow_mut()
+            .entry(key)
+            .or_insert(vec![])
+            .push(sender);
+    }
+
+    pub(crate) fn send_to_thread_sender(&self, key: String, msg: ThreadMessages) {
+        let self_ = self.imp();
+        if let Some(senders) = self_.thread_senders.borrow_mut().remove(&key) {
+            for sender in senders {
+                if let Err(_) = sender.send(msg.clone()) {
+                    warn!("Unable to send message {:?} to {}", msg, key);
+                };
+            }
+        }
     }
 
     pub fn download_image(

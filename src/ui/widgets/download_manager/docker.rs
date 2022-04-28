@@ -1,6 +1,10 @@
-use crate::ui::widgets::download_manager::{download_item, DownloadStatus};
+use crate::ui::widgets::download_manager::DownloadMsg::{DockerBlobFailed, DockerCanceled};
+use crate::ui::widgets::download_manager::{
+    download_item, DownloadMsg, DownloadStatus, ThreadMessages,
+};
 use glib::clone;
 use gtk4::glib;
+use gtk4::glib::Sender;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use regex::Regex;
@@ -21,7 +25,19 @@ pub(crate) trait Docker {
         unimplemented!()
     }
 
+    fn cancel_docker_digest(&self, _version: &str, _digest: (String, u64)) {
+        unimplemented!()
+    }
+
+    fn pause_docker_digest(&self, _version: String, _digest: (String, u64)) {
+        unimplemented!()
+    }
+
     fn download_engine_from_docker(&self, _version: &str) {
+        unimplemented!()
+    }
+
+    fn docker_target_directory(&self) -> Option<PathBuf> {
         unimplemented!()
     }
 
@@ -44,12 +60,23 @@ pub(crate) trait Docker {
     fn docker_finished(&self, _item: &download_item::EpicDownloadItem) {
         unimplemented!()
     }
+
+    fn cancel_docker_download(&self, _version: String) {
+        unimplemented!()
+    }
+
+    fn pause_docker_download(&self, _version: String) {
+        unimplemented!()
+    }
+    fn resume_docker_download(&self, _version: String) {
+        unimplemented!()
+    }
 }
 
 impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     #[cfg(target_os = "linux")]
     fn perform_docker_blob_downloads(&self, version: &str, size: u64, digests: Vec<(String, u64)>) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        let self_ = self.imp();
         let item = match self.get_item(version) {
             None => {
                 return;
@@ -79,7 +106,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn download_docker_digest(&self, version: &str, digest: (String, u64)) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
                 crate::window::imp::EpicAssetManagerWindow::from_instance(window);
@@ -90,17 +117,13 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let client = dclient.clone();
                 let sender = self_.sender.clone();
                 let pool = self_.download_pool.clone();
-                let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
-                    None => {
-                        if let Some(w) = self_.window.get() {
-                            w.add_notification("missing engine config", "Unable to download engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
-                        }
-                        return;
-                    }
-                    Some(p) => PathBuf::from(p),
+                let target = match self.docker_target_directory() {
+                    None => return,
+                    Some(t) => t,
                 };
-                target.push("docker");
                 debug!("Going to download to {:?}", target);
+                let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
+                self.add_thread_sender(ver.clone(), send);
                 thread::spawn(move || {
                     let (tx, rx): (std::sync::mpsc::Sender<u64>, std::sync::mpsc::Receiver<u64>) =
                         std::sync::mpsc::channel();
@@ -116,46 +139,82 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                         ) {
                             Ok(_) => s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFinished(v, d)).unwrap(),
                             Err(e) => {
-                                error!("Failed blob download because: {:?}", e);
-                                match e {
-                                    ghregistry::errors::Error::IO(err) => {
-                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::IOError(err.to_string())).unwrap()
-                                    },
-                                    _ => s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap()
-                                }
 
+                                match &e {
+                                    ghregistry::errors::Error::IO(err) => {
+                                        error!("Failed blob download because: {:?}", err);
+                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::IOError(err.to_string())).unwrap();
+                                    },
+                                    ghregistry::errors::Error::Sender(_e) => {}
+                                    _ => {
+                                        error!("Failed blob download because: {:?}", e);
+                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap()
+                                    }
+                                }
                             }
                         };
                     });
                     while let Ok(progress) = rx.recv() {
-                        sender
-                                    .send(crate::ui::widgets::download_manager::DownloadMsg::DockerDownloadProgress(
-                                        ver.clone(),
-                                        progress,
-                                    ))
-                                    .unwrap();
+                        if let Ok(m) = recv.try_recv() {
+                            process_docker_thread_message(ver.clone(), digest.clone(), &sender, m);
+                            return;
+                        }
+                        sender.send(crate::ui::widgets::download_manager::DownloadMsg::DockerDownloadProgress(
+                            ver.clone(),
+                            progress,
+                        )).unwrap();
                     }
                 });
             }
         }
     }
+    #[cfg(target_os = "linux")]
+    fn cancel_docker_digest(&self, _version: &str, digest: (String, u64)) {
+        let mut target = match self.docker_target_directory() {
+            None => return,
+            Some(t) => t,
+        };
+        target.push(digest.0);
+        if let Err(e) = std::fs::remove_file(target) {
+            warn!("Unable to remove docker file {:?}", e);
+        };
+    }
+
+    #[cfg(target_os = "linux")]
+    fn pause_docker_digest(&self, version: String, digest: (String, u64)) {
+        let self_ = self.imp();
+        self_
+            .paused_docker_digests
+            .borrow_mut()
+            .entry(version)
+            .or_insert(vec![])
+            .push(digest);
+    }
 
     #[cfg(target_os = "linux")]
     fn download_engine_from_docker(&self, version: &str) {
         debug!("Initializing docker engine download of {}", version);
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
-        let item = crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
+        let self_ = self.imp();
+
         let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
         let mut items = self_.download_items.borrow_mut();
-        match items.get_mut(version) {
+        let item = match items.get_mut(version) {
             None => {
+                let item =
+                    crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
                 debug!("Adding item to the list under: {}", version);
                 items.insert(version.to_string(), item.clone());
+                item
             }
             Some(_) => {
                 return;
             }
         };
+        if let Some(w) = self_.window.get() {
+            item.set_window(w);
+        }
+        item.set_download_manager(self);
+        item.set_property("version", version);
         for cap in re.captures_iter(version) {
             item.set_property("label", cap[1].to_string());
         }
@@ -216,11 +275,24 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
-    fn docker_finished(&self, item: &download_item::EpicDownloadItem) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
-        self_.downloads.remove(item);
-        self.set_property("has-items", self_.downloads.first_child().is_some());
-        self.emit_by_name::<()>("tick", &[]);
+    fn docker_target_directory(&self) -> Option<PathBuf> {
+        let self_ = self.imp();
+
+        let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
+            None => {
+                if let Some(w) = self_.window.get() {
+                    w.add_notification(
+                        "missing engine config",
+                        "Unable to download engine missing Unreal Engine Directories configuration",
+                        gtk4::MessageType::Error,
+                    );
+                }
+                return None;
+            }
+            Some(p) => PathBuf::from(p),
+        };
+        target.push("docker");
+        Some(target)
     }
 
     #[cfg(target_os = "linux")]
@@ -238,7 +310,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn docker_blob_finished(&self, version: &str, digest: &str) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             for d in digests {
                 if d.0.eq(digest) {
@@ -251,19 +323,13 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn docker_extract_digests(&self, version: &str) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             let mut to_extract: Vec<String> = Vec::new();
-            let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
-                None => {
-                    if let Some(w) = self_.window.get() {
-                        w.add_notification("missing engine config", "Unable to download engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
-                    }
-                    return;
-                }
-                Some(p) => PathBuf::from(p),
+            let target = match self.docker_target_directory() {
+                None => return,
+                Some(t) => t,
             };
-            target.push("docker");
             for d in digests {
                 match d.1 {
                     DownloadStatus::Init => {
@@ -325,7 +391,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn docker_extraction_finished(&self, version: &str) {
-        let self_: &crate::ui::widgets::download_manager::imp::EpicDownloadManager = self.imp();
+        let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             let item = match self.get_item(version) {
                 None => {
@@ -333,16 +399,10 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 }
                 Some(i) => i,
             };
-            let mut target = match self_.settings.strv("unreal-engine-directories").get(0) {
-                None => {
-                    if let Some(w) = self_.window.get() {
-                        w.add_notification("missing engine config", "Unable to download engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
-                    }
-                    return;
-                }
-                Some(p) => PathBuf::from(p),
+            let target = match self.docker_target_directory() {
+                None => return,
+                Some(t) => t,
             };
-            target.push("docker");
             let mut remaining = 0;
             for d in digests {
                 match d.1 {
@@ -368,5 +428,72 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
         }
         self.docker_extract_digests(version);
+    }
+
+    fn docker_finished(&self, item: &download_item::EpicDownloadItem) {
+        self.finish(item);
+    }
+
+    #[cfg(target_os = "linux")]
+    fn cancel_docker_download(&self, version: String) {
+        let self_ = self.imp();
+        if let Some(item) = self.get_item(&version) {
+            self.send_to_thread_sender(version.clone(), ThreadMessages::Cancel);
+            item.set_property("status", "Canceled".to_string());
+            item.set_property("speed", "".to_string());
+            if item.paused() {
+                if let Some(values) = self_.paused_docker_digests.borrow_mut().remove(&version) {
+                    for digest in values {
+                        self_
+                            .sender
+                            .send(DockerCanceled(version.clone(), digest))
+                            .unwrap();
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn pause_docker_download(&self, version: String) {
+        if let Some(item) = self.get_item(&version) {
+            self.send_to_thread_sender(version, ThreadMessages::Pause);
+            item.set_property("status", "Paused".to_string());
+            item.set_property("speed", "".to_string());
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn resume_docker_download(&self, version: String) {
+        let self_ = self.imp();
+        if let Some(values) = self_.paused_docker_digests.borrow_mut().remove(&version) {
+            for digest in values {
+                self_
+                    .sender
+                    .send(DockerBlobFailed(version.clone(), digest))
+                    .unwrap();
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn process_docker_thread_message(
+    version: String,
+    digest: (String, u64),
+    sender: &Sender<crate::ui::widgets::download_manager::DownloadMsg>,
+    m: crate::ui::widgets::download_manager::ThreadMessages,
+) {
+    match m {
+        ThreadMessages::Cancel => {
+            sender
+                .send(DownloadMsg::DockerCanceled(version, digest))
+                .unwrap();
+        }
+        ThreadMessages::Pause => {
+            sender
+                .send(DownloadMsg::DockerPaused(version, digest))
+                .unwrap();
+        }
     }
 }

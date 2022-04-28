@@ -1,118 +1,153 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="EpicDownloadItem" parent="AdwActionRow">
-        <property name="valign">start</property>
+    <template class="EpicDownloadItem" parent="GtkBox">
         <property name="hexpand">true</property>
-        <property name="activatable">True</property>
+        <style>
+            <class name="card" />
+        </style>
+        <child>
+            <object class="GtkImage" id="image">
+                <property name="name">thumbnail</property>
+                <property name="icon-name">edit-select-all-symbolic</property>
+                <property name="width-request">64</property>
+                <property name="height-request">64</property>
+            </object>
+        </child>
         <child>
             <object class="GtkBox">
+                <property name="hexpand">true</property>
+                <property name="orientation">vertical</property>
                 <child>
-                    <object class="GtkImage" id="image">
-                        <property name="name">thumbnail</property>
-                        <property name="width-request">64</property>
-                        <property name="height-request">64</property>
+                    <object class="GtkLabel">
+                        <property name="margin-start">5</property>
+                        <property name="margin-end">5</property>
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="label" bind-flags="sync-create"/>
+                        <property name="use-markup">true</property>
+                        <property name="hexpand">True</property>
+                        <property name="ellipsize">middle</property>
+                        <property name="halign">start</property>
                     </object>
                 </child>
                 <child>
-                    <object class="GtkBox">
-                        <property name="orientation">vertical</property>
+                    <object class="GtkStack" id="stack">
+                        <property name="vexpand">True</property>
+                        <property name="transition-type">crossfade</property>
                         <child>
-                            <object class="GtkLabel">
-                                <property name="margin-start">5</property>
-                                <property name="margin-end">5</property>
-                                <property name="can-focus">0</property>
-                                <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="label" bind-flags="sync-create"/>
-                                <property name="use-markup">1</property>
-                                <property name="hexpand">True</property>
-                                <property name="halign">start</property>
+                            <object class="GtkStackPage">
+                                <property name="name">label</property>
+                                <property name="child">
+                                    <object class="GtkLabel">
+                                        <property name="margin-start">5</property>
+                                        <property name="margin-end">5</property>
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="status" bind-flags="sync-create"/>
+                                        <property name="use-markup">1</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="halign">start</property>
+                                    </object>
+                                </property>
                             </object>
                         </child>
                         <child>
-                            <object class="GtkStack" id="stack">
-                                <property name="transition-type">crossfade</property>
-                                <child>
-                                    <object class="GtkStackPage">
-                                        <property name="name">label</property>
-                                        <property name="child">
-                                            <object class="GtkLabel">
-                                                <property name="margin-start">5</property>
-                                                <property name="margin-end">5</property>
-                                                <property name="can-focus">0</property>
-                                                <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="status" bind-flags="sync-create"/>
-                                                <property name="use-markup">1</property>
-                                                <property name="hexpand">True</property>
-                                                <property name="halign">start</property>
-                                            </object>
-                                        </property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkStackPage">
-                                        <property name="name">progress</property>
-                                        <property name="child">
+                            <object class="GtkStackPage">
+                                <property name="name">progress</property>
+                                <property name="child">
+                                    <object class="GtkBox">
+                                        <property name="margin-start">5</property>
+                                        <property name="orientation">vertical</property>
+                                        <child>
                                             <object class="GtkBox">
-                                                <property name="margin-start">5</property>
-                                                <property name="orientation">vertical</property>
+                                                <property name="spacing">5</property>
                                                 <child>
-                                                    <object class="GtkBox">
-                                                        <property name="spacing">5</property>
-                                                        <child>
-                                                            <object class="GtkLabel">
-                                                                <property name="can-focus">0</property>
-                                                                <property name="label" translatable="yes">Download</property>
-                                                            </object>
-                                                        </child>
-                                                        <child>
-                                                            <object class="GtkProgressBar" id="download_progress">
-                                                                <property name="hexpand">true</property>
-                                                                <property name="valign">center</property>
-                                                                <property name="can-focus">0</property>
-                                                            </object>
-                                                        </child>
+                                                    <object class="GtkLabel">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="label" translatable="yes">Download</property>
                                                     </object>
                                                 </child>
                                                 <child>
-                                                    <object class="GtkBox">
-                                                        <property name="spacing">5</property>
-                                                        <child>
-                                                            <object class="GtkLabel">
-                                                                <property name="can-focus">0</property>
-                                                                <property name="label" translatable="yes">Extraction</property>
-                                                            </object>
-                                                        </child>
-                                                        <child>
-                                                            <object class="GtkProgressBar" id="extraction_progress">
-                                                                <property name="hexpand">true</property>
-                                                                <property name="valign">center</property>
-                                                                <property name="can-focus">0</property>
-                                                            </object>
-                                                        </child>
+                                                    <object class="GtkProgressBar" id="download_progress">
+                                                        <property name="hexpand">true</property>
+                                                        <property name="valign">center</property>
+                                                        <property name="can-focus">0</property>
                                                     </object>
                                                 </child>
                                             </object>
-                                        </property>
+                                        </child>
+                                        <child>
+                                            <object class="GtkBox">
+                                                <property name="spacing">5</property>
+                                                <child>
+                                                    <object class="GtkLabel">
+                                                        <property name="can-focus">0</property>
+                                                        <property name="label" translatable="yes">Extraction</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="GtkProgressBar" id="extraction_progress">
+                                                        <property name="hexpand">true</property>
+                                                        <property name="valign">center</property>
+                                                        <property name="can-focus">0</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
                                     </object>
-                                </child>
+                                </property>
                             </object>
                         </child>
                     </object>
                 </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="valign">center</property>
                 <child>
                     <object class="GtkBox">
-                        <property name="orientation">vertical</property>
                         <child>
                             <object class="GtkButton">
                                 <property name="margin-start">5</property>
                                 <property name="halign">center</property>
                                 <property name="valign">center</property>
                                 <property name="action-name">download_item.open</property>
-                                <property name="label" translatable="yes">Open Directory</property>
+                                <property name="icon-name">system-file-manager-symbolic</property>
+                                <property name="css-classes">circular</property>
                             </object>
                         </child>
                         <child>
-                            <object class="GtkLabel" id="speed">
+                            <object class="GtkButton" id="pause_button">
+                                <property name="margin-start">5</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="action-name">download_item.pause</property>
+                                <property name="icon-name">media-playback-pause-symbolic</property>
+                                <style>
+                                    <class name="circular"/>
+                                    <class name="suggested-action"/>
+                                </style>
                             </object>
                         </child>
+                        <child>
+                            <object class="GtkButton">
+                                <property name="margin-start">5</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="action-name">download_item.cancel</property>
+                                <property name="icon-name">process-stop-symbolic</property>
+                                <style>
+                                    <class name="circular"/>
+                                    <class name="destructive-action"/>
+                                </style>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel" id="speed">
+                        <property name="label" translatable="yes" bind-source="EpicDownloadItem" bind-property="speed" bind-flags="sync-create"/>
+                        <property name="use-markup">true</property>
                     </object>
                 </child>
             </object>

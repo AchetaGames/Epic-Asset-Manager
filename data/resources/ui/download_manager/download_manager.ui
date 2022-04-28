@@ -3,9 +3,9 @@
     <template class="EpicDownloadManager" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-            <object class="GtkBox" id="downloads">
-                <property name="orientation">vertical</property>
-                <property name="hexpand">false</property>
+            <object class="GtkListBox" id="downloads">
+                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                <property name="hexpand">true</property>
             </object>
         </child>
     </template>

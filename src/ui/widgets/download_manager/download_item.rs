@@ -1,13 +1,14 @@
+use crate::ui::widgets::download_manager::asset::Asset;
+use crate::ui::widgets::download_manager::docker::Docker;
 use crate::ui::widgets::download_manager::PostDownloadAction;
 use gtk4::glib::clone;
-use gtk4::{glib, prelude::*, subclass::prelude::*, CompositeTemplate};
-use gtk_macros::action;
+use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk_macros::{action, get_action};
 
 pub(crate) mod imp {
     use super::*;
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use adw::subclass::action_row::ActionRowImpl;
-    use adw::subclass::prelude::PreferencesRowImpl;
     use gtk4::gdk_pixbuf::Pixbuf;
     use gtk4::gio;
     use gtk4::glib::ParamSpecObject;
@@ -20,9 +21,15 @@ pub(crate) mod imp {
     pub struct EpicDownloadItem {
         pub actions: gio::SimpleActionGroup,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub download_manager: OnceCell<EpicDownloadManager>,
         status: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
         asset: RefCell<Option<String>>,
+        version: RefCell<Option<String>>,
+        release: RefCell<Option<String>>,
+        paused: RefCell<bool>,
+        canceled: RefCell<bool>,
+        speed: RefCell<Option<String>>,
         target: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         pub total_size: RefCell<u128>,
@@ -35,9 +42,9 @@ pub(crate) mod imp {
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
         #[template_child]
-        pub stack: TemplateChild<gtk4::Stack>,
+        pub pause_button: TemplateChild<gtk4::Button>,
         #[template_child]
-        pub speed: TemplateChild<gtk4::Label>,
+        pub stack: TemplateChild<gtk4::Stack>,
         #[template_child]
         pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]
@@ -48,15 +55,21 @@ pub(crate) mod imp {
     impl ObjectSubclass for EpicDownloadItem {
         const NAME: &'static str = "EpicDownloadItem";
         type Type = super::EpicDownloadItem;
-        type ParentType = adw::ActionRow;
+        type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
+                download_manager: OnceCell::new(),
                 status: RefCell::new(None),
                 label: RefCell::new(None),
                 asset: RefCell::new(None),
+                version: RefCell::new(None),
+                release: RefCell::new(None),
+                paused: RefCell::new(false),
+                canceled: RefCell::new(false),
+                speed: RefCell::new(None),
                 target: RefCell::new(None),
                 path: RefCell::new(None),
                 total_size: RefCell::new(0),
@@ -67,8 +80,8 @@ pub(crate) mod imp {
                 speed_queue: RefCell::new(VecDeque::new()),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
+                pause_button: TemplateChild::default(),
                 stack: TemplateChild::default(),
-                speed: TemplateChild::default(),
                 download_progress: TemplateChild::default(),
                 extraction_progress: TemplateChild::default(),
             }
@@ -96,10 +109,45 @@ pub(crate) mod imp {
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
+                    glib::ParamSpecBoolean::new(
+                        "paused",
+                        "paused",
+                        "Is paused",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecBoolean::new(
+                        "canceled",
+                        "canceled",
+                        "Is canceled",
+                        false,
+                        glib::ParamFlags::READWRITE,
+                    ),
                     glib::ParamSpecString::new(
                         "asset",
                         "Asset",
                         "Asset",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecString::new(
+                        "version",
+                        "Version",
+                        "Version",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecString::new(
+                        "release",
+                        "Release",
+                        "Release",
+                        None, // Default value
+                        glib::ParamFlags::READWRITE,
+                    ),
+                    glib::ParamSpecString::new(
+                        "speed",
+                        "Speed",
+                        "Speed",
                         None, // Default value
                         glib::ParamFlags::READWRITE,
                     ),
@@ -198,11 +246,41 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.target.replace(target);
                 }
+                "paused" => {
+                    let paused = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.paused.replace(paused);
+                }
+                "canceled" => {
+                    let canceled = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.canceled.replace(canceled);
+                }
+                "speed" => {
+                    let speed = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.speed.replace(speed);
+                }
                 "asset" => {
                     let asset = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`");
                     self.asset.replace(asset);
+                }
+                "version" => {
+                    let version = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.version.replace(version);
+                }
+                "release" => {
+                    let release = value
+                        .get::<Option<String>>()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.release.replace(release);
                 }
                 "thumbnail" => {
                     let thumbnail: Option<Pixbuf> = value
@@ -221,8 +299,14 @@ pub(crate) mod imp {
                 "label" => self.label.borrow().to_value(),
                 "target" => self.target.borrow().to_value(),
                 "asset" => self.asset.borrow().to_value(),
+                "version" => self.version.borrow().to_value(),
+                "release" => self.release.borrow().to_value(),
                 "status" => self.status.borrow().to_value(),
+                "paused" => self.paused.borrow().to_value(),
+                "canceled" => self.canceled.borrow().to_value(),
+                "speed" => self.speed.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
+                "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -236,14 +320,12 @@ pub(crate) mod imp {
     }
 
     impl WidgetImpl for EpicDownloadItem {}
-    impl ActionRowImpl for EpicDownloadItem {}
-    impl PreferencesRowImpl for EpicDownloadItem {}
-    impl ListBoxRowImpl for EpicDownloadItem {}
+    impl BoxImpl for EpicDownloadItem {}
 }
 
 glib::wrapper! {
     pub struct EpicDownloadItem(ObjectSubclass<imp::EpicDownloadItem>)
-        @extends gtk4::Widget, gtk4::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
+        @extends gtk4::Widget, gtk4::Box;
 }
 
 impl Default for EpicDownloadItem {
@@ -255,6 +337,19 @@ impl Default for EpicDownloadItem {
 impl EpicDownloadItem {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicDownloadItem")
+    }
+
+    pub fn set_download_manager(
+        &self,
+        dm: &crate::ui::widgets::download_manager::EpicDownloadManager,
+    ) {
+        let self_ = self.imp();
+        // Do not run this twice
+        if self_.download_manager.get().is_some() {
+            return;
+        }
+
+        self_.download_manager.set(dm.clone()).unwrap();
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -279,10 +374,13 @@ impl EpicDownloadItem {
 
     fn speed_update(&self) {
         let self_ = self.imp();
+        if self.canceled() || self.paused() {
+            return;
+        }
         if let Some(speed) = {
             let queue = &mut *self_.speed_queue.borrow_mut();
             if queue.len() <= 1 {
-                self_.speed.set_text("0 b/s");
+                self.set_property("speed", "0 b/s".to_string());
                 return;
             }
             let mut downloaded = 0_u128;
@@ -309,7 +407,7 @@ impl EpicDownloadItem {
             }
         } {
             let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
-            self_.speed.set_text(&format!("{}/s", byte.format(1)));
+            self.set_property("speed", format!("{}/s", byte.format(1)));
         };
     }
 
@@ -317,6 +415,91 @@ impl EpicDownloadItem {
         let self_ = self.imp();
 
         self.insert_action_group("download_item", Some(&self_.actions));
+        action!(
+            self_.actions,
+            "cancel",
+            clone!(@weak self as item =>  move |_, _| {
+                item.cancel();
+            })
+        );
+
+        get_action!(self_.actions, @cancel).set_enabled(false);
+
+        action!(
+            self_.actions,
+            "pause",
+            clone!(@weak self as item =>  move |_, _| {
+                item.pause();
+            })
+        );
+        get_action!(self_.actions, @pause).set_enabled(false);
+    }
+
+    fn cancel(&self) {
+        let self_ = self.imp();
+        get_action!(self_.actions, @cancel).set_enabled(false);
+        get_action!(self_.actions, @pause).set_enabled(false);
+        self.set_property("canceled", true);
+
+        if let Some(dm) = self_.download_manager.get() {
+            match self.release() {
+                None => {
+                    if let Some(v) = self.version() {
+                        dm.cancel_docker_download(v);
+                    }
+                }
+                Some(asset) => {
+                    dm.cancel_asset_download(asset);
+                }
+            }
+        }
+        self.remove_from_parent_with_timer(15);
+    }
+
+    fn pause(&self) {
+        let self_ = self.imp();
+        get_action!(self_.actions, @pause).set_enabled(false);
+        glib::timeout_add_seconds_local(
+            2,
+            clone!(@weak self as obj => @default-panic, move || {
+                let self_ = obj.imp();
+                get_action!(self_.actions, @pause).set_enabled(true);
+                glib::Continue(false)
+            }),
+        );
+        if let Some(dm) = self_.download_manager.get() {
+            match self.release() {
+                None => {
+                    if let Some(v) = self.version() {
+                        if self.paused() {
+                            self_
+                                .pause_button
+                                .set_icon_name("media-playback-pause-symbolic");
+                            dm.resume_docker_download(v);
+                        } else {
+                            self_
+                                .pause_button
+                                .set_icon_name("media-playback-start-symbolic");
+                            dm.pause_docker_download(v);
+                        }
+                    }
+                }
+                Some(asset) => {
+                    if self.paused() {
+                        self_
+                            .pause_button
+                            .set_icon_name("media-playback-pause-symbolic");
+                        dm.resume_asset_download(asset);
+                    } else {
+                        self_
+                            .pause_button
+                            .set_icon_name("media-playback-start-symbolic");
+                        dm.pause_asset_download(asset);
+                    }
+                }
+            }
+        }
+        self.set_property("paused", !self.paused());
     }
 
     pub fn setup_messaging(&self) {
@@ -340,6 +523,22 @@ impl EpicDownloadItem {
         self.property("asset")
     }
 
+    pub fn version(&self) -> Option<String> {
+        self.property("version")
+    }
+
+    pub fn release(&self) -> Option<String> {
+        self.property("release")
+    }
+
+    pub fn paused(&self) -> bool {
+        self.property("paused")
+    }
+
+    pub fn canceled(&self) -> bool {
+        self.property("canceled")
+    }
+
     pub fn set_total_files(&self, count: u64) {
         let self_ = self.imp();
         self_.total_files.replace(count);
@@ -347,6 +546,9 @@ impl EpicDownloadItem {
 
     pub fn file_processed(&self) {
         let self_ = self.imp();
+        if self.canceled() || self.paused() {
+            return;
+        }
         self_.stack.set_visible_child_name("progress");
         let new_count = *self_.extracted_files.borrow() + 1;
         let total = *self_.total_files.borrow();
@@ -370,19 +572,27 @@ impl EpicDownloadItem {
                 }
             }
             self.set_property("status", "Finished".to_string());
-            glib::timeout_add_seconds_local(
-                15,
-                clone!(@weak self as obj => @default-panic, move || {
-                    obj.emit_by_name::<()>("finished", &[]);
-                    glib::Continue(false)
-                }),
-            );
+            self.remove_from_parent_with_timer(15);
         };
+    }
+
+    fn remove_from_parent_with_timer(&self, timer: u32) {
+        glib::timeout_add_seconds_local(
+            timer,
+            clone!(@weak self as obj => @default-panic, move || {
+                obj.emit_by_name::<()>("finished", &[]);
+                glib::Continue(false)
+            }),
+        );
     }
 
     pub fn add_downloaded_size(&self, size: u128) {
         let self_ = self.imp();
-
+        if self.canceled() || self.paused() {
+            return;
+        }
+        get_action!(self_.actions, @cancel).set_enabled(true);
+        get_action!(self_.actions, @pause).set_enabled(true);
         // Download Speed
         {
             let queue = &mut *self_.speed_queue.borrow_mut();
