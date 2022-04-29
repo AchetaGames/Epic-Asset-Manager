@@ -78,6 +78,16 @@
                             </object>
                         </child>
                         <child>
+                            <object class="AdwExpanderRow" id="local_row">
+                                <property name="title" translatable="yes">Local Files</property>
+                                <property name="expanded">0</property>
+                                <child>
+                                    <object class="EpicLocalAssets" id="local_assets">
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
                             <object class="AdwExpanderRow" id="project_row">
                                 <property name="title" translatable="yes">Add to project</property>
                                 <property name="expanded">0</property>

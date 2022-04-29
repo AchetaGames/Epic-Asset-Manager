@@ -1,42 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="EpicCreateAssetProject" parent="GtkBox">
+    <template class="EpicLocalAsset" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
+            <object class="GtkLabel">
+                <property name="can-focus">0</property>
+                <property name="label" translatable="yes" bind-source="EpicLocalAsset" bind-property="label" bind-flags="sync-create"/>
+                <property name="use-markup">true</property>
+                <property name="hexpand">True</property>
+                <property name="ellipsize">middle</property>
+                <property name="halign">start</property>
+            </object>
+        </child>
+        <child>
             <object class="GtkBox">
-                <property name="orientation">vertical</property>
+                <property name="spacing">5</property>
+                <property name="halign">end</property>
                 <child>
-                    <object class="GtkBox" id="setup">
-                        <property name="orientation">vertical</property>
+                    <object class="GtkButton">
+                        <property name="margin-start">5</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="action-name">local_asset.open</property>
                         <child>
-                            <object class="AdwActionRow" id="target_row">
-                                <property name="activatable">True</property>
-                                <child type="prefix">
-                                    <object class="GtkLabel" id="target_label">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">Select target</property>
+                            <object class="GtkBox">
+                                <property name="spacing">5</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="icon-name">system-file-manager-symbolic</property>
                                     </object>
                                 </child>
-                                <child type="suffix">
-                                    <object class="GtkComboBoxText" id="select_target_directory">
-                                        <property name="hexpand">true</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="AdwActionRow" id="warning_row">
-                                <property name="visible">false</property>
-                                <property name="activatable">True</property>
-                                <child type="prefix">
+                                <child>
                                     <object class="GtkLabel">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">Project already exists in the target directory</property>
-                                    </object>
-                                </child>
-                                <child type="suffix">
-                                    <object class="GtkCheckButton" id="overwrite">
-                                        <property name="label">Overwrite?</property>
+                                        <property name="label" translatable="yes">Open Directory</property>
                                     </object>
                                 </child>
                             </object>
@@ -44,29 +42,31 @@
                     </object>
                 </child>
                 <child>
-                    <object class="GtkBox">
-                        <property name="halign">end</property>
+                    <object class="GtkButton">
+                        <property name="margin-start">5</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="action-name">local_asset.delete</property>
                         <child>
-                            <object class="GtkButton">
-                                <property name="action-name">create_asset_project.create</property>
+                            <object class="GtkBox">
+                                <property name="spacing">5</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
                                 <child>
-                                    <object class="GtkBox">
-                                        <property name="valign">center</property>
-                                        <property name="halign">center</property>
-                                        <child>
-                                            <object class="GtkImage">
-                                                <property name="icon-name">insert-object-symbolic</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkLabel">
-                                                <property name="label" translatable="yes">Create</property>
-                                            </object>
-                                        </child>
+                                    <object class="GtkImage">
+                                        <property name="icon-name">user-trash-symbolic</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkLabel">
+                                        <property name="label" translatable="yes">Open Directory</property>
                                     </object>
                                 </child>
                             </object>
                         </child>
+                        <style>
+                            <class name="destructive-action"/>
+                        </style>
                     </object>
                 </child>
             </object>

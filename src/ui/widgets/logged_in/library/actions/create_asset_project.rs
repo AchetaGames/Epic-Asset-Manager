@@ -26,7 +26,7 @@ pub(crate) mod imp {
         #[template_child]
         pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
-        pub warning_row: TemplateChild<adw::ActionRow>,
+        pub warning_row: TemplateChild<gtk4::InfoBar>,
         #[template_child]
         pub overwrite: TemplateChild<gtk4::CheckButton>,
     }

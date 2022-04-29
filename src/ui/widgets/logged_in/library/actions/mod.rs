@@ -1,6 +1,8 @@
 mod add_to_project;
 mod create_asset_project;
 mod download_detail;
+mod local_asset;
+mod manage_local_assets;
 
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
@@ -67,6 +69,8 @@ pub(crate) mod imp {
         pub add_to_project: TemplateChild<add_to_project::EpicAddToProject>,
         #[template_child]
         pub create_asset_project: TemplateChild<create_asset_project::EpicCreateAssetProject>,
+        #[template_child]
+        pub local_assets: TemplateChild<manage_local_assets::EpicLocalAssets>,
         pub details_group: gtk4::SizeGroup,
     }
 
@@ -100,6 +104,7 @@ pub(crate) mod imp {
                 additional_details: TemplateChild::default(),
                 add_to_project: TemplateChild::default(),
                 create_asset_project: TemplateChild::default(),
+                local_assets: TemplateChild::default(),
                 details_group: gtk4::SizeGroup::new(SizeGroupMode::Both),
             }
         }
@@ -369,6 +374,7 @@ impl EpicAssetActions {
         self_.download_details.set_asset(&asset.clone());
         self_.add_to_project.set_asset(&asset.clone());
         self_.create_asset_project.set_asset(&asset.clone());
+        self_.local_assets.set_asset(&asset.clone());
         self_.select_download_version.remove_all();
         if let Some(releases) = asset.sorted_releases() {
             for (id, release) in releases.iter().enumerate() {
@@ -516,6 +522,9 @@ impl EpicAssetActions {
 
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_asset_manifest(id.to_string(), asset_info.clone(), sender);
+                    }
+                    if let Some(release) = release.app_id {
+                        self_.local_assets.update_local_versions(&release);
                     }
                 }
             }

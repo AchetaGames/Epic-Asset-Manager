@@ -91,7 +91,7 @@ pub(crate) mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
-                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
+                settings: gio::Settings::new(crate::config::APP_ID),
                 position: RefCell::new(0),
             }
         }

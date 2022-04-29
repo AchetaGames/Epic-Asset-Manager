@@ -10,6 +10,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
+    use adw::gtk;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -25,7 +26,7 @@ pub(crate) mod imp {
         #[template_child]
         pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
-        pub warning_row: TemplateChild<adw::ActionRow>,
+        pub warning_row: TemplateChild<gtk::InfoBar>,
         #[template_child]
         pub overwrite: TemplateChild<gtk4::CheckButton>,
     }
