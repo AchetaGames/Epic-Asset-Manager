@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicCreateAssetProject" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="GtkBox" id="setup">
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="AdwActionRow" id="target_row">
+                                <property name="activatable">True</property>
+                                <child type="prefix">
+                                    <object class="GtkLabel" id="target_label">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Select target</property>
+                                    </object>
+                                </child>
+                                <child type="suffix">
+                                    <object class="GtkComboBoxText" id="select_target_directory">
+                                        <property name="hexpand">true</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwActionRow" id="warning_row">
+                                <property name="visible">false</property>
+                                <property name="activatable">True</property>
+                                <child type="prefix">
+                                    <object class="GtkLabel">
+                                        <property name="can-focus">0</property>
+                                        <property name="label" translatable="yes">Project already exists in the target directory</property>
+                                    </object>
+                                </child>
+                                <child type="suffix">
+                                    <object class="GtkCheckButton" id="overwrite">
+                                        <property name="label">Overwrite?</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="halign">end</property>
+                        <child>
+                            <object class="GtkButton">
+                                <property name="action-name">create_asset_project.create</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">insert-object-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Create</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>
