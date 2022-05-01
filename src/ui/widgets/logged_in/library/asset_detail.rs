@@ -8,7 +8,6 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
-use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
@@ -269,6 +268,14 @@ impl EpicAssetDetails {
 
         action!(
             actions,
+            "local_assets",
+            clone!(@weak self as details => move |_, _| {
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::Local);
+            })
+        );
+
+        action!(
+            actions,
             "add_to_project",
             clone!(@weak self as details => move |_, _| {
                 details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::AddToProject);
@@ -296,14 +303,6 @@ impl EpicAssetDetails {
             "toggle_favorite",
             clone!(@weak self as details => move |_, _| {
                 details.toggle_favorites();
-            })
-        );
-
-        action!(
-            self_.actions,
-            "open_vault",
-            clone!(@weak self as details => move |_, _| {
-                details.open_vault_directory();
             })
         );
 
@@ -347,26 +346,6 @@ impl EpicAssetDetails {
         self_.actions_menu.popdown();
     }
 
-    fn open_vault_directory(&self) {
-        let self_ = self.imp();
-        if let Some(v) = self_.downloaded_location.borrow().deref() {
-            debug!("Trying to open {}", v.to_str().unwrap());
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(dir) = std::fs::File::open(v) {
-                    let ctx = glib::MainContext::default();
-                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
-                        ashpd::desktop::open_uri::open_directory(
-                            &ashpd::WindowIdentifier::default(),
-                            &dir,
-                        )
-                        .await.unwrap();
-                    }));
-                };
-            };
-        }
-    }
-
     fn show_download_confirmation(&self) {
         let self_ = self.imp();
         self_.download_confirmation_revealer.set_reveal_child(true);
@@ -405,7 +384,14 @@ impl EpicAssetDetails {
         }
 
         if let Some(asset) = self.asset() {
+            self.create_actions_button(
+                "Download",
+                "folder-download-symbolic",
+                "details.show_download_details",
+            );
+
             self.create_open_vault_button(&asset);
+
             if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
                 match kind {
                     AssetType::Asset => {
@@ -469,11 +455,6 @@ impl EpicAssetDetails {
                 }
             }
         }
-        self.create_actions_button(
-            "Download",
-            "folder-download-symbolic",
-            "details.show_download_details",
-        );
     }
 
     fn create_open_vault_button(&self, asset: &AssetInfo) {
@@ -482,17 +463,14 @@ impl EpicAssetDetails {
             let vaults = self_.settings.strv("unreal-vault-directories");
             for ri in ris {
                 if let Some(app) = &ri.app_id {
-                    if let Some(loc) =
-                        crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
-                            .into_iter()
-                            .next()
+                    if !crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
+                        .is_empty()
                     {
                         self.create_actions_button(
-                            "Open Vault",
+                            "Local Assets",
                             "folder-open-symbolic",
-                            "details.open_vault",
+                            "details.local_assets",
                         );
-                        self_.downloaded_location.replace(Some(loc));
                         break;
                     }
                 }

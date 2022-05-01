@@ -59,7 +59,7 @@
                                 </child>
                                 <child>
                                     <object class="GtkLabel">
-                                        <property name="label" translatable="yes">Open Directory</property>
+                                        <property name="label" translatable="yes">Remove</property>
                                     </object>
                                 </child>
                             </object>
