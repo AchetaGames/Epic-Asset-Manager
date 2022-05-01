@@ -1,6 +1,10 @@
+use egs_api::api::types::download_manifest::DownloadManifest;
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 pub(crate) mod imp {
     use super::*;
@@ -58,20 +62,6 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
-        }
-
-        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
-                once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "start-download",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
-                });
-            SIGNALS.as_ref()
         }
     }
 
@@ -138,9 +128,62 @@ impl EpicLocalAssets {
                                 &self_.local_list_other
                             }
                             .append(&row);
+                            row.connect_local(
+                                "delete",
+                                false,
+                                clone!(@weak self as mla, @weak row => @default-return None, move |_| {
+                                    mla.delete(&row);
+                                    None
+                                }),
+                            );
                         }
                     }
                 }
+            }
+        }
+    }
+
+    pub fn delete(&self, widget: &super::local_asset::EpicLocalAsset) {
+        let self_ = self.imp();
+        remove_from_list_box(&self_.local_list, widget);
+        remove_from_list_box(&self_.local_list_other, widget);
+        match widget.path() {
+            None => {}
+            Some(p) => {
+                if let Ok(path) = PathBuf::from_str(&p) {
+                    if path.exists() {
+                        match path.parent() {
+                            None => {}
+                            Some(parent) => {
+                                let mut bin_manifest = parent.to_path_buf();
+                                bin_manifest.push("manifest");
+                                //TODO DownloadManifest::parse();
+                                let mut json_manifest = parent.to_path_buf();
+                                json_manifest.push("manifest.json");
+                            }
+                        }
+                        println!("Trying to delete {:?}", path);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn remove_from_list_box(list: &gtk4::ListBox, widget: &impl IsA<gtk4::Widget>) {
+    if let Some(mut child) = list.first_child() {
+        loop {
+            let row = child.clone().downcast::<gtk4::ListBoxRow>().unwrap();
+            if let Some(i) = row.first_child() {
+                if i.eq(widget) {
+                    list.remove(&row);
+                    break;
+                }
+            }
+            if let Some(next_child) = row.next_sibling() {
+                child = next_child;
+            } else {
+                break;
             }
         }
     }
