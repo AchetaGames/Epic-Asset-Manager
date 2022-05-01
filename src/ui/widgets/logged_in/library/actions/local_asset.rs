@@ -46,6 +46,18 @@ pub(crate) mod imp {
             obj.setup_actions();
         }
 
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![
+                        glib::subclass::Signal::builder("delete", &[], <()>::static_type().into())
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
+                    ]
+                });
+            SIGNALS.as_ref()
+        }
+
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -138,6 +150,18 @@ impl EpicLocalAsset {
                 local_asset.open_path();
             })
         );
+
+        action!(
+            self_.actions,
+            "delete",
+            clone!(@weak self as local_asset => move |_, _| {
+                local_asset.delete();
+            })
+        );
+    }
+
+    pub fn delete(&self) {
+        self.emit_by_name::<()>("delete", &[]);
     }
 
     pub fn open_path(&self) {
