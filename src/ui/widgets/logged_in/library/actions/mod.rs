@@ -310,6 +310,31 @@ impl EpicAssetActions {
                 None
             }),
         );
+
+        self_.local_assets.connect_local(
+            "removed",
+            false,
+            clone!(@weak self as aa => @default-return None, move |_| {
+                let self_ = aa.imp();
+                if self_.local_assets.empty() {
+                    self_.local_row.set_visible(false);
+                    aa.refresh_asset();
+                }
+                None
+            }),
+        );
+    }
+
+    fn refresh_asset(&self) {
+        let self_ = self.imp();
+        if let Some(asset) = self.asset() {
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.library.refresh_asset(&asset.id);
+            }
+        }
     }
 
     pub fn setup_actions(&self) {

@@ -203,6 +203,7 @@ impl EpicAsset {
             false,
             clone!(@weak self as asset, @weak data => @default-return None, move |_| {
                 asset.set_property("favorite", &data.favorite());
+                asset.set_property("downloaded", &data.downloaded());
                 None
             }),
         )));

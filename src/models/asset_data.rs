@@ -395,6 +395,7 @@ impl AssetData {
                 }
             }
         }
+        self.set_property("downloaded", false);
     }
 
     pub fn downloaded_locations(

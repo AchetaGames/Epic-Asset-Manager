@@ -215,7 +215,6 @@ impl EpicAssetDetails {
             false,
             clone!(@weak self as ead => @default-return None, move |_| {
                 ead.start_download();
-
                 None
             }),
         );
@@ -628,13 +627,20 @@ impl EpicAssetDetails {
                             .expect("Unable to insert favorite to the DB");
                         self_.favorite.set_icon_name("starred");
                     };
-                    if let Some(w) = self_.window.get() {
-                        let w_ = w.imp();
-                        let l = w_.logged_in_stack.clone();
-                        let l_ = l.imp();
-                        l_.library.refresh_asset(&asset.id);
-                    }
+                    self.refresh_asset();
                 };
+            }
+        }
+    }
+
+    fn refresh_asset(&self) {
+        let self_ = self.imp();
+        if let Some(asset) = self.asset() {
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.library.refresh_asset(&asset.id);
             }
         }
     }

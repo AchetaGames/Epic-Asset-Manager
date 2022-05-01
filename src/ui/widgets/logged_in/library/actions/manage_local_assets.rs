@@ -1,9 +1,8 @@
-use egs_api::api::types::download_manifest::DownloadManifest;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 
 pub(crate) mod imp {
@@ -62,6 +61,20 @@ pub(crate) mod imp {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
+        }
+
+        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![gtk4::glib::subclass::Signal::builder(
+                        "removed",
+                        &[],
+                        <()>::static_type().into(),
+                    )
+                    .flags(glib::SignalFlags::ACTION)
+                    .build()]
+                });
+            SIGNALS.as_ref()
         }
     }
 
@@ -147,26 +160,26 @@ impl EpicLocalAssets {
         let self_ = self.imp();
         remove_from_list_box(&self_.local_list, widget);
         remove_from_list_box(&self_.local_list_other, widget);
-        match widget.path() {
-            None => {}
-            Some(p) => {
-                if let Ok(path) = PathBuf::from_str(&p) {
-                    if path.exists() {
-                        match path.parent() {
-                            None => {}
-                            Some(parent) => {
-                                let mut bin_manifest = parent.to_path_buf();
-                                bin_manifest.push("manifest");
-                                //TODO DownloadManifest::parse();
-                                let mut json_manifest = parent.to_path_buf();
-                                json_manifest.push("manifest.json");
+        if let Some(p) = widget.path() {
+            if let Ok(path) = PathBuf::from_str(&p) {
+                if path.exists() {
+                    if let Some(parent) = path.parent() {
+                        match std::fs::remove_dir_all(&parent) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                error!("Unable to remove vault data: {:?}", e);
                             }
-                        }
-                        println!("Trying to delete {:?}", path);
+                        };
                     }
                 }
             }
-        }
+        };
+        self.emit_by_name::<()>("removed", &[]);
+    }
+
+    pub fn empty(&self) -> bool {
+        let self_ = self.imp();
+        self_.local_list.first_child().is_none() && self_.local_list_other.first_child().is_none()
     }
 }
 
