@@ -94,10 +94,7 @@ pub(crate) mod imp {
                     let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`");
-                    let formatted = match &label {
-                        None => None,
-                        Some(l) => Some(format!("<b><u>{}</u></b>", l)),
-                    };
+                    let formatted = label.as_ref().map(|l| format!("<b><u>{}</u></b>", l));
                     self.label.replace(formatted);
                     obj.set_property("path", label);
                 }

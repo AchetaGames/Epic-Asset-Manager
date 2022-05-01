@@ -768,8 +768,8 @@ impl Asset for super::EpicDownloadManager {
 
 fn process_thread_message(
     link: &Url,
-    p: &PathBuf,
-    g: &String,
+    p: &Path,
+    g: &str,
     sender: &Sender<DownloadMsg>,
     m: ThreadMessages,
 ) {
@@ -778,8 +778,8 @@ fn process_thread_message(
             sender
                 .send(super::DownloadMsg::CancelChunk(
                     link.clone(),
-                    p.clone(),
-                    g.clone(),
+                    p.to_path_buf(),
+                    g.to_string(),
                 ))
                 .unwrap();
         }
@@ -787,8 +787,8 @@ fn process_thread_message(
             sender
                 .send(super::DownloadMsg::PauseChunk(
                     link.clone(),
-                    p.clone(),
-                    g.clone(),
+                    p.to_path_buf(),
+                    g.to_string(),
                 ))
                 .unwrap();
         }

@@ -507,7 +507,7 @@ impl EpicDownloadManager {
         let self_ = self.imp();
         if let Some(senders) = self_.thread_senders.borrow_mut().remove(&key) {
             for sender in senders {
-                if let Err(_) = sender.send(msg.clone()) {
+                if sender.send(msg.clone()).is_err() {
                     warn!("Unable to send message {:?} to {}", msg, key);
                 };
             }

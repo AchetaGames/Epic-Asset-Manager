@@ -391,7 +391,7 @@ impl EpicAssetActions {
         if let Some(releases) = asset.sorted_releases() {
             for (id, release) in releases.iter().enumerate() {
                 if let Some(app) = &release.app_id {
-                    if !crate::models::asset_data::AssetData::downloaded_locations(&vaults, &app)
+                    if !crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
                         .is_empty()
                     {
                         self_.local_row.set_visible(true);
