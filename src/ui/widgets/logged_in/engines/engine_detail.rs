@@ -43,6 +43,8 @@ pub(crate) mod imp {
         pub details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
+        #[template_child]
+        pub confirmation_label: TemplateChild<gtk4::Label>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
@@ -74,6 +76,7 @@ pub(crate) mod imp {
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
                 confirmation_revealer: TemplateChild::default(),
+                confirmation_label: TemplateChild::default(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
@@ -100,12 +103,6 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEngineDetails {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
-            obj.setup_messaging();
-        }
-
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
@@ -182,6 +179,12 @@ pub(crate) mod imp {
                 _ => unimplemented!(),
             }
         }
+
+        fn constructed(&self, obj: &Self::Type) {
+            self.parent_constructed(obj);
+            obj.setup_actions();
+            obj.setup_messaging();
+        }
     }
 
     impl WidgetImpl for EpicEngineDetails {}
@@ -251,6 +254,7 @@ impl EpicEngineDetails {
         if let Some(ver) = self.selected() {
             if let Some(dm) = self_.download_manager.get() {
                 dm.download_engine_from_docker(&ver);
+                self.show_confirmation("<b><big>Engine Install Initialized</big></b>");
             }
         }
     }
@@ -263,26 +267,6 @@ impl EpicEngineDetails {
                     warn!("No path");
                 }
                 Some(p) => {
-                    // let ctx = glib::MainContext::default();
-                    // ctx.spawn_local(clone!(@weak engines => async move {
-                    //     let connection = zbus::Connection::session().await.unwrap();
-                    //     let proxy = FlatpakProxy::new(&connection).await.unwrap();
-                    //     let mut paths = p.to_str().unwrap().split("/").collect::<Vec<&str>>();
-                    //     paths.pop().unwrap();
-                    //     let res = proxy
-                    //         .spawn(
-                    //             paths.join("/"),
-                    //             &vec![p.to_str().unwrap()],
-                    //             HashMap::new(),
-                    //             [("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2")]
-                    //              .iter().cloned().collect(),
-                    //             enumflags2::BitFlags::empty(),
-                    //             SpawnOptions::default(),
-                    //         ).await
-                    //         .unwrap();
-                    //     debug!("Launched process: {}", res);
-                    // }));
-
                     let context = gtk4::gio::AppLaunchContext::new();
                     context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
                     let app = gtk4::gio::AppInfo::create_from_commandline(
@@ -300,9 +284,14 @@ impl EpicEngineDetails {
                 }
             }
         };
+        self.show_confirmation("<b><big>Engine Launched</big></b>");
+    }
+
+    fn show_confirmation(&self, markup: &str) {
         let self_ = self.imp();
         self_.details_revealer.set_reveal_child(false);
         self_.details_revealer.set_vexpand(false);
+        self_.confirmation_label.set_markup(markup);
         self_.confirmation_revealer.set_reveal_child(true);
         self_.confirmation_revealer.set_vexpand_set(true);
         glib::timeout_add_seconds_local(

@@ -1,3 +1,9 @@
+mod add_to_project;
+mod create_asset_project;
+mod download_detail;
+mod local_asset;
+mod manage_local_assets;
+
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
@@ -10,6 +16,7 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
 pub enum Action {
+    Local,
     Download,
     AddToProject,
     AddToEngine,
@@ -36,6 +43,7 @@ pub(crate) mod imp {
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
+        pub settings: gtk4::gio::Settings,
         pub download_manager: OnceCell<EpicDownloadManager>,
         #[template_child]
         pub select_download_version: TemplateChild<gtk4::ComboBoxText>,
@@ -52,22 +60,21 @@ pub(crate) mod imp {
         #[template_child]
         pub install_row: TemplateChild<adw::ExpanderRow>,
         #[template_child]
+        pub local_row: TemplateChild<adw::ExpanderRow>,
+        #[template_child]
         pub asset_actions_button: TemplateChild<gtk4::Button>,
         #[template_child]
         pub version_label: TemplateChild<gtk4::Label>,
         #[template_child]
-        pub download_details: TemplateChild<
-            crate::ui::widgets::logged_in::library::download_detail::EpicDownloadDetails,
-        >,
+        pub download_details: TemplateChild<download_detail::EpicDownloadDetails>,
         #[template_child]
         pub additional_details: TemplateChild<gtk4::ListBox>,
         #[template_child]
-        pub add_to_project:
-            TemplateChild<crate::ui::widgets::logged_in::library::add_to_project::EpicAddToProject>,
+        pub add_to_project: TemplateChild<add_to_project::EpicAddToProject>,
         #[template_child]
-        pub create_asset_project: TemplateChild<
-            crate::ui::widgets::logged_in::library::create_asset_project::EpicCreateAssetProject,
-        >,
+        pub create_asset_project: TemplateChild<create_asset_project::EpicCreateAssetProject>,
+        #[template_child]
+        pub local_assets: TemplateChild<manage_local_assets::EpicLocalAssets>,
         pub details_group: gtk4::SizeGroup,
     }
 
@@ -95,12 +102,15 @@ pub(crate) mod imp {
                 new_project_row: TemplateChild::default(),
                 engine_row: TemplateChild::default(),
                 install_row: TemplateChild::default(),
+                local_row: TemplateChild::default(),
                 asset_actions_button: TemplateChild::default(),
                 version_label: TemplateChild::default(),
                 download_details: TemplateChild::default(),
                 additional_details: TemplateChild::default(),
                 add_to_project: TemplateChild::default(),
                 create_asset_project: TemplateChild::default(),
+                local_assets: TemplateChild::default(),
+                settings: gio::Settings::new(crate::config::APP_ID),
                 details_group: gtk4::SizeGroup::new(SizeGroupMode::Both),
             }
         }
@@ -300,6 +310,31 @@ impl EpicAssetActions {
                 None
             }),
         );
+
+        self_.local_assets.connect_local(
+            "removed",
+            false,
+            clone!(@weak self as aa => @default-return None, move |_| {
+                let self_ = aa.imp();
+                if self_.local_assets.empty() {
+                    self_.local_row.set_visible(false);
+                    aa.refresh_asset();
+                }
+                None
+            }),
+        );
+    }
+
+    fn refresh_asset(&self) {
+        let self_ = self.imp();
+        if let Some(asset) = self.asset() {
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.library.refresh_asset(&asset.id);
+            }
+        }
     }
 
     pub fn setup_actions(&self) {
@@ -352,6 +387,9 @@ impl EpicAssetActions {
                 self_.install_row.set_expanded(true);
             }
             Action::Play => {}
+            Action::Local => {
+                self_.local_row.set_expanded(true);
+            }
         }
     }
 
@@ -370,9 +408,20 @@ impl EpicAssetActions {
         self_.download_details.set_asset(&asset.clone());
         self_.add_to_project.set_asset(&asset.clone());
         self_.create_asset_project.set_asset(&asset.clone());
+        self_.local_assets.set_asset(&asset.clone());
         self_.select_download_version.remove_all();
+        self_.local_row.set_visible(false);
+        self_.local_row.set_expanded(false);
+        let vaults = self_.settings.strv("unreal-vault-directories");
         if let Some(releases) = asset.sorted_releases() {
             for (id, release) in releases.iter().enumerate() {
+                if let Some(app) = &release.app_id {
+                    if !crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
+                        .is_empty()
+                    {
+                        self_.local_row.set_visible(true);
+                    }
+                }
                 self_.select_download_version.append(
                     Some(release.id.as_ref().unwrap_or(&"".to_string())),
                     &format!(
@@ -517,6 +566,9 @@ impl EpicAssetActions {
 
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_asset_manifest(id.to_string(), asset_info.clone(), sender);
+                    }
+                    if let Some(release) = release.app_id {
+                        self_.local_assets.update_local_versions(&release);
                     }
                 }
             }

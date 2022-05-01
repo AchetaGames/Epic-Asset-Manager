@@ -3,49 +3,48 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use gtk_macros::action;
-use std::path::PathBuf;
+use gtk_macros::{action, get_action};
 use std::str::FromStr;
 
 pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use crate::window::EpicAssetManagerWindow;
+    use adw::gtk;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
-    #[template(resource = "/io/github/achetagames/epic_asset_manager/create_asset_project.ui")]
-    pub struct EpicCreateAssetProject {
+    #[template(resource = "/io/github/achetagames/epic_asset_manager/add_to_project.ui")]
+    pub struct EpicAddToProject {
         selected_version: RefCell<Option<String>>,
-        project_name: RefCell<Option<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         pub manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
-        pub settings: gio::Settings,
+        pub window: OnceCell<EpicAssetManagerWindow>,
         #[template_child]
         pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
-        pub warning_row: TemplateChild<adw::ActionRow>,
+        pub warning_row: TemplateChild<gtk::InfoBar>,
         #[template_child]
         pub overwrite: TemplateChild<gtk4::CheckButton>,
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for EpicCreateAssetProject {
-        const NAME: &'static str = "EpicCreateAssetProject";
-        type Type = super::EpicCreateAssetProject;
+    impl ObjectSubclass for EpicAddToProject {
+        const NAME: &'static str = "EpicAddToProject";
+        type Type = super::EpicAddToProject;
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
             Self {
                 selected_version: RefCell::new(None),
-                project_name: RefCell::new(None),
                 asset: RefCell::new(None),
                 manifest: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
-                settings: gio::Settings::new(crate::config::APP_ID),
+                window: OnceCell::new(),
                 select_target_directory: TemplateChild::default(),
                 warning_row: TemplateChild::default(),
                 overwrite: TemplateChild::default(),
@@ -62,11 +61,10 @@ pub(crate) mod imp {
         }
     }
 
-    impl ObjectImpl for EpicCreateAssetProject {
+    impl ObjectImpl for EpicAddToProject {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_actions();
-            obj.set_target_directories();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -86,22 +84,13 @@ pub(crate) mod imp {
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![
-                    glib::ParamSpecString::new(
-                        "selected-version",
-                        "selected_version",
-                        "selected_version",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "project-name",
-                        "Project Name",
-                        "Project Name",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                ]
+                vec![glib::ParamSpecString::new(
+                    "selected-version",
+                    "selected_version",
+                    "selected_version",
+                    None, // Default value
+                    glib::ParamFlags::READWRITE,
+                )]
             });
 
             PROPERTIES.as_ref()
@@ -121,12 +110,6 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.selected_version.replace(selected_version);
                 }
-                "project-name" => {
-                    let project_name = value
-                        .get()
-                        .expect("type conformity checked by `Object::set_property`");
-                    self.project_name.replace(project_name);
-                }
                 _ => unimplemented!(),
             }
         }
@@ -134,52 +117,39 @@ pub(crate) mod imp {
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "selected-version" => self.selected_version.borrow().to_value(),
-                "project-name" => self.project_name.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
     }
 
-    impl WidgetImpl for EpicCreateAssetProject {}
-    impl BoxImpl for EpicCreateAssetProject {}
+    impl WidgetImpl for EpicAddToProject {}
+    impl BoxImpl for EpicAddToProject {}
 }
 
 glib::wrapper! {
-    pub struct EpicCreateAssetProject(ObjectSubclass<imp::EpicCreateAssetProject>)
+    pub struct EpicAddToProject(ObjectSubclass<imp::EpicAddToProject>)
         @extends gtk4::Widget, gtk4::Box;
 }
 
-impl Default for EpicCreateAssetProject {
+impl Default for EpicAddToProject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EpicCreateAssetProject {
+impl EpicAddToProject {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
 
-    pub fn set_target_directories(&self) {
+    pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_ = self.imp();
-        self_.select_target_directory.remove_all();
-        for dir in self_.settings.strv("unreal-projects-directories") {
-            self_.select_target_directory.append(
-                Some(&dir),
-                &format!(
-                    "{}{}",
-                    dir,
-                    if self_.select_target_directory.active_text().is_none() {
-                        " (default)"
-                    } else {
-                        ""
-                    }
-                ),
-            );
-            if self_.select_target_directory.active_text().is_none() {
-                self_.select_target_directory.set_active_id(Some(&dir));
-            }
+        // Do not run this twice
+        if self_.window.get().is_some() {
+            return;
         }
+
+        self_.window.set(window.clone()).unwrap();
     }
 
     pub fn set_download_manager(
@@ -191,69 +161,62 @@ impl EpicCreateAssetProject {
         if self_.download_manager.get().is_some() {
             return;
         }
-        debug!("Set Download manager");
 
         self_.download_manager.set(dm.clone()).unwrap();
+    }
+
+    pub fn set_target_directories(&self) {
+        let self_ = self.imp();
+        self_.select_target_directory.remove_all();
+        get_action!(self_.actions, @download_all).set_enabled(false);
+        if let Some(w) = self_.window.get() {
+            let w_ = w.imp();
+            let l = w_.logged_in_stack.clone();
+            let l_ = l.imp();
+            let p = l_.projects.imp();
+            for path in p.projects.borrow().keys() {
+                self_.select_target_directory.append(Some(path), path);
+            }
+        }
     }
 
     pub fn setup_actions(&self) {
         let self_ = self.imp();
         let actions = &self_.actions;
-        self.insert_action_group("create_asset_project", Some(actions));
+        self.insert_action_group("download_details", Some(actions));
 
         action!(
             actions,
-            "create",
-            clone!(@weak self as cap => move |_, _| {
-                cap.create();
+            "download_all",
+            clone!(@weak self as download_details => move |_, _| {
+                download_details.add_to_project();
             })
         );
 
         self_
             .select_target_directory
-            .connect_changed(clone!(@weak self as cap => move |_| {
-                cap.directory_changed();
+            .connect_changed(clone!(@weak self as atp => move |_| {
+                atp.directory_changed();
             }));
     }
 
-    fn directory_changed(&self) {
-        self.validate_target_directory();
-    }
-
-    fn validate_target_directory(&self) {
-        let self_ = self.imp();
-        if let Some(project) = self.project_name() {
-            if let Some(id) = self_.select_target_directory.active_id() {
-                let mut path = PathBuf::from_str(id.as_str()).unwrap();
-                path.push(project);
-                if path.exists() {
-                    self_.warning_row.set_visible(true);
-                }
-            }
-        }
-    }
-
-    fn create(&self) {
+    fn add_to_project(&self) {
         let self_ = self.imp();
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
-                if let Some(project) = self.project_name() {
-                    if let Some(id) = self_.select_target_directory.active_id() {
-                        let mut path = PathBuf::from_str(id.as_str()).unwrap();
-                        path.push(project);
-                        dm.add_asset_download(
-                            self.selected_version(),
-                            asset_info.clone(),
-                            &None,
-                            Some(vec![
-                                crate::ui::widgets::download_manager::PostDownloadAction::Copy(
-                                    path.to_str().unwrap().to_string(),
-                                    self_.overwrite.is_active(),
-                                ),
-                            ]),
-                        );
-                        self.emit_by_name::<()>("start-download", &[]);
-                    }
+                if let Some(id) = self_.select_target_directory.active_id() {
+                    dm.add_asset_download(
+                        self.selected_version(),
+                        asset_info.clone(),
+                        &None,
+                        Some(vec![
+                            crate::ui::widgets::download_manager::PostDownloadAction::Copy(
+                                id.to_string(),
+                                self_.overwrite.is_active(),
+                            ),
+                        ]),
+                    );
+                    self.emit_by_name::<()>("start-download", &[]);
                 }
             }
         }
@@ -269,6 +232,39 @@ impl EpicCreateAssetProject {
         };
         self_.warning_row.set_visible(false);
         self_.asset.replace(Some(asset.clone()));
+        self.set_target_directories();
+    }
+
+    fn validate_target_directory(&self) {
+        let self_ = self.imp();
+        self_
+            .warning_row
+            .set_tooltip_text(Some("Files that would be overwritten: "));
+        if let Some(manifest) = &*self_.manifest.borrow() {
+            if let Some(id) = self_.select_target_directory.active_id() {
+                let path = std::path::PathBuf::from_str(id.as_str()).unwrap();
+                for (file, _) in manifest.files() {
+                    let mut p = path.clone();
+                    p.push(file);
+                    if p.exists() {
+                        self_.warning_row.set_visible(true);
+                        if let Some(old) = self_.warning_row.tooltip_text() {
+                            self_.warning_row.set_tooltip_text(Some(&format!(
+                                "{}\n{}",
+                                old,
+                                p.to_str().unwrap_or_default()
+                            )));
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    fn directory_changed(&self) {
+        let self_ = self.imp();
+        get_action!(self_.actions, @download_all).set_enabled(true);
+        self.validate_target_directory();
     }
 
     pub fn set_manifest(
@@ -277,27 +273,9 @@ impl EpicCreateAssetProject {
     ) {
         let self_ = self.imp();
         self_.manifest.replace(Some(manifest.clone()));
-        self.process_manifest();
-    }
-
-    fn process_manifest(&self) {
-        let self_ = self.imp();
-        if let Some(manifest) = &*self_.manifest.borrow() {
-            for file in manifest.files().keys() {
-                if file.ends_with(".uproject") {
-                    self.set_property("project-name", file[..file.len() - 9].to_string());
-                    self.validate_target_directory();
-                    break;
-                }
-            }
-        }
     }
 
     pub fn selected_version(&self) -> String {
         self.property("selected-version")
-    }
-
-    pub fn project_name(&self) -> Option<String> {
-        self.property("project-name")
     }
 }

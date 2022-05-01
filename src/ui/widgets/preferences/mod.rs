@@ -635,12 +635,7 @@ impl PreferencesWindow {
         target_box.append(&row);
     }
 
-    fn fix_movement_buttons(
-        r: &mut Vec<(
-            String,
-            crate::ui::widgets::preferences::dir_row::DirectoryRow,
-        )>,
-    ) {
+    fn fix_movement_buttons(r: &mut [(String, dir_row::DirectoryRow)]) {
         let total = r.len();
         for (i, ro) in r.iter().enumerate() {
             if i == 0 {

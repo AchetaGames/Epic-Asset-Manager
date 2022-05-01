@@ -8,11 +8,11 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::info;
-use std::ops::Deref;
 
 pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use crate::ui::widgets::logged_in::library::actions;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecUInt};
     use once_cell::sync::OnceCell;
@@ -52,8 +52,7 @@ pub(crate) mod imp {
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
         #[template_child]
-        pub asset_actions:
-            TemplateChild<crate::ui::widgets::logged_in::library::asset_actions::EpicAssetActions>,
+        pub asset_actions: TemplateChild<actions::EpicAssetActions>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
@@ -91,7 +90,7 @@ pub(crate) mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
-                settings: gtk4::gio::Settings::new(crate::config::APP_ID),
+                settings: gio::Settings::new(crate::config::APP_ID),
                 position: RefCell::new(0),
             }
         }
@@ -216,7 +215,6 @@ impl EpicAssetDetails {
             false,
             clone!(@weak self as ead => @default-return None, move |_| {
                 ead.start_download();
-
                 None
             }),
         );
@@ -251,12 +249,11 @@ impl EpicAssetDetails {
                 details.collapse();
             })
         );
-
         action!(
             actions,
             "show_download_details",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::Download);
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::Download);
             })
         );
 
@@ -264,7 +261,15 @@ impl EpicAssetDetails {
             actions,
             "create_project",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::CreateProject);
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::CreateProject);
+            })
+        );
+
+        action!(
+            actions,
+            "local_assets",
+            clone!(@weak self as details => move |_, _| {
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::Local);
             })
         );
 
@@ -272,7 +277,7 @@ impl EpicAssetDetails {
             actions,
             "add_to_project",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::asset_actions::Action::AddToProject);
+                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::AddToProject);
             })
         );
 
@@ -297,14 +302,6 @@ impl EpicAssetDetails {
             "toggle_favorite",
             clone!(@weak self as details => move |_, _| {
                 details.toggle_favorites();
-            })
-        );
-
-        action!(
-            self_.actions,
-            "open_vault",
-            clone!(@weak self as details => move |_, _| {
-                details.open_vault_directory();
             })
         );
 
@@ -334,7 +331,7 @@ impl EpicAssetDetails {
 
     fn show_download_details(
         &self,
-        action: crate::ui::widgets::logged_in::library::asset_actions::Action,
+        action: crate::ui::widgets::logged_in::library::actions::Action,
     ) {
         let self_ = self.imp();
         self_.details_revealer.set_reveal_child(false);
@@ -346,26 +343,6 @@ impl EpicAssetDetails {
         get_action!(self_.actions, @show_asset_details).set_enabled(true);
         self_.asset_actions.set_action(action);
         self_.actions_menu.popdown();
-    }
-
-    fn open_vault_directory(&self) {
-        let self_ = self.imp();
-        if let Some(v) = self_.downloaded_location.borrow().deref() {
-            debug!("Trying to open {}", v.to_str().unwrap());
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(dir) = std::fs::File::open(v) {
-                    let ctx = glib::MainContext::default();
-                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
-                        ashpd::desktop::open_uri::open_directory(
-                            &ashpd::WindowIdentifier::default(),
-                            &dir,
-                        )
-                        .await.unwrap();
-                    }));
-                };
-            };
-        }
     }
 
     fn show_download_confirmation(&self) {
@@ -406,7 +383,14 @@ impl EpicAssetDetails {
         }
 
         if let Some(asset) = self.asset() {
+            self.create_actions_button(
+                "Download",
+                "folder-download-symbolic",
+                "details.show_download_details",
+            );
+
             self.create_open_vault_button(&asset);
+
             if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(&asset) {
                 match kind {
                     AssetType::Asset => {
@@ -470,11 +454,6 @@ impl EpicAssetDetails {
                 }
             }
         }
-        self.create_actions_button(
-            "Download",
-            "folder-download-symbolic",
-            "details.show_download_details",
-        );
     }
 
     fn create_open_vault_button(&self, asset: &AssetInfo) {
@@ -483,17 +462,14 @@ impl EpicAssetDetails {
             let vaults = self_.settings.strv("unreal-vault-directories");
             for ri in ris {
                 if let Some(app) = &ri.app_id {
-                    if let Some(loc) =
-                        crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
-                            .into_iter()
-                            .next()
+                    if !crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
+                        .is_empty()
                     {
                         self.create_actions_button(
-                            "Open Vault",
+                            "Local Assets",
                             "folder-open-symbolic",
-                            "details.open_vault",
+                            "details.local_assets",
                         );
-                        self_.downloaded_location.replace(Some(loc));
                         break;
                     }
                 }
@@ -651,13 +627,20 @@ impl EpicAssetDetails {
                             .expect("Unable to insert favorite to the DB");
                         self_.favorite.set_icon_name("starred");
                     };
-                    if let Some(w) = self_.window.get() {
-                        let w_ = w.imp();
-                        let l = w_.logged_in_stack.clone();
-                        let l_ = l.imp();
-                        l_.library.refresh_asset(&asset.id);
-                    }
+                    self.refresh_asset();
                 };
+            }
+        }
+    }
+
+    fn refresh_asset(&self) {
+        let self_ = self.imp();
+        if let Some(asset) = self.asset() {
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.library.refresh_asset(&asset.id);
             }
         }
     }
