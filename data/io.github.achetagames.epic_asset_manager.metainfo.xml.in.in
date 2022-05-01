@@ -64,6 +64,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.3.0" date="2022-05-02">
+       <description>
+              <p>Pause And Cancel</p>
+              <ul>
+                  <li>Local Assets Actions</li>
+                  <li>Show confirmation on engine install</li>
+                  <li>Add cancel and pause buttons to downloads</li>
+</ul>
+       </description>
+    </release>
     <release version="3.2.1" date="2022-04-25">
        <description>
               <p>Secret Fallback</p>
