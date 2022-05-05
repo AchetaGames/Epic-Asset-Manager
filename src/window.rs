@@ -479,7 +479,7 @@ impl EpicAssetManagerWindow {
         b.set_margin_top(5);
         let label = gtk4::Label::new(Some(label));
         label.set_xalign(1.0);
-        label.set_valign(gtk4::Align::Start);
+        label.set_valign(gtk4::Align::Center);
         size_group.add_widget(&label);
         b.append(&label);
         b.append(widget);
