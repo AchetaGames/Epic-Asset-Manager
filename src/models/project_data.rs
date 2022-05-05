@@ -327,7 +327,7 @@ impl ProjectData {
                 };
             }
             Err(_) => {
-                info!("No project file exists for {}", path);
+                info!("No project picture exists for {}", path);
             }
         }
     }
