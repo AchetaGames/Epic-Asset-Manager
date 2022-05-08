@@ -384,6 +384,8 @@ impl PreferencesWindow {
                             "text/plain",
                         ) {
                             error!("Failed to save secret {}", e);
+                            w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
+                            self.save_github_token_insecure();
                         };
                     }
                 }

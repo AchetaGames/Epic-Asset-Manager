@@ -547,6 +547,8 @@ impl EpicAssetManagerWindow {
                                 "text/plain",
                             ) {
                                 error!("Failed to save secret {}", e);
+                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                                self.save_insecure(secret_name, secret);
                             }
                         }
                         Some(rt) => {
@@ -558,6 +560,8 @@ impl EpicAssetManagerWindow {
                                 "text/plain",
                             ) {
                                 error!("Failed to save secret {}", e);
+                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                                self.save_insecure(secret_name, secret);
                             }
                         }
                     }
