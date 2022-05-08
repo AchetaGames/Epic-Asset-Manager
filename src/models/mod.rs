@@ -171,63 +171,81 @@ impl Model {
                     self.load_secrets_insecure();
                 }
                 Some(ss) => {
-                    if let Ok(collection) = ss.get_any_collection() {
-                        if let Ok(items) = collection.search_items(
-                            [("application", crate::config::APP_ID)]
-                                .iter()
-                                .copied()
-                                .collect(),
-                        ) {
-                            let mut ud = egs_api::api::UserData::new();
-                            for item in items {
-                                let label = if let Ok(l) = item.get_label() {
-                                    l
-                                } else {
-                                    debug!("No label skipping");
-                                    continue;
-                                };
-                                debug!("Loading: {}", label);
-                                if let Ok(attributes) = item.get_attributes() {
-                                    match label.as_str() {
-                                        "eam_epic_games_token" => {
-                                            if let Some((token, t, exp)) = self.load_egs_secrets(
-                                                &item,
-                                                &attributes,
-                                                "token-expiration",
-                                            ) {
-                                                ud.expires_at = Some(exp);
-                                                ud.token_type = Some(t);
-                                                ud.set_access_token(Some(token));
-                                            }
-                                        }
-                                        "eam_epic_games_refresh_token" => {
-                                            if let Some((token, _t, exp)) = self.load_egs_secrets(
-                                                &item,
-                                                &attributes,
-                                                "refresh-token-expiration",
-                                            ) {
-                                                ud.refresh_expires_at = Some(exp);
-                                                ud.set_refresh_token(Some(token));
-                                            }
-                                        }
-                                        "eam_github_token" => {
-                                            if let Ok(d) = item.get_secret() {
-                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
-                                                    self.validate_registry_login(
-                                                        self.settings
-                                                            .string("github-user")
-                                                            .to_string(),
-                                                        s.to_string(),
-                                                    );
+                    match ss.get_any_collection() {
+                        Ok(collection) => {
+                            match collection.search_items(
+                                [("application", crate::config::APP_ID)]
+                                    .iter()
+                                    .copied()
+                                    .collect(),
+                            ) {
+                                Ok(items) => {
+                                    let mut ud = egs_api::api::UserData::new();
+                                    for item in items {
+                                        let label = if let Ok(l) = item.get_label() {
+                                            l
+                                        } else {
+                                            debug!("No label skipping");
+                                            continue;
+                                        };
+                                        debug!("Loading: {}", label);
+                                        if let Ok(attributes) = item.get_attributes() {
+                                            match label.as_str() {
+                                                "eam_epic_games_token" => {
+                                                    if let Some((token, t, exp)) = self
+                                                        .load_egs_secrets(
+                                                            &item,
+                                                            &attributes,
+                                                            "token-expiration",
+                                                        )
+                                                    {
+                                                        ud.expires_at = Some(exp);
+                                                        ud.token_type = Some(t);
+                                                        ud.set_access_token(Some(token));
+                                                    }
                                                 }
-                                            };
+                                                "eam_epic_games_refresh_token" => {
+                                                    if let Some((token, _t, exp)) = self
+                                                        .load_egs_secrets(
+                                                            &item,
+                                                            &attributes,
+                                                            "refresh-token-expiration",
+                                                        )
+                                                    {
+                                                        ud.refresh_expires_at = Some(exp);
+                                                        ud.set_refresh_token(Some(token));
+                                                    }
+                                                }
+                                                "eam_github_token" => {
+                                                    if let Ok(d) = item.get_secret() {
+                                                        if let Ok(s) =
+                                                            std::str::from_utf8(d.as_slice())
+                                                        {
+                                                            self.validate_registry_login(
+                                                                self.settings
+                                                                    .string("github-user")
+                                                                    .to_string(),
+                                                                s.to_string(),
+                                                            );
+                                                        }
+                                                    };
+                                                }
+                                                &_ => {}
+                                            }
                                         }
-                                        &_ => {}
                                     }
+                                    self.epic_games.borrow_mut().set_user_details(ud);
                                 }
-                            }
-                            self.epic_games.borrow_mut().set_user_details(ud);
-                        };
+                                Err(e) => {
+                                    warn!("Unable to get items, trying insecure storage: {}", e);
+                                    self.load_secrets_insecure();
+                                }
+                            };
+                        }
+                        Err(e) => {
+                            warn!("Unable to get collection: {}", e);
+                            self.load_secrets_insecure();
+                        }
                     };
                 }
             }
