@@ -7,6 +7,8 @@ use gtk4::{glib, CompositeTemplate};
 
 mod engines;
 pub mod library;
+mod log_line;
+pub mod logs;
 mod projects;
 pub mod refresh;
 

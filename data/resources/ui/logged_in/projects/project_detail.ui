@@ -68,9 +68,79 @@
                                 <child>
                                     <object class="GtkScrolledWindow">
                                         <child>
-                                            <object class="GtkListBox" id="details">
+                                            <object class="GtkBox">
                                                 <property name="vexpand">True</property>
-                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                                <property name="orientation">vertical</property>
+                                                <child>
+                                                    <object class="GtkListBox" id="details">
+                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="logs_row">
+                                                        <property name="title" translatable="yes">Logs</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="EpicLogs" id="logs">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="config_row">
+                                                        <property name="visible">false</property>
+                                                        <property name="title" translatable="yes">Config</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="GtkBox">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="plugins_row">
+                                                        <property name="visible">false</property>
+                                                        <property name="title" translatable="yes">Plugins</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="GtkBox">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="modules_row">
+                                                        <property name="visible">false</property>
+                                                        <property name="title" translatable="yes">Modules</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="GtkBox">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="root_directories">
+                                                        <property name="visible">false</property>
+                                                        <property name="title" translatable="yes">Additional Root Directories</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="GtkBox">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="build_steps">
+                                                        <property name="visible">false</property>
+                                                        <property name="title" translatable="yes">Build steps</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="GtkBox">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
                                             </object>
                                         </child>
                                     </object>

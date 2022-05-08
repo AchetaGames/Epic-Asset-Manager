@@ -12,15 +12,12 @@ use crate::ui::widgets::button_cust::ButtonEpic;
 use crate::ui::widgets::logged_in::engines::UnrealEngine;
 
 pub(crate) mod imp {
-    use std::cell::RefCell;
-
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
-    use once_cell::sync::OnceCell;
-
+    use super::*;
     use crate::models::project_data::Uproject;
     use crate::window::EpicAssetManagerWindow;
-
-    use super::*;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
+    use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/project_detail.ui")]
@@ -36,6 +33,8 @@ pub(crate) mod imp {
         pub details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
+        #[template_child]
+        pub logs: TemplateChild<crate::ui::widgets::logged_in::logs::EpicLogs>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         path: RefCell<Option<String>>,
@@ -60,6 +59,7 @@ pub(crate) mod imp {
                 title: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
                 confirmation_revealer: TemplateChild::default(),
+                logs: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 path: RefCell::new(None),
@@ -265,6 +265,7 @@ impl UnrealProjectDetails {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.logs.set_window(&window);
     }
 
     fn set_launch_enabled(&self, enabled: bool) {
@@ -298,12 +299,18 @@ impl UnrealProjectDetails {
         if path.is_none() {
             return;
         }
+        self_.logs.clear();
 
         let pathbuf = PathBuf::from(path.unwrap());
         self_.title.set_markup(&format!(
             "<b><u><big>{}</big></u></b>",
             pathbuf.file_stem().unwrap().to_str().unwrap()
         ));
+
+        let parent = pathbuf.parent().unwrap();
+        if let Some(p) = parent.to_str() {
+            self_.logs.add_path(p);
+        }
 
         // Engine
         let combo = gtk4::ComboBoxText::new();
@@ -347,7 +354,7 @@ impl UnrealProjectDetails {
 
         // Path
         let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
-        let label = gtk4::Label::new(Some(pathbuf.parent().unwrap().to_str().unwrap()));
+        let label = gtk4::Label::new(Some(parent.to_str().unwrap()));
         label.set_xalign(0.0);
         label.set_hexpand(true);
         path_box.append(&label);

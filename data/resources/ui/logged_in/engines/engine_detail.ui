@@ -94,9 +94,24 @@
                                 <child>
                                     <object class="GtkScrolledWindow">
                                         <child>
-                                            <object class="GtkListBox" id="details">
+                                            <object class="GtkBox">
                                                 <property name="vexpand">True</property>
-                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                                <property name="orientation">vertical</property>
+                                                <child>
+                                                    <object class="GtkListBox" id="details">
+                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                                    </object>
+                                                </child>
+                                                <child>
+                                                    <object class="AdwExpanderRow" id="logs_row">
+                                                        <property name="title" translatable="yes">Logs</property>
+                                                        <property name="expanded">0</property>
+                                                        <child>
+                                                            <object class="EpicLogs" id="logs">
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
                                             </object>
                                         </child>
                                     </object>

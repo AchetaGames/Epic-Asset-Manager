@@ -46,6 +46,10 @@ pub(crate) mod imp {
         pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub confirmation_label: TemplateChild<gtk4::Label>,
+        #[template_child]
+        pub logs: TemplateChild<crate::ui::widgets::logged_in::logs::EpicLogs>,
+        #[template_child]
+        pub logs_row: TemplateChild<adw::ExpanderRow>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
@@ -78,6 +82,8 @@ pub(crate) mod imp {
                 details_revealer: TemplateChild::default(),
                 confirmation_revealer: TemplateChild::default(),
                 confirmation_label: TemplateChild::default(),
+                logs: TemplateChild::default(),
+                logs_row: TemplateChild::default(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
@@ -332,9 +338,12 @@ impl EpicEngineDetails {
         self_.launch_button.set_visible(true);
         self_.install_button.set_visible(false);
         self_.data.replace(Some(data.clone()));
+        self_.logs.clear();
+        self_.logs_row.set_visible(true);
 
         // Path
         if let Some(path) = &data.path() {
+            self_.logs.add_path(&format!("{}/Engine", &path));
             let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
             let label = gtk4::Label::new(Some(path));
             label.set_xalign(0.0);
@@ -401,6 +410,7 @@ impl EpicEngineDetails {
     pub fn add_engine(&self) {
         let self_ = self.imp();
         self_.data.replace(None);
+        self_.logs_row.set_visible(false);
         #[cfg(target_os = "linux")]
         {
             self_.data.replace(None);
@@ -564,6 +574,7 @@ impl EpicEngineDetails {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.logs.set_window(window);
         self.update_docker();
     }
 
