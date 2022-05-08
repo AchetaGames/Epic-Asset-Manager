@@ -490,7 +490,7 @@ impl Asset for super::EpicDownloadManager {
                 }
             };
             if let Ok(m) = recv.try_recv() {
-                process_thread_message(&link, &p, &g, &sender, m);
+                process_thread_message(&link, &p, &g, &sender, &m);
                 return;
             }
             debug!(
@@ -519,13 +519,13 @@ impl Asset for super::EpicDownloadManager {
             let mut file = File::create(&p).unwrap();
             loop {
                 if let Ok(m) = recv.try_recv() {
-                    process_thread_message(&link, &p, &g, &sender, m);
+                    process_thread_message(&link, &p, &g, &sender, &m);
                     return;
                 }
                 match client.read(&mut buffer) {
                     Ok(size) => {
                         if let Ok(m) = recv.try_recv() {
-                            process_thread_message(&link, &p, &g, &sender, m);
+                            process_thread_message(&link, &p, &g, &sender, &m);
                             return;
                         }
                         if size > 0 {
@@ -661,7 +661,7 @@ impl Asset for super::EpicDownloadManager {
         let self_ = self.imp();
         if let Some(guids) = self_.asset_guids.borrow().get(&asset) {
             for guid in guids {
-                self.send_to_thread_sender(guid.clone(), ThreadMessages::Pause);
+                self.send_to_thread_sender(&guid.clone(), &ThreadMessages::Pause);
             }
         }
         if let Some(item) = self.get_item(&asset) {
@@ -738,7 +738,7 @@ impl Asset for super::EpicDownloadManager {
                 }
                 let paused = item.paused();
                 for guid in guids {
-                    self.send_to_thread_sender(guid.clone(), ThreadMessages::Cancel);
+                    self.send_to_thread_sender(&guid.clone(), &ThreadMessages::Cancel);
                     for file in self_
                         .downloaded_chunks
                         .borrow_mut()
@@ -771,7 +771,7 @@ fn process_thread_message(
     p: &Path,
     g: &str,
     sender: &Sender<DownloadMsg>,
-    m: ThreadMessages,
+    m: &ThreadMessages,
 ) {
     match m {
         ThreadMessages::Cancel => {

@@ -503,9 +503,9 @@ impl EpicDownloadManager {
             .push(sender);
     }
 
-    pub(crate) fn send_to_thread_sender(&self, key: String, msg: ThreadMessages) {
+    pub(crate) fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
         let self_ = self.imp();
-        if let Some(senders) = self_.thread_senders.borrow_mut().remove(&key) {
+        if let Some(senders) = self_.thread_senders.borrow_mut().remove(key) {
             for sender in senders {
                 if sender.send(msg.clone()).is_err() {
                     warn!("Unable to send message {:?} to {}", msg, key);

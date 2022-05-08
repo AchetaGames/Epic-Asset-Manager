@@ -1,7 +1,7 @@
 use gtk4::glib::{clone, Sender};
 use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate, CustomSorter};
 use std::cmp::Ordering;
-use std::path::PathBuf;
+use std::path::Path;
 use std::{iter::Peekable, str::Chars};
 
 pub struct IterPair<'a> {
@@ -66,7 +66,7 @@ pub(crate) mod imp {
                 model: gtk4::gio::ListStore::new(crate::models::log_data::LogData::static_type()),
                 sender,
                 receiver: RefCell::new(Some(receiver)),
-                pending: std::sync::Arc::new(Default::default()),
+                pending: std::sync::Arc::new(std::sync::RwLock::default()),
                 load_pool: ThreadPool::with_name("Logs Load Pool".to_string(), 1),
             }
         }
@@ -256,7 +256,7 @@ impl EpicLogs {
         let s = self_.sender.clone();
         if project.exists() {
             self_.load_pool.execute(move || {
-                Self::read_logs_in_path(&project, false, s);
+                Self::read_logs_in_path(project.as_path(), false, &s);
             });
         }
         let mut project = location;
@@ -269,7 +269,7 @@ impl EpicLogs {
                     for d in rd.flatten() {
                         let p = d.path();
                         if p.is_dir() {
-                            Self::read_logs_in_path(&p, true, s.clone());
+                            Self::read_logs_in_path(p.as_path(), true, &s.clone());
                         }
                     }
                 }
@@ -280,7 +280,7 @@ impl EpicLogs {
         }));
     }
 
-    fn read_logs_in_path(project: &PathBuf, crash: bool, sender: Sender<Msg>) {
+    fn read_logs_in_path(project: &Path, crash: bool, sender: &Sender<Msg>) {
         if let Ok(rd) = project.read_dir() {
             for d in rd.flatten() {
                 let p = d.path();

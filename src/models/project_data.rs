@@ -297,33 +297,30 @@ impl ProjectData {
                 let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(&buffer).unwrap();
                 pixbuf_loader.close().ok();
-                match pixbuf_loader.pixbuf() {
-                    None => {}
-                    Some(pb) => {
-                        let width = pb.width();
-                        let height = pb.height();
+                if let Some(pb) = pixbuf_loader.pixbuf() {
+                    let width = pb.width();
+                    let height = pb.height();
 
-                        let width_percent = 128.0 / width as f64;
-                        let height_percent = 128.0 / height as f64;
-                        let percent = if height_percent < width_percent {
-                            height_percent
-                        } else {
-                            width_percent
-                        };
-                        let desired = (width as f64 * percent, height as f64 * percent);
-                        sender
-                            .send(ProjectMsg::Thumbnail(
-                                pb.scale_simple(
-                                    desired.0.round() as i32,
-                                    desired.1.round() as i32,
-                                    gtk4::gdk_pixbuf::InterpType::Bilinear,
-                                )
-                                .unwrap()
-                                .save_to_bufferv("png", &[])
-                                .unwrap(),
-                            ))
-                            .unwrap();
-                    }
+                    let width_percent = 128.0 / width as f64;
+                    let height_percent = 128.0 / height as f64;
+                    let percent = if height_percent < width_percent {
+                        height_percent
+                    } else {
+                        width_percent
+                    };
+                    let desired = (width as f64 * percent, height as f64 * percent);
+                    sender
+                        .send(ProjectMsg::Thumbnail(
+                            pb.scale_simple(
+                                desired.0.round() as i32,
+                                desired.1.round() as i32,
+                                gtk4::gdk_pixbuf::InterpType::Bilinear,
+                            )
+                            .unwrap()
+                            .save_to_bufferv("png", &[])
+                            .unwrap(),
+                        ))
+                        .unwrap();
                 };
             }
             Err(_) => {

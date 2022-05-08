@@ -265,7 +265,7 @@ impl UnrealProjectDetails {
         }
 
         self_.window.set(window.clone()).unwrap();
-        self_.logs.set_window(&window);
+        self_.logs.set_window(window);
     }
 
     fn set_launch_enabled(&self, enabled: bool) {

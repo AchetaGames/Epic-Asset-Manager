@@ -363,15 +363,12 @@ impl EpicAssetManagerWindow {
 
     pub fn clear_notification(&self, name: &str) {
         let self_ = self.imp();
-        match self_.notifications.first_child() {
-            None => {}
-            Some(w) => {
-                if w.widget_name().eq(name) {
-                    self_.notifications.remove(&w);
-                }
-                while let Some(s) = w.next_sibling() {
-                    self_.notifications.remove(&s);
-                }
+        if let Some(w) = self_.notifications.first_child() {
+            if w.widget_name().eq(name) {
+                self_.notifications.remove(&w);
+            }
+            while let Some(s) = w.next_sibling() {
+                self_.notifications.remove(&s);
             }
         }
     }

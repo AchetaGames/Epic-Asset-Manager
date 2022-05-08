@@ -368,7 +368,7 @@ impl EpicAssetActions {
         }
     }
 
-    pub fn set_action(&self, action: Action) {
+    pub fn set_action(&self, action: &Action) {
         let self_ = self.imp();
         match action {
             Action::Download => {

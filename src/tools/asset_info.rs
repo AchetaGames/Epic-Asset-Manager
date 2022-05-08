@@ -28,9 +28,8 @@ impl Search for AssetInfo {
             None => {
                 tag_found = true;
             }
-            Some(f) => match &self.categories {
-                None => {}
-                Some(categories) => {
+            Some(f) => {
+                if let Some(categories) = &self.categories {
                     for category in categories {
                         if category.path.contains(&f) {
                             tag_found = true;
@@ -38,7 +37,7 @@ impl Search for AssetInfo {
                         }
                     }
                 }
-            },
+            }
         }
         match search {
             None => tag_found,
