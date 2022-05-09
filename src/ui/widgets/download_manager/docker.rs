@@ -148,7 +148,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                                     ghregistry::errors::Error::Sender(_e) => {}
                                     _ => {
                                         error!("Failed blob download because: {:?}", e);
-                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap()
+                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap();
                                     }
                                 }
                             }
@@ -156,7 +156,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     });
                     while let Ok(progress) = rx.recv() {
                         if let Ok(m) = recv.try_recv() {
-                            process_docker_thread_message(ver.clone(), digest.clone(), &sender, m);
+                            process_docker_thread_message(ver.clone(), digest.clone(), &sender, &m);
                             return;
                         }
                         sender.send(crate::ui::widgets::download_manager::DownloadMsg::DockerDownloadProgress(
@@ -438,7 +438,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn cancel_docker_download(&self, version: String) {
         let self_ = self.imp();
         if let Some(item) = self.get_item(&version) {
-            self.send_to_thread_sender(version.clone(), ThreadMessages::Cancel);
+            self.send_to_thread_sender(&version.clone(), &ThreadMessages::Cancel);
             item.set_property("status", "Canceled".to_string());
             item.set_property("speed", "".to_string());
             if let Some(v) = item.version() {
@@ -463,7 +463,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     #[cfg(target_os = "linux")]
     fn pause_docker_download(&self, version: String) {
         if let Some(item) = self.get_item(&version) {
-            self.send_to_thread_sender(version, ThreadMessages::Pause);
+            self.send_to_thread_sender(&version, &ThreadMessages::Pause);
             item.set_property("status", "Paused".to_string());
             item.set_property("speed", "".to_string());
         }
@@ -488,7 +488,7 @@ fn process_docker_thread_message(
     version: String,
     digest: (String, u64),
     sender: &Sender<crate::ui::widgets::download_manager::DownloadMsg>,
-    m: crate::ui::widgets::download_manager::ThreadMessages,
+    m: &crate::ui::widgets::download_manager::ThreadMessages,
 ) {
     match m {
         ThreadMessages::Cancel => {

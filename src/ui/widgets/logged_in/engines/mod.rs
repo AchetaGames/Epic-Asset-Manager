@@ -405,13 +405,13 @@ impl EpicEnginesBox {
                     match PathBuf::from_str(&path) {
                         Ok(mut p) => {
                             if !p.exists() {
-                                self.remove_item(&item, data.guid())
+                                self.remove_item(&item, data.guid());
                             }
                             p.push("Engine");
                             p.push("Build");
                             p.push("Build.version");
                             if !p.exists() {
-                                self.remove_item(&item, data.guid())
+                                self.remove_item(&item, data.guid());
                             }
                         }
                         Err(_) => self.remove_item(&item, data.guid()),

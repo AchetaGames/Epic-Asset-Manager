@@ -253,7 +253,7 @@ impl EpicAssetDetails {
             actions,
             "show_download_details",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::Download);
+                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::Download);
             })
         );
 
@@ -261,7 +261,7 @@ impl EpicAssetDetails {
             actions,
             "create_project",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::CreateProject);
+                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::CreateProject);
             })
         );
 
@@ -269,7 +269,7 @@ impl EpicAssetDetails {
             actions,
             "local_assets",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::Local);
+                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::Local);
             })
         );
 
@@ -277,7 +277,7 @@ impl EpicAssetDetails {
             actions,
             "add_to_project",
             clone!(@weak self as details => move |_, _| {
-                details.show_download_details(crate::ui::widgets::logged_in::library::actions::Action::AddToProject);
+                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::AddToProject);
             })
         );
 
@@ -331,7 +331,7 @@ impl EpicAssetDetails {
 
     fn show_download_details(
         &self,
-        action: crate::ui::widgets::logged_in::library::actions::Action,
+        action: &crate::ui::widgets::logged_in::library::actions::Action,
     ) {
         let self_ = self.imp();
         self_.details_revealer.set_reveal_child(false);
@@ -615,14 +615,14 @@ impl EpicAssetDetails {
                     if fav.eq("starred") {
                         diesel::delete(
                             crate::schema::favorite_asset::table
-                                .filter(crate::schema::favorite_asset::asset.eq(asset.id.clone())),
+                                .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
                         )
                         .execute(&conn)
                         .expect("Unable to delete favorite from DB");
                         self_.favorite.set_icon_name("non-starred-symbolic");
                     } else {
                         diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
-                            .values(crate::schema::favorite_asset::asset.eq(asset.id.clone()))
+                            .values(crate::schema::favorite_asset::asset.eq(asset.id))
                             .execute(&conn)
                             .expect("Unable to insert favorite to the DB");
                         self_.favorite.set_icon_name("starred");
@@ -654,22 +654,19 @@ impl EpicAssetDetails {
         let self_ = self.imp();
         let db = crate::models::database::connection();
         if let Ok(conn) = db.get() {
-            match self.asset() {
-                None => {}
-                Some(asset) => {
-                    let ex: Result<bool, diesel::result::Error> = select(exists(
-                        crate::schema::favorite_asset::table
-                            .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
-                    ))
-                    .get_result(&conn);
-                    if let Ok(fav) = ex {
-                        if fav {
-                            self_.favorite.set_icon_name("starred");
-                        } else {
-                            self_.favorite.set_icon_name("non-starred-symbolic");
-                        }
-                        return;
+            if let Some(asset) = self.asset() {
+                let ex: Result<bool, diesel::result::Error> = select(exists(
+                    crate::schema::favorite_asset::table
+                        .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
+                ))
+                .get_result(&conn);
+                if let Ok(fav) = ex {
+                    if fav {
+                        self_.favorite.set_icon_name("starred");
+                    } else {
+                        self_.favorite.set_icon_name("non-starred-symbolic");
                     }
+                    return;
                 }
             }
         }

@@ -363,15 +363,12 @@ impl EpicAssetManagerWindow {
 
     pub fn clear_notification(&self, name: &str) {
         let self_ = self.imp();
-        match self_.notifications.first_child() {
-            None => {}
-            Some(w) => {
-                if w.widget_name().eq(name) {
-                    self_.notifications.remove(&w);
-                }
-                while let Some(s) = w.next_sibling() {
-                    self_.notifications.remove(&s);
-                }
+        if let Some(w) = self_.notifications.first_child() {
+            if w.widget_name().eq(name) {
+                self_.notifications.remove(&w);
+            }
+            while let Some(s) = w.next_sibling() {
+                self_.notifications.remove(&s);
             }
         }
     }
@@ -479,7 +476,7 @@ impl EpicAssetManagerWindow {
         b.set_margin_top(5);
         let label = gtk4::Label::new(Some(label));
         label.set_xalign(1.0);
-        label.set_valign(gtk4::Align::Start);
+        label.set_valign(gtk4::Align::Center);
         size_group.add_widget(&label);
         b.append(&label);
         b.append(widget);
@@ -547,6 +544,8 @@ impl EpicAssetManagerWindow {
                                 "text/plain",
                             ) {
                                 error!("Failed to save secret {}", e);
+                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                                self.save_insecure(secret_name, secret);
                             }
                         }
                         Some(rt) => {
@@ -558,6 +557,8 @@ impl EpicAssetManagerWindow {
                                 "text/plain",
                             ) {
                                 error!("Failed to save secret {}", e);
+                                self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                                self.save_insecure(secret_name, Some(rt));
                             }
                         }
                     }

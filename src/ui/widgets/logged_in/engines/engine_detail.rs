@@ -1,3 +1,4 @@
+use crate::ui::widgets::button_cust::ButtonEpic;
 use crate::ui::widgets::download_manager::docker::Docker;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -45,6 +46,10 @@ pub(crate) mod imp {
         pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub confirmation_label: TemplateChild<gtk4::Label>,
+        #[template_child]
+        pub logs: TemplateChild<crate::ui::widgets::logged_in::logs::EpicLogs>,
+        #[template_child]
+        pub logs_row: TemplateChild<adw::ExpanderRow>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
@@ -77,6 +82,8 @@ pub(crate) mod imp {
                 details_revealer: TemplateChild::default(),
                 confirmation_revealer: TemplateChild::default(),
                 confirmation_label: TemplateChild::default(),
+                logs: TemplateChild::default(),
+                logs_row: TemplateChild::default(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
@@ -331,13 +338,27 @@ impl EpicEngineDetails {
         self_.launch_button.set_visible(true);
         self_.install_button.set_visible(false);
         self_.data.replace(Some(data.clone()));
+        self_.logs.clear();
+        self_.logs_row.set_visible(true);
 
+        // Path
         if let Some(path) = &data.path() {
+            self_.logs.add_path(&format!("{}/Engine", &path));
+            let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+            let label = gtk4::Label::new(Some(path));
+            label.set_xalign(0.0);
+            label.set_hexpand(true);
+            path_box.append(&label);
+            let button = gtk4::Button::with_icon_and_label("system-file-manager-symbolic", "Open");
+            button.connect_clicked(clone!(@weak self as engine => move |_| {
+                engine.open_dir();
+            }));
+            path_box.append(&button);
             self_
                 .details
                 .append(&crate::window::EpicAssetManagerWindow::create_details_row(
                     "Path",
-                    &gtk4::Label::new(Some(path)),
+                    &path_box,
                     &self_.details_group,
                 ));
         }
@@ -363,6 +384,25 @@ impl EpicEngineDetails {
         }
     }
 
+    fn open_dir(&self) {
+        if let Some(p) = self.path() {
+            debug!("Trying to open {}", p);
+            #[cfg(target_os = "linux")]
+            {
+                if let Ok(dir) = std::fs::File::open(&format!("{}/Engine", p)) {
+                    let ctx = glib::MainContext::default();
+                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
+                        ashpd::desktop::open_uri::open_directory(
+                            &ashpd::WindowIdentifier::default(),
+                            &dir,
+                        )
+                        .await.unwrap();
+                    }));
+                };
+            };
+        }
+    }
+
     pub fn is_expanded(&self) -> bool {
         self.property("expanded")
     }
@@ -370,6 +410,7 @@ impl EpicEngineDetails {
     pub fn add_engine(&self) {
         let self_ = self.imp();
         self_.data.replace(None);
+        self_.logs_row.set_visible(false);
         #[cfg(target_os = "linux")]
         {
             self_.data.replace(None);
@@ -533,6 +574,7 @@ impl EpicEngineDetails {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.logs.set_window(window);
         self.update_docker();
     }
 

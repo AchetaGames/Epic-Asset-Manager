@@ -384,6 +384,8 @@ impl PreferencesWindow {
                             "text/plain",
                         ) {
                             error!("Failed to save secret {}", e);
+                            w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
+                            self.save_github_token_insecure();
                         };
                     }
                 }
@@ -535,13 +537,10 @@ impl PreferencesWindow {
     fn update_directories(&self, kind: DirectoryConfigType) {
         let self_ = self.imp();
         let rows = self_.directory_rows.borrow();
-        match rows.get(&kind) {
-            None => {}
-            Some(r) => {
-                let v: Vec<&str> = r.iter().map(|i| i.0.as_str()).collect();
-                if let Some(setting_name) = Self::setting_name_from_type(kind) {
-                    self_.settings.set_strv(setting_name, v.as_slice()).unwrap();
-                }
+        if let Some(r) = rows.get(&kind) {
+            let v: Vec<&str> = r.iter().map(|i| i.0.as_str()).collect();
+            if let Some(setting_name) = Self::setting_name_from_type(kind) {
+                self_.settings.set_strv(setting_name, v.as_slice()).unwrap();
             }
         };
     }

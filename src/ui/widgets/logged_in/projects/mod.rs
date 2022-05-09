@@ -276,7 +276,7 @@ impl EpicProjectsBox {
                     match PathBuf::from_str(&path) {
                         Ok(p) => {
                             if !p.exists() {
-                                self.remove_item(&item, data.path())
+                                self.remove_item(&item, data.path());
                             }
                         }
                         Err(_) => self.remove_item(&item, data.path()),
@@ -316,7 +316,7 @@ impl EpicProjectsBox {
             let path = std::path::PathBuf::from(dir.to_string());
             let s = self_.sender.clone();
             self_.file_pool.execute(move || {
-                Self::check_path_for_uproject(&path, s);
+                Self::check_path_for_uproject(&path, &s);
             });
         }
     }
@@ -345,7 +345,7 @@ impl EpicProjectsBox {
         self.refresh_state_changed();
     }
 
-    fn check_path_for_uproject(path: &Path, sender: gtk4::glib::Sender<Msg>) {
+    fn check_path_for_uproject(path: &Path, sender: &gtk4::glib::Sender<Msg>) {
         if let Ok(rd) = path.read_dir() {
             for d in rd {
                 match d {
@@ -355,7 +355,7 @@ impl EpicProjectsBox {
                             if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
                                 sender.send(Msg::AddProject { uproject_file }).unwrap();
                             } else {
-                                Self::check_path_for_uproject(&p, sender.clone());
+                                Self::check_path_for_uproject(&p, &sender.clone());
                             };
                         } else {
                             continue;

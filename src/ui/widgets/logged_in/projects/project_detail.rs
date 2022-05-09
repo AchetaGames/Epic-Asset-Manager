@@ -1,25 +1,23 @@
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*};
+use gtk4::{self, gio, prelude::*, ComboBoxText};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use std::path::PathBuf;
 
 use crate::models::project_data::Uproject;
 use crate::schema::unreal_project_latest_engine;
+use crate::ui::widgets::button_cust::ButtonEpic;
 use crate::ui::widgets::logged_in::engines::UnrealEngine;
 
 pub(crate) mod imp {
-    use std::cell::RefCell;
-
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
-    use once_cell::sync::OnceCell;
-
+    use super::*;
     use crate::models::project_data::Uproject;
     use crate::window::EpicAssetManagerWindow;
-
-    use super::*;
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
+    use once_cell::sync::OnceCell;
+    use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/project_detail.ui")]
@@ -35,6 +33,8 @@ pub(crate) mod imp {
         pub details_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
+        #[template_child]
+        pub logs: TemplateChild<crate::ui::widgets::logged_in::logs::EpicLogs>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         path: RefCell<Option<String>>,
@@ -59,6 +59,7 @@ pub(crate) mod imp {
                 title: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
                 confirmation_revealer: TemplateChild::default(),
+                logs: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 path: RefCell::new(None),
@@ -188,6 +189,25 @@ impl UnrealProjectDetails {
         );
     }
 
+    fn open_dir(&self) {
+        if let Some(p) = self.path() {
+            debug!("Trying to open {}", p);
+            #[cfg(target_os = "linux")]
+            {
+                if let Ok(dir) = std::fs::File::open(&p) {
+                    let ctx = glib::MainContext::default();
+                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
+                        ashpd::desktop::open_uri::open_directory(
+                            &ashpd::WindowIdentifier::default(),
+                            &dir,
+                        )
+                        .await.unwrap();
+                    }));
+                };
+            };
+        }
+    }
+
     fn launch_engine(&self) {
         let path = self.path().unwrap();
         let engine = self.engine();
@@ -245,6 +265,7 @@ impl UnrealProjectDetails {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.logs.set_window(window);
     }
 
     fn set_launch_enabled(&self, enabled: bool) {
@@ -278,12 +299,18 @@ impl UnrealProjectDetails {
         if path.is_none() {
             return;
         }
+        self_.logs.clear();
 
         let pathbuf = PathBuf::from(path.unwrap());
         self_.title.set_markup(&format!(
             "<b><u><big>{}</big></u></b>",
             pathbuf.file_stem().unwrap().to_str().unwrap()
         ));
+
+        let parent = pathbuf.parent().unwrap();
+        if let Some(p) = parent.to_str() {
+            self_.logs.add_path(p);
+        }
 
         // Engine
         let combo = gtk4::ComboBoxText::new();
@@ -304,13 +331,73 @@ impl UnrealProjectDetails {
                 last_engine = Some(last);
             }
         };
+
+        self.populate_engines(&combo, &associated, &mut last_engine);
+
+        combo.connect_changed(clone!(@weak self as detail => move |c| {
+            detail.engine_selected(c);
+        }));
+        if let Some(engine) = associated {
+            combo.set_active_id(Some(&engine.path));
+        } else if let Some(last) = last_engine {
+            combo.set_active_id(Some(&last));
+        };
+        // TODO: Change the project config based on the engine selected
+
+        self_
+            .details
+            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                "Engine",
+                &combo,
+                &self_.details_group,
+            ));
+
+        // Path
+        let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+        let label = gtk4::Label::new(Some(parent.to_str().unwrap()));
+        label.set_xalign(0.0);
+        label.set_hexpand(true);
+        path_box.append(&label);
+        let button = gtk4::Button::with_icon_and_label("system-file-manager-symbolic", "Open");
+        button.connect_clicked(clone!(@weak self as project => move |_| {
+            project.open_dir();
+        }));
+        path_box.append(&button);
+        self_
+            .details
+            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                "Path",
+                &path_box,
+                &self_.details_group,
+            ));
+
+        // Engine Association
+        self_
+            .details
+            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                "Engine Association",
+                &gtk4::Label::new(Some(&project.engine_association)),
+                &self_.details_group,
+            ));
+    }
+
+    fn populate_engines(
+        &self,
+        combo: &ComboBoxText,
+        associated: &Option<UnrealEngine>,
+        last_engine: &mut Option<String>,
+    ) {
+        let mut paths = std::collections::HashSet::new();
         for engine in self.available_engines() {
+            if !paths.insert(engine.path.clone()) {
+                continue;
+            };
             combo.append(
                 Some(&engine.path),
                 &format!(
                     "{}{}",
                     engine.version.format(),
-                    match associated.clone() {
+                    match associated {
                         None => {
                             last_engine.clone().map_or("", |last| {
                                 if engine.path.eq(&last) {
@@ -337,42 +424,6 @@ impl UnrealProjectDetails {
                 ),
             );
         }
-
-        combo.connect_changed(clone!(@weak self as detail => move |c| {
-            detail.engine_selected(c);
-        }));
-        if let Some(engine) = associated {
-            combo.set_active_id(Some(&engine.path));
-        } else if let Some(last) = last_engine {
-            combo.set_active_id(Some(&last));
-        };
-        // TODO: Change the project config based on the engine selected
-
-        self_
-            .details
-            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                "Engine",
-                &combo,
-                &self_.details_group,
-            ));
-
-        // Path
-        self_
-            .details
-            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                "Path",
-                &gtk4::Label::new(Some(pathbuf.parent().unwrap().to_str().unwrap())),
-                &self_.details_group,
-            ));
-
-        // Engine Association
-        self_
-            .details
-            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                "Engine Association",
-                &gtk4::Label::new(Some(&project.engine_association)),
-                &self_.details_group,
-            ));
     }
 
     fn engine_selected(&self, combo: &gtk4::ComboBoxText) {

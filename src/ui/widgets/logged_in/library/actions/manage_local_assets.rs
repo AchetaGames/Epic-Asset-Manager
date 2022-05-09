@@ -60,7 +60,6 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicLocalAssets {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
-            obj.setup_actions();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -97,8 +96,6 @@ impl EpicLocalAssets {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
     }
-
-    pub fn setup_actions(&self) {}
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
         let self_ = self.imp();
@@ -164,11 +161,8 @@ impl EpicLocalAssets {
             if let Ok(path) = PathBuf::from_str(&p) {
                 if path.exists() {
                     if let Some(parent) = path.parent() {
-                        match std::fs::remove_dir_all(&parent) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                error!("Unable to remove vault data: {:?}", e);
-                            }
+                        if let Err(e) = std::fs::remove_dir_all(&parent) {
+                            error!("Unable to remove vault data: {:?}", e);
                         };
                     }
                 }

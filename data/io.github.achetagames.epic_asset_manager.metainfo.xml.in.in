@@ -64,6 +64,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.4.0" date="2022-05-09">
+       <description>
+              <p>Logs Overview</p>
+              <ul>
+                  <li>Log list for Projects and Engines</li>
+                  <li>Open button to Engine and Project</li>
+                  <li>Further improvements of the Secrets fallback</li>
+</ul>
+       </description>
+    </release>
     <release version="3.3.0" date="2022-05-02">
        <description>
               <p>Pause And Cancel</p>

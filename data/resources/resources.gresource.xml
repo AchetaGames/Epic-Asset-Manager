@@ -4,6 +4,8 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="window.ui">ui/window.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="library.ui">ui/logged_in/library/library.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="logged_in.ui">ui//logged_in/logged_in.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="logs.ui">ui//logged_in/logs.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="log_line.ui">ui//logged_in/log_line.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="sid.ui">ui/sid_login/sid.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="preferences.ui">ui/preferences/preferences.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="dir_row.ui">ui/preferences/dir_row.ui</file>

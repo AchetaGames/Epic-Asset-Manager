@@ -302,13 +302,12 @@ impl EpicImageOverlay {
                 let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(&buffer).unwrap();
                 pixbuf_loader.close().ok();
-                match pixbuf_loader.pixbuf() {
-                    None => {}
-                    Some(pb) => sender
+                if let Some(pb) = pixbuf_loader.pixbuf() {
+                    sender
                         .send(ImageMsg::ImageLoaded(
                             pb.save_to_bufferv("png", &[]).unwrap(),
                         ))
-                        .unwrap(),
+                        .unwrap()
                 };
             } else {
                 debug!("Need to download image");
