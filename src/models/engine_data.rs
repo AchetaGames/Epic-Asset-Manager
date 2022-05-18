@@ -430,9 +430,9 @@ impl EngineData {
         cb.credentials(move |url, username, allowed| {
             let mut cred_helper = git2::CredentialHelper::new(url);
             cred_helper.config(&git_config);
-            let creds = if allowed.is_ssh_key() {
+            if allowed.is_ssh_key() {
                 // TODO: Add configuration to specify the ssh key and password(if needed)
-                let mut key = gtk4::glib::home_dir();
+                let mut key = glib::home_dir();
                 key.push(".ssh");
                 key.push("id_rsa");
 
@@ -451,8 +451,7 @@ impl EngineData {
                 git2::Cred::default()
             } else {
                 Err(git2::Error::from_str("no authentication available"))
-            };
-            creds
+            }
         });
         cb
     }
