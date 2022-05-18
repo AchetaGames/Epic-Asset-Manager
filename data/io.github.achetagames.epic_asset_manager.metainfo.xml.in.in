@@ -64,6 +64,14 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.4.1" date="2022-05-18">
+       <description>
+              <p>GTK bump</p>
+              <ul>
+                  <li>Remove unnecessary variable</li>
+</ul>
+       </description>
+    </release>
     <release version="3.4.0" date="2022-05-09">
        <description>
               <p>Logs Overview</p>
