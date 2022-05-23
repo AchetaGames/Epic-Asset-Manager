@@ -228,7 +228,7 @@ impl UnrealProjectDetails {
                 let app = gtk4::gio::AppInfo::create_from_commandline(
                     if ashpd::is_sandboxed() {
                         format!(
-                            "flatpak-spawn --env=-GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2  --host \"{}\" \"{}\"",
+                            "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
                             p.to_str().unwrap(),
                             path
                         )

@@ -278,7 +278,7 @@ impl EpicEngineDetails {
                     context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
                     let app = gtk4::gio::AppInfo::create_from_commandline(
                         if ashpd::is_sandboxed() {
-                            format!("flatpak-spawn --env=-GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2 -host \"{}\"", p.to_str().unwrap())
+                            format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
                         } else {
                             format!("\"{}\"", p.to_str().unwrap())
                         },
