@@ -401,12 +401,14 @@ impl EpicDownloadManager {
         let self_ = self.imp();
         info!("File finished: {}", file);
         self_.downloaded_files.borrow_mut().remove(file);
-        let temp_dir = PathBuf::from(
-            self_
+        let vaults = self_.settings.strv("unreal-vault-directories");
+        let temp_dir = std::path::PathBuf::from(match vaults.first() {
+            None => self_
                 .settings
                 .string("temporary-download-directory")
                 .to_string(),
-        );
+            Some(v) => v.to_string(),
+        });
         for chunk in file_details.finished_chunks {
             if let Some(ch) = self_.downloaded_chunks.borrow_mut().get_mut(&chunk.guid) {
                 ch.retain(|x| !x.eq(file));

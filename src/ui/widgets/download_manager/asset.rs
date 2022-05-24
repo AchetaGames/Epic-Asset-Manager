@@ -368,12 +368,14 @@ impl Asset for super::EpicDownloadManager {
             None => return,
             Some(i) => i,
         };
-        let mut target = std::path::PathBuf::from(
-            self_
+        let vaults = self_.settings.strv("unreal-vault-directories");
+        let mut target = std::path::PathBuf::from(match vaults.first() {
+            None => self_
                 .settings
                 .string("temporary-download-directory")
                 .to_string(),
-        );
+            Some(v) => v.to_string(),
+        });
         target.push(release.clone());
         target.push("temp");
         let full_filename = format!("{}/{}/{}", id, release, filename);
@@ -987,12 +989,14 @@ impl AssetPriv for super::EpicDownloadManager {
         f: &mut DownloadedFile,
     ) {
         let self_ = self.imp();
-        let temp_dir = PathBuf::from(
-            self_
+        let vaults = self_.settings.strv("unreal-vault-directories");
+        let temp_dir = std::path::PathBuf::from(match vaults.first() {
+            None => self_
                 .settings
                 .string("temporary-download-directory")
                 .to_string(),
-        );
+            Some(v) => v.to_string(),
+        });
         let mut targets: Vec<(String, bool)> = Vec::new();
         let mut to_vault = true;
         {
