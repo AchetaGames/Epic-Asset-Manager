@@ -230,15 +230,19 @@ impl PreferencesWindow {
             .parse::<i32>()
         {
             self_.settings.set_int("log-level", level).unwrap();
-            match level {
-                0 => log::set_max_level(log::LevelFilter::Error),
-                1 => log::set_max_level(log::LevelFilter::Warn),
-                2 => log::set_max_level(log::LevelFilter::Info),
-                3 => log::set_max_level(log::LevelFilter::Debug),
-                4 => log::set_max_level(log::LevelFilter::Trace),
-                _ => log::set_max_level(log::LevelFilter::Error),
-            }
+            Self::set_log_level(level);
         };
+    }
+
+    pub fn set_log_level(level: i32) {
+        match level {
+            0 => log::set_max_level(log::LevelFilter::Error),
+            1 => log::set_max_level(log::LevelFilter::Warn),
+            2 => log::set_max_level(log::LevelFilter::Info),
+            3 => log::set_max_level(log::LevelFilter::Debug),
+            4 => log::set_max_level(log::LevelFilter::Trace),
+            _ => log::set_max_level(log::LevelFilter::Error),
+        }
     }
 
     fn default_view_changed(&self) {

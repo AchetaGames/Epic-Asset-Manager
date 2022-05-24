@@ -42,7 +42,45 @@ pub(crate) mod imp {
 
     impl ObjectImpl for EpicAssetManager {}
 
-    impl gio::subclass::prelude::ApplicationImpl for EpicAssetManager {
+    impl ApplicationImpl for EpicAssetManager {
+        fn activate(&self, app: &Self::Type) {
+            debug!("GtkApplication<EpicAssetManager>::activate");
+
+            let self_ = app.imp();
+            if let Some(window) = self_.window.get() {
+                window.show();
+
+                if let Ok(item) = self.item.borrow().to_value().get::<String>() {
+                    window.set_property("item", item);
+                }
+                if let Ok(product) = self.product.borrow().to_value().get::<String>() {
+                    window.set_property("product", product);
+                }
+                self.product.replace(None);
+                self.item.replace(None);
+                window.present();
+                return;
+            }
+
+            let mut window = EpicAssetManagerWindow::new(app);
+
+            if let Ok(item) = self.item.borrow().to_value().get::<String>() {
+                window.set_property("item", item);
+            }
+            if let Ok(product) = self.product.borrow().to_value().get::<String>() {
+                window.set_property("product", product);
+            }
+            self.product.replace(None);
+            self.item.replace(None);
+
+            self.window
+                .set(window.clone())
+                .expect("Window already set.");
+
+            window.check_login();
+            window.present();
+        }
+
         fn open(&self, app: &Self::Type, files: &[gtk4::gio::File], _int: &str) {
             for file in files {
                 if file.uri_scheme() == Some(gtk4::glib::GString::from("com.epicgames.launcher")) {
@@ -83,44 +121,6 @@ pub(crate) mod imp {
                 }
             }
             self.activate(app);
-        }
-
-        fn activate(&self, app: &Self::Type) {
-            debug!("GtkApplication<EpicAssetManager>::activate");
-
-            let self_ = app.imp();
-            if let Some(window) = self_.window.get() {
-                window.show();
-
-                if let Ok(item) = self.item.borrow().to_value().get::<String>() {
-                    window.set_property("item", item);
-                }
-                if let Ok(product) = self.product.borrow().to_value().get::<String>() {
-                    window.set_property("product", product);
-                }
-                self.product.replace(None);
-                self.item.replace(None);
-                window.present();
-                return;
-            }
-
-            let mut window = EpicAssetManagerWindow::new(app);
-
-            if let Ok(item) = self.item.borrow().to_value().get::<String>() {
-                window.set_property("item", item);
-            }
-            if let Ok(product) = self.product.borrow().to_value().get::<String>() {
-                window.set_property("product", product);
-            }
-            self.product.replace(None);
-            self.item.replace(None);
-
-            self.window
-                .set(window.clone())
-                .expect("Window already set.");
-
-            window.check_login();
-            window.present();
         }
 
         fn startup(&self, app: &Self::Type) {
@@ -214,6 +214,9 @@ impl EpicAssetManager {
                 app.show_about_dialog();
             })
         );
+
+        let level = self_.settings.int("log-level");
+        crate::ui::widgets::preferences::PreferencesWindow::set_log_level(level);
     }
 
     // Sets up keyboard shortcuts
