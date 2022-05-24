@@ -11,6 +11,11 @@
             <summary>Default window height</summary>
             <description>Default window height</description>
         </key>
+        <key name="log-level" type="i">
+            <default>0</default>
+            <summary>Log Level</summary>
+            <description>Log Level</description>
+        </key>
         <key name="is-maximized" type="b">
             <default>false</default>
             <summary>Default window maximized behaviour</summary>

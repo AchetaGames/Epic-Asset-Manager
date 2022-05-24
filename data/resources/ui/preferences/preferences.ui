@@ -32,7 +32,32 @@
                         </child>
                     </object>
                 </child>
-
+                <child>
+                    <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Logging</property>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Log Level</property>
+                                <property name="use-underline">True</property>
+                                <property name="activatable-widget">log_level_selection</property>
+                                <property name="subtitle" translatable="yes">Set log level</property>
+                                <child>
+                                    <object class="GtkComboBoxText" id="log_level_selection">
+                                        <property name="valign">center</property>
+                                        <property name="active-id">library</property>
+                                        <items>
+                                            <item translatable="yes" id="0">Error</item>
+                                            <item translatable="yes" id="1">Warn</item>
+                                            <item translatable="yes" id="2">Info</item>
+                                            <item translatable="yes" id="3">Debug</item>
+                                            <item translatable="yes" id="4">Trace</item>
+                                        </items>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
                 <child>
                     <object class="AdwPreferencesGroup" id="dark_theme_group">
                         <property name="title" translatable="yes">Appearance</property>

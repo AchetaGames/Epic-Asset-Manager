@@ -55,6 +55,8 @@ pub mod imp {
         #[template_child]
         pub default_view_selection: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
+        pub log_level_selection: TemplateChild<gtk4::ComboBoxText>,
+        #[template_child]
         pub default_category_selection: TemplateChild<gtk4::ComboBoxText>,
     }
 
@@ -67,7 +69,7 @@ pub mod imp {
         fn new() -> Self {
             let settings = gio::Settings::new(crate::config::APP_ID);
 
-            Self {
+            let window = Self {
                 settings,
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
@@ -84,8 +86,10 @@ pub mod imp {
                 dark_theme_switch: TemplateChild::default(),
                 sidebar_switch: TemplateChild::default(),
                 default_view_selection: TemplateChild::default(),
+                log_level_selection: TemplateChild::default(),
                 default_category_selection: TemplateChild::default(),
-            }
+            };
+            window
         }
 
         fn class_init(klass: &mut Self::Class) {
@@ -203,11 +207,42 @@ impl PreferencesWindow {
             }),
         );
 
+        self_
+            .log_level_selection
+            .connect_changed(clone!(@weak self as preferences => move |_| {
+                preferences.log_level_changed();
+            }));
+
         self_.default_category_selection.connect_changed(
             clone!(@weak self as preferences => move |_| {
                 preferences.default_category_changed();
             }),
         );
+    }
+
+    fn log_level_changed(&self) {
+        let self_ = self.imp();
+
+        if let Ok(level) = self_
+            .log_level_selection
+            .active_id()
+            .unwrap_or_else(|| "0".into())
+            .parse::<i32>()
+        {
+            self_.settings.set_int("log-level", level).unwrap();
+            Self::set_log_level(level);
+        };
+    }
+
+    pub fn set_log_level(level: i32) {
+        match level {
+            0 => log::set_max_level(log::LevelFilter::Error),
+            1 => log::set_max_level(log::LevelFilter::Warn),
+            2 => log::set_max_level(log::LevelFilter::Info),
+            3 => log::set_max_level(log::LevelFilter::Debug),
+            4 => log::set_max_level(log::LevelFilter::Trace),
+            _ => log::set_max_level(log::LevelFilter::Error),
+        }
     }
 
     fn default_view_changed(&self) {
@@ -278,6 +313,11 @@ impl PreferencesWindow {
 
         let view = self_.settings.string("default-view");
         self_.default_view_selection.set_active_id(Some(&view));
+        let level = self_.settings.int("log-level");
+        self_
+            .log_level_selection
+            .set_active_id(Some(&format!("{}", level)));
+        self.log_level_changed();
         let category = self_.settings.string("default-category");
         self_
             .default_category_selection

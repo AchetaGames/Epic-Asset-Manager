@@ -310,6 +310,13 @@ impl EpicEnginesBox {
         self_.grid_model.append(&data);
 
         self.load_engines();
+        glib::timeout_add_seconds_local(
+            15 * 60 + (rand::random::<u32>() % 5) * 60,
+            clone!(@weak self as obj => @default-panic, move || {
+                obj.run_refresh();
+                glib::Continue(true)
+            }),
+        );
     }
 
     fn engine_selected(&self, model: &gtk4::SingleSelection) {
@@ -570,7 +577,7 @@ impl EpicEnginesBox {
     }
 }
 
-impl crate::ui::widgets::logged_in::refresh::Refresh for EpicEnginesBox {
+impl Refresh for EpicEnginesBox {
     fn run_refresh(&self) {
         self.load_engines();
     }
