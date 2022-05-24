@@ -34,6 +34,8 @@ sed -i "s|<p><\!\-\- release:$next --></p>|<p></p>\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ 
 
 ${EDITOR:=nano} +"$line""$([ "$EDITOR" == "nano" ] && echo ",18")" data/"$id".metainfo.xml.in.in
 
+meson --prefix=/app -Dprofile=development _release
+
 ninja -C _release test
 
 git commit -av
