@@ -240,6 +240,14 @@ impl EpicProjectsBox {
         self_.projects_grid.set_model(Some(&selection_model));
         self_.projects_grid.set_factory(Some(&factory));
         self.load_projects();
+        glib::timeout_add_seconds_local(
+            15 * 60 + (rand::random::<u32>() % 5) * 60,
+            clone!(@weak self as obj => @default-panic, move || {
+                debug!("Starting timed projects refresh");
+                obj.run_refresh();
+                glib::Continue(true)
+            }),
+        );
     }
 
     fn project_selected(&self, model: &gtk4::SingleSelection) {

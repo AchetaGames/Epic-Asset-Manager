@@ -107,8 +107,8 @@ pub(crate) mod imp {
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
-                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 5),
-                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
+                asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 15),
+                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 15),
                 assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
                 categories: RefCell::new(HashSet::new()),
                 settings: gio::Settings::new(config::APP_ID),
@@ -346,6 +346,14 @@ impl EpicLibraryBox {
         }));
 
         self.fetch_assets();
+        glib::timeout_add_seconds_local(
+            15 * 60 + (rand::random::<u32>() % 15 * 60),
+            clone!(@weak self as obj => @default-panic, move || {
+                debug!("Library timed refresh starting");
+                obj.run_refresh();
+                glib::Continue(true)
+            }),
+        );
     }
 
     fn asset_selected(&self, model: &gtk4::SingleSelection) {
@@ -489,11 +497,14 @@ impl EpicLibraryBox {
                 adj.set_value(0.0)
             };
         }
+        self.check_refresh();
+        self.open_asset();
+    }
+
+    fn check_refresh(&self) {
         if self.can_be_refreshed() {
             self.refresh_state_changed();
         }
-        self.open_asset();
-        // debug!("Finished flushing {:?}", start.elapsed());
     }
 
     pub fn update_count(&self) {
@@ -677,6 +688,7 @@ impl EpicLibraryBox {
                     if asset.id.eq(&a.id) {
                         // TODO: update asset if there are changes
                         trace!("Duplicate asset: {}", asset.id);
+                        self.check_refresh();
                         false
                     } else {
                         assets.insert(asset.id.clone(), asset.clone());
@@ -879,6 +891,7 @@ impl EpicLibraryBox {
     fn flush_loop(&self) -> bool {
         self.flush_assets();
         self.refresh_state_changed();
+        self.check_refresh();
         !self.can_be_refreshed()
     }
 
@@ -944,12 +957,28 @@ impl EpicLibraryBox {
     }
 }
 
-impl crate::ui::widgets::logged_in::refresh::Refresh for EpicLibraryBox {
+impl Refresh for EpicLibraryBox {
     fn run_refresh(&self) {
         self.fetch_assets();
     }
     fn can_be_refreshed(&self) -> bool {
         let self_ = self.imp();
+        trace!(
+            "asset_load_pool queued: {}",
+            self_.asset_load_pool.queued_count()
+        );
+        trace!(
+            "asset_load_pool active: {}",
+            self_.asset_load_pool.active_count()
+        );
+        trace!(
+            "image_load_pool queued: {}",
+            self_.image_load_pool.queued_count()
+        );
+        trace!(
+            "image_load_pool active: {}",
+            self_.image_load_pool.active_count()
+        );
         self_.asset_load_pool.queued_count()
             + self_.asset_load_pool.active_count()
             + self_.image_load_pool.queued_count()
