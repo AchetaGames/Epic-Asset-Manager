@@ -64,6 +64,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.5.0" date="2022-05-24">
+       <description>
+              <p>Minor improvements</p>
+              <ul>
+                  <li>Add timer to refresh</li>
+                  <li>Download chunks to vault</li>
+                  <li>Runtime log level modification</li>
+</ul>
+       </description>
+    </release>
     <release version="3.4.2" date="2022-05-23">
        <description>
               <p>Glibc patch</p>
