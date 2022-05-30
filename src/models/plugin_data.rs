@@ -2,69 +2,132 @@ use glib::ObjectExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::glib::clone;
 use gtk4::{self, glib, prelude::*, subclass::prelude::*};
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
-use std::path::PathBuf;
-use std::thread;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-pub struct Uproject {
+pub struct Uplugin {
     #[serde(default)]
     pub file_version: i64,
     #[serde(default)]
-    pub engine_association: String,
+    pub version: i64,
+    #[serde(default)]
+    pub version_name: String,
+    #[serde(default)]
+    pub friendly_name: String,
+    #[serde(default)]
+    pub description: String,
     #[serde(default)]
     pub category: String,
     #[serde(default)]
-    pub description: String,
-    pub modules: Option<Vec<super::plugin_data::Module>>,
-    pub plugins: Option<Vec<super::plugin_data::Plugin>>,
-    pub disable_engine_plugins_by_default: Option<bool>,
-    pub enterprise: Option<bool>,
-    pub additional_plugin_directories: Option<Vec<String>>,
-    pub additional_root_directories: Option<Vec<String>>,
-    pub target_platforms: Option<Vec<String>>,
-    pub epic_sample_name_hash: Option<String>,
+    pub created_by: String,
+    #[serde(default)]
+    pub docs_url: String,
+    #[serde(default)]
+    pub marketplace_url: String,
+    #[serde(default)]
+    pub support_url: String,
+    pub engine_version: Option<Vec<String>>,
+    pub editor_custom_virtual_path: Option<Vec<String>>,
+    pub enabled_by_default: Option<bool>,
+    pub can_contain_content: Option<bool>,
+    pub can_contain_verse: Option<bool>,
+    pub is_beta_version: Option<bool>,
+    pub is_experimental_version: Option<bool>,
+    pub installed: Option<bool>,
+    pub supported_target_platforms: Option<Vec<String>>,
+    pub supported_programs: Option<Vec<String>>,
+    pub b_is_plugin_extension: Option<bool>,
+    pub hidden: Option<bool>,
+    pub explicitly_loaded: Option<bool>,
+    pub has_explicit_platforms: Option<bool>,
     pub pre_build_steps: Option<HashMap<String, Vec<String>>>,
     pub post_build_steps: Option<HashMap<String, Vec<String>>>,
+    pub plugins: Option<Vec<Plugin>>,
+    pub modules: Option<Vec<Module>>,
+    pub editor_only: Option<bool>,
+    pub is_hidden: Option<bool>,
+    pub is_experimental: Option<bool>,
+    #[serde(default)]
+    pub localization_targets: Vec<HashMap<String, String>>,
+    pub requires_build_platform: Option<bool>,
+    pub can_be_used_with_unreal_header_tool: Option<bool>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Module {
+    pub name: String,
+    #[serde(rename = "Type", default)]
+    pub type_field: String,
+    #[serde(default)]
+    pub loading_phase: String,
+    pub additional_dependencies: Option<Vec<String>>,
+    #[serde(default)]
+    pub platform_allow_list: Vec<String>,
+    #[serde(default)]
+    pub program_allow_list: Vec<String>,
+    #[serde(default)]
+    pub target_deny_list: Vec<String>,
+    #[serde(default)]
+    pub platform_deny_list: Vec<String>,
+    #[serde(default)]
+    pub target_configuration_deny_list: Vec<String>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Plugin {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub marketplace_url: Option<String>,
+    #[serde(default)]
+    pub supported_target_platforms: Option<Vec<String>>,
+    #[serde(default)]
+    pub platform_allow_list: Vec<String>,
+    #[serde(default)]
+    pub target_allow_list: Vec<String>,
+    #[serde(default)]
+    pub target_deny_list: Vec<String>,
+    pub optional: Option<bool>,
+    #[serde(default)]
+    pub platform_deny_list: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
-pub enum ProjectMsg {
-    Thumbnail(Vec<u8>),
-}
+pub enum Msg {}
 
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
     use glib::ToValue;
     use gtk4::gdk_pixbuf::prelude::StaticType;
-    use gtk4::gdk_pixbuf::Pixbuf;
-    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecString};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
     #[derive(Debug)]
-    pub struct ProjectData {
+    pub struct PluginData {
         guid: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
-        pub uproject: RefCell<Option<super::Uproject>>,
-        thumbnail: RefCell<Option<Pixbuf>>,
-        pub sender: gtk4::glib::Sender<super::ProjectMsg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::ProjectMsg>>>,
+        pub uplugin: RefCell<Option<Uplugin>>,
+        pub sender: glib::Sender<Msg>,
+        pub receiver: RefCell<Option<glib::Receiver<Msg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
     #[glib::object_subclass]
-    impl ObjectSubclass for ProjectData {
-        const NAME: &'static str = "ProjectData";
-        type Type = super::ProjectData;
+    impl ObjectSubclass for PluginData {
+        const NAME: &'static str = "PluginData";
+        type Type = super::PluginData;
         type ParentType = glib::Object;
 
         fn new() -> Self {
@@ -73,8 +136,7 @@ mod imp {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
                 name: RefCell::new(None),
-                uproject: RefCell::new(None),
-                thumbnail: RefCell::new(None),
+                uplugin: RefCell::new(None),
                 sender,
                 receiver: RefCell::new(Some(receiver)),
             }
@@ -87,7 +149,7 @@ mod imp {
     //
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
-    impl ObjectImpl for ProjectData {
+    impl ObjectImpl for PluginData {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
             obj.setup_messaging();
@@ -114,13 +176,6 @@ mod imp {
                     ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
                     ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
                     ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
-                    ParamSpecObject::new(
-                        "thumbnail",
-                        "Thumbnail",
-                        "Thumbnail",
-                        Pixbuf::static_type(),
-                        glib::ParamFlags::READWRITE,
-                    ),
                 ]
             });
             PROPERTIES.as_ref()
@@ -146,12 +201,6 @@ mod imp {
                     let name = value.get().unwrap();
                     self.name.replace(name);
                 }
-                "thumbnail" => {
-                    let thumbnail = value
-                        .get()
-                        .expect("type conformity checked by `Object::set_property`");
-                    self.thumbnail.replace(thumbnail);
-                }
                 _ => unimplemented!(),
             }
         }
@@ -161,40 +210,25 @@ mod imp {
                 "guid" => self.guid.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
                 "name" => self.name.borrow().to_value(),
-                "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
     }
 }
 
-// Public part of the ProjectData type. This behaves like a normal gtk-rs-style GObject
+// Public part of the PluginData type. This behaves like a normal gtk-rs-style GObject
 // binding
 glib::wrapper! {
-    pub struct ProjectData(ObjectSubclass<imp::ProjectData>);
+    pub struct PluginData(ObjectSubclass<imp::PluginData>);
 }
 
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
-impl ProjectData {
-    pub fn new(path: &str, name: &str) -> ProjectData {
-        let data: Self = glib::Object::new(&[]).expect("Failed to create ProjectData");
-        let self_ = data.imp();
+impl PluginData {
+    pub fn new(path: &str, name: &str) -> PluginData {
+        let data: Self = glib::Object::new(&[]).expect("Failed to create PluginData");
         data.set_property("path", &path);
         data.set_property("name", &name);
-        let mut uproject = Self::read_uproject(path);
-        uproject.engine_association = uproject
-            .engine_association
-            .chars()
-            .filter(|c| c != &'{' && c != &'}')
-            .collect();
-        self_.uproject.replace(Some(uproject));
-        if let Some(path) = data.path() {
-            let sender = self_.sender.clone();
-            thread::spawn(move || {
-                Self::load_thumbnail(&path, &sender);
-            });
-        }
         data
     }
 
@@ -214,20 +248,20 @@ impl ProjectData {
         self.property("thumbnail")
     }
 
-    pub fn read_uproject(path: &str) -> Uproject {
+    pub fn read_uplugin(path: &str) -> Uplugin {
         let p = std::path::PathBuf::from(path);
-        if let Ok(mut file) = std::fs::File::open(p) {
+        if let Ok(mut file) = File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
                 return serde_json::from_str(&contents).unwrap();
             }
         }
-        Uproject::default()
+        Uplugin::default()
     }
 
-    pub fn uproject(&self) -> Option<Uproject> {
+    pub fn uplugin(&self) -> Option<Uplugin> {
         let self_ = self.imp();
-        self_.uproject.borrow().clone()
+        self_.uplugin.borrow().clone()
     }
 
     pub fn setup_messaging(&self) {
@@ -242,66 +276,5 @@ impl ProjectData {
         );
     }
 
-    pub fn update(&self, msg: ProjectMsg) {
-        match msg {
-            ProjectMsg::Thumbnail(image) => {
-                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(&image).unwrap();
-                pixbuf_loader.close().ok();
-
-                if let Some(pix) = pixbuf_loader.pixbuf() {
-                    self.set_property("thumbnail", &pix);
-                };
-            }
-        };
-        self.emit_by_name::<()>("finished", &[]);
-    }
-
-    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<ProjectMsg>) {
-        let mut pathbuf = match PathBuf::from(&path).parent() {
-            None => return,
-            Some(p) => p.to_path_buf(),
-        };
-        pathbuf.push("Saved");
-        pathbuf.push("AutoScreenshot.png");
-        match File::open(pathbuf.as_path()) {
-            Ok(mut f) => {
-                let metadata =
-                    std::fs::metadata(&pathbuf.as_path()).expect("unable to read metadata");
-                let mut buffer = vec![0; metadata.len() as usize];
-                f.read_exact(&mut buffer).expect("buffer overflow");
-                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(&buffer).unwrap();
-                pixbuf_loader.close().ok();
-                if let Some(pb) = pixbuf_loader.pixbuf() {
-                    let width = pb.width();
-                    let height = pb.height();
-
-                    let width_percent = 128.0 / width as f64;
-                    let height_percent = 128.0 / height as f64;
-                    let percent = if height_percent < width_percent {
-                        height_percent
-                    } else {
-                        width_percent
-                    };
-                    let desired = (width as f64 * percent, height as f64 * percent);
-                    sender
-                        .send(ProjectMsg::Thumbnail(
-                            pb.scale_simple(
-                                desired.0.round() as i32,
-                                desired.1.round() as i32,
-                                gtk4::gdk_pixbuf::InterpType::Bilinear,
-                            )
-                            .unwrap()
-                            .save_to_bufferv("png", &[])
-                            .unwrap(),
-                        ))
-                        .unwrap();
-                };
-            }
-            Err(_) => {
-                info!("No project picture exists for {}", path);
-            }
-        }
-    }
+    pub fn update(&self, _msg: Msg) {}
 }

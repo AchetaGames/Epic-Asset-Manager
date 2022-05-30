@@ -99,11 +99,10 @@
                                                 </child>
                                                 <child>
                                                     <object class="AdwExpanderRow" id="plugins_row">
-                                                        <property name="visible">false</property>
                                                         <property name="title" translatable="yes">Plugins</property>
                                                         <property name="expanded">0</property>
                                                         <child>
-                                                            <object class="GtkBox">
+                                                            <object class="EpicPlugins" id="plugins">
                                                             </object>
                                                         </child>
                                                     </object>
