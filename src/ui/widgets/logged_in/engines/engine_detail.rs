@@ -13,7 +13,7 @@ use std::thread;
 use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
-pub enum DockerMsg {
+pub enum Msg {
     EngineVersions(HashMap<String, Vec<String>>),
     Error(String),
     ManifestSize(u64),
@@ -55,8 +55,8 @@ pub(crate) mod imp {
         pub actions: gio::SimpleActionGroup,
         pub settings: gio::Settings,
         pub data: RefCell<Option<crate::models::engine_data::EngineData>>,
-        pub sender: gtk4::glib::Sender<super::DockerMsg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::DockerMsg>>>,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
         pub docker_versions: RefCell<Option<HashMap<String, Vec<String>>>>,
         selected: RefCell<Option<String>>,
         position: RefCell<u32>,
@@ -590,16 +590,16 @@ impl EpicEngineDetails {
         );
     }
 
-    pub fn update(&self, msg: DockerMsg) {
+    pub fn update(&self, msg: Msg) {
         let self_ = self.imp();
         match msg {
-            DockerMsg::EngineVersions(ver) => {
+            Msg::EngineVersions(ver) => {
                 if let Some(w) = self_.window.get() {
                     w.clear_notification("ghcr authentication");
                 }
                 self.updated_docker_versions(&ver);
             }
-            DockerMsg::ManifestSize(size) => {
+            Msg::ManifestSize(size) => {
                 let byte = byte_unit::Byte::from_bytes(size as u128).get_appropriate_unit(false);
                 match self_.settings.strv("unreal-engine-directories").get(0) {
                     None => {
@@ -625,7 +625,7 @@ impl EpicEngineDetails {
                 };
                 self.set_property("download-size", Some(byte.format(1)));
             }
-            DockerMsg::Error(_error) => {
+            Msg::Error(_error) => {
                 if let Some(w) = self_.window.get() {
                     w.add_notification("ghcr authentication", "Unable to authenticate to ghcr please check your setup(did you link with Epic Account?)", gtk4::MessageType::Error);
                     get_action!(self_.actions, @install).set_enabled(false);
@@ -660,7 +660,7 @@ impl EpicEngineDetails {
                     match client.get_manifest("epicgames/unreal-engine", &version) {
                         Ok(manifest) => match manifest.download_size() {
                             Ok(size) => {
-                                sender.send(DockerMsg::ManifestSize(size)).unwrap();
+                                sender.send(Msg::ManifestSize(size)).unwrap();
                             }
                             Err(e) => {
                                 error!("Unable to get manifest size: {:?}", e);
@@ -712,12 +712,12 @@ impl EpicEngineDetails {
                             Err(e) => {
                                 error!("Failed to get tags: {:?}", e);
                                 sender
-                                    .send(DockerMsg::Error(format!("Failed to get tags: {:?}", e)))
+                                    .send(Msg::Error(format!("Failed to get tags: {:?}", e)))
                                     .unwrap();
                             }
                         }
 
-                        sender.send(DockerMsg::EngineVersions(result)).unwrap();
+                        sender.send(Msg::EngineVersions(result)).unwrap();
                     });
                 } else {
                     self_.docker_versions.replace(None);

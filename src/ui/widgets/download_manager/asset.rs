@@ -1,6 +1,6 @@
 use crate::tools::asset_info::Search;
-use crate::ui::widgets::download_manager::DownloadMsg::CancelChunk;
-use crate::ui::widgets::download_manager::{DownloadMsg, PostDownloadAction, ThreadMessages};
+use crate::ui::widgets::download_manager::Msg::CancelChunk;
+use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessages};
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -207,7 +207,7 @@ impl Asset for super::EpicDownloadManager {
             clone!(@weak self as download_manager => @default-panic, move |(id, manifest)| {
                 let self_ = download_manager.imp();
                 let sender = self_.sender.clone();
-                sender.send(super::DownloadMsg::StartAssetDownload(id, manifest)).unwrap();
+                sender.send(super::Msg::StartAssetDownload(id, manifest)).unwrap();
                 glib::Continue(true)
             }),
         );
@@ -407,7 +407,7 @@ impl Asset for super::EpicDownloadManager {
                     let g = chunk.guid.clone();
                     p.push(format!("{}.chunk", g));
                     sender
-                        .send(super::DownloadMsg::RedownloadChunk(
+                        .send(super::Msg::RedownloadChunk(
                             reqwest::Url::parse("unix:/").unwrap(),
                             p,
                             g,
@@ -427,7 +427,7 @@ impl Asset for super::EpicDownloadManager {
             None => {
                 // Unable to get chunk urls
                 sender
-                    .send(super::DownloadMsg::PerformChunkDownload(
+                    .send(super::Msg::PerformChunkDownload(
                         link.clone(),
                         p,
                         g.to_string(),
@@ -440,7 +440,7 @@ impl Asset for super::EpicDownloadManager {
                     // No other URL available, redownloading
                     //TODO: This has the potential to loop forever
                     sender
-                        .send(super::DownloadMsg::PerformChunkDownload(
+                        .send(super::Msg::PerformChunkDownload(
                             link.clone(),
                             p.clone(),
                             g.to_string(),
@@ -454,7 +454,7 @@ impl Asset for super::EpicDownloadManager {
                     None => {
                         // Unable to get random URL, retrying the same one
                         sender
-                            .send(super::DownloadMsg::PerformChunkDownload(
+                            .send(super::Msg::PerformChunkDownload(
                                 link.clone(),
                                 p,
                                 g.to_string(),
@@ -464,7 +464,7 @@ impl Asset for super::EpicDownloadManager {
                     Some(u) => {
                         // Using new url to redownload the chunk
                         sender
-                            .send(super::DownloadMsg::PerformChunkDownload(
+                            .send(super::Msg::PerformChunkDownload(
                                 u.clone(),
                                 p,
                                 g.to_string(),
@@ -507,7 +507,7 @@ impl Asset for super::EpicDownloadManager {
                 Err(e) => {
                     error!("Failed to start chunk download, trying again later: {}", e);
                     sender
-                        .send(super::DownloadMsg::RedownloadChunk(
+                        .send(super::Msg::RedownloadChunk(
                             link.clone(),
                             p.clone(),
                             g.clone(),
@@ -534,7 +534,7 @@ impl Asset for super::EpicDownloadManager {
                             downloaded += size as u128;
                             file.write_all(&buffer[0..size]).unwrap();
                             sender
-                                .send(super::DownloadMsg::ChunkDownloadProgress(
+                                .send(super::Msg::ChunkDownloadProgress(
                                     g.clone(),
                                     size as u128,
                                     false,
@@ -551,7 +551,7 @@ impl Asset for super::EpicDownloadManager {
                 }
             }
             sender
-                .send(super::DownloadMsg::ChunkDownloadProgress(
+                .send(super::Msg::ChunkDownloadProgress(
                     g.clone(),
                     downloaded,
                     true,
@@ -655,7 +655,7 @@ impl Asset for super::EpicDownloadManager {
         self.emit_by_name::<()>("tick", &[]);
         self_
             .sender
-            .send(super::DownloadMsg::FileExtracted(asset_id))
+            .send(super::Msg::FileExtracted(asset_id))
             .unwrap();
     }
 
@@ -714,7 +714,7 @@ impl Asset for super::EpicDownloadManager {
                     for (url, path) in values {
                         self_
                             .sender
-                            .send(DownloadMsg::RedownloadChunk(
+                            .send(Msg::RedownloadChunk(
                                 url.clone(),
                                 path.clone(),
                                 guid.clone(),
@@ -768,17 +768,11 @@ impl Asset for super::EpicDownloadManager {
     }
 }
 
-fn process_thread_message(
-    link: &Url,
-    p: &Path,
-    g: &str,
-    sender: &Sender<DownloadMsg>,
-    m: &ThreadMessages,
-) {
+fn process_thread_message(link: &Url, p: &Path, g: &str, sender: &Sender<Msg>, m: &ThreadMessages) {
     match m {
         ThreadMessages::Cancel => {
             sender
-                .send(super::DownloadMsg::CancelChunk(
+                .send(super::Msg::CancelChunk(
                     link.clone(),
                     p.to_path_buf(),
                     g.to_string(),
@@ -787,7 +781,7 @@ fn process_thread_message(
         }
         ThreadMessages::Pause => {
             sender
-                .send(super::DownloadMsg::PauseChunk(
+                .send(super::Msg::PauseChunk(
                     link.clone(),
                     p.to_path_buf(),
                     g.to_string(),
@@ -854,7 +848,7 @@ fn initiate_file_download(
     r_id: &str,
     r_name: &str,
     f_name: &str,
-    sender: &Sender<super::DownloadMsg>,
+    sender: &Sender<super::Msg>,
     m: egs_api::api::types::download_manifest::FileManifestList,
     full_path: &Path,
 ) {
@@ -883,7 +877,7 @@ fn initiate_file_download(
                 .collect::<String>())
             {
                 sender
-                    .send(super::DownloadMsg::FileAlreadyDownloaded(
+                    .send(super::Msg::FileAlreadyDownloaded(
                         r_id.to_string(),
                         m.size(),
                         full_path.to_str().unwrap().to_string(),
@@ -893,7 +887,7 @@ fn initiate_file_download(
             } else {
                 warn!("Hashes do not match, downloading again: {:?}", full_path);
                 sender
-                    .send(super::DownloadMsg::PerformAssetDownload(
+                    .send(super::Msg::PerformAssetDownload(
                         r_id.to_string(),
                         r_name.to_string(),
                         f_name.to_string(),
@@ -905,7 +899,7 @@ fn initiate_file_download(
         // File does not exist perform download
         Err(_) => {
             sender
-                .send(super::DownloadMsg::PerformAssetDownload(
+                .send(super::Msg::PerformAssetDownload(
                     r_id.to_string(),
                     r_name.to_string(),
                     f_name.to_string(),
@@ -960,7 +954,7 @@ impl AssetPriv for super::EpicDownloadManager {
                             };
                             let desired = (width as f64 * percent, height as f64 * percent);
                             sender
-                                .send(super::DownloadMsg::ProcessItemThumbnail(
+                                .send(super::Msg::ProcessItemThumbnail(
                                     id.clone(),
                                     pb.scale_simple(
                                         desired.0.round() as i32,
@@ -1059,7 +1053,7 @@ impl AssetPriv for super::EpicDownloadManager {
                     {
                         copy_files(&vault.clone(), targets, &finished.name);
                         sender
-                            .send(super::DownloadMsg::FinalizeFileDownload(
+                            .send(super::Msg::FinalizeFileDownload(
                                 file_c.to_string(),
                                 f_c.clone(),
                             ))

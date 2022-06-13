@@ -1,7 +1,7 @@
 use glib::ObjectExt;
 use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::glib::clone;
-use gtk4::{self, glib, prelude::*, subclass::prelude::*};
+use gtk4::{self, glib, subclass::prelude::*};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;

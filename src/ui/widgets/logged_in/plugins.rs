@@ -1,34 +1,8 @@
-use gtk4::glib::{clone, Sender};
-use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate, CustomSorter};
-use std::cmp::Ordering;
-use std::path::Path;
-use std::{iter::Peekable, str::Chars};
-
-pub struct IterPair<'a> {
-    pub fst: Peekable<Chars<'a>>,
-    pub lst: Peekable<Chars<'a>>,
-}
-
-impl<'a> IterPair<'a> {
-    pub fn from(i1: Chars<'a>, i2: Chars<'a>) -> Self {
-        Self {
-            fst: i1.peekable(),
-            lst: i2.peekable(),
-        }
-    }
-
-    pub fn next(&mut self) -> [Option<char>; 2] {
-        [self.fst.next(), self.lst.next()]
-    }
-
-    pub fn peek(&mut self) -> [Option<&char>; 2] {
-        [self.fst.peek(), self.lst.peek()]
-    }
-}
+use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 
 #[derive(Debug, Clone)]
 pub enum Msg {
-    AddLog(String, String, bool),
+    AddPlugin(String, String, bool),
 }
 
 pub(crate) mod imp {
@@ -102,10 +76,6 @@ impl Default for EpicPlugins {
 impl EpicPlugins {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create EpicPlugins")
-    }
-
-    pub fn setup_messaging(&self) {
-        let self_ = self.imp();
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

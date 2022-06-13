@@ -74,7 +74,7 @@ impl UnrealVersion {
 }
 
 #[derive(Debug, Clone)]
-pub enum EngineMsg {
+pub enum Msg {
     Update(bool),
     Branch(String),
 }
@@ -98,8 +98,8 @@ mod imp {
         updatable: RefCell<bool>,
         has_branch: RefCell<bool>,
         pub ueversion: RefCell<Option<super::UnrealVersion>>,
-        pub sender: gtk4::glib::Sender<super::EngineMsg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::EngineMsg>>>,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
         pub model: OnceCell<gtk4::gio::ListStore>,
         pub position: OnceCell<u32>,
     }
@@ -304,12 +304,12 @@ impl EngineData {
         );
     }
 
-    pub fn update(&self, msg: EngineMsg) {
+    pub fn update(&self, msg: Msg) {
         match msg {
-            EngineMsg::Update(waiting) => {
+            Msg::Update(waiting) => {
                 self.set_property("needs-update", waiting);
             }
-            EngineMsg::Branch(branch) => {
+            Msg::Branch(branch) => {
                 self.set_property("has-branch", !branch.is_empty());
                 self.set_property("branch", branch);
             }
@@ -317,7 +317,7 @@ impl EngineData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    fn needs_repo_update(path: &str, sender: Option<gtk4::glib::Sender<EngineMsg>>) -> bool {
+    fn needs_repo_update(path: &str, sender: Option<gtk4::glib::Sender<Msg>>) -> bool {
         #[cfg(target_os = "linux")]
         {
             if let Ok(repo) = git2::Repository::open(&path) {
@@ -328,7 +328,7 @@ impl EngineData {
                         commit = head.target().unwrap();
                         branch = head.name().unwrap().to_string();
                         if let Some(s) = sender.clone() {
-                            s.send(EngineMsg::Branch(
+                            s.send(Msg::Branch(
                                 head.shorthand().unwrap_or_default().to_string(),
                             ))
                             .unwrap();
@@ -360,7 +360,7 @@ impl EngineData {
                                         if head.oid().eq(&commit) {
                                             debug!("{} Up to date", path);
                                             if let Some(s) = sender {
-                                                s.send(EngineMsg::Update(false)).unwrap();
+                                                s.send(Msg::Update(false)).unwrap();
                                             }
                                             return false;
                                         }
@@ -373,7 +373,7 @@ impl EngineData {
                                             head.oid()
                                         );
                                         if let Some(s) = sender {
-                                            s.send(EngineMsg::Update(true)).unwrap();
+                                            s.send(Msg::Update(true)).unwrap();
                                         }
                                         return true;
                                     }

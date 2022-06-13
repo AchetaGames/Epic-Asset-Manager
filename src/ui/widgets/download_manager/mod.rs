@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
-pub enum DownloadMsg {
+pub enum Msg {
     ProcessItemThumbnail(String, Vec<u8>),
     StartAssetDownload(
         String,
@@ -88,8 +88,8 @@ pub(crate) mod imp {
         pub thumbnail_pool: ThreadPool,
         pub image_pool: ThreadPool,
         pub file_pool: ThreadPool,
-        pub sender: gtk4::glib::Sender<super::DownloadMsg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::DownloadMsg>>>,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
         pub download_items: RefCell<
             HashMap<String, crate::ui::widgets::download_manager::download_item::EpicDownloadItem>,
         >,
@@ -268,10 +268,10 @@ impl EpicDownloadManager {
         );
     }
 
-    pub fn update(&self, msg: DownloadMsg) {
+    pub fn update(&self, msg: Msg) {
         let self_ = self.imp();
         match msg {
-            DownloadMsg::ProcessItemThumbnail(id, image) => {
+            Msg::ProcessItemThumbnail(id, image) => {
                 let item = match self.get_item(&id) {
                     None => return,
                     Some(i) => i,
@@ -284,28 +284,28 @@ impl EpicDownloadManager {
                     item.set_property("thumbnail", &pix);
                 };
             }
-            DownloadMsg::StartAssetDownload(id, manifest) => {
+            Msg::StartAssetDownload(id, manifest) => {
                 self.start_download_asset(&id, &manifest);
             }
-            DownloadMsg::PerformAssetDownload(id, release, name, manifest) => {
+            Msg::PerformAssetDownload(id, release, name, manifest) => {
                 self.download_asset_file(id, release, name, manifest);
             }
-            DownloadMsg::PerformChunkDownload(link, path, guid) => {
+            Msg::PerformChunkDownload(link, path, guid) => {
                 self.download_chunk(link, path, guid);
             }
-            DownloadMsg::RedownloadChunk(link, path, guid) => {
+            Msg::RedownloadChunk(link, path, guid) => {
                 self.redownload_chunk(&link, path, &guid);
             }
-            DownloadMsg::ChunkDownloadProgress(guid, size, finished) => {
+            Msg::ChunkDownloadProgress(guid, size, finished) => {
                 self.chunk_progress_report(&guid, size, finished);
             }
-            DownloadMsg::FinalizeFileDownload(file, file_details) => {
+            Msg::FinalizeFileDownload(file, file_details) => {
                 self.finalize_file_download(&file, file_details);
             }
-            DownloadMsg::FileAlreadyDownloaded(id, progress, fullname, filename) => {
+            Msg::FileAlreadyDownloaded(id, progress, fullname, filename) => {
                 self.file_already_extracted(id, progress, fullname, filename);
             }
-            DownloadMsg::FileExtracted(id) => {
+            Msg::FileExtracted(id) => {
                 let item = match self.get_item(&id) {
                     None => {
                         return;
@@ -315,23 +315,23 @@ impl EpicDownloadManager {
                 item.file_processed();
                 self.emit_by_name::<()>("tick", &[]);
             }
-            DownloadMsg::PerformDockerEngineDownload(version, size, digests) => {
+            Msg::PerformDockerEngineDownload(version, size, digests) => {
                 self.perform_docker_blob_downloads(&version, size, digests);
             }
-            DownloadMsg::DockerDownloadProgress(version, progress) => {
+            Msg::DockerDownloadProgress(version, progress) => {
                 self.docker_download_progress(&version, progress);
             }
-            DownloadMsg::DockerBlobFinished(version, digest) => {
+            Msg::DockerBlobFinished(version, digest) => {
                 debug!("Finished download of {} digest {}", version, digest);
                 self.docker_blob_finished(&version, &digest);
             }
-            DownloadMsg::DockerBlobFailed(version, digest) => {
+            Msg::DockerBlobFailed(version, digest) => {
                 self.download_docker_digest(&version, digest);
             }
-            DownloadMsg::DockerExtractionFinished(version) => {
+            Msg::DockerExtractionFinished(version) => {
                 self.docker_extraction_finished(&version);
             }
-            DownloadMsg::IOError(e) => {
+            Msg::IOError(e) => {
                 if let Some(w) = self_.window.get() {
                     w.add_notification(
                         "iodownloaderror",
@@ -340,16 +340,16 @@ impl EpicDownloadManager {
                     );
                 }
             }
-            DownloadMsg::PauseChunk(url, path, guid) => {
+            Msg::PauseChunk(url, path, guid) => {
                 self.pause_asset_chunk(url, path, guid);
             }
-            DownloadMsg::CancelChunk(_url, path, guid) => {
+            Msg::CancelChunk(_url, path, guid) => {
                 self.remove_chunk(path, guid);
             }
-            DownloadMsg::DockerCanceled(version, digest) => {
+            Msg::DockerCanceled(version, digest) => {
                 self.cancel_docker_digest(&version, digest);
             }
-            DownloadMsg::DockerPaused(version, digest) => {
+            Msg::DockerPaused(version, digest) => {
                 self.pause_docker_digest(version, digest);
             }
         }
@@ -433,7 +433,7 @@ impl EpicDownloadManager {
         }
         self_
             .sender
-            .send(DownloadMsg::FileExtracted(file_details.asset))
+            .send(Msg::FileExtracted(file_details.asset))
             .unwrap();
     }
 
@@ -520,7 +520,7 @@ impl EpicDownloadManager {
         &self,
         image: egs_api::api::types::asset_info::KeyImage,
         asset: String,
-        sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::library::image_stack::ImageMsg>,
+        sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::library::image_stack::Msg>,
     ) {
         let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -552,7 +552,7 @@ impl EpicDownloadManager {
                     }
                     sender
                         .send(
-                            crate::ui::widgets::logged_in::library::image_stack::ImageMsg::LoadImage(
+                            crate::ui::widgets::logged_in::library::image_stack::Msg::LoadImage(
                                 asset, img,
                             ),
                         )

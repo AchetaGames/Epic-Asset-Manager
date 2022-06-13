@@ -34,7 +34,7 @@ pub struct Uproject {
 }
 
 #[derive(Debug, Clone)]
-pub enum ProjectMsg {
+pub enum Msg {
     Thumbnail(Vec<u8>),
 }
 
@@ -56,8 +56,8 @@ mod imp {
         name: RefCell<Option<String>>,
         pub uproject: RefCell<Option<super::Uproject>>,
         thumbnail: RefCell<Option<Pixbuf>>,
-        pub sender: gtk4::glib::Sender<super::ProjectMsg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::ProjectMsg>>>,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -242,9 +242,9 @@ impl ProjectData {
         );
     }
 
-    pub fn update(&self, msg: ProjectMsg) {
+    pub fn update(&self, msg: Msg) {
         match msg {
-            ProjectMsg::Thumbnail(image) => {
+            Msg::Thumbnail(image) => {
                 let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(&image).unwrap();
                 pixbuf_loader.close().ok();
@@ -257,7 +257,7 @@ impl ProjectData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<ProjectMsg>) {
+    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<Msg>) {
         let mut pathbuf = match PathBuf::from(&path).parent() {
             None => return,
             Some(p) => p.to_path_buf(),
@@ -286,7 +286,7 @@ impl ProjectData {
                     };
                     let desired = (width as f64 * percent, height as f64 * percent);
                     sender
-                        .send(ProjectMsg::Thumbnail(
+                        .send(Msg::Thumbnail(
                             pb.scale_simple(
                                 desired.0.round() as i32,
                                 desired.1.round() as i32,
