@@ -261,7 +261,10 @@ impl EpicEngineDetails {
         if let Some(ver) = self.selected() {
             if let Some(dm) = self_.download_manager.get() {
                 dm.download_engine_from_docker(&ver);
-                self.show_confirmation("<b><big>Engine Install Initialized</big></b>");
+                self.show_confirmation(
+                    "<b><big>Engine Install Initialized</big></b>
+<i>See Header Bar for details</i>",
+                );
             }
         }
     }
