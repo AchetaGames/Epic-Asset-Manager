@@ -35,6 +35,8 @@ pub(crate) mod imp {
         pub confirmation_revealer: TemplateChild<gtk4::Revealer>,
         #[template_child]
         pub logs: TemplateChild<crate::ui::widgets::logged_in::logs::EpicLogs>,
+        #[template_child]
+        pub plugins: TemplateChild<crate::ui::widgets::logged_in::plugins::EpicPlugins>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub actions: gio::SimpleActionGroup,
         path: RefCell<Option<String>>,
@@ -60,6 +62,7 @@ pub(crate) mod imp {
                 details_revealer: TemplateChild::default(),
                 confirmation_revealer: TemplateChild::default(),
                 logs: TemplateChild::default(),
+                plugins: TemplateChild::default(),
                 window: OnceCell::new(),
                 actions: gio::SimpleActionGroup::new(),
                 path: RefCell::new(None),

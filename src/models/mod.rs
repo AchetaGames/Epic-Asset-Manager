@@ -3,6 +3,7 @@ pub mod category_data;
 pub mod database;
 pub mod engine_data;
 pub mod log_data;
+mod plugin_data;
 pub mod project_data;
 
 use crate::config::APP_ID;

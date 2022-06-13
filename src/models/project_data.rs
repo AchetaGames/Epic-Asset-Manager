@@ -21,8 +21,8 @@ pub struct Uproject {
     pub category: String,
     #[serde(default)]
     pub description: String,
-    pub modules: Option<Vec<Module>>,
-    pub plugins: Option<Vec<Plugin>>,
+    pub modules: Option<Vec<super::plugin_data::Module>>,
+    pub plugins: Option<Vec<super::plugin_data::Plugin>>,
     pub disable_engine_plugins_by_default: Option<bool>,
     pub enterprise: Option<bool>,
     pub additional_plugin_directories: Option<Vec<String>>,
@@ -33,32 +33,8 @@ pub struct Uproject {
     pub post_build_steps: Option<HashMap<String, Vec<String>>>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct Module {
-    pub name: String,
-    #[serde(rename = "Type", default)]
-    pub type_field: String,
-    #[serde(default)]
-    pub loading_phase: String,
-    pub additional_dependencies: Option<Vec<String>>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct Plugin {
-    #[serde(default)]
-    pub name: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default)]
-    pub marketplace_url: Option<String>,
-    #[serde(default)]
-    pub supported_target_platforms: Option<Vec<String>>,
-}
-
 #[derive(Debug, Clone)]
-pub enum ProjectMsg {
+pub enum Msg {
     Thumbnail(Vec<u8>),
 }
 
@@ -80,8 +56,8 @@ mod imp {
         name: RefCell<Option<String>>,
         pub uproject: RefCell<Option<super::Uproject>>,
         thumbnail: RefCell<Option<Pixbuf>>,
-        pub sender: gtk4::glib::Sender<super::ProjectMsg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::ProjectMsg>>>,
+        pub sender: gtk4::glib::Sender<super::Msg>,
+        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -266,9 +242,9 @@ impl ProjectData {
         );
     }
 
-    pub fn update(&self, msg: ProjectMsg) {
+    pub fn update(&self, msg: Msg) {
         match msg {
-            ProjectMsg::Thumbnail(image) => {
+            Msg::Thumbnail(image) => {
                 let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(&image).unwrap();
                 pixbuf_loader.close().ok();
@@ -281,7 +257,7 @@ impl ProjectData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<ProjectMsg>) {
+    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<Msg>) {
         let mut pathbuf = match PathBuf::from(&path).parent() {
             None => return,
             Some(p) => p.to_path_buf(),
@@ -310,7 +286,7 @@ impl ProjectData {
                     };
                     let desired = (width as f64 * percent, height as f64 * percent);
                     sender
-                        .send(ProjectMsg::Thumbnail(
+                        .send(Msg::Thumbnail(
                             pb.scale_simple(
                                 desired.0.round() as i32,
                                 desired.1.round() as i32,

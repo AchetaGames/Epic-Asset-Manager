@@ -31,8 +31,8 @@ pub(crate) mod imp {
         pub settings: gio::Settings,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
-        pub sender: Sender<super::ImageMsg>,
-        pub receiver: RefCell<Option<Receiver<super::ImageMsg>>>,
+        pub sender: Sender<super::Msg>,
+        pub receiver: RefCell<Option<Receiver<super::Msg>>>,
         asset: RefCell<Option<String>>,
     }
 
@@ -131,7 +131,7 @@ impl Default for EpicImageOverlay {
 }
 
 #[derive(Debug, Clone)]
-pub enum ImageMsg {
+pub enum Msg {
     DownloadImage(String, egs_api::api::types::asset_info::KeyImage),
     LoadImage(String, egs_api::api::types::asset_info::KeyImage),
     ImageLoaded(Vec<u8>),
@@ -175,22 +175,22 @@ impl EpicImageOverlay {
         );
     }
 
-    pub fn update(&self, msg: ImageMsg) {
+    pub fn update(&self, msg: Msg) {
         let self_ = self.imp();
         match msg {
-            ImageMsg::DownloadImage(asset, image) => {
+            Msg::DownloadImage(asset, image) => {
                 if let Some(dm) = self_.download_manager.get() {
                     dm.download_image(image, asset, self_.sender.clone());
                 }
             }
-            ImageMsg::LoadImage(asset, img) => {
+            Msg::LoadImage(asset, img) => {
                 debug!("Image downloaded");
                 if asset.eq(&self.asset()) {
                     debug!("Adding image");
                     self.add_image(&img);
                 }
             }
-            ImageMsg::ImageLoaded(img) => {
+            Msg::ImageLoaded(img) => {
                 debug!("Adding image to stack");
                 let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
                 pixbuf_loader.write(img.as_slice()).unwrap();
@@ -304,16 +304,12 @@ impl EpicImageOverlay {
                 pixbuf_loader.close().ok();
                 if let Some(pb) = pixbuf_loader.pixbuf() {
                     sender
-                        .send(ImageMsg::ImageLoaded(
-                            pb.save_to_bufferv("png", &[]).unwrap(),
-                        ))
+                        .send(Msg::ImageLoaded(pb.save_to_bufferv("png", &[]).unwrap()))
                         .unwrap()
                 };
             } else {
                 debug!("Need to download image");
-                sender
-                    .send(ImageMsg::DownloadImage(asset, img.clone()))
-                    .unwrap();
+                sender.send(Msg::DownloadImage(asset, img.clone())).unwrap();
             };
         });
     }

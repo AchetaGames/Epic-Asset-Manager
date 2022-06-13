@@ -42,6 +42,8 @@ pub(crate) mod imp {
         release_notes: RefCell<Option<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         pub window: OnceCell<EpicAssetManagerWindow>,
+        pub size_label: RefCell<gtk4::Label>,
+        pub disk_size_label: RefCell<gtk4::Label>,
         pub actions: gio::SimpleActionGroup,
         pub settings: gtk4::gio::Settings,
         pub download_manager: OnceCell<EpicDownloadManager>,
@@ -93,6 +95,8 @@ pub(crate) mod imp {
                 release_notes: RefCell::new(None),
                 asset: RefCell::new(None),
                 window: OnceCell::new(),
+                size_label: RefCell::new(Default::default()),
+                disk_size_label: RefCell::new(Default::default()),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 select_download_version: TemplateChild::default(),
@@ -466,6 +470,14 @@ impl EpicAssetActions {
                 }
             };
         }
+
+        let size_label = gtk4::Label::new(Some("loading..."));
+        self.add_detail("Download Size", &size_label);
+        self_.size_label.replace(size_label);
+
+        let size_label = gtk4::Label::new(Some("loading..."));
+        self.add_detail("Size", &size_label);
+        self_.disk_size_label.replace(size_label);
     }
 
     fn process_download_manifest(
@@ -480,22 +492,17 @@ impl EpicAssetActions {
                     self_.add_to_project.set_manifest(&manifest);
                     self_.download_details.set_manifest(&manifest);
                     self_.create_asset_project.set_manifest(&manifest);
-                    self.add_detail(
-                        "Download Size",
-                        &gtk4::Label::new(Some(&format!(
-                            "{}",
-                            byte_unit::Byte::from_bytes(manifest.total_download_size())
-                                .get_appropriate_unit(false)
-                        ))),
-                    );
-                    self.add_detail(
-                        "Size",
-                        &gtk4::Label::new(Some(&format!(
-                            "{}",
-                            byte_unit::Byte::from_bytes(manifest.total_size())
-                                .get_appropriate_unit(false)
-                        ))),
-                    );
+                    self_.size_label.borrow().set_label(&format!(
+                        "{}",
+                        byte_unit::Byte::from_bytes(manifest.total_download_size())
+                            .get_appropriate_unit(false)
+                    ));
+
+                    self_.disk_size_label.borrow().set_label(&format!(
+                        "{}",
+                        byte_unit::Byte::from_bytes(manifest.total_size())
+                            .get_appropriate_unit(false)
+                    ));
                 }
             }
         };

@@ -9,6 +9,7 @@ mod engines;
 pub mod library;
 mod log_line;
 pub mod logs;
+mod plugins;
 mod projects;
 pub mod refresh;
 

@@ -103,7 +103,7 @@
                                                         <property name="title" translatable="yes">Plugins</property>
                                                         <property name="expanded">0</property>
                                                         <child>
-                                                            <object class="GtkBox">
+                                                            <object class="EpicPlugins" id="plugins">
                                                             </object>
                                                         </child>
                                                     </object>

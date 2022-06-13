@@ -1,7 +1,5 @@
-use crate::ui::widgets::download_manager::DownloadMsg::{DockerBlobFailed, DockerCanceled};
-use crate::ui::widgets::download_manager::{
-    download_item, DownloadMsg, DownloadStatus, ThreadMessages,
-};
+use crate::ui::widgets::download_manager::Msg::{DockerBlobFailed, DockerCanceled};
+use crate::ui::widgets::download_manager::{download_item, DownloadStatus, Msg, ThreadMessages};
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -137,18 +135,18 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                             Some(tx),
                             target.as_path(),
                         ) {
-                            Ok(_) => s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFinished(v, d)).unwrap(),
+                            Ok(_) => s.send(crate::ui::widgets::download_manager::Msg::DockerBlobFinished(v, d)).unwrap(),
                             Err(e) => {
 
                                 match &e {
                                     ghregistry::errors::Error::IO(err) => {
                                         error!("Failed blob download because: {:?}", err);
-                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::IOError(err.to_string())).unwrap();
+                                        s.send(crate::ui::widgets::download_manager::Msg::IOError(err.to_string())).unwrap();
                                     },
                                     ghregistry::errors::Error::Sender(_e) => {}
                                     _ => {
                                         error!("Failed blob download because: {:?}", e);
-                                        s.send(crate::ui::widgets::download_manager::DownloadMsg::DockerBlobFailed(v, (d, size))).unwrap();
+                                        s.send(crate::ui::widgets::download_manager::Msg::DockerBlobFailed(v, (d, size))).unwrap();
                                     }
                                 }
                             }
@@ -159,10 +157,14 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                             process_docker_thread_message(ver.clone(), digest.clone(), &sender, &m);
                             return;
                         }
-                        sender.send(crate::ui::widgets::download_manager::DownloadMsg::DockerDownloadProgress(
-                            ver.clone(),
-                            progress,
-                        )).unwrap();
+                        sender
+                            .send(
+                                crate::ui::widgets::download_manager::Msg::DockerDownloadProgress(
+                                    ver.clone(),
+                                    progress,
+                                ),
+                            )
+                            .unwrap();
                     }
                 });
             }
@@ -255,7 +257,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                         Ok(manifest) => match manifest.layers_digests(None) {
                             Ok(digests) => {
                                 sender
-                                    .send(crate::ui::widgets::download_manager::DownloadMsg::PerformDockerEngineDownload(
+                                    .send(crate::ui::widgets::download_manager::Msg::PerformDockerEngineDownload(
                                         v,
                                         manifest.download_size().unwrap_or(0),
                                         digests,
@@ -374,7 +376,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                         ) {
                             Ok(_) => {
                                 sender.send(
-                                    crate::ui::widgets::download_manager::DownloadMsg::DockerExtractionFinished(
+                                    crate::ui::widgets::download_manager::Msg::DockerExtractionFinished(
                                         v,
                                     ),
                                 ).unwrap();
@@ -487,19 +489,15 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 fn process_docker_thread_message(
     version: String,
     digest: (String, u64),
-    sender: &Sender<crate::ui::widgets::download_manager::DownloadMsg>,
+    sender: &Sender<crate::ui::widgets::download_manager::Msg>,
     m: &crate::ui::widgets::download_manager::ThreadMessages,
 ) {
     match m {
         ThreadMessages::Cancel => {
-            sender
-                .send(DownloadMsg::DockerCanceled(version, digest))
-                .unwrap();
+            sender.send(Msg::DockerCanceled(version, digest)).unwrap();
         }
         ThreadMessages::Pause => {
-            sender
-                .send(DownloadMsg::DockerPaused(version, digest))
-                .unwrap();
+            sender.send(Msg::DockerPaused(version, digest)).unwrap();
         }
     }
 }

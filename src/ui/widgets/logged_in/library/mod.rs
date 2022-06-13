@@ -830,34 +830,39 @@ impl EpicLibraryBox {
             let cache_dir = self_.settings.string("cache-directory").to_string();
             let cache_path = PathBuf::from(cache_dir);
             debug!("Fetching assets");
+            let mut cached: Vec<String> = vec![];
             if cache_path.is_dir() {
                 debug!("Checking cache");
                 let entries = std::fs::read_dir(cache_path).unwrap();
                 for entry in entries {
                     let sender = win_.model.borrow().sender.clone();
-                    self_.asset_load_pool.execute(move || {
-                        // Load assets from cache
-
-                        if let Ok(w) = crate::RUNNING.read() {
-                            if !*w {
-                                return;
-                            }
-                        }
-                        let mut asset_file = entry.unwrap().path();
+                    if let Ok(entr) = entry {
+                        let mut asset_file = entr.path();
+                        cached.push(entr.file_name().into_string().unwrap_or_default());
                         asset_file.push("asset_info.json");
-                        if asset_file.exists() {
-                            sender
-                                .send(crate::ui::messages::Msg::StartAssetProcessing)
-                                .unwrap();
-                            if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
-                                if let Ok(asset) = serde_json::from_reader(f) {
-                                    sender
-                                        .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
-                                        .unwrap();
+                        self_.asset_load_pool.execute(move || {
+                            // Load assets from cache
+
+                            if let Ok(w) = crate::RUNNING.read() {
+                                if !*w {
+                                    return;
                                 }
-                            };
-                        }
-                    });
+                            }
+
+                            if asset_file.exists() {
+                                sender
+                                    .send(crate::ui::messages::Msg::StartAssetProcessing)
+                                    .unwrap();
+                                if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
+                                    if let Ok(asset) = serde_json::from_reader(f) {
+                                        sender
+                                            .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                                            .unwrap();
+                                    }
+                                };
+                            }
+                        });
+                    }
                 }
             };
             self.set_property("to-load", 0u32);
@@ -869,9 +874,22 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             // Start loading assets from the API
             self_.asset_load_pool.execute(move || {
-                let assets = tokio::runtime::Runtime::new()
+                let mut assets = tokio::runtime::Runtime::new()
                     .unwrap()
                     .block_on(eg.list_assets());
+                assets.sort_by(|a, b| {
+                    let contains_a = cached.contains(&a.catalog_item_id);
+                    let contains_b = cached.contains(&b.catalog_item_id);
+                    if contains_a && contains_b {
+                        std::cmp::Ordering::Equal
+                    } else if contains_a {
+                        std::cmp::Ordering::Greater
+                    } else if contains_b {
+                        std::cmp::Ordering::Less
+                    } else {
+                        std::cmp::Ordering::Equal
+                    }
+                });
                 for asset in assets {
                     sender
                         .send(crate::ui::messages::Msg::StartAssetProcessing)
