@@ -609,8 +609,14 @@ impl EpicEngineDetails {
                         }
                     }
                     Some(p) => {
-                        if fs2::available_space(std::path::Path::new(p)).unwrap_or_default() < size
-                        {
+                        let mut path = std::path::Path::new(p);
+                        while !path.exists() {
+                            path = match path.parent() {
+                                None => break,
+                                Some(p) => p,
+                            }
+                        }
+                        if fs2::available_space(path).unwrap_or_default() < size {
                             if let Some(w) = self_.window.get() {
                                 w.add_notification("no space left on device engine", "Not enough space left in the Engine directory for install, please choose a different one.", gtk4::MessageType::Error);
                             }
