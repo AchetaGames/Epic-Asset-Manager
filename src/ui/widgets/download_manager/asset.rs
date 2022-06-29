@@ -925,7 +925,7 @@ impl AssetPriv for super::EpicDownloadManager {
             let name = Path::new(t.url.path())
                 .extension()
                 .and_then(std::ffi::OsStr::to_str);
-            cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
+            cache_path.push(format!("{}.{}", t.md5, name.unwrap_or("png")));
             self_.thumbnail_pool.execute(move || {
                 if let Ok(w) = crate::RUNNING.read() {
                     if !*w {

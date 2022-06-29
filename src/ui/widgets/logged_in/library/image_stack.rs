@@ -280,7 +280,7 @@ impl EpicImageOverlay {
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
         // TODO Have just one sender&receiver per the widget
         let sender = self_.sender.clone();
 

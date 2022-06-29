@@ -459,7 +459,7 @@ impl EpicDownloadManager {
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
         self_.thumbnail_pool.execute(move || {
             if let Ok(w) = crate::RUNNING.read() {
                 if !*w {
@@ -524,7 +524,7 @@ impl EpicDownloadManager {
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
         let img = image.clone();
         self_.image_pool.execute(move || {
             if let Ok(w) = crate::RUNNING.read() {

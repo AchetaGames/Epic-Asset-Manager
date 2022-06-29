@@ -756,7 +756,7 @@ impl EpicLibraryBox {
                     let mut cache_path = PathBuf::from(cache_dir);
                     cache_path.push("images");
                     let name = Path::new(t.url.path()).extension().and_then(OsStr::to_str);
-                    cache_path.push(format!("{}.{}", t.md5, name.unwrap_or(".png")));
+                    cache_path.push(format!("{}.{}", t.md5, name.unwrap_or("png")));
                     let asset = asset.clone();
                     self_.image_load_pool.execute(move || {
                         if let Ok(w) = crate::RUNNING.read() {
@@ -775,7 +775,10 @@ impl EpicLibraryBox {
                                     ))
                                     .unwrap(),
                                 Err(e) => {
-                                    error!("Unable to load file to texture: {}", e);
+                                    error!(
+                                        "Unable to load file {}{} to texture: {}",
+                                        t.url, t.md5, e
+                                    );
                                     return;
                                 }
                             };
