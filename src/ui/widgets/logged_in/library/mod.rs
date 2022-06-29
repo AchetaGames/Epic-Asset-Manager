@@ -2,14 +2,13 @@ use crate::tools::asset_info::Search;
 use crate::ui::widgets::logged_in::refresh::Refresh;
 use asset::EpicAsset;
 use glib::clone;
-use gtk4::{self, gdk_pixbuf, prelude::*, CustomSorter};
+use gtk4::{self, prelude::*, CustomSorter};
 use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::debug;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
-use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -653,7 +652,11 @@ impl EpicLibraryBox {
         self.update_count();
     }
 
-    pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
+    pub fn add_asset(
+        &self,
+        asset: &egs_api::api::types::asset_info::AssetInfo,
+        image: Option<gtk4::gdk::Texture>,
+    ) {
         let self_ = self.imp();
         if let Some(categories) = &asset.categories {
             for category in categories {
@@ -744,7 +747,7 @@ impl EpicLibraryBox {
                     sender
                         .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
                             asset.clone(),
-                            vec![],
+                            None,
                         ))
                         .unwrap();
                 }
@@ -761,49 +764,26 @@ impl EpicLibraryBox {
                                 return;
                             }
                         }
-                        match File::open(cache_path.as_path()) {
-                            Ok(mut f) => {
-                                fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
-                                let metadata = fs::metadata(&cache_path.as_path())
-                                    .expect("unable to read metadata");
-                                let mut buffer = vec![0; metadata.len() as usize];
-                                f.read_exact(&mut buffer).expect("buffer overflow");
-                                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-                                pixbuf_loader.write(&buffer).unwrap();
-                                pixbuf_loader.close().ok();
-                                if let Some(pb) = pixbuf_loader.pixbuf() {
-                                    let width = pb.width();
-                                    let height = pb.height();
-
-                                    let width_percent = 128.0 / width as f64;
-                                    let height_percent = 128.0 / height as f64;
-                                    let percent = if height_percent < width_percent {
-                                        height_percent
-                                    } else {
-                                        width_percent
-                                    };
-                                    let desired = (width as f64 * percent, height as f64 * percent);
-                                    sender
-                                        .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
-                                            asset.clone(),
-                                            pb.scale_simple(
-                                                desired.0.round() as i32,
-                                                desired.1.round() as i32,
-                                                gdk_pixbuf::InterpType::Bilinear,
-                                            )
-                                            .unwrap()
-                                            .save_to_bufferv("png", &[])
-                                            .unwrap(),
-                                        ))
-                                        .unwrap();
-                                };
-                            }
-                            Err(_) => {
-                                sender
-                                    .send(crate::ui::messages::Msg::DownloadImage(t, asset.clone()))
-                                    .unwrap();
-                            }
-                        };
+                        if cache_path.as_path().exists() {
+                            match gtk4::gdk::Texture::from_file(&gio::File::for_path(
+                                cache_path.as_path(),
+                            )) {
+                                Ok(t) => sender
+                                    .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                                        asset.clone(),
+                                        Some(t),
+                                    ))
+                                    .unwrap(),
+                                Err(e) => {
+                                    error!("Unable to load file to texture: {}", e);
+                                    return;
+                                }
+                            };
+                        } else {
+                            sender
+                                .send(crate::ui::messages::Msg::DownloadImage(t, asset.clone()))
+                                .unwrap();
+                        }
                     });
                 }
             }

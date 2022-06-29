@@ -210,9 +210,7 @@ impl EpicProject {
         };
 
         if let Some(pix) = data.image() {
-            self_
-                .thumbnail
-                .set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
+            self_.thumbnail.set_custom_image(Some(&pix));
         }
 
         match data.path() {
@@ -237,9 +235,7 @@ impl EpicProject {
     fn finished(&self, data: &crate::models::project_data::ProjectData) {
         let self_ = self.imp();
         if let Some(pix) = data.image() {
-            self_
-                .thumbnail
-                .set_custom_image(Some(&gtk4::gdk::Texture::for_pixbuf(&pix)));
+            self_.thumbnail.set_custom_image(Some(&pix));
         }
     }
 

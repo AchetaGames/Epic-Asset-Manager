@@ -12,7 +12,7 @@ pub enum Msg {
     EndAssetProcessing,
     ProcessAssetInfo(AssetInfo),
     ProcessEpicAsset(EpicAsset),
-    ProcessAssetThumbnail(AssetInfo, Vec<u8>),
+    ProcessAssetThumbnail(AssetInfo, Option<gtk4::gdk::Texture>),
     FlushAssetThumbnails,
     DownloadImage(KeyImage, AssetInfo),
     #[cfg(target_os = "linux")]

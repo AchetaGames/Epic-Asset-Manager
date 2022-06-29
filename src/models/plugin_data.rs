@@ -1,5 +1,4 @@
 use glib::ObjectExt;
-use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::glib::clone;
 use gtk4::{self, glib, subclass::prelude::*};
 use serde::{Deserialize, Serialize};
@@ -107,8 +106,7 @@ pub enum Msg {}
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::gdk_pixbuf::prelude::StaticType;
-    use gtk4::glib::{ParamSpec, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecString, StaticType};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -242,10 +240,6 @@ impl PluginData {
 
     pub fn name(&self) -> Option<String> {
         self.property("name")
-    }
-
-    pub fn image(&self) -> Option<Pixbuf> {
-        self.property("thumbnail")
     }
 
     pub fn read_uplugin(path: &str) -> Uplugin {

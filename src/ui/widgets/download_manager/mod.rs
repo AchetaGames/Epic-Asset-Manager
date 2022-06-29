@@ -6,6 +6,7 @@ use crate::ui::widgets::download_manager::asset::Asset;
 use crate::ui::widgets::download_manager::docker::Docker;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
 use glib::clone;
+use gtk4::gdk::Texture;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, glib, prelude::*, CompositeTemplate};
 use gtk_macros::action;
@@ -19,7 +20,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum Msg {
-    ProcessItemThumbnail(String, Vec<u8>),
+    ProcessItemThumbnail(String, Texture),
     StartAssetDownload(
         String,
         Vec<egs_api::api::types::download_manifest::DownloadManifest>,
@@ -276,13 +277,7 @@ impl EpicDownloadManager {
                     None => return,
                     Some(i) => i,
                 };
-                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(&image).unwrap();
-                pixbuf_loader.close().ok();
-
-                if let Some(pix) = pixbuf_loader.pixbuf() {
-                    item.set_property("thumbnail", &pix);
-                };
+                item.set_property("thumbnail", Some(image));
             }
             Msg::StartAssetDownload(id, manifest) => {
                 self.start_download_asset(&id, &manifest);

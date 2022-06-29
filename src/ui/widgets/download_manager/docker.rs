@@ -231,16 +231,10 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }),
         );
 
-        match gtk4::gdk_pixbuf::Pixbuf::from_resource(
-            "/io/github/achetagames/epic_asset_manager/icons/scalable/emblems/ue-logo-symbolic.svg",
-        ) {
-            Ok(pix) => {
-                item.set_property("thumbnail", &pix);
-            }
-            Err(e) => {
-                error!("Unable to load icon: {}", e);
-            }
-        };
+        item.set_property("thumbnail", Some(gtk4::gdk::Texture::from_resource(
+                    "/io/github/achetagames/epic_asset_manager/icons/scalable/emblems/ue-logo-symbolic.svg",
+                )));
+
         self_.downloads.append(&item);
 
         self.set_property("has-items", self_.downloads.first_child().is_some());

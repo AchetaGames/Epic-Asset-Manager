@@ -219,7 +219,11 @@ impl EpicLoggedInBox {
         self_.library.load_thumbnail(asset);
     }
 
-    pub fn add_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) {
+    pub fn add_asset(
+        &self,
+        asset: &egs_api::api::types::asset_info::AssetInfo,
+        image: Option<gtk4::gdk::Texture>,
+    ) {
         let self_ = self.imp();
         self_.library.add_asset(asset, image);
     }
