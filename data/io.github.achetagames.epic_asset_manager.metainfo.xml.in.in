@@ -64,6 +64,15 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.5.2" date="2022-07-12">
+       <description>
+              <p>Crash fixes</p>
+              <ul>
+                  <li>Fix cash thumbnail extension</li>
+                  <li>Switch to Texture for image loading, fixes #152, updates #192</li>
+</ul>
+       </description>
+    </release>
     <release version="3.5.1" date="2022-06-13">
        <description>
               <p>Additional Fixes</p>
