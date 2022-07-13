@@ -3,10 +3,9 @@ use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
 use glib::ObjectExt;
-use gtk4::gdk_pixbuf::prelude::PixbufLoaderExt;
-use gtk4::gdk_pixbuf::Pixbuf;
+use gtk4::gdk::Texture;
 use gtk4::gio::prelude::SettingsExt;
-use gtk4::{gdk_pixbuf, glib, subclass::prelude::*};
+use gtk4::{glib, subclass::prelude::*};
 use std::path::PathBuf;
 
 pub enum AssetType {
@@ -21,9 +20,8 @@ pub enum AssetType {
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::gdk_pixbuf::prelude::StaticType;
-    use gtk4::gdk_pixbuf::Pixbuf;
-    use gtk4::glib::ParamSpecObject;
+    use gtk4::gdk::Texture;
+    use gtk4::glib::{ParamSpecObject, StaticType};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -36,7 +34,7 @@ mod imp {
         downloaded: RefCell<bool>,
         pub kind: RefCell<Option<String>>,
         pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
-        thumbnail: RefCell<Option<Pixbuf>>,
+        thumbnail: RefCell<Option<Texture>>,
         pub settings: gtk4::gio::Settings,
     }
 
@@ -104,7 +102,7 @@ mod imp {
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        Pixbuf::static_type(),
+                        Texture::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                     glib::ParamSpecBoolean::new(
@@ -191,7 +189,7 @@ glib::wrapper! {
 // Constructor for new instances. This simply calls glib::Object::new() with
 // initial values for our two properties and then returns the new instance
 impl AssetData {
-    pub fn new(asset: &egs_api::api::types::asset_info::AssetInfo, image: &[u8]) -> AssetData {
+    pub fn new(asset: &AssetInfo, image: Option<Texture>) -> AssetData {
         let data: Self = glib::Object::new(&[]).expect("Failed to create AssetData");
         let self_ = data.imp();
 
@@ -200,14 +198,11 @@ impl AssetData {
         data.set_property("name", &asset.title);
         self_.asset.replace(Some(asset.clone()));
         data.check_downloaded();
-        let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-        pixbuf_loader.write(image).unwrap();
-        pixbuf_loader.close().ok();
 
         data.configure_kind(asset);
 
-        if let Some(pix) = pixbuf_loader.pixbuf() {
-            data.set_property("thumbnail", &pix);
+        if let Some(tex) = image {
+            data.set_property("thumbnail", tex);
         };
         data
     }
@@ -316,7 +311,7 @@ impl AssetData {
         }
     }
 
-    pub fn image(&self) -> Option<Pixbuf> {
+    pub fn image(&self) -> Option<Texture> {
         self.property("thumbnail")
     }
 

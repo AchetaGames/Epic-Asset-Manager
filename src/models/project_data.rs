@@ -1,11 +1,10 @@
 use glib::ObjectExt;
-use gtk4::gdk_pixbuf::Pixbuf;
+use gtk4::gdk::Texture;
 use gtk4::glib::clone;
 use gtk4::{self, glib, prelude::*, subclass::prelude::*};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::thread;
@@ -35,15 +34,14 @@ pub struct Uproject {
 
 #[derive(Debug, Clone)]
 pub enum Msg {
-    Thumbnail(Vec<u8>),
+    Thumbnail(gtk4::gdk::Texture),
 }
 
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::gdk_pixbuf::prelude::StaticType;
-    use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::gdk::Texture;
     use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
     use std::cell::RefCell;
 
@@ -55,7 +53,7 @@ mod imp {
         path: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
         pub uproject: RefCell<Option<super::Uproject>>,
-        thumbnail: RefCell<Option<Pixbuf>>,
+        thumbnail: RefCell<Option<Texture>>,
         pub sender: gtk4::glib::Sender<super::Msg>,
         pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
     }
@@ -118,7 +116,7 @@ mod imp {
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        Pixbuf::static_type(),
+                        Texture::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -210,7 +208,7 @@ impl ProjectData {
         self.property("name")
     }
 
-    pub fn image(&self) -> Option<Pixbuf> {
+    pub fn image(&self) -> Option<Texture> {
         self.property("thumbnail")
     }
 
@@ -245,13 +243,7 @@ impl ProjectData {
     pub fn update(&self, msg: Msg) {
         match msg {
             Msg::Thumbnail(image) => {
-                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(&image).unwrap();
-                pixbuf_loader.close().ok();
-
-                if let Some(pix) = pixbuf_loader.pixbuf() {
-                    self.set_property("thumbnail", &pix);
-                };
+                self.set_property("thumbnail", Some(image));
             }
         };
         self.emit_by_name::<()>("finished", &[]);
@@ -264,44 +256,16 @@ impl ProjectData {
         };
         pathbuf.push("Saved");
         pathbuf.push("AutoScreenshot.png");
-        match File::open(pathbuf.as_path()) {
-            Ok(mut f) => {
-                let metadata =
-                    std::fs::metadata(&pathbuf.as_path()).expect("unable to read metadata");
-                let mut buffer = vec![0; metadata.len() as usize];
-                f.read_exact(&mut buffer).expect("buffer overflow");
-                let pixbuf_loader = gtk4::gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(&buffer).unwrap();
-                pixbuf_loader.close().ok();
-                if let Some(pb) = pixbuf_loader.pixbuf() {
-                    let width = pb.width();
-                    let height = pb.height();
-
-                    let width_percent = 128.0 / width as f64;
-                    let height_percent = 128.0 / height as f64;
-                    let percent = if height_percent < width_percent {
-                        height_percent
-                    } else {
-                        width_percent
-                    };
-                    let desired = (width as f64 * percent, height as f64 * percent);
-                    sender
-                        .send(Msg::Thumbnail(
-                            pb.scale_simple(
-                                desired.0.round() as i32,
-                                desired.1.round() as i32,
-                                gtk4::gdk_pixbuf::InterpType::Bilinear,
-                            )
-                            .unwrap()
-                            .save_to_bufferv("png", &[])
-                            .unwrap(),
-                        ))
-                        .unwrap();
-                };
-            }
-            Err(_) => {
-                info!("No project picture exists for {}", path);
-            }
+        if pathbuf.exists() {
+            match gtk4::gdk::Texture::from_file(&gtk4::gio::File::for_path(pathbuf.as_path())) {
+                Ok(t) => sender.send(Msg::Thumbnail(t)).unwrap(),
+                Err(e) => {
+                    error!("Unable to load file to texture: {}", e);
+                    return;
+                }
+            };
+        } else {
+            info!("No project picture exists for {}", path);
         }
     }
 }

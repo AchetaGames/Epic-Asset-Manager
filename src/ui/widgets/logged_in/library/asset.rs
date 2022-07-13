@@ -5,8 +5,7 @@ use gtk4::{glib, CompositeTemplate};
 
 pub(crate) mod imp {
     use super::*;
-    use gtk4::gdk_pixbuf::prelude::StaticType;
-    use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::gdk::Texture;
     use gtk4::glib::{ParamSpecObject, SignalHandlerId};
     use std::cell::RefCell;
 
@@ -17,7 +16,7 @@ pub(crate) mod imp {
         label: RefCell<Option<String>>,
         favorite: RefCell<bool>,
         downloaded: RefCell<bool>,
-        thumbnail: RefCell<Option<Pixbuf>>,
+        thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
@@ -80,7 +79,7 @@ pub(crate) mod imp {
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        Pixbuf::static_type(),
+                        Texture::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                     glib::ParamSpecBoolean::new(
@@ -136,7 +135,7 @@ pub(crate) mod imp {
                     self.downloaded.replace(downloaded);
                 }
                 "thumbnail" => {
-                    let thumbnail: Option<Pixbuf> = value
+                    let thumbnail: Option<Texture> = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
 
@@ -146,7 +145,7 @@ pub(crate) mod imp {
                             self.image.set_icon_name(Some("ue-logo-symbolic"));
                         }
                         Some(t) => {
-                            self.image.set_from_pixbuf(Some(t.as_ref()));
+                            self.image.set_from_paintable(Some(&t));
                         }
                     }
                 }

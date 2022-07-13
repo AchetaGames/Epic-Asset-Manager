@@ -25,7 +25,7 @@ impl Update for EpicAssetManagerWindow {
                 self_.logged_in_stack.load_thumbnail(&a);
             }
             Msg::ProcessAssetThumbnail(a, i) => {
-                self_.logged_in_stack.add_asset(&a, i.as_slice());
+                self_.logged_in_stack.add_asset(&a, i);
             }
             Msg::DownloadImage(image, asset) => {
                 self_.download_manager.download_thumbnail(

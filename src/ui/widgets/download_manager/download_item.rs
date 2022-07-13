@@ -9,7 +9,7 @@ pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::gdk_pixbuf::Pixbuf;
+    use gtk4::gdk::Texture;
     use gtk4::gio;
     use gtk4::glib::ParamSpecObject;
     use once_cell::sync::OnceCell;
@@ -38,7 +38,7 @@ pub(crate) mod imp {
         pub extracted_files: RefCell<u64>,
         pub post_actions: RefCell<Vec<crate::ui::widgets::download_manager::PostDownloadAction>>,
         pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
-        thumbnail: RefCell<Option<Pixbuf>>,
+        thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Image>,
         #[template_child]
@@ -176,7 +176,7 @@ pub(crate) mod imp {
                         "thumbnail",
                         "Thumbnail",
                         "Thumbnail",
-                        Pixbuf::static_type(),
+                        Texture::static_type(),
                         glib::ParamFlags::READWRITE,
                     ),
                 ]
@@ -283,11 +283,14 @@ pub(crate) mod imp {
                     self.release.replace(release);
                 }
                 "thumbnail" => {
-                    let thumbnail: Option<Pixbuf> = value
+                    let thumbnail: Option<Texture> = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
 
-                    self.image.set_from_pixbuf(thumbnail.as_ref());
+                    if let Some(tex) = &thumbnail {
+                        self.image.set_from_paintable(Some(tex));
+                    }
+
                     self.thumbnail.replace(thumbnail);
                 }
                 _ => unimplemented!(),

@@ -1,14 +1,12 @@
+use adw::gdk::Texture;
 use gtk4::glib::{clone, MainContext, Receiver, Sender, PRIORITY_DEFAULT};
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gdk_pixbuf, gio, prelude::*};
+use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::debug;
 use std::cmp::Ordering;
 use std::ffi::OsStr;
-use std::fs;
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -134,7 +132,7 @@ impl Default for EpicImageOverlay {
 pub enum Msg {
     DownloadImage(String, egs_api::api::types::asset_info::KeyImage),
     LoadImage(String, egs_api::api::types::asset_info::KeyImage),
-    ImageLoaded(Vec<u8>),
+    ImageLoaded(Texture),
 }
 
 impl EpicImageOverlay {
@@ -192,10 +190,7 @@ impl EpicImageOverlay {
             }
             Msg::ImageLoaded(img) => {
                 debug!("Adding image to stack");
-                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(img.as_slice()).unwrap();
-                pixbuf_loader.close().ok();
-                let image = gtk4::Picture::for_pixbuf(&pixbuf_loader.pixbuf().unwrap());
+                let image = gtk4::Picture::for_paintable(&img);
                 image.set_hexpand(true);
                 image.set_vexpand(true);
                 self_.stack.append(&image);
@@ -285,7 +280,7 @@ impl EpicImageOverlay {
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or(".png")));
+        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
         // TODO Have just one sender&receiver per the widget
         let sender = self_.sender.clone();
 
@@ -293,19 +288,13 @@ impl EpicImageOverlay {
         let img = image.clone();
 
         self_.image_load_pool.execute(move || {
-            if let Ok(mut f) = File::open(cache_path.as_path()) {
-                fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
-                let metadata =
-                    fs::metadata(&cache_path.as_path()).expect("unable to read metadata");
-                let mut buffer = vec![0; metadata.len() as usize];
-                f.read_exact(&mut buffer).expect("buffer overflow");
-                let pixbuf_loader = gdk_pixbuf::PixbufLoader::new();
-                pixbuf_loader.write(&buffer).unwrap();
-                pixbuf_loader.close().ok();
-                if let Some(pb) = pixbuf_loader.pixbuf() {
-                    sender
-                        .send(Msg::ImageLoaded(pb.save_to_bufferv("png", &[]).unwrap()))
-                        .unwrap()
+            if cache_path.as_path().exists() {
+                match Texture::from_file(&gio::File::for_path(cache_path.as_path())) {
+                    Ok(t) => sender.send(Msg::ImageLoaded(t)).unwrap(),
+                    Err(e) => {
+                        error!("Unable to load file to texture: {}", e);
+                        return;
+                    }
                 };
             } else {
                 debug!("Need to download image");
