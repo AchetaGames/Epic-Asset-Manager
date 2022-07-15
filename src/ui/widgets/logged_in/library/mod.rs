@@ -480,7 +480,6 @@ impl EpicLibraryBox {
     }
 
     pub fn flush_assets(&self) {
-        // let start = std::time::Instant::now();
         let self_ = self.imp();
         if let Ok(mut vec) = self_.assets_pending.write() {
             if vec.is_empty() {
@@ -493,7 +492,7 @@ impl EpicLibraryBox {
         // Scroll to top if nothing is selected
         if !self_.details.has_asset() {
             if let Some(adj) = self_.asset_grid.vadjustment() {
-                adj.set_value(0.0)
+                adj.set_value(0.0);
             };
         }
         self.check_refresh();
@@ -779,7 +778,6 @@ impl EpicLibraryBox {
                                         "Unable to load file {}{} to texture: {}",
                                         t.url, t.md5, e
                                     );
-                                    return;
                                 }
                             };
                         } else {

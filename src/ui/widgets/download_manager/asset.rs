@@ -941,7 +941,6 @@ impl AssetPriv for super::EpicDownloadManager {
                             .unwrap(),
                         Err(e) => {
                             error!("Unable to load file to texture: {}", e);
-                            return;
                         }
                     };
                 } else {
