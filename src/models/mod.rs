@@ -182,7 +182,7 @@ impl Model {
                                     .collect(),
                             ) {
                                 Ok(items) => {
-                                    let mut ud = egs_api::api::UserData::new();
+                                    let mut ud = egs_api::api::types::account::UserData::new();
                                     for item in items {
                                         let label = if let Ok(l) = item.get_label() {
                                             l
@@ -259,7 +259,7 @@ impl Model {
     }
 
     fn load_secrets_insecure(&self) {
-        let mut ud = egs_api::api::UserData::new();
+        let mut ud = egs_api::api::types::account::UserData::new();
         if let Some((token, exp)) = self.load_egs_secrets_insecure("token") {
             ud.expires_at = Some(exp);
             ud.token_type = Some("bearer".to_string());

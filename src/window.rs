@@ -402,7 +402,7 @@ impl EpicAssetManagerWindow {
         preferences
     }
 
-    pub fn show_assets(&self, ud: &egs_api::api::UserData) {
+    pub fn show_assets(&self, ud: &egs_api::api::types::account::UserData) {
         let self_ = self.imp();
         self_
             .model

@@ -1,6 +1,6 @@
+use egs_api::api::types::account::UserData;
 use egs_api::api::types::asset_info::{AssetInfo, KeyImage};
 use egs_api::api::types::epic_asset::EpicAsset;
-use egs_api::api::UserData;
 
 #[derive(Debug, Clone)]
 pub enum Msg {

@@ -857,7 +857,7 @@ impl EpicLibraryBox {
             self_.asset_load_pool.execute(move || {
                 let mut assets = tokio::runtime::Runtime::new()
                     .unwrap()
-                    .block_on(eg.list_assets());
+                    .block_on(eg.list_assets(None, None));
                 assets.sort_by(|a, b| {
                     let contains_a = cached.contains(&a.catalog_item_id);
                     let contains_b = cached.contains(&b.catalog_item_id);
