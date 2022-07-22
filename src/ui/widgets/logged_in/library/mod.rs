@@ -313,6 +313,7 @@ impl EpicLibraryBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.details.set_window(&window.clone());
+        self_.sidebar.set_window(&window.clone());
         self_
             .asset_search
             .set_key_capture_widget(Some(&window.clone()));

@@ -82,3 +82,5 @@ src/config.rs
 #package
 package/
 package.zip
+/.flatpak-builder/
+/_build/
