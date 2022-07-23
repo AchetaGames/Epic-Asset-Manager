@@ -1,4 +1,3 @@
-use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -233,12 +232,6 @@ impl EpicSidebar {
     }
 
     pub fn open_browser(&self, code: String) {
-        let mut web = EpicWeb::new();
-        web.start_session(code.clone());
-        if web.validate_eula() {
-            web.run_query("https://www.unrealengine.com/api/blobs/linux".to_string());
-        }
-        return;
         #[cfg(target_os = "linux")]
         if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code), None::<&gio::AppLaunchContext>).is_err() {
             error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code);

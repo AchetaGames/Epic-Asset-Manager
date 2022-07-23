@@ -18,7 +18,7 @@
             </object>
         </child>
         <child>
-            <object class="EpicEngineDetails" id="details"/>
+            <object class="EpicEnginesSide" id="side"/>
         </child>
     </template>
 </interface>

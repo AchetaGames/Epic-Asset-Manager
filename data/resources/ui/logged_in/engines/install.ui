@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicEngineInstall" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkStackSwitcher">
+                <property name="stack">stack</property>
+                <property name="halign">start</property>
+                <layout>
+                    <property name="column">0</property>
+                    <property name="row">0</property>
+                </layout>
+            </object>
+        </child>
+        <child>
+            <object class="GtkStack" id="stack">
+                <property name="transition-type">crossfade</property>
+                <child>
+                    <object class="GtkStackPage">
+                        <property name="name">epic</property>
+                        <property name="title" translatable="yes">Official</property>
+                        <property name="child">
+                            <object class="EpicEngineDownload" id="epic">
+                            </object>
+                        </property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkStackPage">
+                        <property name="name">docker</property>
+                        <property name="title" translatable="yes">Docker</property>
+                        <property name="child">
+                            <object class="DockerEngineDownload" id="docker">
+                            </object>
+                        </property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

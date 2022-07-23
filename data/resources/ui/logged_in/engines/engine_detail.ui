@@ -1,140 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicEngineDetails" parent="GtkBox">
+        <property name="orientation">vertical</property>
         <child>
-            <object class="GtkRevealer" id="detail_slider">
-                <property name="hexpand" bind-source="EpicEngineDetails" bind-property="expanded" bind-flags="sync-create"/>
-                <property name="reveal-child" bind-source="EpicEngineDetails" bind-property="expanded" bind-flags="sync-create"/>
-                <property name="transition-type">slide-left</property>
+            <object class="GtkBox">
+                <child>
+                    <object class="GtkLabel" id="title">
+                        <property name="ellipsize">middle</property>
+                        <property name="halign">start</property>
+                        <property name="use-markup">true</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkBox">
+                <child>
+                    <object class="GtkButton">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="action-name">engine_details.close</property>
+                        <property name="icon-name">go-next-symbolic</property>
+                    </object>
+                </child>
                 <child>
                     <object class="GtkBox">
-                        <property name="orientation">vertical</property>
+                        <property name="hexpand">true</property>
+                        <property name="halign">end</property>
                         <child>
-                            <object class="GtkBox">
-                                <child>
-                                    <object class="GtkLabel" id="title">
-                                        <property name="ellipsize">middle</property>
-                                        <property name="halign">start</property>
-                                        <property name="use-markup">true</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkBox">
-                                <child>
-                                    <object class="GtkButton">
-                                        <property name="halign">start</property>
-                                        <property name="valign">start</property>
-                                        <property name="action-name">engine_details.close</property>
-                                        <property name="icon-name">go-next-symbolic</property>
-                                    </object>
-                                </child>
+                            <object class="GtkButton" id="launch_button">
+                                <property name="name">engine_launch_button</property>
+                                <property name="action-name">engine_details.launch</property>
                                 <child>
                                     <object class="GtkBox">
-                                        <property name="hexpand">true</property>
-                                        <property name="halign">end</property>
-                                        <child>
-                                            <object class="GtkButton" id="launch_button">
-                                                <property name="name">engine_launch_button</property>
-                                                <property name="action-name">engine_details.launch</property>
-                                                <child>
-                                                    <object class="GtkBox">
-                                                        <property name="valign">center</property>
-                                                        <property name="halign">center</property>
-                                                        <child>
-                                                            <object class="GtkImage">
-                                                                <property name="icon-name">media-playback-start-symbolic</property>
-                                                            </object>
-                                                        </child>
-                                                        <child>
-                                                            <object class="GtkLabel">
-                                                                <property name="label" translatable="yes">Launch</property>
-                                                            </object>
-                                                        </child>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkButton" id="install_button">
-                                                <property name="name">engine_install_button</property>
-                                                <property name="action-name">engine_details.install</property>
-                                                <child>
-                                                    <object class="GtkBox">
-                                                        <property name="valign">center</property>
-                                                        <property name="halign">center</property>
-                                                        <child>
-                                                            <object class="GtkImage">
-                                                                <property name="icon-name">system-software-install-symbolic</property>
-                                                            </object>
-                                                        </child>
-                                                        <child>
-                                                            <object class="GtkLabel">
-                                                                <property name="label" translatable="yes">Install</property>
-                                                            </object>
-                                                        </child>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkSeparator">
-                                <property name="orientation">horizontal</property>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkRevealer" id="details_revealer">
-                                <property name="reveal-child">true</property>
-                                <property name="vexpand">True</property>
-                                <child>
-                                    <object class="GtkScrolledWindow">
-                                        <child>
-                                            <object class="GtkBox">
-                                                <property name="vexpand">True</property>
-                                                <property name="orientation">vertical</property>
-                                                <child>
-                                                    <object class="GtkListBox" id="details">
-                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="AdwExpanderRow" id="logs_row">
-                                                        <property name="title" translatable="yes">Logs</property>
-                                                        <property name="expanded">0</property>
-                                                        <child>
-                                                            <object class="EpicLogs" id="logs">
-                                                            </object>
-                                                        </child>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkRevealer" id="confirmation_revealer">
-                                <property name="reveal-child">false</property>
-                                <property name="vexpand-set">True</property>
-                                <property name="vexpand">True</property>
-                                <property name="transition-type">slide-up</property>
-                                <child>
-                                    <object class="GtkLabel" id="confirmation_label">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;</property>
-                                        <property name="use-markup">1</property>
-                                        <property name="hexpand">True</property>
+                                        <property name="valign">center</property>
                                         <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">media-playback-start-symbolic
+                                                </property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Launch</property>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
                         </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkSeparator">
+                <property name="orientation">horizontal</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkRevealer" id="details_revealer">
+                <property name="reveal-child">true</property>
+                <property name="vexpand">True</property>
+                <child>
+                    <object class="GtkScrolledWindow">
+                        <child>
+                            <object class="GtkBox">
+                                <property name="vexpand">True</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                    <object class="GtkListBox" id="details">
+                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="AdwExpanderRow" id="logs_row">
+                                        <property name="title" translatable="yes">Logs</property>
+                                        <property name="expanded">0</property>
+                                        <child>
+                                            <object class="EpicLogs" id="logs">
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkRevealer" id="confirmation_revealer">
+                <property name="reveal-child">false</property>
+                <property name="vexpand-set">True</property>
+                <property name="vexpand">True</property>
+                <property name="transition-type">slide-up</property>
+                <child>
+                    <object class="GtkLabel" id="confirmation_label">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;</property>
+                        <property name="use-markup">1</property>
+                        <property name="hexpand">True</property>
+                        <property name="halign">center</property>
                     </object>
                 </child>
             </object>

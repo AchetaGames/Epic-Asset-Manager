@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="EpicEnginesSide" parent="GtkBox">
+        <child>
+            <object class="GtkRevealer">
+                <property name="hexpand" bind-source="EpicEnginesSide" bind-property="expanded"
+                          bind-flags="sync-create"/>
+                <property name="reveal-child" bind-source="EpicEnginesSide" bind-property="expanded"
+                          bind-flags="sync-create"/>
+                <property name="transition-type">slide-left</property>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkBox">
+                                <child>
+                                    <object class="GtkButton">
+                                        <property name="halign">start</property>
+                                        <property name="valign">start</property>
+                                        <property name="action-name">engines_side.close</property>
+                                        <property name="icon-name">go-next-symbolic</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox">
+                                        <child>
+                                            <object class="GtkLabel" id="title">
+                                                <property name="label" bind-source="EpicEnginesSide"
+                                                          bind-property="title"
+                                                          bind-flags="sync-create"/>
+                                                <property name="ellipsize">middle</property>
+                                                <property name="halign">start</property>
+                                                <property name="use-markup">true</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkStack" id="stack">
+                                <property name="transition-type">crossfade</property>
+                                <child>
+                                    <object class="GtkStackPage">
+                                        <property name="name">details</property>
+                                        <property name="title" translatable="yes">Details</property>
+                                        <property name="child">
+                                            <object class="EpicEngineDetails" id="details"/>
+                                        </property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkStackPage">
+                                        <property name="name">install</property>
+                                        <property name="title" translatable="yes">Install</property>
+                                        <property name="child">
+                                            <object class="EpicEngineInstall" id="install"/>
+                                        </property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>
