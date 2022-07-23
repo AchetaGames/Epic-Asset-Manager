@@ -64,7 +64,7 @@
                                                         <property name="spacing">5</property>
                                                         <child>
                                                             <object class="GtkLabel" id="eula_label">
-                                                                <property name="label" translatable="yes">EULA Valid</property>
+                                                                <property name="label" translatable="yes">EULA Accepted</property>
                                                                 <property name="xalign">1.0</property>
                                                                 <property name="valign">center</property>
                                                             </object>
@@ -77,9 +77,10 @@
                                                                         <property name="name">unknown</property>
                                                                         <property name="title" translatable="yes">unknown</property>
                                                                         <property name="child">
-                                                                            <object class="GtkSpinner">
+                                                                            <object class="GtkImage">
                                                                                 <property name="halign">start</property>
-                                                                                <property name="spinning">True</property>
+                                                                                <property name="icon_name">emblem-synchronizing-symbolic</property>
+                                                                                <property name="tooltip-text">Valid</property>
                                                                             </object>
                                                                         </property>
                                                                     </object>
@@ -180,7 +181,7 @@
                                                         <property name="margin-bottom">5</property>
                                                         <child>
                                                             <object class="GtkLabel" id="size_label">
-                                                                <property name="label" translatable="yes">Size</property>
+                                                                <property name="label" translatable="yes">Download Size</property>
                                                                 <property name="xalign">1.0</property>
                                                                 <property name="valign">center</property>
                                                             </object>

@@ -362,13 +362,11 @@ impl EpicEngineDownload {
                 {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
-                    if web.validate_eula() {
-                        if let Ok(versions) = web.run_query::<VersionResponse>(
-                            "https://www.unrealengine.com/api/blobs/linux".to_string(),
-                        ) {
-                            sender.send(Msg::Versions(versions.blobs)).unwrap();
-                        };
-                    }
+                    if let Ok(versions) = web.run_query::<VersionResponse>(
+                        "https://www.unrealengine.com/api/blobs/linux".to_string(),
+                    ) {
+                        sender.send(Msg::Versions(versions.blobs)).unwrap();
+                    };
                 }
             });
         }
