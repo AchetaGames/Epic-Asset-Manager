@@ -1,5 +1,6 @@
 use reqwest::blocking::{Client, ClientBuilder};
 use reqwest::header::HeaderMap;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -147,15 +148,13 @@ impl EpicWeb {
         false
     }
 
-    pub fn run_query(&self, url: String) -> bool {
+    pub fn run_query<T: DeserializeOwned>(&self, url: String) -> Result<T, reqwest::Error> {
         match self.client.get(url).send() {
             Err(e) => {
                 error!("Failed to run query: {}", e);
+                Err(e)
             }
-            Ok(r) => {
-                debug!("Got response: {:?}", r.text());
-            }
-        };
-        true
+            Ok(r) => r.json(),
+        }
     }
 }

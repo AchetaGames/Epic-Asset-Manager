@@ -7,10 +7,6 @@
             <object class="GtkStackSwitcher">
                 <property name="stack">stack</property>
                 <property name="halign">start</property>
-                <layout>
-                    <property name="column">0</property>
-                    <property name="row">0</property>
-                </layout>
             </object>
         </child>
         <child>
