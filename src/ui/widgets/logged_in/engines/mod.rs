@@ -15,7 +15,7 @@ mod docker_download;
 pub mod engine;
 pub mod engine_detail;
 mod engines_side;
-mod epic_download;
+pub(crate) mod epic_download;
 mod install;
 
 pub enum Msg {

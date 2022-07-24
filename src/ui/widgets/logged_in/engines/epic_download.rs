@@ -1,6 +1,7 @@
-use crate::gio::glib::GString;
+use crate::gio::glib::{GString, Sender};
 use crate::tools::epic_web::EpicWeb;
-use gtk4::glib::clone;
+use crate::ui::widgets::download_manager::epic_file::EpicFile;
+use gtk4::glib::{clone, MainContext, PRIORITY_DEFAULT};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -248,7 +249,18 @@ impl EpicEngineDownload {
         );
     }
 
-    pub fn install_engine(&self) {}
+    pub fn install_engine(&self) {
+        let self_ = self.imp();
+        if let Some(selected) = self_.version_selector.active_id() {
+            if let Some(versions) = &*self_.engine_versions.borrow() {
+                if let Some(version) = versions.get(selected.as_str()) {
+                    if let Some(dm) = self_.download_manager.get() {
+                        dm.download_engine_from_epic(&version.name);
+                    }
+                }
+            }
+        }
+    }
 
     pub fn open_eula_browser(&self) {
         let self_ = self.imp();
@@ -293,7 +305,18 @@ impl EpicEngineDownload {
                     self_.size_row.set_visible(true);
                     self_.versions_row.set_visible(true);
                     self_.eula_stack.set_visible_child_name("valid");
-                    self.get_versions();
+                    let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+
+                    receiver.attach(
+                        None,
+                        clone!(@weak self as ed => @default-panic, move |v| {
+                            let self_ = ed.imp();
+                            let s = self_.sender.clone();
+                            s.send(Msg::Versions(v)).unwrap();
+                            glib::Continue(false)
+                        }),
+                    );
+                    self.get_versions(sender.clone());
                 } else {
                     self_.eula_stack.set_visible_child_name("invalid");
                 }
@@ -349,12 +372,11 @@ impl EpicEngineDownload {
         }
     }
 
-    fn get_versions(&self) {
+    pub fn get_versions(&self, sender: Sender<Vec<Blob>>) {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let sender = self_.sender.clone();
             thread::spawn(move || {
                 if let Some(token) = tokio::runtime::Runtime::new()
                     .unwrap()
@@ -365,7 +387,7 @@ impl EpicEngineDownload {
                     if let Ok(versions) = web.run_query::<VersionResponse>(
                         "https://www.unrealengine.com/api/blobs/linux".to_string(),
                     ) {
-                        sender.send(Msg::Versions(versions.blobs)).unwrap();
+                        sender.send(versions.blobs).unwrap();
                     };
                 }
             });

@@ -216,6 +216,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             item.set_window(w);
         }
         item.set_download_manager(self);
+        item.set_property("item-type", download_item::ItemType::Docker);
         item.set_property("version", version);
         for cap in re.captures_iter(version) {
             item.set_property("label", cap[1].to_string());
@@ -240,8 +241,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.set_property("has-items", self_.downloads.first_child().is_some());
 
         if let Some(window) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            let win_ = window.imp();
             if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                 let client = dclient.clone();
                 let sender = self_.sender.clone();

@@ -5,6 +5,15 @@ use gtk4::glib::clone;
 use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::{action, get_action};
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, glib::Enum)]
+#[enum_type(name = "ItemType")]
+pub enum ItemType {
+    Unknown,
+    Asset,
+    Docker,
+    Epic,
+}
+
 pub(crate) mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
@@ -29,6 +38,7 @@ pub(crate) mod imp {
         release: RefCell<Option<String>>,
         paused: RefCell<bool>,
         canceled: RefCell<bool>,
+        item_type: RefCell<ItemType>,
         speed: RefCell<Option<String>>,
         target: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
@@ -69,6 +79,7 @@ pub(crate) mod imp {
                 release: RefCell::new(None),
                 paused: RefCell::new(false),
                 canceled: RefCell::new(false),
+                item_type: RefCell::new(ItemType::Unknown),
                 speed: RefCell::new(None),
                 target: RefCell::new(None),
                 path: RefCell::new(None),
@@ -102,6 +113,14 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
+                    glib::ParamSpecEnum::new(
+                        "item-type",
+                        "Item Type",
+                        "Item Type",
+                        ItemType::static_type(),
+                        0,
+                        glib::ParamFlags::READWRITE,
+                    ),
                     glib::ParamSpecString::new(
                         "label",
                         "Label",
@@ -252,6 +271,12 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.paused.replace(paused);
                 }
+                "item-type" => {
+                    let item_type = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.item_type.replace(item_type);
+                }
                 "canceled" => {
                     let canceled = value
                         .get()
@@ -307,6 +332,7 @@ pub(crate) mod imp {
                 "status" => self.status.borrow().to_value(),
                 "paused" => self.paused.borrow().to_value(),
                 "canceled" => self.canceled.borrow().to_value(),
+                "item-type" => self.item_type.borrow().to_value(),
                 "speed" => self.speed.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
@@ -445,15 +471,19 @@ impl EpicDownloadItem {
         self.set_property("canceled", true);
 
         if let Some(dm) = self_.download_manager.get() {
-            match self.release() {
-                None => {
+            match self.item_type() {
+                ItemType::Unknown => {}
+                ItemType::Asset => {
+                    if let Some(asset) = self.release() {
+                        dm.cancel_asset_download(asset);
+                    }
+                }
+                ItemType::Docker => {
                     if let Some(v) = self.version() {
                         dm.cancel_docker_download(v);
                     }
                 }
-                Some(asset) => {
-                    dm.cancel_asset_download(asset);
-                }
+                ItemType::Epic => {}
             }
         }
         self.remove_from_parent_with_timer(15);
@@ -471,8 +501,24 @@ impl EpicDownloadItem {
             }),
         );
         if let Some(dm) = self_.download_manager.get() {
-            match self.release() {
-                None => {
+            match self.item_type() {
+                ItemType::Unknown => {}
+                ItemType::Asset => {
+                    if let Some(asset) = self.release() {
+                        if self.paused() {
+                            self_
+                                .pause_button
+                                .set_icon_name("media-playback-pause-symbolic");
+                            dm.resume_asset_download(asset);
+                        } else {
+                            self_
+                                .pause_button
+                                .set_icon_name("media-playback-start-symbolic");
+                            dm.pause_asset_download(asset);
+                        }
+                    }
+                }
+                ItemType::Docker => {
                     if let Some(v) = self.version() {
                         if self.paused() {
                             self_
@@ -487,19 +533,7 @@ impl EpicDownloadItem {
                         }
                     }
                 }
-                Some(asset) => {
-                    if self.paused() {
-                        self_
-                            .pause_button
-                            .set_icon_name("media-playback-pause-symbolic");
-                        dm.resume_asset_download(asset);
-                    } else {
-                        self_
-                            .pause_button
-                            .set_icon_name("media-playback-start-symbolic");
-                        dm.pause_asset_download(asset);
-                    }
-                }
+                ItemType::Epic => {}
             }
         }
         self.set_property("paused", !self.paused());
@@ -540,6 +574,10 @@ impl EpicDownloadItem {
 
     pub fn canceled(&self) -> bool {
         self.property("canceled")
+    }
+
+    pub fn item_type(&self) -> ItemType {
+        self.property("item-type")
     }
 
     pub fn set_total_files(&self, count: u64) {

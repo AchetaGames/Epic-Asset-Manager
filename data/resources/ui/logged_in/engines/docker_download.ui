@@ -17,6 +17,7 @@
                                 <property name="action-name">docker_download.install</property>
                                 <child>
                                     <object class="GtkBox">
+                                        <property name="spacing">5</property>
                                         <property name="valign">center</property>
                                         <property name="halign">center</property>
                                         <child>

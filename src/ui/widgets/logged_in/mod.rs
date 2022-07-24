@@ -5,7 +5,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
-mod engines;
+pub(crate) mod engines;
 pub mod library;
 mod log_line;
 pub mod logs;
