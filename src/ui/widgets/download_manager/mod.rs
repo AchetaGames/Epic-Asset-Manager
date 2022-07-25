@@ -48,7 +48,7 @@ pub enum Msg {
     DockerExtractionFinished(String),
     DockerCanceled(String, (String, u64)),
     DockerPaused(String, (String, u64)),
-    EpicDownloadStart(String, String, i64),
+    EpicDownloadStart(String, String, u64),
     EpicCanceled(String),
     EpicPaused(String),
     EpicDownloadProgress(String, u64),

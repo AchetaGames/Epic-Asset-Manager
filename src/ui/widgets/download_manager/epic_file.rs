@@ -1,22 +1,23 @@
 use crate::ui::widgets::download_manager::{download_item, Msg, ThreadMessages};
 use crate::ui::widgets::logged_in::engines::epic_download::Blob;
 use glib::clone;
-use gtk4::glib;
 use gtk4::glib::Sender;
 use gtk4::glib::{MainContext, ObjectExt, PRIORITY_DEFAULT};
 use gtk4::prelude::WidgetExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
+use gtk4::{glib, Widget};
 use regex::Regex;
 use reqwest::Url;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
+use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 
 pub(crate) trait EpicFile {
-    fn perform_file_download(&self, _url: &str, _size: i64, _version: &str) {
+    fn perform_file_download(&self, _url: &str, _size: u64, _version: &str) {
         unimplemented!()
     }
 
@@ -39,10 +40,22 @@ pub(crate) trait EpicFile {
     fn epic_download_progress(&self, _version: &str, _progress: u64) {
         unimplemented!()
     }
+
+    fn cancel_epic_download(&self, _version: String) {
+        unimplemented!()
+    }
+
+    fn pause_epic_download(&self, _version: String) {
+        unimplemented!()
+    }
+
+    fn resume_epic_download(&self, _version: String) {
+        unimplemented!()
+    }
 }
 
 impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
-    fn perform_file_download(&self, url: &str, size: i64, version: &str) {
+    fn perform_file_download(&self, url: &str, size: u64, version: &str) {
         let self_ = self.imp();
         let item = match self.get_item(version) {
             None => {
@@ -79,11 +92,36 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                 p
             );
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-            let mut client = match reqwest::blocking::get(link.clone()) {
-                Ok(c) => c,
-                Err(e) => {
-                    error!("Failed to start Engine download: {}", e);
+            let mut client = if p.exists() {
+                let metadata = std::fs::metadata(&p.as_path()).expect("unable to read metadata");
+                if metadata.size() == size {
+                    debug!("Already downloaded {}", p.to_str().unwrap_or_default());
                     return;
+                } else {
+                    let c = reqwest::blocking::Client::new();
+                    debug!("Trying to resume download");
+                    match c
+                        .get(link.clone())
+                        .header(
+                            reqwest::header::RANGE,
+                            format! {"bytes={}-{}", metadata.size(), size},
+                        )
+                        .send()
+                    {
+                        Ok(c) => c,
+                        Err(e) => {
+                            error!("Failed to resume Engine download: {}", e);
+                            return;
+                        }
+                    }
+                }
+            } else {
+                match reqwest::blocking::get(link.clone()) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        error!("Failed to start Engine download: {}", e);
+                        return;
+                    }
                 }
             };
             let mut buffer: [u8; 1024] = [0; 1024];
@@ -228,12 +266,41 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
 
         self.emit_by_name::<()>("tick", &[]);
     }
+
+    fn cancel_epic_download(&self, version: String) {
+        let self_ = self.imp();
+        if let Some(item) = self.get_item(&version) {
+            self.send_to_thread_sender(&version.clone(), &ThreadMessages::Cancel);
+            item.set_property("status", "Canceled".to_string());
+            item.set_property("speed", "".to_string());
+            if let Some(v) = item.version() {
+                self_.download_items.borrow_mut().remove(&v);
+            }
+        }
+
+        let mut p = self
+            .engine_target_directory()
+            .expect("Invalid Target directory");
+        p.push(version);
+        if let Err(e) = std::fs::remove_file((p)) {
+            warn!("Unable to remove file {:?}", e);
+        };
+    }
+
+    fn pause_epic_download(&self, version: String) {
+        if let Some(item) = self.get_item(&version) {
+            self.send_to_thread_sender(&version, &ThreadMessages::Pause);
+            item.set_property("status", "Paused".to_string());
+            item.set_property("speed", "".to_string());
+        }
+    }
+
+    fn resume_epic_download(&self, version: String) {
+        self.start_version_file_download(&version);
+    }
 }
 
-fn filter_versions(
-    versions: Vec<crate::ui::widgets::logged_in::engines::epic_download::Blob>,
-    version: &str,
-) -> Option<Blob> {
+fn filter_versions(versions: Vec<Blob>, version: &str) -> Option<Blob> {
     for ver in versions {
         if ver.name.eq(version) {
             return Some(ver);

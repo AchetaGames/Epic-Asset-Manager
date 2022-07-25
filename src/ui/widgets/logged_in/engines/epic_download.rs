@@ -30,7 +30,7 @@ pub struct VersionResponse {
 pub struct Blob {
     pub name: String,
     pub created_at: String,
-    pub size: i64,
+    pub size: u64,
     pub url: String,
 }
 

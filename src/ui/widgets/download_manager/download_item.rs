@@ -1,5 +1,6 @@
 use crate::ui::widgets::download_manager::asset::Asset;
 use crate::ui::widgets::download_manager::docker::Docker;
+use crate::ui::widgets::download_manager::epic_file::EpicFile;
 use crate::ui::widgets::download_manager::PostDownloadAction;
 use gtk4::glib::clone;
 use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
@@ -483,7 +484,11 @@ impl EpicDownloadItem {
                         dm.cancel_docker_download(v);
                     }
                 }
-                ItemType::Epic => {}
+                ItemType::Epic => {
+                    if let Some(v) = self.version() {
+                        dm.cancel_epic_download(v)
+                    }
+                }
             }
         }
         self.remove_from_parent_with_timer(15);
@@ -533,7 +538,21 @@ impl EpicDownloadItem {
                         }
                     }
                 }
-                ItemType::Epic => {}
+                ItemType::Epic => {
+                    if let Some(v) = self.version() {
+                        if self.paused() {
+                            self_
+                                .pause_button
+                                .set_icon_name("media-playback-pause-symbolic");
+                            dm.resume_epic_download(v);
+                        } else {
+                            self_
+                                .pause_button
+                                .set_icon_name("media-playback-start-symbolic");
+                            dm.pause_epic_download(v);
+                        }
+                    }
+                }
             }
         }
         self.set_property("paused", !self.paused());
@@ -633,7 +652,15 @@ impl EpicDownloadItem {
             return;
         }
         get_action!(self_.actions, @cancel).set_enabled(true);
-        get_action!(self_.actions, @pause).set_enabled(true);
+        match self.item_type() {
+            ItemType::Unknown => {}
+            ItemType::Asset | ItemType::Docker => {
+                get_action!(self_.actions, @pause).set_enabled(true);
+            }
+            ItemType::Epic => {
+                get_action!(self_.actions, @pause).set_enabled(false);
+            }
+        }
         // Download Speed
         {
             let queue = &mut *self_.speed_queue.borrow_mut();
