@@ -36,6 +36,7 @@ slab_tree = "0.3"
 threadpool = "1.8"
 tokio = "1"
 version-compare = "0.1"
+zip = "0.6"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"

@@ -219,6 +219,7 @@ impl DockerEngineDownload {
         self_.confirmation_label.set_markup(markup);
         self_.confirmation_revealer.set_reveal_child(true);
         self_.confirmation_revealer.set_vexpand_set(true);
+        self_.confirmation_revealer.set_vexpand(true);
         glib::timeout_add_seconds_local(
             2,
             clone!(@weak self as obj => @default-panic, move || {
@@ -234,6 +235,7 @@ impl DockerEngineDownload {
         self_.details_revealer.set_vexpand(true);
         self_.confirmation_revealer.set_reveal_child(false);
         self_.confirmation_revealer.set_vexpand_set(false);
+        self_.confirmation_revealer.set_vexpand(false);
     }
 
     pub fn setup_messaging(&self) {

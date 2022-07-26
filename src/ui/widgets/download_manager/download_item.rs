@@ -567,6 +567,16 @@ impl EpicDownloadItem {
         self_.total_size.replace(size);
     }
 
+    pub fn total_size(&self) -> u128 {
+        let self_ = self.imp();
+        self_.total_size.borrow().clone()
+    }
+
+    pub fn downloaded_size(&self) -> u128 {
+        let self_ = self.imp();
+        self_.downloaded_size.borrow().clone()
+    }
+
     pub fn path(&self) -> Option<String> {
         self.property("path")
     }
@@ -612,6 +622,9 @@ impl EpicDownloadItem {
         self_.stack.set_visible_child_name("progress");
         let new_count = *self_.extracted_files.borrow() + 1;
         let total = *self_.total_files.borrow();
+        self_
+            .extraction_progress
+            .set_tooltip_text(Some(&format!("{}/{}", new_count, total)));
         self_
             .extraction_progress
             .set_fraction(new_count as f64 / total as f64);
@@ -668,13 +681,28 @@ impl EpicDownloadItem {
         };
 
         self_.stack.set_visible_child_name("progress");
-        let old_size = *self_.downloaded_size.borrow();
+        let old_size = self.downloaded_size();
         let new_size = old_size + size;
-        let total = *self_.total_size.borrow();
+        let total = self.total_size();
         self_
             .download_progress
             .set_fraction(new_size as f64 / total as f64);
         self_.downloaded_size.replace(new_size);
+        if new_size == total {
+            self_.download_progress.set_sensitive(false);
+        }
+    }
+
+    pub fn add_extracted_size(&self, size: u128) {
+        let self_ = self.imp();
+        if self.canceled() || self.paused() {
+            return;
+        }
+        // Extraction Speed
+        {
+            let queue = &mut *self_.speed_queue.borrow_mut();
+            queue.push_back((chrono::Utc::now(), size));
+        };
     }
 
     pub fn progress(&self) -> f32 {

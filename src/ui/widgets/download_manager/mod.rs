@@ -51,6 +51,9 @@ pub enum Msg {
     EpicDownloadStart(String, String, u64),
     EpicCanceled(String),
     EpicPaused(String),
+    EpicFileFinished(String),
+    EpicFileExtracted(String),
+    EpicFileExtractionProgress(String, u64),
     EpicDownloadProgress(String, u64),
     IOError(String),
 }
@@ -360,6 +363,13 @@ impl EpicDownloadManager {
             Msg::EpicPaused(_) => {}
             Msg::EpicDownloadProgress(ver, size) => {
                 self.epic_download_progress(&ver, size);
+            }
+            Msg::EpicFileFinished(version) => self.epic_file_finished(&version),
+            Msg::EpicFileExtracted(version) => {
+                self.epic_file_extracted(&version);
+            }
+            Msg::EpicFileExtractionProgress(version, data) => {
+                self.epic_file_extraction_progress(&version, data);
             }
         }
     }

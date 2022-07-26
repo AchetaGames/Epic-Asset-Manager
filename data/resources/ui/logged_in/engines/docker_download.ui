@@ -22,8 +22,7 @@
                                         <property name="halign">center</property>
                                         <child>
                                             <object class="GtkImage">
-                                                <property name="icon-name">system-software-install-symbolic
-                                                </property>
+                                                <property name="icon-name">system-software-install-symbolic</property>
                                             </object>
                                         </child>
                                         <child>
@@ -58,7 +57,7 @@
             <object class="GtkRevealer" id="confirmation_revealer">
                 <property name="reveal-child">false</property>
                 <property name="vexpand-set">True</property>
-                <property name="vexpand">True</property>
+                <property name="vexpand">False</property>
                 <property name="transition-type">slide-up</property>
                 <child>
                     <object class="GtkLabel" id="confirmation_label">

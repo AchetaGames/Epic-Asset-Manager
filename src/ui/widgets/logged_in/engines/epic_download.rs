@@ -1,13 +1,12 @@
-use crate::gio::glib::{GString, Sender};
+use crate::gio::glib::Sender;
 use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
 use gtk4::glib::{clone, MainContext, PRIORITY_DEFAULT};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use gtk_macros::action;
+use gtk_macros::{action, get_action};
 use regex::Regex;
-use reqwest::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::thread;
@@ -168,6 +167,7 @@ impl EpicEngineDownload {
         self_.confirmation_label.set_markup(markup);
         self_.confirmation_revealer.set_reveal_child(true);
         self_.confirmation_revealer.set_vexpand_set(true);
+        self_.confirmation_revealer.set_vexpand(true);
         glib::timeout_add_seconds_local(
             2,
             clone!(@weak self as obj => @default-panic, move || {
@@ -183,6 +183,7 @@ impl EpicEngineDownload {
         self_.details_revealer.set_vexpand(true);
         self_.confirmation_revealer.set_reveal_child(false);
         self_.confirmation_revealer.set_vexpand_set(false);
+        self_.confirmation_revealer.set_vexpand(false);
     }
 
     pub fn setup_messaging(&self) {
@@ -201,7 +202,7 @@ impl EpicEngineDownload {
         let self_ = self.imp();
         self_
             .version_selector
-            .connect_changed(clone!(@weak self as detail => move |c| {
+            .connect_changed(clone!(@weak self as detail => move |_| {
                 detail.version_selected();
             }));
     }
@@ -247,6 +248,7 @@ impl EpicEngineDownload {
                 details.open_eula_browser();
             })
         );
+        get_action!(self_.actions, @install).set_enabled(false);
     }
 
     pub fn install_engine(&self) {
@@ -256,6 +258,10 @@ impl EpicEngineDownload {
                 if let Some(version) = versions.get(selected.as_str()) {
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_engine_from_epic(&version.name);
+                        self.show_confirmation(
+                            "<b><big>Engine Install Initialized</big></b>
+<i>See Header Bar for details</i>",
+                        );
                     }
                 }
             }
@@ -349,6 +355,7 @@ impl EpicEngineDownload {
                         self_.version_selector.set_active_id(Some(ver));
                     }
                 }
+                get_action!(self_.actions, @install).set_enabled(true);
             }
         }
     }
