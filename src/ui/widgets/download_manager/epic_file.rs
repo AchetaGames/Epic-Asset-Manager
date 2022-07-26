@@ -1,5 +1,6 @@
 use crate::ui::widgets::download_manager::{download_item, Msg, ThreadMessages};
 use crate::ui::widgets::logged_in::engines::epic_download::Blob;
+use crate::ui::widgets::logged_in::refresh::Refresh;
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -267,6 +268,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     }
 
     fn epic_finished(&self, item: &download_item::EpicDownloadItem) {
+        let self_ = self.imp();
         if let Some(version) = item.version() {
             let mut p = self
                 .engine_target_directory()
@@ -281,7 +283,14 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                     error!("Unable to remove epic download directory: {}", e);
                 };
             }
+            if let Some(window) = self_.window.get() {
+                let win_ = window.imp();
+                let l = win_.logged_in_stack.imp();
+                let e = l.engines.clone();
+                e.run_refresh();
+            }
         }
+
         self.finish(item);
     }
 
