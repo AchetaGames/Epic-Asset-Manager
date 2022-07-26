@@ -330,11 +330,11 @@ impl EpicEnginesBox {
                 .downcast::<crate::models::engine_data::EngineData>()
                 .unwrap();
             self_.side.set_property("position", model.selected());
+            self_.side.set_property("expanded", true);
             if engine.valid() {
                 self.set_property("selected", engine.path());
                 self_.side.set_data(&engine);
             } else {
-                self_.side.set_property("expanded", true);
                 self_.side.add_engine();
             }
         }

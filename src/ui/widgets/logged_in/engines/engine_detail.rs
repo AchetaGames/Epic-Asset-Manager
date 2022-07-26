@@ -10,16 +10,13 @@ use std::str::FromStr;
 pub(crate) mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
+    use gtk4::glib::{ParamSpec, ParamSpecString, ParamSpecUInt};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/engine_detail.ui")]
     pub struct EpicEngineDetails {
-        pub expanded: RefCell<bool>,
-        #[template_child]
-        pub title: TemplateChild<gtk4::Label>,
         #[template_child]
         pub launch_button: TemplateChild<gtk4::Button>,
         #[template_child]
@@ -52,8 +49,6 @@ pub(crate) mod imp {
 
         fn new() -> Self {
             Self {
-                expanded: RefCell::new(false),
-                title: TemplateChild::default(),
                 launch_button: TemplateChild::default(),
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -87,13 +82,6 @@ pub(crate) mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
                     ParamSpecString::new(
                         "selected",
                         "Selected",
@@ -123,10 +111,6 @@ pub(crate) mod imp {
             pspec: &ParamSpec,
         ) {
             match pspec.name() {
-                "expanded" => {
-                    let expanded = value.get().unwrap();
-                    self.expanded.replace(expanded);
-                }
                 "selected" => {
                     let selected = value.get().unwrap();
                     self.selected.replace(selected);
@@ -141,7 +125,6 @@ pub(crate) mod imp {
 
         fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
                 "position" => self.position.borrow().to_value(),
                 _ => unimplemented!(),
@@ -190,14 +173,6 @@ impl EpicEngineDetails {
         let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("engine_details", Some(actions));
-
-        action!(
-            actions,
-            "close",
-            clone!(@weak self as details => move |_, _| {
-                details.collapse();
-            })
-        );
 
         action!(
             self_.actions,
@@ -268,15 +243,6 @@ impl EpicEngineDetails {
             self_.details.remove(&el);
         }
 
-        if !self.is_expanded() {
-            self.set_property("expanded", true);
-        }
-
-        if let Some(title) = &data.version() {
-            self_
-                .title
-                .set_markup(&format!("<b><u><big>{}</big></u></b>", title));
-        }
         self_.launch_button.set_visible(true);
         self_.data.replace(Some(data.clone()));
         self_.logs.clear();
@@ -344,10 +310,6 @@ impl EpicEngineDetails {
         }
     }
 
-    pub fn is_expanded(&self) -> bool {
-        self.property("expanded")
-    }
-
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_ = self.imp();
         // Do not run this twice
@@ -397,19 +359,5 @@ impl EpicEngineDetails {
 
     pub fn position(&self) -> u32 {
         self.property("position")
-    }
-
-    pub fn collapse(&self) {
-        let self_ = self.imp();
-        self.set_property("expanded", false);
-        if let Some(w) = self_.window.get() {
-            let w_ = w.imp();
-            let l = w_.logged_in_stack.clone();
-            let l_ = l.imp();
-            let e = l_.engines.imp();
-            if let Some(m) = e.engine_grid.model() {
-                m.unselect_item(self.position());
-            }
-        }
     }
 }
