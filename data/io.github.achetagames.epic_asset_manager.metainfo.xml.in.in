@@ -64,6 +64,18 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.6.0" date="2022-07-27">
+       <description>
+              <p>Official Engine Download</p>
+              <ul>
+                  <li>Add official engine download</li>
+                  <li>Add Marketplace button</li>
+                  <li>Add separator between side panels</li>
+                  <li>Rework the Engine install UI</li>
+                  <li>Update the API library</li>
+</ul>
+       </description>
+    </release>
     <release version="3.5.2" date="2022-07-12">
        <description>
               <p>Crash fixes</p>
