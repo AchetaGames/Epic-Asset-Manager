@@ -149,6 +149,11 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                     process_epic_thread_message(ver, &sender, &m);
                     return;
                 }
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
+                    }
+                }
                 match client.read(&mut buffer) {
                     Ok(size) => {
                         if let Ok(m) = recv.try_recv() {
@@ -380,6 +385,11 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                     self.add_thread_sender(version.to_string(), send);
                     self_.file_pool.execute(move || {
                         for i in 0..archive.len() {
+                            if let Ok(w) = crate::RUNNING.read() {
+                                if !*w {
+                                    return;
+                                }
+                            }
                             let mut file_target = target.clone();
                             let mut file = archive.by_index(i).unwrap();
                             let outpath = match file.enclosed_name() {
@@ -410,6 +420,11 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
 
                                 let mut buffer: [u8; 1024] = [0; 1024];
                                 loop {
+                                    if let Ok(w) = crate::RUNNING.read() {
+                                        if !*w {
+                                            return;
+                                        }
+                                    }
                                     match file.read(&mut buffer) {
                                         Ok(size) => {
                                             if let Ok(m) = recv.try_recv() {

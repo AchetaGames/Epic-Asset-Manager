@@ -485,6 +485,11 @@ impl EpicEnginesBox {
                         let path = std::path::PathBuf::from(dir.to_string());
                         if let Ok(rd) = path.read_dir() {
                             for d in rd.flatten() {
+                                if let Ok(w) = crate::RUNNING.read() {
+                                    if !*w {
+                                        return;
+                                    }
+                                }
                                 let p = d.path();
                                 if p.is_dir() {
                                     if let Some(version) =
