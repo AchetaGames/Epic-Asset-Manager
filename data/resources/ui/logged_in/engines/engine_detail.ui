@@ -18,8 +18,7 @@
                                         <property name="halign">center</property>
                                         <child>
                                             <object class="GtkImage">
-                                                <property name="icon-name">media-playback-start-symbolic
-                                                </property>
+                                                <property name="icon-name">media-playback-start-symbolic</property>
                                             </object>
                                         </child>
                                         <child>

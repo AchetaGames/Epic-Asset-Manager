@@ -2,6 +2,9 @@
 <interface>
     <template class="EpicAssetDetails" parent="GtkBox">
         <child>
+            <object class="GtkSeparator"/>
+        </child>
+        <child>
             <object class="GtkRevealer" id="detail_slider">
                 <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="reveal-child" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>

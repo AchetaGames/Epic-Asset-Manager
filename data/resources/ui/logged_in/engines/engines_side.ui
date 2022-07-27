@@ -3,6 +3,9 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicEnginesSide" parent="GtkBox">
         <child>
+            <object class="GtkSeparator"/>
+        </child>
+        <child>
             <object class="GtkRevealer">
                 <property name="hexpand" bind-source="EpicEnginesSide" bind-property="expanded"
                           bind-flags="sync-create"/>
