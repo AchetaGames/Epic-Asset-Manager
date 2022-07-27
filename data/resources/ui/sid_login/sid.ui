@@ -35,7 +35,7 @@
                                 <child>
                                     <object class="GtkImage">
                                         <property name="can-focus">0</property>
-                                        <property name="icon-name">emblem-web</property>
+                                        <property name="icon-name">help-browser-symbolic</property>
                                     </object>
                                 </child>
                                 <child>

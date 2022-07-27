@@ -482,7 +482,7 @@ impl EpicAssetActions {
 
     fn process_download_manifest(
         &self,
-        release_id: String,
+        release_id: &str,
         manifests: Vec<egs_api::api::types::download_manifest::DownloadManifest>,
     ) {
         let self_ = self.imp();
@@ -560,13 +560,15 @@ impl EpicAssetActions {
                             self.add_detail("Release Note", &gtk4::Label::new(Some(note)));
                         }
                     }
-                    let (sender, receiver) =
-                        gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+                    let (sender, receiver) = glib::MainContext::channel::<(
+                        String,
+                        Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+                    )>(gtk4::glib::PRIORITY_DEFAULT);
 
                     receiver.attach(
                         None,
                         clone!(@weak self as asset_actions => @default-panic, move |(id, manifest)| {
-                            asset_actions.process_download_manifest(id, manifest);
+                            asset_actions.process_download_manifest(&id, manifest);
                             glib::Continue(true)
                         }),
                     );

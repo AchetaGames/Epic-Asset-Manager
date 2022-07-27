@@ -293,7 +293,6 @@ impl EpicImageOverlay {
                     Ok(t) => sender.send(Msg::ImageLoaded(t)).unwrap(),
                     Err(e) => {
                         error!("Unable to load file to texture: {}", e);
-                        return;
                     }
                 };
             } else {

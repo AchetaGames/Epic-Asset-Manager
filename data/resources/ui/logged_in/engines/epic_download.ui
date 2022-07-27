@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <object class="GtkSizeGroup">
+        <property name="mode">horizontal</property>
+        <widgets>
+            <widget name="eula_label"/>
+            <widget name="versions_label"/>
+            <widget name="size_label"/>
+        </widgets>
+    </object>
+    <template class="EpicEngineDownload" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkRevealer" id="details_revealer">
+                <property name="reveal-child">true</property>
+                <property name="vexpand">True</property>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                            <object class="GtkButton" id="install_button">
+                                <property name="halign">end</property>
+                                <property name="name">engine_install_button</property>
+                                <property name="action-name">epic_download.install</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="spacing">5</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">system-software-install-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Install</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkSeparator">
+                                <property name="orientation">horizontal</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkScrolledWindow">
+                                <property name="vexpand">True</property>
+                                <child>
+                                    <object class="GtkListBox" id="details">
+                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                        <child>
+                                            <object class="GtkListBoxRow">
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="margin-start">5</property>
+                                                        <property name="margin-end">5</property>
+                                                        <property name="margin-top">5</property>
+                                                        <property name="margin-bottom">5</property>
+                                                        <property name="spacing">5</property>
+                                                        <child>
+                                                            <object class="GtkLabel" id="eula_label">
+                                                                <property name="label" translatable="yes">EULA Accepted?</property>
+                                                                <property name="xalign">1.0</property>
+                                                                <property name="valign">center</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkStack" id="eula_stack">
+                                                                <property name="transition-type">crossfade</property>
+                                                                <child>
+                                                                    <object class="GtkStackPage">
+                                                                        <property name="name">unknown</property>
+                                                                        <property name="title" translatable="yes">unknown</property>
+                                                                        <property name="child">
+                                                                            <object class="GtkImage">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="icon_name">emblem-synchronizing-symbolic</property>
+                                                                                <property name="tooltip-text">Valid</property>
+                                                                            </object>
+                                                                        </property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkStackPage">
+                                                                        <property name="name">valid</property>
+                                                                        <property name="title" translatable="yes">Valid</property>
+                                                                        <property name="child">
+                                                                            <object class="GtkImage">
+                                                                                <property name="halign">start</property>
+                                                                                <property name="icon_name">emblem-default-symbolic</property>
+                                                                                <property name="tooltip-text">Valid</property>
+                                                                            </object>
+                                                                        </property>
+                                                                    </object>
+                                                                </child>
+                                                                <child>
+                                                                    <object class="GtkStackPage">
+                                                                        <property name="name">invalid</property>
+                                                                        <property name="title" translatable="yes">Invalid</property>
+                                                                        <property name="child">
+                                                                            <object class="GtkBox">
+                                                                                <property name="spacing">5</property>
+                                                                                <child>
+                                                                                    <object class="GtkImage">
+                                                                                        <property name="icon_name">emblem-important-symbolic</property>
+                                                                                        <property name="tooltip-text">Valid</property>
+                                                                                    </object>
+                                                                                </child>
+                                                                                <child>
+                                                                                    <object class="GtkLabel">
+                                                                                        <property name="can-focus">0</property>
+                                                                                        <property name="label" translatable="yes">Please sign the EULA to continue</property>
+                                                                                    </object>
+                                                                                </child>
+                                                                                <child>
+                                                                                    <object class="GtkButton">
+                                                                                        <property name="action-name">epic_download.browser</property>
+                                                                                        <property name="tooltip-text">https://www.unrealengine.com/en-US/eulacheck/unreal</property>
+                                                                                        <property name="receives-default">1</property>
+                                                                                        <property name="icon-name">help-browser-symbolic</property>
+                                                                                    </object>
+                                                                                </child>
+                                                                                <child>
+                                                                                    <object class="GtkButton">
+                                                                                        <property name="action-name">epic_download.revalidate_eula</property>
+                                                                                        <property name="tooltip-text">Revalidate</property>
+                                                                                        <property name="receives-default">1</property>
+                                                                                        <property name="icon-name">view-refresh-symbolic</property>
+                                                                                    </object>
+                                                                                </child>
+                                                                            </object>
+                                                                        </property>
+                                                                    </object>
+                                                                </child>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkListBoxRow" id="versions_row">
+                                                <property name="visible">false</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="spacing">5</property>
+                                                        <property name="margin-start">5</property>
+                                                        <property name="margin-end">5</property>
+                                                        <property name="margin-top">5</property>
+                                                        <property name="margin-bottom">5</property>
+                                                        <child>
+                                                            <object class="GtkLabel" id="versions_label">
+                                                                <property name="label" translatable="yes">Available Versions</property>
+                                                                <property name="xalign">1.0</property>
+                                                                <property name="valign">center</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkComboBoxText" id="version_selector">
+                                                                <property name="hexpand">true</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkListBoxRow" id="size_row">
+                                                <property name="visible">false</property>
+                                                <child>
+                                                    <object class="GtkBox">
+                                                        <property name="spacing">5</property>
+                                                        <property name="margin-start">5</property>
+                                                        <property name="margin-end">5</property>
+                                                        <property name="margin-top">5</property>
+                                                        <property name="margin-bottom">5</property>
+                                                        <child>
+                                                            <object class="GtkLabel" id="size_label">
+                                                                <property name="label" translatable="yes">Download Size</property>
+                                                                <property name="xalign">1.0</property>
+                                                                <property name="valign">center</property>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkLabel" id="size_value">
+                                                                <property name="label" translatable="yes">unknown</property>
+                                                            </object>
+                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkRevealer" id="confirmation_revealer">
+                <property name="reveal-child">false</property>
+                <property name="vexpand-set">True</property>
+                <property name="vexpand">False</property>
+                <property name="transition-type">slide-up</property>
+                <child>
+                    <object class="GtkLabel" id="confirmation_label">
+                        <property name="can-focus">0</property>
+                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;</property>
+                        <property name="use-markup">1</property>
+                        <property name="hexpand">True</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

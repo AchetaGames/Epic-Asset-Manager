@@ -1,5 +1,6 @@
 use crate::ui::widgets::download_manager::Msg::{DockerBlobFailed, DockerCanceled};
 use crate::ui::widgets::download_manager::{download_item, DownloadStatus, Msg, ThreadMessages};
+use crate::ui::widgets::logged_in::refresh::Refresh;
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -216,6 +217,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             item.set_window(w);
         }
         item.set_download_manager(self);
+        item.set_property("item-type", download_item::ItemType::Docker);
         item.set_property("version", version);
         for cap in re.captures_iter(version) {
             item.set_property("label", cap[1].to_string());
@@ -240,8 +242,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.set_property("has-items", self_.downloads.first_child().is_some());
 
         if let Some(window) = self_.window.get() {
-            let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+            let win_ = window.imp();
             if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                 let client = dclient.clone();
                 let sender = self_.sender.clone();
@@ -427,6 +428,13 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     }
 
     fn docker_finished(&self, item: &download_item::EpicDownloadItem) {
+        let self_ = self.imp();
+        if let Some(window) = self_.window.get() {
+            let win_ = window.imp();
+            let l = win_.logged_in_stack.imp();
+            let e = l.engines.clone();
+            e.run_refresh();
+        }
         self.finish(item);
     }
 

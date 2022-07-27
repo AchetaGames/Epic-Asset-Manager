@@ -180,6 +180,10 @@ impl Asset for super::EpicDownloadManager {
         if let Some(actions) = actions {
             item.add_actions(&actions);
         };
+        item.set_property(
+            "item-type",
+            crate::ui::widgets::download_manager::download_item::ItemType::Asset,
+        );
         item.set_property("asset", asset.id.clone());
         item.set_property("release", release_id.clone());
         item.set_property("label", asset.title.clone());
@@ -941,7 +945,6 @@ impl AssetPriv for super::EpicDownloadManager {
                             .unwrap(),
                         Err(e) => {
                             error!("Unable to load file to texture: {}", e);
-                            return;
                         }
                     };
                 } else {

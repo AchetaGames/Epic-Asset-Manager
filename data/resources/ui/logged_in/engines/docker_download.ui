@@ -1,67 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="EpicEngineDetails" parent="GtkBox">
+    <requires lib="gtk" version="4.0"/>
+    <template class="DockerEngineDownload" parent="GtkBox">
         <property name="orientation">vertical</property>
         <child>
-            <object class="GtkBox">
+            <object class="GtkRevealer" id="details_revealer">
+                <property name="reveal-child">true</property>
+                <property name="vexpand">True</property>
                 <child>
                     <object class="GtkBox">
-                        <property name="hexpand">true</property>
-                        <property name="halign">end</property>
+                        <property name="orientation">vertical</property>
                         <child>
-                            <object class="GtkButton" id="launch_button">
-                                <property name="name">engine_launch_button</property>
-                                <property name="action-name">engine_details.launch</property>
+                            <object class="GtkButton" id="install_button">
+                                <property name="halign">end</property>
+                                <property name="name">engine_install_button</property>
+                                <property name="action-name">docker_download.install</property>
                                 <child>
                                     <object class="GtkBox">
+                                        <property name="spacing">5</property>
                                         <property name="valign">center</property>
                                         <property name="halign">center</property>
                                         <child>
                                             <object class="GtkImage">
-                                                <property name="icon-name">media-playback-start-symbolic</property>
+                                                <property name="icon-name">system-software-install-symbolic</property>
                                             </object>
                                         </child>
                                         <child>
                                             <object class="GtkLabel">
-                                                <property name="label" translatable="yes">Launch</property>
+                                                <property name="label" translatable="yes">Install</property>
                                             </object>
                                         </child>
                                     </object>
                                 </child>
                             </object>
                         </child>
-                    </object>
-                </child>
-            </object>
-        </child>
-        <child>
-            <object class="GtkSeparator">
-                <property name="orientation">horizontal</property>
-            </object>
-        </child>
-        <child>
-            <object class="GtkRevealer" id="details_revealer">
-                <property name="reveal-child">true</property>
-                <property name="vexpand">True</property>
-                <child>
-                    <object class="GtkScrolledWindow">
                         <child>
-                            <object class="GtkBox">
+                            <object class="GtkSeparator">
+                                <property name="orientation">horizontal</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkScrolledWindow">
                                 <property name="vexpand">True</property>
-                                <property name="orientation">vertical</property>
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="AdwExpanderRow" id="logs_row">
-                                        <property name="title" translatable="yes">Logs</property>
-                                        <property name="expanded">0</property>
-                                        <child>
-                                            <object class="EpicLogs" id="logs">
-                                            </object>
-                                        </child>
                                     </object>
                                 </child>
                             </object>
@@ -74,7 +57,7 @@
             <object class="GtkRevealer" id="confirmation_revealer">
                 <property name="reveal-child">false</property>
                 <property name="vexpand-set">True</property>
-                <property name="vexpand">True</property>
+                <property name="vexpand">False</property>
                 <property name="transition-type">slide-up</property>
                 <child>
                     <object class="GtkLabel" id="confirmation_label">

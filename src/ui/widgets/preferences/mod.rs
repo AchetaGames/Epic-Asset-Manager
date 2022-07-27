@@ -69,7 +69,7 @@ pub mod imp {
         fn new() -> Self {
             let settings = gio::Settings::new(crate::config::APP_ID);
 
-            let window = Self {
+            Self {
                 settings,
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
@@ -88,8 +88,7 @@ pub mod imp {
                 default_view_selection: TemplateChild::default(),
                 log_level_selection: TemplateChild::default(),
                 default_category_selection: TemplateChild::default(),
-            };
-            window
+            }
         }
 
         fn class_init(klass: &mut Self::Class) {
@@ -236,7 +235,6 @@ impl PreferencesWindow {
 
     pub fn set_log_level(level: i32) {
         match level {
-            0 => log::set_max_level(log::LevelFilter::Error),
             1 => log::set_max_level(log::LevelFilter::Warn),
             2 => log::set_max_level(log::LevelFilter::Info),
             3 => log::set_max_level(log::LevelFilter::Debug),

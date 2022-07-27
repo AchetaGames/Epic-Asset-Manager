@@ -54,7 +54,7 @@ pub(crate) mod imp {
 
     impl ObjectImpl for EpicPlugins {
         fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj)
+            self.parent_constructed(obj);
         }
     }
 

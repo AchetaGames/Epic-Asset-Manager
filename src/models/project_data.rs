@@ -261,7 +261,6 @@ impl ProjectData {
                 Ok(t) => sender.send(Msg::Thumbnail(t)).unwrap(),
                 Err(e) => {
                     error!("Unable to load file to texture: {}", e);
-                    return;
                 }
             };
         } else {

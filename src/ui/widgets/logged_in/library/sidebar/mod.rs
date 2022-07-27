@@ -4,6 +4,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
+use std::thread;
 
 pub mod button;
 pub mod categories;
@@ -32,6 +33,8 @@ pub(crate) mod imp {
         pub expand_image: TemplateChild<gtk4::Image>,
         #[template_child]
         pub expand_label: TemplateChild<gtk4::Label>,
+        #[template_child]
+        pub marketplace_label: TemplateChild<gtk4::Label>,
         #[template_child]
         pub stack: TemplateChild<gtk4::Stack>,
         #[template_child]
@@ -62,6 +65,7 @@ pub(crate) mod imp {
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
                 expand_label: TemplateChild::default(),
+                marketplace_label: TemplateChild::default(),
                 stack: TemplateChild::default(),
                 all_category: TemplateChild::default(),
                 unreal_category: TemplateChild::default(),
@@ -189,6 +193,51 @@ impl EpicSidebar {
                 sidebar.expand();
             })
         );
+        action!(
+            self_.actions,
+            "marketplace",
+            clone!(@weak self as sidebar => move |_, _| {
+                sidebar.open_marketplace();
+            })
+        );
+    }
+
+    fn open_marketplace(&self) {
+        let self_ = self.imp();
+        if let Some(window) = self_.window.get() {
+            let win_ = window.imp();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+
+            receiver.attach(
+                None,
+                clone!(@weak self as sidebar => @default-panic, move |code| {
+                    sidebar.open_browser(code);
+                    glib::Continue(false)
+                }),
+            );
+
+            thread::spawn(move || {
+                match tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(eg.game_token())
+                {
+                    None => {}
+                    Some(token) => {
+                        sender.send(token.code).unwrap();
+                    }
+                }
+            });
+        }
+    }
+
+    pub fn open_browser(&self, code: String) {
+        #[cfg(target_os = "linux")]
+        if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code), None::<&gio::AppLaunchContext>).is_err() {
+            error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code);
+        }
+        #[cfg(target_os = "windows")]
+        open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code));
     }
 
     pub fn setup_widgets(&self) {
@@ -254,9 +303,11 @@ impl EpicSidebar {
                 .expand_button
                 .set_tooltip_text(Some("Collapse Sidebar"));
             self_.expand_label.set_label("Collapse");
+            self_.marketplace_label.set_label("Marketplace")
         } else {
             self_.expand_image.set_icon_name(Some("go-next-symbolic"));
             self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
+            self_.marketplace_label.set_label("");
             self_.expand_label.set_label("");
         };
         if let Err(e) = self_.settings.set_boolean("sidebar-expanded", new_value) {

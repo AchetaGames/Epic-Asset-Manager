@@ -126,7 +126,34 @@
                     <object class="GtkBox">
                         <property name="valign">end</property>
                         <property name="halign">fill</property>
+                        <property name="orientation">vertical</property>
                         <property name="hexpand">true</property>
+                        <child>
+                            <object class="GtkButton">
+                                <property name="action-name">sidebar.marketplace</property>
+                                <property name="halign">fill</property>
+                                <property name="hexpand">true</property>
+                                <property name="tooltip-text" translatable="yes">Open Marketplace</property>
+                                <property name="valign">center</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="valign">center</property>
+                                        <property name="halign">fill</property>
+                                        <child>
+                                            <object class="GtkImage">
+                                                <property name="icon-name">x-office-presentation-symbolic</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel" id="marketplace_label">
+                                                <property name="hexpand">true</property>
+                                                <property name="label" translatable="yes"/>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                         <child>
                             <object class="GtkButton" id="expand_button">
                                 <property name="name">category_button</property>
@@ -138,7 +165,7 @@
                                 <child>
                                     <object class="GtkBox">
                                         <property name="valign">center</property>
-                                        <property name="halign">center</property>
+                                        <property name="halign">fill</property>
                                         <child>
                                             <object class="GtkImage" id="expand_image">
                                                 <property name="icon-name">go-next-symbolic</property>
@@ -146,6 +173,7 @@
                                         </child>
                                         <child>
                                             <object class="GtkLabel" id="expand_label">
+                                                <property name="hexpand">true</property>
                                                 <property name="label" translatable="yes"/>
                                             </object>
                                         </child>

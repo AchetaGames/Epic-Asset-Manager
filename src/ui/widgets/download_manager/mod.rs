@@ -1,10 +1,12 @@
 pub(crate) mod asset;
 pub(crate) mod docker;
 mod download_item;
+pub(crate) mod epic_file;
 
 use crate::ui::widgets::download_manager::asset::Asset;
 use crate::ui::widgets::download_manager::docker::Docker;
 use crate::ui::widgets::download_manager::download_item::EpicDownloadItem;
+use crate::ui::widgets::download_manager::epic_file::EpicFile;
 use glib::clone;
 use gtk4::gdk::Texture;
 use gtk4::subclass::prelude::*;
@@ -46,6 +48,13 @@ pub enum Msg {
     DockerExtractionFinished(String),
     DockerCanceled(String, (String, u64)),
     DockerPaused(String, (String, u64)),
+    EpicDownloadStart(String, String, u64),
+    EpicCanceled(String),
+    EpicPaused(String),
+    EpicFileFinished(String),
+    EpicFileExtracted(String),
+    EpicFileExtractionProgress(String, u64),
+    EpicDownloadProgress(String, u64),
     IOError(String),
 }
 
@@ -346,6 +355,21 @@ impl EpicDownloadManager {
             }
             Msg::DockerPaused(version, digest) => {
                 self.pause_docker_digest(version, digest);
+            }
+            Msg::EpicDownloadStart(version, url, size) => {
+                self.perform_file_download(&url, size, &version);
+            }
+            Msg::EpicCanceled(_) => {}
+            Msg::EpicPaused(_) => {}
+            Msg::EpicDownloadProgress(ver, size) => {
+                self.epic_download_progress(&ver, size);
+            }
+            Msg::EpicFileFinished(version) => self.epic_file_finished(&version),
+            Msg::EpicFileExtracted(version) => {
+                self.epic_file_extracted(&version);
+            }
+            Msg::EpicFileExtractionProgress(version, data) => {
+                self.epic_file_extraction_progress(&version, data);
             }
         }
     }

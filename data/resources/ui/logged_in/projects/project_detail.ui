@@ -2,6 +2,9 @@
 <interface>
     <template class="UnrealProjectDetails" parent="GtkBox">
         <child>
+            <object class="GtkSeparator"/>
+        </child>
+        <child>
             <object class="GtkRevealer" id="detail_slider">
                 <property name="hexpand" bind-source="UnrealProjectDetails" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="reveal-child" bind-source="UnrealProjectDetails" bind-property="expanded" bind-flags="sync-create"/>
