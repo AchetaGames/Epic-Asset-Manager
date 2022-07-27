@@ -138,7 +138,6 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                         ) {
                             Ok(_) => s.send(crate::ui::widgets::download_manager::Msg::DockerBlobFinished(v, d)).unwrap(),
                             Err(e) => {
-
                                 match &e {
                                     ghregistry::errors::Error::IO(err) => {
                                         error!("Failed blob download because: {:?}", err);
@@ -154,6 +153,12 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                         };
                     });
                     while let Ok(progress) = rx.recv() {
+                        if let Ok(w) = crate::RUNNING.read() {
+                            if !*w {
+                                std::mem::drop(rx);
+                                return;
+                            }
+                        }
                         if let Ok(m) = recv.try_recv() {
                             process_docker_thread_message(ver.clone(), digest.clone(), &sender, &m);
                             return;
