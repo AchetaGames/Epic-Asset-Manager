@@ -136,14 +136,22 @@ impl EpicWeb {
             Err(e) => {
                 error!("Failed to run query: {}", e);
             }
-            Ok(r) => match r.json::<EULAResponse>() {
-                Ok(eula) => {
-                    return eula.data.eula.has_account_accepted.accepted;
-                }
-                Err(e) => {
-                    error!("Failed to parse EULA json: {}", e)
-                }
-            },
+            Ok(r) => {
+                match r.text() {
+                    Ok(t) => match serde_json::from_str::<EULAResponse>(&t) {
+                        Ok(eula) => {
+                            return eula.data.eula.has_account_accepted.accepted;
+                        }
+                        Err(e) => {
+                            error!("Failed to parse EULA json: {}", e);
+                            debug!("Response: {}", t);
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed to read EULA text: {}", e);
+                    }
+                };
+            }
         };
         false
     }
