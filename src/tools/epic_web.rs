@@ -21,6 +21,7 @@ pub struct RedirectResponse {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EULAResponse {
+    pub errors: Option<Vec<Error>>,
     pub data: Data,
 }
 
@@ -34,7 +35,17 @@ pub struct Data {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Eula {
-    pub has_account_accepted: HasAccountAccepted,
+    pub has_account_accepted: Option<HasAccountAccepted>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Error {
+    pub message: String,
+    pub correlation_id: String,
+    pub service_response: String,
+    pub stack: Value,
+    pub path: Option<Vec<String>>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -124,9 +135,11 @@ impl EpicWeb {
         };
     }
 
-    pub fn validate_eula(&self) -> bool {
+    pub fn validate_eula(&self, id: String) -> bool {
         let mut map = HashMap::new();
-        map.insert("query", "{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"8645b4947bbc4c0092a8b7236df169d1\"){            accepted            key            locale            version        }    }}");
+        let query= vec!["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", &id, "\"){            accepted            key            locale            version        }    }}"];
+        map.insert("query", query.join(""));
+        println!("Params: {:?}", map);
         match self
             .client
             .post("https://graphql.unrealengine.com/ue/graphql")
@@ -140,7 +153,20 @@ impl EpicWeb {
                 match r.text() {
                     Ok(t) => match serde_json::from_str::<EULAResponse>(&t) {
                         Ok(eula) => {
-                            return eula.data.eula.has_account_accepted.accepted;
+                            return match eula.data.eula.has_account_accepted {
+                                None => {
+                                    match eula.errors {
+                                        None => {}
+                                        Some(errors) => {
+                                            for error in errors {
+                                                error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response)
+                                            }
+                                        }
+                                    }
+                                    false
+                                }
+                                Some(accepted) => accepted.accepted,
+                            };
                         }
                         Err(e) => {
                             error!("Failed to parse EULA json: {}", e);

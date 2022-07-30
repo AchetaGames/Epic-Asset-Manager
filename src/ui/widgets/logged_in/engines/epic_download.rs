@@ -1,6 +1,7 @@
 use crate::gio::glib::Sender;
 use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
+use egs_api::api::types::account::AccountData;
 use gtk4::glib::{clone, MainContext, PRIORITY_DEFAULT};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -9,6 +10,7 @@ use gtk_macros::{action, get_action};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::future::Future;
 use std::thread;
 use version_compare::Cmp;
 
@@ -366,6 +368,13 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
+            let id = match eg.user_details().account_id {
+                None => {
+                    sender.send(Msg::EULAValid(false)).unwrap();
+                    return;
+                }
+                Some(i) => i,
+            };
             thread::spawn(move || {
                 if let Some(token) = tokio::runtime::Runtime::new()
                     .unwrap()
@@ -373,7 +382,7 @@ impl EpicEngineDownload {
                 {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
-                    sender.send(Msg::EULAValid(web.validate_eula())).unwrap();
+                    sender.send(Msg::EULAValid(web.validate_eula(id))).unwrap();
                 };
             });
         }
