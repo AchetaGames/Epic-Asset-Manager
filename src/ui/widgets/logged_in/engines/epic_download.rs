@@ -1,7 +1,6 @@
 use crate::gio::glib::Sender;
 use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
-use egs_api::api::types::account::AccountData;
 use gtk4::glib::{clone, MainContext, PRIORITY_DEFAULT};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -10,7 +9,6 @@ use gtk_macros::{action, get_action};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::future::Future;
 use std::thread;
 use version_compare::Cmp;
 
