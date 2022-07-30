@@ -366,6 +366,13 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
+            let id = match eg.user_details().account_id {
+                None => {
+                    sender.send(Msg::EULAValid(false)).unwrap();
+                    return;
+                }
+                Some(i) => i,
+            };
             thread::spawn(move || {
                 if let Some(token) = tokio::runtime::Runtime::new()
                     .unwrap()
@@ -373,7 +380,7 @@ impl EpicEngineDownload {
                 {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
-                    sender.send(Msg::EULAValid(web.validate_eula())).unwrap();
+                    sender.send(Msg::EULAValid(web.validate_eula(id))).unwrap();
                 };
             });
         }
