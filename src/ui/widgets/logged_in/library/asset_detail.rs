@@ -610,20 +610,20 @@ impl EpicAssetDetails {
         let self_ = self.imp();
         let db = crate::models::database::connection();
         if let Some(asset) = self.asset() {
-            if let Ok(conn) = db.get() {
+            if let Ok(mut conn) = db.get() {
                 if let Some(fav) = self_.favorite.icon_name() {
                     if fav.eq("starred") {
                         diesel::delete(
                             crate::schema::favorite_asset::table
                                 .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
                         )
-                        .execute(&conn)
+                        .execute(&mut conn)
                         .expect("Unable to delete favorite from DB");
                         self_.favorite.set_icon_name("non-starred-symbolic");
                     } else {
                         diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
                             .values(crate::schema::favorite_asset::asset.eq(asset.id))
-                            .execute(&conn)
+                            .execute(&mut conn)
                             .expect("Unable to insert favorite to the DB");
                         self_.favorite.set_icon_name("starred");
                     };
@@ -653,13 +653,13 @@ impl EpicAssetDetails {
     pub fn check_favorite(&self) {
         let self_ = self.imp();
         let db = crate::models::database::connection();
-        if let Ok(conn) = db.get() {
+        if let Ok(mut conn) = db.get() {
             if let Some(asset) = self.asset() {
                 let ex: Result<bool, diesel::result::Error> = select(exists(
                     crate::schema::favorite_asset::table
                         .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
                 ))
-                .get_result(&conn);
+                .get_result(&mut conn);
                 if let Ok(fav) = ex {
                     if fav {
                         self_.favorite.set_icon_name("starred");

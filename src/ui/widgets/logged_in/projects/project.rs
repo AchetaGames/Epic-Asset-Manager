@@ -173,7 +173,7 @@ impl EpicProject {
                 None => {
                     let db = crate::models::database::connection();
                     let mut last_engine: Option<String> = None;
-                    if let Ok(conn) = db.get() {
+                    if let Ok(mut conn) = db.get() {
                         let engines: Result<String, diesel::result::Error> =
                             unreal_project_latest_engine::table
                                 .filter(
@@ -181,7 +181,7 @@ impl EpicProject {
                                         .eq(&data.path().unwrap()),
                                 )
                                 .select(crate::schema::unreal_project_latest_engine::engine)
-                                .first(&conn);
+                                .first(&mut conn);
                         if let Ok(last) = engines {
                             last_engine = Some(last);
                         }

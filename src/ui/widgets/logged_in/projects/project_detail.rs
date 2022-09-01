@@ -217,13 +217,13 @@ impl UnrealProjectDetails {
         if let Some(eng) = engine {
             if let Some(p) = eng.get_engine_binary_path() {
                 let db = crate::models::database::connection();
-                if let Ok(conn) = db.get() {
+                if let Ok(mut conn) = db.get() {
                     diesel::replace_into(unreal_project_latest_engine::table)
                         .values((
                             crate::schema::unreal_project_latest_engine::project.eq(path.clone()),
                             crate::schema::unreal_project_latest_engine::engine.eq(eng.path),
                         ))
-                        .execute(&conn)
+                        .execute(&mut conn)
                         .expect("Unable to insert last engine to the DB");
                 };
                 let context = gtk4::gio::AppLaunchContext::new();
@@ -321,7 +321,7 @@ impl UnrealProjectDetails {
         self.set_launch_enabled(false);
         let db = crate::models::database::connection();
         let mut last_engine: Option<String> = None;
-        if let Ok(conn) = db.get() {
+        if let Ok(mut conn) = db.get() {
             let engines: Result<String, diesel::result::Error> =
                 unreal_project_latest_engine::table
                     .filter(
@@ -329,7 +329,7 @@ impl UnrealProjectDetails {
                             .eq(&self.path().unwrap()),
                     )
                     .select(crate::schema::unreal_project_latest_engine::engine)
-                    .first(&conn);
+                    .first(&mut conn);
             if let Ok(last) = engines {
                 last_engine = Some(last);
             }

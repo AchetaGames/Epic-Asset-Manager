@@ -16,26 +16,17 @@ impl EpicAssetManagerWindow {
         let mut eg = self_.model.borrow().epic_games.borrow().clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
-            if let Some(exchange_token) = Runtime::new().unwrap().block_on(eg.auth_sid(s.as_str()))
+            if Runtime::new()
+                .unwrap()
+                .block_on(eg.auth_code(None, Some(s)))
             {
-                if Runtime::new()
-                    .unwrap()
-                    .block_on(eg.auth_code(exchange_token))
-                {
-                    sender
-                        .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
-                        .unwrap();
-                } else {
-                    sender
-                        .send(crate::ui::messages::Msg::LoginFailed(
-                            "Unable to get auth code".to_string(),
-                        ))
-                        .unwrap();
-                }
+                sender
+                    .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
+                    .unwrap();
             } else {
                 sender
                     .send(crate::ui::messages::Msg::LoginFailed(
-                        "Unable to authenticate with sid".to_string(),
+                        "Unable to authenticate with auth code".to_string(),
                     ))
                     .unwrap();
             };
