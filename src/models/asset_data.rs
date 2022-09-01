@@ -411,12 +411,12 @@ impl AssetData {
 
     pub fn check_favorite(&self) {
         let db = crate::models::database::connection();
-        if let Ok(conn) = db.get() {
+        if let Ok(mut conn) = db.get() {
             let ex: Result<bool, diesel::result::Error> = select(exists(
                 crate::schema::favorite_asset::table
                     .filter(crate::schema::favorite_asset::asset.eq(self.id())),
             ))
-            .get_result(&conn);
+            .get_result(&mut conn);
             if let Ok(fav) = ex {
                 self.set_property("favorite", fav);
                 return;

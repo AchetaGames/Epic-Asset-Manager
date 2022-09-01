@@ -27,7 +27,7 @@
                 <child>
                     <object class="GtkButton" id="sid_browser_button">
                         <property name="action-name">sid.browser</property>
-                        <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect</property>
+                        <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D34a02cf8f4414e29b15921876da36f9a%26responseType%3Dcode</property>
                         <property name="receives-default">1</property>
                         <child>
                             <object class="GtkBox">
@@ -68,7 +68,7 @@
                     <object class="GtkEntry" id="sid_entry">
                         <property name="width-chars">32</property>
                         <property name="max-length">32</property>
-                        <property name="placeholder-text">Please enter sid from the response after login</property>
+                        <property name="placeholder-text">Please enter 'authorizationCode' from the response after login</property>
                     </object>
                 </child>
                 <child>

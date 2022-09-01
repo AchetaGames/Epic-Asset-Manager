@@ -267,6 +267,11 @@ impl EpicLogs {
             self_.load_pool.execute(move || {
                 if let Ok(rd) = project.read_dir() {
                     for d in rd.flatten() {
+                        if let Ok(w) = crate::RUNNING.read() {
+                            if !*w {
+                                return;
+                            }
+                        };
                         let p = d.path();
                         if p.is_dir() {
                             Self::read_logs_in_path(p.as_path(), true, &s.clone());
@@ -283,6 +288,11 @@ impl EpicLogs {
     fn read_logs_in_path(project: &Path, crash: bool, sender: &Sender<Msg>) {
         if let Ok(rd) = project.read_dir() {
             for d in rd.flatten() {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
+                    }
+                };
                 let p = d.path();
                 if p.is_file() {
                     match p.extension() {

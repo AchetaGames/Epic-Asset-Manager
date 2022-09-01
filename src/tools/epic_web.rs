@@ -139,7 +139,6 @@ impl EpicWeb {
         let mut map = HashMap::new();
         let query= vec!["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", &id, "\"){            accepted            key            locale            version        }    }}"];
         map.insert("query", query.join(""));
-        println!("Params: {:?}", map);
         match self
             .client
             .post("https://graphql.unrealengine.com/ue/graphql")

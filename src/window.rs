@@ -419,21 +419,21 @@ impl EpicAssetManagerWindow {
         self.show_logged_in();
         let db = crate::models::database::connection();
         if let Some(id) = &ud.display_name {
-            if let Ok(conn) = db.get() {
+            if let Ok(mut conn) = db.get() {
                 diesel::replace_into(crate::schema::user_data::table)
                     .values((
                         crate::schema::user_data::name.eq("display_name"),
                         crate::schema::user_data::value.eq(id),
                     ))
-                    .execute(&conn)
+                    .execute(&mut conn)
                     .expect("Unable to insert display name to the DB");
             };
             self_.appmenu_button.set_label(id);
-        } else if let Ok(conn) = db.get() {
+        } else if let Ok(mut conn) = db.get() {
             let data: Result<String, diesel::result::Error> = crate::schema::user_data::table
                 .filter(crate::schema::user_data::name.eq("display_name"))
                 .select(crate::schema::user_data::value)
-                .first(&conn);
+                .first(&mut conn);
             if let Ok(name) = data {
                 self_.appmenu_button.set_label(&name);
             }
