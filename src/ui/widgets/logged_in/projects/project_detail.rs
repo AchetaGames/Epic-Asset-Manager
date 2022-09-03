@@ -1,3 +1,7 @@
+use crate::models::project_data::Uproject;
+use crate::schema::unreal_project_latest_engine;
+use crate::ui::widgets::button_cust::ButtonEpic;
+use crate::ui::widgets::logged_in::engines::UnrealEngine;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -5,11 +9,6 @@ use gtk4::{self, gio, prelude::*, ComboBoxText};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use std::path::PathBuf;
-
-use crate::models::project_data::Uproject;
-use crate::schema::unreal_project_latest_engine;
-use crate::ui::widgets::button_cust::ButtonEpic;
-use crate::ui::widgets::logged_in::engines::UnrealEngine;
 
 pub(crate) mod imp {
     use super::*;
@@ -195,19 +194,10 @@ impl UnrealProjectDetails {
     fn open_dir(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(dir) = std::fs::File::open(&p) {
-                    let ctx = glib::MainContext::default();
-                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
-                        ashpd::desktop::open_uri::open_directory(
-                            &ashpd::WindowIdentifier::default(),
-                            &dir,
-                        )
-                        .await.unwrap();
-                    }));
-                };
-            };
+            let ctx = glib::MainContext::default();
+            ctx.spawn_local(async move {
+                crate::tools::open_directory(&p).await;
+            });
         }
     }
 

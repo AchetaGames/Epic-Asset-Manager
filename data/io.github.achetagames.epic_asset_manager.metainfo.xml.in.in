@@ -12,7 +12,7 @@
       <p>Features:</p>
       <ul>
         <li>Downloading purchased assets from unreal marketplace</li>
-        <li>Downloading official binary Unreal Engine packages from ghcr</li>
+        <li>Downloading official binary Unreal Engine packages</li>
         <li>Adding assets to projects and creating new projects from assets</li>
         <li>Listing and launching Unreal projects</li>
         <li>Listing and launching Unreal Engine installations</li>
@@ -64,6 +64,15 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.7.1" date="2022-09-03">
+       <description>
+              <p>Fix OpenDir Panic</p>
+              <ul>
+                  <li>Handle directory open gracefully</li>
+                  <li>Update description</li>
+</ul>
+       </description>
+    </release>
     <release version="3.7.0" date="2022-09-01">
        <description>
               <p>Fix Epic login issue</p>
