@@ -180,16 +180,10 @@ impl EpicLogLine {
             debug!("Trying to open {}", p);
             #[cfg(target_os = "linux")]
             {
-                if let Ok(dir) = std::fs::File::open(&p) {
-                    let ctx = glib::MainContext::default();
-                    ctx.spawn_local(clone!(@weak self as asset_details => async move {
-                        ashpd::desktop::open_uri::open_directory(
-                            &ashpd::WindowIdentifier::default(),
-                            &dir
-                        )
-                        .await.unwrap();
-                    }));
-                };
+                let ctx = glib::MainContext::default();
+                ctx.spawn_local(async move {
+                    crate::tools::open_directory(&p).await;
+                });
             };
         }
     }

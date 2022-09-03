@@ -746,19 +746,13 @@ impl EpicDownloadItem {
     pub fn open_path(&self) {
         let self_ = self.imp();
         if let Some(p) = self.path() {
-            if let Ok(dir) = std::fs::File::open(&p) {
-                if let Some(w) = self_.window.get() {
-                    w.close_download_manager();
-                }
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(clone!(@weak self as item => async move {
-                    ashpd::desktop::open_uri::open_directory(
-                        &ashpd::WindowIdentifier::default(),
-                        &dir,
-                    )
-                    .await.unwrap();
-                }));
-            };
-        }
+            if let Some(w) = self_.window.get() {
+                w.close_download_manager();
+            }
+            let ctx = glib::MainContext::default();
+            ctx.spawn_local(async move {
+                crate::tools::open_directory(&p).await;
+            });
+        };
     }
 }
