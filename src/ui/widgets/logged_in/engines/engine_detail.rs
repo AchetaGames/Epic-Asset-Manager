@@ -7,7 +7,7 @@ use gtk_macros::action;
 use std::ffi::OsString;
 use std::str::FromStr;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecString, ParamSpecUInt};

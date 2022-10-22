@@ -9,7 +9,7 @@ use gtk_macros::{action, stateful_action};
 use log::{debug, info};
 use once_cell::sync::OnceCell;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use log::error;
     use std::cell::RefCell;

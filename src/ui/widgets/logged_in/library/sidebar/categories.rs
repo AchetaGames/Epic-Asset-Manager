@@ -5,7 +5,7 @@ use gtk4::{self, prelude::*};
 use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::models::category_data::CategoryData;
     use glib::ParamSpec;
@@ -326,7 +326,7 @@ impl EpicSidebarCategories {
         }
     }
 
-    pub(crate) fn add_category(&self, name: &str, path: &str, leaf: bool) {
+    pub fn add_category(&self, name: &str, path: &str, leaf: bool) {
         let self_ = self.imp();
         let mut cats = self_.categories_set.borrow_mut();
         if cats.insert(path.to_string()) {

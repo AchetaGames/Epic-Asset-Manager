@@ -1,6 +1,6 @@
 use egs_api::api::types::asset_info::AssetInfo;
 
-pub(crate) trait Search {
+pub trait Search {
     fn matches_filter(&self, _tag: Option<String>, _search: Option<String>) -> bool {
         true
     }

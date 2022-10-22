@@ -33,7 +33,7 @@ mod imp {
         favorite: RefCell<bool>,
         downloaded: RefCell<bool>,
         pub kind: RefCell<Option<String>>,
-        pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         thumbnail: RefCell<Option<Texture>>,
         pub settings: gtk4::gio::Settings,
     }
@@ -198,7 +198,7 @@ impl AssetData {
     }
 
     pub fn decide_kind(asset: &AssetInfo) -> Option<AssetType> {
-        return if let Some(cat) = &asset.categories {
+        if let Some(cat) = &asset.categories {
             for c in cat {
                 match c.path.as_str() {
                     "assets" => {
@@ -219,10 +219,8 @@ impl AssetData {
                     _ => {}
                 };
             }
-            None
-        } else {
-            None
         };
+        None
     }
 
     fn configure_kind(&self, asset: &AssetInfo) {
@@ -330,7 +328,7 @@ impl AssetData {
     }
 
     pub fn check_category(&self, cat: &str) -> bool {
-        if let Some(c) = cat.split(&['|', '&']).next() {
+        cat.split(&['|', '&']).next().map_or(false, |c| {
             let result = if c.starts_with('!') {
                 let mut chars = c.chars();
                 chars.next();
@@ -359,9 +357,7 @@ impl AssetData {
                     }
                 }
             }
-        } else {
-            false
-        }
+        })
     }
 
     pub fn check_downloaded(&self) {

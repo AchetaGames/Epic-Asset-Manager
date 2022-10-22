@@ -5,7 +5,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
-pub(crate) mod engines;
+pub mod engines;
 pub mod library;
 mod log_line;
 pub mod logs;
@@ -13,7 +13,7 @@ mod plugins;
 mod projects;
 pub mod refresh;
 
-pub(crate) mod imp {
+pub mod imp {
     use std::cell::RefCell;
 
     use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
@@ -200,10 +200,7 @@ impl EpicLoggedInBox {
         self_.library.end_processing_asset();
     }
 
-    pub(crate) fn process_epic_asset(
-        &self,
-        epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
-    ) {
+    pub fn process_epic_asset(&self, epic_asset: &egs_api::api::types::epic_asset::EpicAsset) {
         let self_ = self.imp();
         self_.library.process_epic_asset(epic_asset);
     }

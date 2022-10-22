@@ -10,7 +10,7 @@ use regex::Regex;
 use std::path::PathBuf;
 use std::thread;
 
-pub(crate) trait Docker {
+pub trait Docker {
     fn perform_docker_blob_downloads(
         &self,
         _version: &str,
@@ -83,7 +83,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             Some(i) => i,
         };
         item.set_property("status", "waiting for download slot".to_string());
-        item.set_total_size(size as u128);
+        item.set_total_size(u128::from(size));
         item.set_total_files(digests.len() as u64);
 
         let v = version.to_string();
@@ -305,7 +305,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
             Some(i) => i,
         };
-        item.add_downloaded_size(progress as u128);
+        item.add_downloaded_size(u128::from(progress));
 
         self.emit_by_name::<()>("tick", &[]);
     }

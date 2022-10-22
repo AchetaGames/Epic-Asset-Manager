@@ -15,7 +15,7 @@ pub enum ItemType {
     Epic,
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
@@ -421,14 +421,12 @@ impl EpicDownloadItem {
 
             let time = end - start;
             if time > chrono::Duration::seconds(1) {
-                Some(
-                    ((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0)) as u128,
-                )
+                Some((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0))
             } else {
                 None
             }
         } {
-            let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
+            let byte = byte_unit::Byte::from_bytes(speed as u128).get_appropriate_unit(false);
             self.set_property("speed", format!("{}/s", byte.format(1)));
         };
     }
@@ -478,7 +476,7 @@ impl EpicDownloadItem {
                 }
                 ItemType::Epic => {
                     if let Some(v) = self.version() {
-                        dm.cancel_epic_download(v)
+                        dm.cancel_epic_download(v);
                     }
                 }
             }
@@ -561,12 +559,12 @@ impl EpicDownloadItem {
 
     pub fn total_size(&self) -> u128 {
         let self_ = self.imp();
-        self_.total_size.borrow().clone()
+        *self_.total_size.borrow()
     }
 
     pub fn downloaded_size(&self) -> u128 {
         let self_ = self.imp();
-        self_.downloaded_size.borrow().clone()
+        *self_.downloaded_size.borrow()
     }
 
     pub fn path(&self) -> Option<String> {

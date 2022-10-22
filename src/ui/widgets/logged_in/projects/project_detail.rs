@@ -10,7 +10,7 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use std::path::PathBuf;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::models::project_data::Uproject;
     use crate::window::EpicAssetManagerWindow;

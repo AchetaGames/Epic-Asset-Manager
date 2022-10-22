@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Uplugin {
     #[serde(default)]
@@ -56,7 +56,7 @@ pub struct Uplugin {
     pub can_be_used_with_unreal_header_tool: Option<bool>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Module {
     pub name: String,
@@ -77,7 +77,7 @@ pub struct Module {
     pub target_configuration_deny_list: Vec<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Plugin {
     #[serde(default)]
@@ -254,11 +254,13 @@ impl PluginData {
         receiver.attach(
             None,
             clone!(@weak self as project => @default-panic, move |msg| {
-                project.update(msg);
+                project.update(&msg);
                 glib::Continue(true)
             }),
         );
     }
 
-    pub fn update(&self, _msg: Msg) {}
+    pub fn update(&self, _msg: &Msg) {
+        debug!("Update for {:?}", self.name());
+    }
 }

@@ -10,7 +10,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use gtk4::gio;
@@ -227,7 +227,7 @@ impl EpicImageOverlay {
         // Check that we are not running out of pages
         if new_position < self_.stack.n_pages() {
             let image = self_.stack.nth_page(new_position);
-            self_.stack.scroll_to(&image, true)
+            self_.stack.scroll_to(&image, true);
         };
     }
 
@@ -253,7 +253,7 @@ impl EpicImageOverlay {
                 self_
                     .stack
                     .position()
-                    .partial_cmp(&(self_.stack.n_pages().saturating_sub(2) as f64)),
+                    .partial_cmp(&(f64::from(self_.stack.n_pages().saturating_sub(2)))),
                 None | Some(std::cmp::Ordering::Greater)
             ) && (self_.stack.n_pages() > 0),
         );

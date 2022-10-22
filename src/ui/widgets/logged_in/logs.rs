@@ -31,7 +31,7 @@ pub enum Msg {
     AddLog(String, String, bool),
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
     use gtk4::glib::Object;

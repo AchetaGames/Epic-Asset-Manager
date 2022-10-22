@@ -7,7 +7,7 @@ use gtk_macros::action;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use once_cell::sync::OnceCell;

@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use std::io::Read;
 use std::thread;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct UnrealVersion {
     #[serde(default)]
@@ -40,7 +40,7 @@ impl UnrealVersion {
         }
     }
 
-    pub fn valid(&self) -> bool {
+    pub const fn valid(&self) -> bool {
         !(self.major_version == -1
             && self.minor_version == -1
             && self.patch_version == -1

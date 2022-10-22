@@ -18,7 +18,7 @@ pub mod asset_detail;
 pub mod image_stack;
 mod sidebar;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::config;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
@@ -447,34 +447,39 @@ impl EpicLibraryBox {
     /// Open asset based on a name from xdg-open
     fn open_asset(&self) {
         let self_ = self.imp();
-        if let Some(id) = self.item() {
-            let assets = self_.loaded_assets.borrow();
-            if let Some(a) = assets.get(&id) {
-                self_.details.set_asset(a);
-            }
-        } else if let Some(product) = self.product() {
-            let assets = self_.loaded_assets.borrow();
-            let products = self_.asset_product_names.borrow();
-            match products.get(&product) {
-                Some(id) => {
-                    if let Some(a) = assets.get(id) {
-                        self_.details.set_asset(a);
-                    }
-                }
-                None => {
-                    for prod in products.keys() {
-                        if product.starts_with(prod) {
-                            if let Some(id) = products.get(prod) {
-                                if let Some(a) = assets.get(id) {
-                                    self_.details.set_asset(a);
+        self.item().map_or_else(
+            || {
+                if let Some(product) = self.product() {
+                    let assets = self_.loaded_assets.borrow();
+                    let products = self_.asset_product_names.borrow();
+                    match products.get(&product) {
+                        Some(id) => {
+                            if let Some(a) = assets.get(id) {
+                                self_.details.set_asset(a);
+                            }
+                        }
+                        None => {
+                            for prod in products.keys() {
+                                if product.starts_with(prod) {
+                                    if let Some(id) = products.get(prod) {
+                                        if let Some(a) = assets.get(id) {
+                                            self_.details.set_asset(a);
+                                        }
+                                    }
+                                    break;
                                 }
                             }
-                            break;
                         }
                     }
                 }
-            }
-        }
+            },
+            |id| {
+                let assets = self_.loaded_assets.borrow();
+                if let Some(a) = assets.get(&id) {
+                    self_.details.set_asset(a);
+                }
+            },
+        );
     }
 
     pub fn flush_assets(&self) {
@@ -543,11 +548,9 @@ impl EpicLibraryBox {
 
     pub fn order_changed(&self) {
         let self_ = self.imp();
-        let asc = if let Some(name) = self_.order.icon_name() {
+        let asc = self_.order.icon_name().map_or(false, |name| {
             matches!(name.as_str(), "view-sort-ascending-symbolic")
-        } else {
-            false
-        };
+        });
         if let Some(by) = self_.select_order_by.active_id() {
             self_.sorter_model.set_sorter(Some(&Self::sorter(&by, asc)));
         };
@@ -792,7 +795,7 @@ impl EpicLibraryBox {
     fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
         let self_ = self.imp();
         match self_.window.get() {
-            Some(window) => Some(&(*window)),
+            Some(window) => Some(window),
             None => None,
         }
     }
@@ -892,10 +895,7 @@ impl EpicLibraryBox {
         !self.can_be_refreshed()
     }
 
-    pub(crate) fn process_epic_asset(
-        &self,
-        epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
-    ) {
+    pub fn process_epic_asset(&self, epic_asset: &egs_api::api::types::epic_asset::EpicAsset) {
         let self_ = self.imp();
         if let Some(window) = self.main_window() {
             let win_ = window.imp();

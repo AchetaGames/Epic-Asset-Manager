@@ -5,7 +5,7 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::error;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;

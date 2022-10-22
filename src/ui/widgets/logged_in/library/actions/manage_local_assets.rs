@@ -5,7 +5,7 @@ use gtk4::{glib, CompositeTemplate};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;

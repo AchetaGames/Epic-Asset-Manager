@@ -3,6 +3,11 @@ name = "epic_asset_manager"
 version = "3.7.1"
 authors = ["Milan Stastny <milan@stastnej.ch>"]
 edition = "2021"
+license-file = "LICENSE"
+repository = "https://github.com/AchetaGames/Epic-Asset-Manager"
+description = "An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store"
+keywords = ["unreal", "engine", "gamedev", "assets", "epic"]
+categories = ["gui"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

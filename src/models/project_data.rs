@@ -9,7 +9,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::thread;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Uproject {
     #[serde(default)]

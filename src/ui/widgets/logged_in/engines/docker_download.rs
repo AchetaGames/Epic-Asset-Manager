@@ -16,7 +16,7 @@ pub enum Msg {
     ManifestSize(u64),
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecString};
@@ -271,47 +271,55 @@ impl DockerEngineDownload {
             let self_ = self.imp();
             if let Some(window) = self_.window.get() {
                 let win_ = window.imp();
-                if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
-                    let client = dclient.clone();
-                    let sender = self_.sender.clone();
-                    thread::spawn(move || {
-                        let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
-                        let mut result: HashMap<String, Vec<String>> = HashMap::new();
+                (*win_.model.borrow().dclient.borrow())
+                    .as_ref()
+                    .map_or_else(
+                        || {
+                            self_.docker_versions.replace(None);
+                            self.add_engine();
+                        },
+                        |dclient| {
+                            let client = dclient.clone();
+                            let sender = self_.sender.clone();
+                            thread::spawn(move || {
+                                let re = Regex::new(r"dev-(?:slim-)?(\d\.\d+.\d+)").unwrap();
+                                let mut result: HashMap<String, Vec<String>> = HashMap::new();
 
-                        match client.get_tags("epicgames/unreal-engine", None) {
-                            Ok(tags) => {
-                                for tag in tags {
-                                    if re.is_match(&tag) {
-                                        for cap in re.captures_iter(&tag) {
-                                            match result.get_mut(&cap[1]) {
-                                                None => {
-                                                    result.insert(
-                                                        cap[1].to_string(),
-                                                        vec![tag.to_string()],
-                                                    );
-                                                }
-                                                Some(v) => {
-                                                    v.push(tag.to_string());
+                                match client.get_tags("epicgames/unreal-engine", None) {
+                                    Ok(tags) => {
+                                        for tag in tags {
+                                            if re.is_match(&tag) {
+                                                for cap in re.captures_iter(&tag) {
+                                                    match result.get_mut(&cap[1]) {
+                                                        None => {
+                                                            result.insert(
+                                                                cap[1].to_string(),
+                                                                vec![tag.to_string()],
+                                                            );
+                                                        }
+                                                        Some(v) => {
+                                                            v.push(tag.to_string());
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                    Err(e) => {
+                                        error!("Failed to get tags: {:?}", e);
+                                        sender
+                                            .send(Msg::Error(format!(
+                                                "Failed to get tags: {:?}",
+                                                e
+                                            )))
+                                            .unwrap();
+                                    }
                                 }
-                            }
-                            Err(e) => {
-                                error!("Failed to get tags: {:?}", e);
-                                sender
-                                    .send(Msg::Error(format!("Failed to get tags: {:?}", e)))
-                                    .unwrap();
-                            }
-                        }
 
-                        sender.send(Msg::EngineVersions(result)).unwrap();
-                    });
-                } else {
-                    self_.docker_versions.replace(None);
-                    self.add_engine();
-                };
+                                sender.send(Msg::EngineVersions(result)).unwrap();
+                            });
+                        },
+                    );
             }
         }
     }
@@ -324,7 +332,20 @@ impl DockerEngineDownload {
             while let Some(el) = self_.details.first_child() {
                 self_.details.remove(&el);
             }
-            if let Some(versions) = &*self_.docker_versions.borrow() {
+            (*self_.docker_versions.borrow()).as_ref().map_or_else(|| {
+                let label = gtk4::Label::builder()
+                    .hexpand(true)
+                    .use_markup(true)
+                    .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
+                    .build();
+                label.connect_activate_link(clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
+                    details.open_preferences(uri);
+                    gtk4::Inhibit(true)
+                }));
+
+                self_.details.append(&label);
+                get_action!(self_.actions, @install).set_enabled(false);
+            }, |versions| {
                 let combo = gtk4::ComboBoxText::new();
                 combo.set_hexpand(true);
                 self_
@@ -400,20 +421,7 @@ impl DockerEngineDownload {
                         &size_label,
                         &self_.details_group,
                     ));
-            } else {
-                let label = gtk4::Label::builder()
-                    .hexpand(true)
-                    .use_markup(true)
-                    .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
-                    .build();
-                label.connect_activate_link(clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
-                    details.open_preferences(uri);
-                    gtk4::Inhibit(true)
-                }));
-
-                self_.details.append(&label);
-                get_action!(self_.actions, @install).set_enabled(false);
-            }
+            });
         }
     }
 
@@ -457,7 +465,8 @@ impl DockerEngineDownload {
                 self.updated_docker_versions(&ver);
             }
             Msg::ManifestSize(size) => {
-                let byte = byte_unit::Byte::from_bytes(size as u128).get_appropriate_unit(false);
+                let byte =
+                    byte_unit::Byte::from_bytes(u128::from(size)).get_appropriate_unit(false);
                 match self_.settings.strv("unreal-engine-directories").get(0) {
                     None => {
                         if let Some(w) = self_.window.get() {

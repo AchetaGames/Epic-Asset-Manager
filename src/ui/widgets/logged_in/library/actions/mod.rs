@@ -25,7 +25,7 @@ pub enum Action {
     Play,
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
@@ -95,8 +95,8 @@ pub(crate) mod imp {
                 release_notes: RefCell::new(None),
                 asset: RefCell::new(None),
                 window: OnceCell::new(),
-                size_label: RefCell::new(Default::default()),
-                disk_size_label: RefCell::new(Default::default()),
+                size_label: RefCell::new(gtk4::Label::default()),
+                disk_size_label: RefCell::new(gtk4::Label::default()),
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 select_download_version: TemplateChild::default(),
@@ -451,14 +451,7 @@ impl EpicAssetActions {
                     self_.project_row.set_visible(true);
                     self_.new_project_row.set_visible(true);
                 }
-                AssetType::Game => {
-                    // self_.install_row.set_visible(true);
-                }
-                AssetType::Engine => {}
-                AssetType::Plugin => {
-                    // self_.project_row.set_visible(true);
-                    // self_.engine_row.set_visible(true);
-                }
+                AssetType::Game | AssetType::Engine | AssetType::Plugin => {}
             };
         }
 
@@ -527,7 +520,7 @@ impl EpicAssetActions {
                 .add_to_project
                 .set_property("selected-version", id.to_string());
             if let Some(asset_info) = &*self_.asset.borrow() {
-                if let Some(release) = asset_info.release_info(&id.to_string()) {
+                if let Some(release) = asset_info.release_info(&id) {
                     if let Some(ref compatible) = release.compatible_apps {
                         self.add_detail(
                             "Supported versions",

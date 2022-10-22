@@ -13,7 +13,7 @@ pub enum Msg {
     AddProject { uproject_file: PathBuf },
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
@@ -358,11 +358,14 @@ impl EpicProjectsBox {
                     Ok(entry) => {
                         let p = entry.path();
                         if p.is_dir() {
-                            if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
-                                sender.send(Msg::AddProject { uproject_file }).unwrap();
-                            } else {
-                                Self::check_path_for_uproject(&p, &sender.clone());
-                            };
+                            EpicProjectsBox::uproject_path(&p).map_or_else(
+                                || {
+                                    Self::check_path_for_uproject(&p, &sender.clone());
+                                },
+                                |uproject_file| {
+                                    sender.send(Msg::AddProject { uproject_file }).unwrap();
+                                },
+                            );
                         } else {
                             continue;
                         }

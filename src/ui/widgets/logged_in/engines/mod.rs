@@ -16,7 +16,7 @@ mod docker_download;
 pub mod engine;
 pub mod engine_detail;
 mod engines_side;
-pub(crate) mod epic_download;
+pub mod epic_download;
 mod install;
 
 pub enum Msg {
@@ -27,7 +27,7 @@ pub enum Msg {
     },
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct UnrealEngine {
     pub version: crate::models::engine_data::UnrealVersion,
     pub path: String,
@@ -60,7 +60,7 @@ impl UnrealEngine {
     }
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use std::cell::RefCell;
 
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
@@ -477,8 +477,7 @@ impl EpicEnginesBox {
         for dir in self_.settings.strv("unreal-engine-directories") {
             let s = self_.sender.clone();
             self_.file_pool.execute(move || {
-                match crate::models::engine_data::EngineData::read_engine_version(&dir.to_string())
-                {
+                match crate::models::engine_data::EngineData::read_engine_version(&dir) {
                     None => {
                         let path = std::path::PathBuf::from(dir.to_string());
                         if let Ok(rd) = path.read_dir() {

@@ -4,7 +4,7 @@ use gtk4::{self, prelude::*};
 use gtk4::{gio, glib, CompositeTemplate};
 use gtk_macros::action;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::models::category_data::CategoryData;
     use glib::ParamSpec;

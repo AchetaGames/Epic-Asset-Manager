@@ -18,13 +18,13 @@ pub enum Msg {
     Versions(Vec<Blob>),
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VersionResponse {
     pub blobs: Vec<Blob>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Blob {
     pub name: String,
@@ -33,7 +33,7 @@ pub struct Blob {
     pub url: String,
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use once_cell::sync::OnceCell;
@@ -213,7 +213,7 @@ impl EpicEngineDownload {
         if let Some(selected) = self_.version_selector.active_id() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
-                    let byte = byte_unit::Byte::from_bytes(version.size as u128)
+                    let byte = byte_unit::Byte::from_bytes(u128::from(version.size))
                         .get_appropriate_unit(false);
                     self_.size_value.set_label(&byte.format(1));
                 }
@@ -278,8 +278,8 @@ impl EpicEngineDownload {
 
             receiver.attach(
                 None,
-                clone!(@weak self as sidebar => @default-panic, move |code| {
-                    sidebar.open_browser(code);
+                clone!(@weak self as sidebar => @default-panic, move |code: String| {
+                    open_browser(&code);
                     glib::Continue(false)
                 }),
             );
@@ -293,15 +293,6 @@ impl EpicEngineDownload {
                 }
             });
         }
-    }
-
-    pub fn open_browser(&self, code: String) {
-        #[cfg(target_os = "linux")]
-        if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code), None::<&gio::AppLaunchContext>).is_err() {
-            error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code);
-        }
-        #[cfg(target_os = "windows")]
-        open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code));
     }
 
     pub fn update(&self, msg: Msg) {
@@ -323,7 +314,7 @@ impl EpicEngineDownload {
                             glib::Continue(false)
                         }),
                     );
-                    self.get_versions(sender.clone());
+                    self.get_versions(sender);
                 } else {
                     self_.eula_stack.set_visible_child_name("invalid");
                 }
@@ -381,7 +372,7 @@ impl EpicEngineDownload {
                 {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
-                    sender.send(Msg::EULAValid(web.validate_eula(id))).unwrap();
+                    sender.send(Msg::EULAValid(web.validate_eula(&id))).unwrap();
                 };
             });
         }
@@ -408,4 +399,13 @@ impl EpicEngineDownload {
             });
         }
     }
+}
+
+fn open_browser(code: &str) {
+    #[cfg(target_os = "linux")]
+    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code), None::<&gio::AppLaunchContext>).is_err() {
+        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code);
+    }
+    #[cfg(target_os = "windows")]
+    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code));
 }

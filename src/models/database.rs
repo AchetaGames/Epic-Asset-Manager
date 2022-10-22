@@ -12,7 +12,7 @@ static POOL: Lazy<Pool> = Lazy::new(|| init_pool().expect("Failed to create a po
 
 pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = embed_migrations!("migrations/");
 
-pub(crate) fn connection() -> Pool {
+pub fn connection() -> Pool {
     POOL.clone()
 }
 
@@ -36,7 +36,7 @@ fn init_pool() -> Result<Pool, Box<dyn Error + Send + Sync + 'static>> {
 
     {
         let mut db = pool.get()?;
-        run_migration_on(&mut *db)?;
+        run_migration_on(&mut db)?;
     }
     info!("Database pool initialized.");
     Ok(pool)

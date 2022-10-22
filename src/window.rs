@@ -16,7 +16,7 @@ use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::ops::Deref;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::models::Model;
     use glib::ParamSpec;
@@ -412,26 +412,32 @@ impl EpicAssetManagerWindow {
             .set_download_manager(&self_.download_manager);
         self.show_logged_in();
         let db = crate::models::database::connection();
-        if let Some(id) = &ud.display_name {
-            if let Ok(mut conn) = db.get() {
-                diesel::replace_into(crate::schema::user_data::table)
-                    .values((
-                        crate::schema::user_data::name.eq("display_name"),
-                        crate::schema::user_data::value.eq(id),
-                    ))
-                    .execute(&mut conn)
-                    .expect("Unable to insert display name to the DB");
-            };
-            self_.appmenu_button.set_label(id);
-        } else if let Ok(mut conn) = db.get() {
-            let data: Result<String, diesel::result::Error> = crate::schema::user_data::table
-                .filter(crate::schema::user_data::name.eq("display_name"))
-                .select(crate::schema::user_data::value)
-                .first(&mut conn);
-            if let Ok(name) = data {
-                self_.appmenu_button.set_label(&name);
-            }
-        };
+        ud.display_name.as_ref().map_or_else(
+            || {
+                if let Ok(mut conn) = db.get() {
+                    let data: Result<String, diesel::result::Error> =
+                        crate::schema::user_data::table
+                            .filter(crate::schema::user_data::name.eq("display_name"))
+                            .select(crate::schema::user_data::value)
+                            .first(&mut conn);
+                    if let Ok(name) = data {
+                        self_.appmenu_button.set_label(&name);
+                    }
+                }
+            },
+            |id| {
+                if let Ok(mut conn) = db.get() {
+                    diesel::replace_into(crate::schema::user_data::table)
+                        .values((
+                            crate::schema::user_data::name.eq("display_name"),
+                            crate::schema::user_data::value.eq(id),
+                        ))
+                        .execute(&mut conn)
+                        .expect("Unable to insert display name to the DB");
+                };
+                self_.appmenu_button.set_label(id);
+            },
+        );
 
         self.save_secret(
             ud.token_type
@@ -533,7 +539,7 @@ impl EpicAssetManagerWindow {
                             if let Err(e) = ss.get_any_collection().unwrap().create_item(
                                 secret_name,
                                 attributes,
-                                "".as_bytes(),
+                                b"",
                                 true,
                                 "text/plain",
                             ) {

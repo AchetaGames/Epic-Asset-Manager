@@ -582,7 +582,7 @@ impl PreferencesWindow {
         };
     }
 
-    fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
+    const fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
         match kind {
             DirectoryConfigType::Games | DirectoryConfigType::Cache | DirectoryConfigType::Temp => {
                 None

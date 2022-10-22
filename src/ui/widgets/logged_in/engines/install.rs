@@ -2,7 +2,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use once_cell::sync::OnceCell;

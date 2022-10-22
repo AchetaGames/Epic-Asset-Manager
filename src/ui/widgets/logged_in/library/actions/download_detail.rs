@@ -5,7 +5,7 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use once_cell::sync::OnceCell;

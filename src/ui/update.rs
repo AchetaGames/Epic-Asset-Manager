@@ -2,10 +2,8 @@ use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
 use gtk4::prelude::SettingsExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
-// use log::debug;
-// use std::thread;
 
-pub(crate) trait Update {
+pub trait Update {
     fn update(&self, _event: Msg) {
         unimplemented!()
     }

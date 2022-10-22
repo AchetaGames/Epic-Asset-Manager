@@ -4,7 +4,7 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
@@ -116,7 +116,7 @@ pub(crate) mod imp {
                 "selected" => {
                     let selected = value.get().unwrap();
                     self.selected.replace(selected);
-                    self.details.set_property(pspec.name(), value)
+                    self.details.set_property(pspec.name(), value);
                 }
                 "title" => {
                     let title = value.get().unwrap();
@@ -125,7 +125,7 @@ pub(crate) mod imp {
                 "position" => {
                     let position = value.get().unwrap();
                     self.position.replace(position);
-                    self.details.set_property(pspec.name(), value)
+                    self.details.set_property(pspec.name(), value);
                 }
                 _ => unimplemented!(),
             }

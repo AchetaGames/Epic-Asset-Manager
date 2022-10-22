@@ -7,7 +7,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::glib::{ParamSpec, ParamSpecString, SignalHandlerId};
     use once_cell::sync::OnceCell;

@@ -1,7 +1,7 @@
-pub(crate) mod asset;
-pub(crate) mod docker;
+pub mod asset;
+pub mod docker;
 mod download_item;
-pub(crate) mod epic_file;
+pub mod epic_file;
 
 use crate::ui::widgets::download_manager::asset::Asset;
 use crate::ui::widgets::download_manager::docker::Docker;
@@ -66,19 +66,19 @@ pub enum DownloadStatus {
     Extracted,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum PostDownloadAction {
     Copy(String, bool),
     NoVault,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ThreadMessages {
     Cancel,
     Pause,
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
@@ -348,8 +348,7 @@ impl EpicDownloadManager {
             Msg::EpicDownloadStart(version, url, size) => {
                 self.perform_file_download(&url, size, &version);
             }
-            Msg::EpicCanceled(_) => {}
-            Msg::EpicPaused(_) => {}
+            Msg::EpicCanceled(_) | Msg::EpicPaused(_) => {}
             Msg::EpicDownloadProgress(ver, size) => {
                 self.epic_download_progress(&ver, size);
             }
@@ -499,11 +498,7 @@ impl EpicDownloadManager {
         });
     }
 
-    pub(crate) fn add_thread_sender(
-        &self,
-        key: String,
-        sender: std::sync::mpsc::Sender<ThreadMessages>,
-    ) {
+    pub fn add_thread_sender(&self, key: String, sender: std::sync::mpsc::Sender<ThreadMessages>) {
         let self_ = self.imp();
         self_
             .thread_senders
@@ -513,7 +508,7 @@ impl EpicDownloadManager {
             .push(sender);
     }
 
-    pub(crate) fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
+    pub fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
         let self_ = self.imp();
         if let Some(senders) = self_.thread_senders.borrow_mut().remove(key) {
             for sender in senders {
