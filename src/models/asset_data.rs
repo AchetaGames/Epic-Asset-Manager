@@ -33,7 +33,7 @@ mod imp {
         favorite: RefCell<bool>,
         downloaded: RefCell<bool>,
         pub kind: RefCell<Option<String>>,
-        pub(crate) asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         thumbnail: RefCell<Option<Texture>>,
         pub settings: gtk4::gio::Settings,
     }
@@ -69,13 +69,9 @@ mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "refreshed",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("refreshed")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -125,13 +121,7 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "name" => {
                     let name = value
@@ -167,7 +157,7 @@ mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "name" => self.name.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
@@ -190,7 +180,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl AssetData {
     pub fn new(asset: &AssetInfo, image: Option<Texture>) -> AssetData {
-        let data: Self = glib::Object::new(&[]).expect("Failed to create AssetData");
+        let data: Self = glib::Object::new::<Self>(&[]);
         let self_ = data.imp();
 
         data.set_property("id", &asset.id);
@@ -208,7 +198,7 @@ impl AssetData {
     }
 
     pub fn decide_kind(asset: &AssetInfo) -> Option<AssetType> {
-        return if let Some(cat) = &asset.categories {
+        if let Some(cat) = &asset.categories {
             for c in cat {
                 match c.path.as_str() {
                     "assets" => {
@@ -229,10 +219,8 @@ impl AssetData {
                     _ => {}
                 };
             }
-            None
-        } else {
-            None
         };
+        None
     }
 
     fn configure_kind(&self, asset: &AssetInfo) {
@@ -340,7 +328,7 @@ impl AssetData {
     }
 
     pub fn check_category(&self, cat: &str) -> bool {
-        if let Some(c) = cat.split(&['|', '&']).next() {
+        cat.split(&['|', '&']).next().map_or(false, |c| {
             let result = if c.starts_with('!') {
                 let mut chars = c.chars();
                 chars.next();
@@ -369,9 +357,7 @@ impl AssetData {
                     }
                 }
             }
-        } else {
-            false
-        }
+        })
     }
 
     pub fn check_downloaded(&self) {

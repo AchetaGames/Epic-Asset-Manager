@@ -101,8 +101,9 @@ pub mod imp {
     }
 
     impl ObjectImpl for PreferencesWindow {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.bind_settings();
             obj.load_settings();
             obj.setup_actions();
@@ -137,9 +138,7 @@ impl Default for PreferencesWindow {
 
 impl PreferencesWindow {
     pub fn new() -> Self {
-        let window: Self = glib::Object::new(&[]).expect("Failed to create PreferencesWindow");
-
-        window
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -583,7 +582,7 @@ impl PreferencesWindow {
         };
     }
 
-    fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
+    const fn setting_name_from_type(kind: DirectoryConfigType) -> Option<&'static str> {
         match kind {
             DirectoryConfigType::Games | DirectoryConfigType::Cache | DirectoryConfigType::Temp => {
                 None

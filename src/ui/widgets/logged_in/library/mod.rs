@@ -18,7 +18,7 @@ pub mod asset_detail;
 pub mod image_stack;
 mod sidebar;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::config;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
@@ -186,13 +186,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "sidebar-expanded" => {
                     let sidebar_expanded = value.get().unwrap();
@@ -217,7 +211,7 @@ pub(crate) mod imp {
                             }
                         }
                     });
-                    obj.apply_filter();
+                    self.instance().apply_filter();
                 }
                 "search" => {
                     let search: Option<String> = value.get().unwrap();
@@ -231,25 +225,25 @@ pub(crate) mod imp {
                             }
                         }
                     });
-                    obj.apply_filter();
+                    self.instance().apply_filter();
                 }
                 "item" => {
                     let item = value.get().unwrap();
                     self.product.replace(None);
                     self.item.replace(item);
-                    obj.open_asset();
+                    self.instance().open_asset();
                 }
                 "product" => {
                     let product = value.get().unwrap();
                     self.item.replace(None);
                     self.product.replace(product);
-                    obj.open_asset();
+                    self.instance().open_asset();
                 }
                 _ => unimplemented!(),
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
                 "to-load" => self.loading.borrow().to_value(),
@@ -262,8 +256,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.bind_properties();
             obj.setup_actions();
             obj.setup_widgets();
@@ -287,7 +282,7 @@ impl Default for EpicLibraryBox {
 
 impl EpicLibraryBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn set_download_manager(
@@ -321,12 +316,14 @@ impl EpicLibraryBox {
         // Create the children
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
+            let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
             item.set_child(Some(&row));
         });
 
         // Populate children
         factory.connect_bind(move |_, list_item| {
-            Self::populate_model(list_item);
+            let item = list_item.downcast_ref::<gtk4::ListItem>().unwrap();
+            Self::populate_model(item);
         });
 
         self_.filter_model.set_model(Some(&self_.grid_model));
@@ -450,34 +447,39 @@ impl EpicLibraryBox {
     /// Open asset based on a name from xdg-open
     fn open_asset(&self) {
         let self_ = self.imp();
-        if let Some(id) = self.item() {
-            let assets = self_.loaded_assets.borrow();
-            if let Some(a) = assets.get(&id) {
-                self_.details.set_asset(a);
-            }
-        } else if let Some(product) = self.product() {
-            let assets = self_.loaded_assets.borrow();
-            let products = self_.asset_product_names.borrow();
-            match products.get(&product) {
-                Some(id) => {
-                    if let Some(a) = assets.get(id) {
-                        self_.details.set_asset(a);
-                    }
-                }
-                None => {
-                    for prod in products.keys() {
-                        if product.starts_with(prod) {
-                            if let Some(id) = products.get(prod) {
-                                if let Some(a) = assets.get(id) {
-                                    self_.details.set_asset(a);
+        self.item().map_or_else(
+            || {
+                if let Some(product) = self.product() {
+                    let assets = self_.loaded_assets.borrow();
+                    let products = self_.asset_product_names.borrow();
+                    match products.get(&product) {
+                        Some(id) => {
+                            if let Some(a) = assets.get(id) {
+                                self_.details.set_asset(a);
+                            }
+                        }
+                        None => {
+                            for prod in products.keys() {
+                                if product.starts_with(prod) {
+                                    if let Some(id) = products.get(prod) {
+                                        if let Some(a) = assets.get(id) {
+                                            self_.details.set_asset(a);
+                                        }
+                                    }
+                                    break;
                                 }
                             }
-                            break;
                         }
                     }
                 }
-            }
-        }
+            },
+            |id| {
+                let assets = self_.loaded_assets.borrow();
+                if let Some(a) = assets.get(&id) {
+                    self_.details.set_asset(a);
+                }
+            },
+        );
     }
 
     pub fn flush_assets(&self) {
@@ -546,11 +548,9 @@ impl EpicLibraryBox {
 
     pub fn order_changed(&self) {
         let self_ = self.imp();
-        let asc = if let Some(name) = self_.order.icon_name() {
+        let asc = self_.order.icon_name().map_or(false, |name| {
             matches!(name.as_str(), "view-sort-ascending-symbolic")
-        } else {
-            false
-        };
+        });
         if let Some(by) = self_.select_order_by.active_id() {
             self_.sorter_model.set_sorter(Some(&Self::sorter(&by, asc)));
         };
@@ -795,7 +795,7 @@ impl EpicLibraryBox {
     fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
         let self_ = self.imp();
         match self_.window.get() {
-            Some(window) => Some(&(*window)),
+            Some(window) => Some(window),
             None => None,
         }
     }
@@ -895,10 +895,7 @@ impl EpicLibraryBox {
         !self.can_be_refreshed()
     }
 
-    pub(crate) fn process_epic_asset(
-        &self,
-        epic_asset: &egs_api::api::types::epic_asset::EpicAsset,
-    ) {
+    pub fn process_epic_asset(&self, epic_asset: &egs_api::api::types::epic_asset::EpicAsset) {
         let self_ = self.imp();
         if let Some(window) = self.main_window() {
             let win_ = window.imp();

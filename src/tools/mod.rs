@@ -28,13 +28,11 @@ pub async fn open_directory(path: &str) {
                 error!("Unable to open directory: {}", e);
             };
         }
-    } else {
-        if let Some(directory) = p.parent() {
-            if let Some(parent) = directory.to_str() {
-                if let Err(e) = opener::open(parent) {
-                    error!("Unable to open directory: {}", e);
-                };
-            }
+    } else if let Some(directory) = p.parent() {
+        if let Some(parent) = directory.to_str() {
+            if let Err(e) = opener::open(parent) {
+                error!("Unable to open directory: {}", e);
+            };
         }
     }
 }

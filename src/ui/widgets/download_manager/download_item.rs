@@ -15,7 +15,7 @@ pub enum ItemType {
     Epic,
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
@@ -208,24 +208,14 @@ pub(crate) mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "finished",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("finished")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "label" => {
                     let label = value
@@ -246,8 +236,9 @@ pub(crate) mod imp {
                         action!(
                             self.actions,
                             "open",
-                            clone!(@weak obj as item =>  move |_, _| {
-                                item.open_path();
+                            clone!(@weak self as imp =>  move |_, _| {
+                                let obj = imp.instance();
+                                obj.open_path();
                             })
                         );
                     }
@@ -323,7 +314,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "target" => self.target.borrow().to_value(),
@@ -341,8 +332,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
             obj.setup_timer();
@@ -366,7 +358,7 @@ impl Default for EpicDownloadItem {
 
 impl EpicDownloadItem {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicDownloadItem")
+        glib::Object::new(&[])
     }
 
     pub fn set_download_manager(
@@ -429,14 +421,12 @@ impl EpicDownloadItem {
 
             let time = end - start;
             if time > chrono::Duration::seconds(1) {
-                Some(
-                    ((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0)) as u128,
-                )
+                Some((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0))
             } else {
                 None
             }
         } {
-            let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
+            let byte = byte_unit::Byte::from_bytes(speed as u128).get_appropriate_unit(false);
             self.set_property("speed", format!("{}/s", byte.format(1)));
         };
     }
@@ -486,7 +476,7 @@ impl EpicDownloadItem {
                 }
                 ItemType::Epic => {
                     if let Some(v) = self.version() {
-                        dm.cancel_epic_download(v)
+                        dm.cancel_epic_download(v);
                     }
                 }
             }
@@ -569,12 +559,12 @@ impl EpicDownloadItem {
 
     pub fn total_size(&self) -> u128 {
         let self_ = self.imp();
-        self_.total_size.borrow().clone()
+        *self_.total_size.borrow()
     }
 
     pub fn downloaded_size(&self) -> u128 {
         let self_ = self.imp();
-        self_.downloaded_size.borrow().clone()
+        *self_.downloaded_size.borrow()
     }
 
     pub fn path(&self) -> Option<String> {

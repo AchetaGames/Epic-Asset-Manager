@@ -10,7 +10,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use gtk4::gio;
@@ -66,8 +66,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicImageOverlay {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_receiver();
         }
@@ -87,13 +88,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "asset" => {
                     let asset = value
@@ -105,7 +100,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "asset" => self.asset.borrow().to_value(),
                 _ => unimplemented!(),
@@ -137,7 +132,7 @@ pub enum Msg {
 
 impl EpicImageOverlay {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn clear(&self) {
@@ -228,10 +223,12 @@ impl EpicImageOverlay {
 
     fn next(&self) {
         let self_ = self.imp();
-        let image = self_
-            .stack
-            .nth_page((self_.stack.position().round() as u32) + 1);
-        self_.stack.scroll_to(&image, true);
+        let new_position = (self_.stack.position().round() as u32) + 1;
+        // Check that we are not running out of pages
+        if new_position < self_.stack.n_pages() {
+            let image = self_.stack.nth_page(new_position);
+            self_.stack.scroll_to(&image, true);
+        };
     }
 
     fn prev(&self) {
@@ -256,7 +253,7 @@ impl EpicImageOverlay {
                 self_
                     .stack
                     .position()
-                    .partial_cmp(&(self_.stack.n_pages().saturating_sub(2) as f64)),
+                    .partial_cmp(&(f64::from(self_.stack.n_pages().saturating_sub(2)))),
                 None | Some(std::cmp::Ordering::Greater)
             ) && (self_.stack.n_pages() > 0),
         );

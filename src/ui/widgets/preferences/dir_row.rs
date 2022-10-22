@@ -41,20 +41,20 @@ pub mod imp {
     }
 
     impl ObjectImpl for DirectoryRow {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
 
         fn signals() -> &'static [Signal] {
             static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
                 vec![
-                    Signal::builder("remove", &[], <()>::static_type().into())
+                    Signal::builder("remove")
                         .flags(glib::SignalFlags::ACTION)
                         .build(),
-                    Signal::builder("move-up", &[], <()>::static_type().into())
+                    Signal::builder("move-up")
                         .flags(glib::SignalFlags::ACTION)
                         .build(),
-                    Signal::builder("move-down", &[], <()>::static_type().into())
+                    Signal::builder("move-down")
                         .flags(glib::SignalFlags::ACTION)
                         .build(),
                 ]
@@ -75,7 +75,7 @@ glib::wrapper! {
 
 impl DirectoryRow {
     pub fn new(dir: &str, window: &crate::ui::widgets::preferences::PreferencesWindow) -> Self {
-        let row: Self = glib::Object::new(&[]).expect("Failed to create DirectoryRow");
+        let row: Self = glib::Object::new(&[]);
         adw::prelude::PreferencesRowExt::set_title(&row, dir);
         let self_ = row.imp();
         self_.window.set(window.clone()).unwrap();

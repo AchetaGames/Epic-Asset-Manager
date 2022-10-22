@@ -1,4 +1,5 @@
 use crate::ui::widgets::logged_in::refresh::Refresh;
+use adw::gtk;
 use engine::EpicEngine;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -15,7 +16,7 @@ mod docker_download;
 pub mod engine;
 pub mod engine_detail;
 mod engines_side;
-pub(crate) mod epic_download;
+pub mod epic_download;
 mod install;
 
 pub enum Msg {
@@ -26,7 +27,7 @@ pub enum Msg {
     },
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct UnrealEngine {
     pub version: crate::models::engine_data::UnrealVersion,
     pub path: String,
@@ -59,7 +60,7 @@ impl UnrealEngine {
     }
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use std::cell::RefCell;
 
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
@@ -127,8 +128,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEnginesBox {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -156,13 +158,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let expanded = value.get().unwrap();
@@ -176,7 +172,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
@@ -202,7 +198,7 @@ impl Default for EpicEnginesBox {
 
 impl EpicEnginesBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn setup_messaging(&self) {
@@ -239,10 +235,12 @@ impl EpicEnginesBox {
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicEngine::new();
+            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             item.set_child(Some(&row));
         });
 
         factory.connect_bind(move |_factory, list_item| {
+            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
             let data = list_item
                 .item()
                 .unwrap()
@@ -479,8 +477,7 @@ impl EpicEnginesBox {
         for dir in self_.settings.strv("unreal-engine-directories") {
             let s = self_.sender.clone();
             self_.file_pool.execute(move || {
-                match crate::models::engine_data::EngineData::read_engine_version(&dir.to_string())
-                {
+                match crate::models::engine_data::EngineData::read_engine_version(&dir) {
                     None => {
                         let path = std::path::PathBuf::from(dir.to_string());
                         if let Ok(rd) = path.read_dir() {

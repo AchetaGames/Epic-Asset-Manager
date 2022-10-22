@@ -10,7 +10,7 @@ pub mod button;
 pub mod categories;
 mod category;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
@@ -87,12 +87,13 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicSidebar {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
-            self.all_category.set_sidebar(obj);
-            self.unreal_category.set_sidebar(obj);
-            self.games_category.set_sidebar(obj);
+            self.all_category.set_sidebar(&obj);
+            self.unreal_category.set_sidebar(&obj);
+            self.games_category.set_sidebar(&obj);
             obj.setup_widgets();
         }
 
@@ -111,13 +112,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let sidebar_expanded = value.get().unwrap();
@@ -127,7 +122,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 _ => unimplemented!(),
@@ -152,7 +147,7 @@ impl Default for EpicSidebar {
 
 impl EpicSidebar {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicSidebar")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -211,8 +206,8 @@ impl EpicSidebar {
 
             receiver.attach(
                 None,
-                clone!(@weak self as sidebar => @default-panic, move |code| {
-                    sidebar.open_browser(code);
+                clone!(@weak self as sidebar => @default-panic, move |code:String| {
+                    open_browser(&code);
                     glib::Continue(false)
                 }),
             );
@@ -229,15 +224,6 @@ impl EpicSidebar {
                 }
             });
         }
-    }
-
-    pub fn open_browser(&self, code: String) {
-        #[cfg(target_os = "linux")]
-        if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code), None::<&gio::AppLaunchContext>).is_err() {
-            error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code);
-        }
-        #[cfg(target_os = "windows")]
-        open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code));
     }
 
     pub fn setup_widgets(&self) {
@@ -303,7 +289,7 @@ impl EpicSidebar {
                 .expand_button
                 .set_tooltip_text(Some("Collapse Sidebar"));
             self_.expand_label.set_label("Collapse");
-            self_.marketplace_label.set_label("Marketplace")
+            self_.marketplace_label.set_label("Marketplace");
         } else {
             self_.expand_image.set_icon_name(Some("go-next-symbolic"));
             self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
@@ -365,7 +351,7 @@ impl EpicSidebar {
         self_.games_category.activate(true);
     }
 
-    pub(crate) fn add_category(&self, path: &str) {
+    pub fn add_category(&self, path: &str) {
         let parts = path.split('/').collect::<Vec<&str>>();
         if parts.len() > 1 {
             if let Some(mut cat) = self.category_by_name("unreal") {
@@ -414,4 +400,13 @@ impl EpicSidebar {
             Some(c) => c,
         }
     }
+}
+
+fn open_browser(code: &str) {
+    #[cfg(target_os = "linux")]
+    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code), None::<&gio::AppLaunchContext>).is_err() {
+        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code);
+    }
+    #[cfg(target_os = "windows")]
+    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code));
 }

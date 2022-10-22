@@ -7,7 +7,7 @@ use gtk_macros::action;
 use std::ffi::OsString;
 use std::str::FromStr;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecString, ParamSpecUInt};
@@ -103,13 +103,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "selected" => {
                     let selected = value.get().unwrap();
@@ -123,7 +117,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "selected" => self.selected.borrow().to_value(),
                 "position" => self.position.borrow().to_value(),
@@ -131,9 +125,8 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
+        fn constructed(&self) {
+            self.parent_constructed();
         }
     }
 
@@ -154,7 +147,7 @@ impl Default for EpicEngineDetails {
 
 impl EpicEngineDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn set_download_manager(

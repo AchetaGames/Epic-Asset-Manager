@@ -1,27 +1,32 @@
 [package]
 name = "epic_asset_manager"
-version = "3.7.1"
+version = "3.8.0"
 authors = ["Milan Stastny <milan@stastnej.ch>"]
 edition = "2021"
+license-file = "LICENSE"
+repository = "https://github.com/AchetaGames/Epic-Asset-Manager"
+description = "An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store"
+keywords = ["unreal", "engine", "gamedev", "assets", "epic"]
+categories = ["gui"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-adw = { package = "libadwaita", version = "0.1.0" }
+adw = { package = "libadwaita", version = "0.2" }
 anyhow = "1.0"
 byte-unit = "4.0"
 chrono = "0.4"
-clap = "3"
+clap = "4"
 diesel = { version = "2.0.0", features = ["sqlite", "r2d2"] }
 diesel_migrations = { version = "2.0.0", features = ["sqlite"] }
 egs-api = "0.6"
 env_logger = "0.9"
 fs2 = "0.4.3"
 futures = "0.3"
-gtk4 = { version = "0.4", features = ["v4_6"] }
+gtk4 = { version = "0.5", features = ["v4_8"] }
 gtk-macros = "0.3"
 hex = "0.4"
-html2pango = "0.4"
+html2pango = "0.5"
 lazy_static = "1.4"
 libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
 log = "0.4"

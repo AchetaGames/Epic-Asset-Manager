@@ -7,7 +7,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::glib::{ParamSpec, ParamSpecString, SignalHandlerId};
     use once_cell::sync::OnceCell;
@@ -57,8 +57,8 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicProject {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -78,13 +78,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "name" => {
                     let name = value
@@ -104,7 +98,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "name" => self.name.borrow().to_value(),
                 "engine" => self.engine.borrow().to_value(),
@@ -130,7 +124,7 @@ impl Default for EpicProject {
 
 impl EpicProject {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

@@ -10,7 +10,7 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use std::path::PathBuf;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::models::project_data::Uproject;
     use crate::window::EpicAssetManagerWindow;
@@ -110,13 +110,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let expanded = value.get().unwrap();
@@ -134,7 +128,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "position" => self.position.borrow().to_value(),
@@ -143,9 +137,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_actions();
         }
     }
 
@@ -166,7 +160,7 @@ impl Default for UnrealProjectDetails {
 
 impl UnrealProjectDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn setup_actions(&self) {

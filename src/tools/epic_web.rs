@@ -6,11 +6,11 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Default, Debug, Clone)]
-pub(crate) struct EpicWeb {
+pub struct EpicWeb {
     client: Client,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RedirectResponse {
     pub redirect_url: String,
@@ -18,27 +18,27 @@ pub struct RedirectResponse {
     pub sid: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EULAResponse {
     pub errors: Option<Vec<Error>>,
     pub data: Data,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Data {
     #[serde(rename = "Eula")]
     pub eula: Eula,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Eula {
     pub has_account_accepted: Option<HasAccountAccepted>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Error {
     pub message: String,
@@ -48,7 +48,7 @@ pub struct Error {
     pub path: Option<Vec<String>>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HasAccountAccepted {
     pub accepted: bool,
@@ -135,9 +135,9 @@ impl EpicWeb {
         };
     }
 
-    pub fn validate_eula(&self, id: String) -> bool {
+    pub fn validate_eula(&self, id: &str) -> bool {
         let mut map = HashMap::new();
-        let query= vec!["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", &id, "\"){            accepted            key            locale            version        }    }}"];
+        let query= vec!["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", id, "\"){            accepted            key            locale            version        }    }}"];
         map.insert("query", query.join(""));
         match self
             .client
@@ -158,7 +158,7 @@ impl EpicWeb {
                                         None => {}
                                         Some(errors) => {
                                             for error in errors {
-                                                error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response)
+                                                error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
                                             }
                                         }
                                     }

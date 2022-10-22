@@ -1,7 +1,7 @@
 use gtk4::cairo::glib::SignalHandlerId;
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
@@ -60,8 +60,8 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEngine {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -103,13 +103,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "needs-update" => {
                     let updatable = value.get().unwrap();
@@ -145,7 +139,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "needs-update" => self.updatable.borrow().to_value(),
                 "version" => self.version.borrow().to_value(),
@@ -175,7 +169,7 @@ impl Default for EpicEngine {
 
 impl EpicEngine {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn path(&self) -> Option<String> {

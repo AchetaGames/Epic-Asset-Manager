@@ -1,4 +1,5 @@
 use crate::ui::widgets::logged_in::refresh::Refresh;
+use adw::gtk;
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 use log::info;
 use project::EpicProject;
@@ -12,7 +13,7 @@ pub enum Msg {
     AddProject { uproject_file: PathBuf },
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
@@ -82,8 +83,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicProjectsBox {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -111,13 +113,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let expanded = value.get().unwrap();
@@ -131,7 +127,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
@@ -157,7 +153,7 @@ impl Default for EpicProjectsBox {
 
 impl EpicProjectsBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn setup_messaging(&self) {
@@ -193,10 +189,12 @@ impl EpicProjectsBox {
         factory.connect_setup(move |_factory, item| {
             let row = EpicProject::new();
             row.set_window(&w);
+            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             item.set_child(Some(&row));
         });
 
         factory.connect_bind(move |_factory, list_item| {
+            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
             let data = list_item
                 .item()
                 .unwrap()
@@ -360,11 +358,14 @@ impl EpicProjectsBox {
                     Ok(entry) => {
                         let p = entry.path();
                         if p.is_dir() {
-                            if let Some(uproject_file) = EpicProjectsBox::uproject_path(&p) {
-                                sender.send(Msg::AddProject { uproject_file }).unwrap();
-                            } else {
-                                Self::check_path_for_uproject(&p, &sender.clone());
-                            };
+                            EpicProjectsBox::uproject_path(&p).map_or_else(
+                                || {
+                                    Self::check_path_for_uproject(&p, &sender.clone());
+                                },
+                                |uproject_file| {
+                                    sender.send(Msg::AddProject { uproject_file }).unwrap();
+                                },
+                            );
                         } else {
                             continue;
                         }

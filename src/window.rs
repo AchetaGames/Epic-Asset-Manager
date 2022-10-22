@@ -16,7 +16,7 @@ use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::ops::Deref;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::models::Model;
     use glib::ParamSpec;
@@ -109,13 +109,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "item" => {
                     let item = value.get::<String>().unwrap();
@@ -129,7 +123,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "item" => self.logged_in_stack.property("item"),
                 "product" => self.logged_in_stack.property("product"),
@@ -137,9 +131,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             // Devel Profile
             if PROFILE == "Devel" {
                 obj.style_context().add_class("devel");
@@ -170,8 +164,8 @@ pub(crate) mod imp {
 
     impl WindowImpl for EpicAssetManagerWindow {
         // save window state on delete event
-        fn close_request(&self, obj: &Self::Type) -> Inhibit {
-            if let Err(err) = obj.save_window_size() {
+        fn close_request(&self) -> Inhibit {
+            if let Err(err) = self.instance().save_window_size() {
                 warn!("Failed to save window state, {}", &err);
             }
             Inhibit(false)
@@ -188,7 +182,7 @@ glib::wrapper! {
 
 impl EpicAssetManagerWindow {
     pub fn new(app: &EpicAssetManager) -> Self {
-        let window: Self = glib::Object::new(&[]).expect("Failed to create EpicAssetManagerWindow");
+        let window: Self = glib::Object::new(&[]);
         window.set_application(Some(app));
 
         gtk4::Window::set_default_icon_name(APP_ID);
@@ -418,26 +412,32 @@ impl EpicAssetManagerWindow {
             .set_download_manager(&self_.download_manager);
         self.show_logged_in();
         let db = crate::models::database::connection();
-        if let Some(id) = &ud.display_name {
-            if let Ok(mut conn) = db.get() {
-                diesel::replace_into(crate::schema::user_data::table)
-                    .values((
-                        crate::schema::user_data::name.eq("display_name"),
-                        crate::schema::user_data::value.eq(id),
-                    ))
-                    .execute(&mut conn)
-                    .expect("Unable to insert display name to the DB");
-            };
-            self_.appmenu_button.set_label(id);
-        } else if let Ok(mut conn) = db.get() {
-            let data: Result<String, diesel::result::Error> = crate::schema::user_data::table
-                .filter(crate::schema::user_data::name.eq("display_name"))
-                .select(crate::schema::user_data::value)
-                .first(&mut conn);
-            if let Ok(name) = data {
-                self_.appmenu_button.set_label(&name);
-            }
-        };
+        ud.display_name.as_ref().map_or_else(
+            || {
+                if let Ok(mut conn) = db.get() {
+                    let data: Result<String, diesel::result::Error> =
+                        crate::schema::user_data::table
+                            .filter(crate::schema::user_data::name.eq("display_name"))
+                            .select(crate::schema::user_data::value)
+                            .first(&mut conn);
+                    if let Ok(name) = data {
+                        self_.appmenu_button.set_label(&name);
+                    }
+                }
+            },
+            |id| {
+                if let Ok(mut conn) = db.get() {
+                    diesel::replace_into(crate::schema::user_data::table)
+                        .values((
+                            crate::schema::user_data::name.eq("display_name"),
+                            crate::schema::user_data::value.eq(id),
+                        ))
+                        .execute(&mut conn)
+                        .expect("Unable to insert display name to the DB");
+                };
+                self_.appmenu_button.set_label(id);
+            },
+        );
 
         self.save_secret(
             ud.token_type
@@ -539,7 +539,7 @@ impl EpicAssetManagerWindow {
                             if let Err(e) = ss.get_any_collection().unwrap().create_item(
                                 secret_name,
                                 attributes,
-                                "".as_bytes(),
+                                b"",
                                 true,
                                 "text/plain",
                             ) {

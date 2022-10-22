@@ -2,7 +2,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use glib::ParamSpec;
     use gtk4::gio;
@@ -46,8 +46,8 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicSidebarCategory {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
@@ -86,13 +86,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "title" => {
                     let title = value.get().unwrap();
@@ -116,7 +110,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "title" => self.title.borrow().to_value(),
                 "icon-name" => self.icon_name.borrow().to_value(),
@@ -144,7 +138,6 @@ impl Default for EpicSidebarCategory {
 
 impl EpicSidebarCategory {
     pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategory");
-        stack
+        glib::Object::new(&[])
     }
 }

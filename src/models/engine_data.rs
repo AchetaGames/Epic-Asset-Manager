@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use std::io::Read;
 use std::thread;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct UnrealVersion {
     #[serde(default)]
@@ -40,7 +40,7 @@ impl UnrealVersion {
         }
     }
 
-    pub fn valid(&self) -> bool {
+    pub const fn valid(&self) -> bool {
         !(self.major_version == -1
             && self.minor_version == -1
             && self.patch_version == -1
@@ -109,7 +109,6 @@ mod imp {
     impl ObjectSubclass for EngineData {
         const NAME: &'static str = "EngineData";
         type Type = super::EngineData;
-        type ParentType = glib::Object;
 
         fn new() -> Self {
             let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
@@ -136,21 +135,17 @@ mod imp {
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
     impl ObjectImpl for EngineData {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_messaging();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_messaging();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "finished",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("finished")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -194,13 +189,7 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "guid" => {
                     let guid = value.get().unwrap();
@@ -232,7 +221,7 @@ mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "guid" => self.guid.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
@@ -261,7 +250,7 @@ impl EngineData {
         version: &UnrealVersion,
         model: &gtk4::gio::ListStore,
     ) -> EngineData {
-        let data: Self = glib::Object::new(&[]).expect("Failed to create EngineData");
+        let data: Self = glib::Object::new::<Self>(&[]);
         let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();

@@ -4,7 +4,7 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use std::cell::RefCell;
 
@@ -41,19 +41,17 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicLocalAsset {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_actions();
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![
-                        glib::subclass::Signal::builder("delete", &[], <()>::static_type().into())
-                            .flags(glib::SignalFlags::ACTION)
-                            .build(),
-                    ]
+                    vec![glib::subclass::Signal::builder("delete")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -82,13 +80,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "label" => {
                     let label = value
@@ -96,7 +88,7 @@ pub(crate) mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     let formatted = label.as_ref().map(|l| format!("<b><u>{}</u></b>", l));
                     self.label.replace(formatted);
-                    obj.set_property("path", label);
+                    self.instance().set_property("path", label);
                 }
                 "path" => {
                     let path = value
@@ -108,7 +100,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
@@ -134,7 +126,7 @@ impl Default for EpicLocalAsset {
 
 impl EpicLocalAsset {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn setup_actions(&self) {

@@ -2,7 +2,7 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::subclass::prelude::*;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::glib::ParamSpecFloat;
     use gtk4::{graphene, gsk};
@@ -63,39 +63,34 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
-                "fraction" => obj.fraction().to_value(),
-                "inverted" => obj.inverted().to_value(),
-                "clockwise" => obj.clockwise().to_value(),
+                "fraction" => self.instance().fraction().to_value(),
+                "inverted" => self.instance().inverted().to_value(),
+                "clockwise" => self.instance().clockwise().to_value(),
                 _ => unreachable!(),
             }
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
-                "fraction" => obj.set_fraction(value.get().unwrap()),
-                "inverted" => obj.set_inverted(value.get().unwrap()),
-                "clockwise" => obj.set_clockwise(value.get().unwrap()),
+                "fraction" => self.instance().set_fraction(value.get().unwrap()),
+                "inverted" => self.instance().set_inverted(value.get().unwrap()),
+                "clockwise" => self.instance().set_clockwise(value.get().unwrap()),
                 _ => unreachable!(),
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
 
-            obj.set_valign(gtk4::Align::Center);
+            self.instance().set_valign(gtk4::Align::Center);
         }
     }
 
     impl WidgetImpl for ProgressIcon {
-        fn snapshot(&self, widget: &Self::Type, snapshot: &gtk4::Snapshot) {
+        fn snapshot(&self, snapshot: &gtk4::Snapshot) {
+            let widget = self.instance();
             let size = widget.size() as f32;
             let radius = size / 2.0;
             let mut color = widget.style_context().color();
@@ -129,12 +124,8 @@ pub(crate) mod imp {
             snapshot.pop();
         }
 
-        fn measure(
-            &self,
-            widget: &Self::Type,
-            _orientation: gtk4::Orientation,
-            _for_size: i32,
-        ) -> (i32, i32, i32, i32) {
+        fn measure(&self, _orientation: gtk4::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
+            let widget = self.instance();
             (widget.size(), widget.size(), -1, -1)
         }
     }
@@ -153,7 +144,7 @@ glib::wrapper! {
 
 impl Default for ProgressIcon {
     fn default() -> Self {
-        glib::Object::new(&[]).unwrap()
+        glib::Object::new(&[])
     }
 }
 

@@ -4,7 +4,7 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
@@ -63,9 +63,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEnginesSide {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_actions();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -107,13 +107,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let expanded = value.get().unwrap();
@@ -122,7 +116,7 @@ pub(crate) mod imp {
                 "selected" => {
                     let selected = value.get().unwrap();
                     self.selected.replace(selected);
-                    self.details.set_property(pspec.name(), value)
+                    self.details.set_property(pspec.name(), value);
                 }
                 "title" => {
                     let title = value.get().unwrap();
@@ -131,13 +125,13 @@ pub(crate) mod imp {
                 "position" => {
                     let position = value.get().unwrap();
                     self.position.replace(position);
-                    self.details.set_property(pspec.name(), value)
+                    self.details.set_property(pspec.name(), value);
                 }
                 _ => unimplemented!(),
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
@@ -166,7 +160,7 @@ impl Default for EpicEnginesSide {
 
 impl EpicEnginesSide {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicEnginesSide")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

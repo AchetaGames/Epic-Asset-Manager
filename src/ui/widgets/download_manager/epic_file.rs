@@ -16,8 +16,10 @@ use std::io::Read;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
+use std::sync::mpsc::Receiver;
+use zip::ZipArchive;
 
-pub(crate) trait EpicFile {
+pub trait EpicFile {
     fn perform_file_download(&self, _url: &str, _size: u64, _version: &str) {
         unimplemented!()
     }
@@ -77,7 +79,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             Some(i) => i,
         };
         item.set_property("status", "waiting for download slot".to_string());
-        item.set_total_size(size as u128);
+        item.set_total_size(u128::from(size));
         item.set_total_files(1);
         let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
         self.add_thread_sender(version.to_string(), send);
@@ -90,92 +92,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         p.push("epic");
         p.push(version);
         self_.download_pool.execute(move || {
-            if let Ok(w) = crate::RUNNING.read() {
-                if !*w {
-                    return;
-                }
-            };
-            if let Ok(m) = recv.try_recv() {
-                process_epic_thread_message(ver, &sender, &m);
-                return;
-            }
-            debug!(
-                "Downloading engine {} from {} to {:?}",
-                ver,
-                link.to_string(),
-                p
-            );
-            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-            let mut client = if p.exists() {
-                let metadata = std::fs::metadata(&p.as_path()).expect("unable to read metadata");
-                if metadata.size() == size {
-                    debug!("Already downloaded {}", p.to_str().unwrap_or_default());
-                    sender
-                        .send(super::Msg::EpicDownloadProgress(ver.clone(), size as u64))
-                        .unwrap();
-                    sender.send(Msg::EpicFileFinished(ver)).unwrap();
-                    return;
-                } else {
-                    let c = reqwest::blocking::Client::new();
-                    debug!("Trying to resume download");
-                    match c
-                        .get(link.clone())
-                        .header(
-                            reqwest::header::RANGE,
-                            format! {"bytes={}-{}", metadata.size(), size},
-                        )
-                        .send()
-                    {
-                        Ok(c) => c,
-                        Err(e) => {
-                            error!("Failed to resume Engine download: {}", e);
-                            return;
-                        }
-                    }
-                }
-            } else {
-                match reqwest::blocking::get(link.clone()) {
-                    Ok(c) => c,
-                    Err(e) => {
-                        error!("Failed to start Engine download: {}", e);
-                        return;
-                    }
-                }
-            };
-            let mut buffer: [u8; 1024] = [0; 1024];
-            let mut file = File::create(&p).unwrap();
-            loop {
-                if let Ok(m) = recv.try_recv() {
-                    process_epic_thread_message(ver, &sender, &m);
-                    return;
-                }
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
-                }
-                match client.read(&mut buffer) {
-                    Ok(size) => {
-                        if let Ok(m) = recv.try_recv() {
-                            process_epic_thread_message(ver, &sender, &m);
-                            return;
-                        }
-                        if size > 0 {
-                            file.write_all(&buffer[0..size]).unwrap();
-                            sender
-                                .send(super::Msg::EpicDownloadProgress(ver.clone(), size as u64))
-                                .unwrap();
-                        } else {
-                            break;
-                        }
-                    }
-                    Err(e) => {
-                        error!("Download error: {:?}", e);
-                        break;
-                    }
-                }
-            }
-            sender.send(Msg::EpicFileFinished(ver)).unwrap();
+            run(size, &recv, &sender, &link, ver, &mut p);
         });
     }
 
@@ -201,7 +118,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn download_engine_from_epic(&self, version: &str) {
         debug!("Initializing epic engine download of {}", version);
         let self_ = self.imp();
-        let re = Regex::new(r"(\d\.\d+.\d+)").unwrap();
+        let re = Regex::new(r"(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
         let mut items = self_.download_items.borrow_mut();
         let item = match items.get_mut(version) {
             None => {
@@ -222,7 +139,15 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         item.set_property("version", version);
         item.set_property("item-type", download_item::ItemType::Epic);
         for cap in re.captures_iter(version) {
-            item.set_property("label", cap[1].to_string());
+            item.set_property(
+                "label",
+                match cap.get(2) {
+                    None => cap[1].to_string(),
+                    Some(suffix) => {
+                        format!("{} ({})", cap[1].to_string(), suffix.as_str())
+                    }
+                },
+            );
         }
         item.set_property("status", "initializing...".to_string());
 
@@ -263,12 +188,12 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         );
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
-            let l = win_.logged_in_stack.imp();
-            let e = l.engines.imp();
-            let s = e.side.imp();
-            let i = s.install.imp();
-            let f = i.epic.clone();
-            f.get_versions(sender);
+            let logged_in = win_.logged_in_stack.imp();
+            let engines_box = logged_in.engines.imp();
+            let engines_side = engines_box.side.imp();
+            let engine_install = engines_side.install.imp();
+            let epic_download = engine_install.epic.clone();
+            epic_download.get_versions(sender);
         }
     }
 
@@ -306,7 +231,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
             Some(i) => i,
         };
-        item.add_downloaded_size(progress as u128);
+        item.add_downloaded_size(u128::from(progress));
 
         self.emit_by_name::<()>("tick", &[]);
     }
@@ -346,7 +271,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     }
 
     fn epic_file_extracted(&self, version: &str) {
-        if let Some(item) = self.get_item(&version) {
+        if let Some(item) = self.get_item(version) {
             item.file_processed();
             self.emit_by_name::<()>("tick", &[]);
         }
@@ -360,7 +285,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             .expect("Invalid Target directory");
         p.push("epic");
         p.push(version);
-        let re = Regex::new(r"(\d\.\d+.\d+)").unwrap();
+        let re = Regex::new(r"(\d\.\d+.\d+(?:_preview-\d+)?)").unwrap();
 
         let mut target = self
             .engine_target_directory()
@@ -369,125 +294,223 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             target.push(&cap[1]);
         }
         if p.exists() {
-            if let Some(item) = self.get_item(&version) {
+            if let Some(item) = self.get_item(version) {
                 let metadata = std::fs::metadata(&p.as_path()).expect("unable to read metadata");
                 item.add_downloaded_size(item.total_size() - item.downloaded_size());
-                if metadata.size() as u128 == item.total_size() {
+                if u128::from(metadata.size()) == item.total_size() {
                     let file = fs::File::open(&p).unwrap();
                     if target.exists() {
                         warn!("Target already exists.");
                     }
-                    let mut archive = zip::ZipArchive::new(file).unwrap();
+                    let archive = zip::ZipArchive::new(file).unwrap();
                     item.set_total_files(archive.len() as u64);
                     let sender = self_.sender.clone();
                     let ver = version.to_string();
                     let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
                     self.add_thread_sender(version.to_string(), send);
                     self_.file_pool.execute(move || {
-                        for i in 0..archive.len() {
-                            if let Ok(w) = crate::RUNNING.read() {
-                                if !*w {
-                                    return;
-                                }
-                            }
-                            let mut file_target = target.clone();
-                            let mut file = archive.by_index(i).unwrap();
-                            let outpath = match file.enclosed_name() {
-                                Some(path) => path.to_owned(),
-                                None => {
-                                    sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
-                                    continue;
-                                }
-                            };
-                            file_target.push(&outpath);
-                            if file_target.exists() {
-                                let metadata = std::fs::metadata(&file_target.as_path())
-                                    .expect("unable to read metadata");
-                                if metadata.size() == file.size() {
-                                    sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
-                                    continue;
-                                }
-                            }
-                            if (*file.name()).ends_with('/') {
-                                fs::create_dir_all(&file_target).unwrap();
-                            } else {
-                                if let Some(p) = file_target.parent() {
-                                    if !p.exists() {
-                                        fs::create_dir_all(&p).unwrap();
-                                    }
-                                }
-                                let mut outfile = fs::File::create(&file_target).unwrap();
-
-                                let mut buffer: [u8; 1024] = [0; 1024];
-                                loop {
-                                    if let Ok(w) = crate::RUNNING.read() {
-                                        if !*w {
-                                            return;
-                                        }
-                                    }
-                                    match file.read(&mut buffer) {
-                                        Ok(size) => {
-                                            if let Ok(m) = recv.try_recv() {
-                                                process_epic_thread_message(ver, &sender, &m);
-                                                return;
-                                            }
-                                            if size > 0 {
-                                                outfile.write_all(&buffer[0..size]).unwrap();
-                                                sender
-                                                    .send(super::Msg::EpicFileExtractionProgress(
-                                                        ver.clone(),
-                                                        size as u64,
-                                                    ))
-                                                    .unwrap();
-                                            } else {
-                                                break;
-                                            }
-                                        }
-                                        Err(e) => {
-                                            error!("Extraction error: {:?}", e);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            #[cfg(unix)]
-                            {
-                                use std::os::unix::fs::PermissionsExt;
-
-                                if let Some(mode) = file.unix_mode() {
-                                    if let Err(e) = fs::set_permissions(
-                                        &file_target,
-                                        fs::Permissions::from_mode(mode),
-                                    ) {
-                                        error!(
-                                            "Unable to set permissions on {:?}, mode: {} : {}",
-                                            file_target, mode, e
-                                        );
-                                    }
-                                }
-                            }
-                            sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
-                        }
-                        sender.send(Msg::EpicFileFinished(ver.clone())).unwrap();
-                    })
+                        extract(&target, archive, &sender, ver, &recv);
+                    });
                 }
             }
         }
     }
     fn epic_file_extraction_progress(&self, version: &str, data: u64) {
         if let Some(item) = self.get_item(version) {
-            item.add_extracted_size(data as u128);
+            item.add_extracted_size(u128::from(data));
         }
     }
 }
 
-fn filter_versions(versions: Vec<Blob>, version: &str) -> Option<Blob> {
-    for ver in versions {
-        if ver.name.eq(version) {
-            return Some(ver);
+fn extract(
+    target: &std::path::Path,
+    mut archive: ZipArchive<File>,
+    sender: &Sender<Msg>,
+    ver: String,
+    recv: &Receiver<ThreadMessages>,
+) {
+    for i in 0..archive.len() {
+        if let Ok(w) = crate::RUNNING.read() {
+            if !*w {
+                return;
+            }
+        }
+        let mut file_target = target.to_path_buf();
+        let mut file = archive.by_index(i).unwrap();
+        let outpath = if let Some(path) = file.enclosed_name() {
+            path.to_owned()
+        } else {
+            sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
+            continue;
+        };
+        file_target.push(&outpath);
+        if file_target.exists() {
+            let metadata =
+                std::fs::metadata(&file_target.as_path()).expect("unable to read metadata");
+            if metadata.size() == file.size() {
+                sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
+                continue;
+            }
+        }
+        if (*file.name()).ends_with('/') {
+            fs::create_dir_all(&file_target).unwrap();
+        } else {
+            if let Some(p) = file_target.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(&p).unwrap();
+                }
+            }
+            let mut outfile = fs::File::create(&file_target).unwrap();
+
+            let mut buffer: [u8; 1024] = [0; 1024];
+            loop {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
+                    }
+                }
+                match file.read(&mut buffer) {
+                    Ok(size) => {
+                        if let Ok(m) = recv.try_recv() {
+                            process_epic_thread_message(ver, sender, &m);
+                            return;
+                        }
+                        if size > 0 {
+                            outfile.write_all(&buffer[0..size]).unwrap();
+                            sender
+                                .send(super::Msg::EpicFileExtractionProgress(
+                                    ver.clone(),
+                                    size as u64,
+                                ))
+                                .unwrap();
+                        } else {
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        error!("Extraction error: {:?}", e);
+                        break;
+                    }
+                }
+            }
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            if let Some(mode) = file.unix_mode() {
+                if let Err(e) = fs::set_permissions(&file_target, fs::Permissions::from_mode(mode))
+                {
+                    error!(
+                        "Unable to set permissions on {:?}, mode: {} : {}",
+                        file_target, mode, e
+                    );
+                }
+            }
+        }
+        sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
+    }
+    sender.send(Msg::EpicFileFinished(ver)).unwrap();
+}
+
+fn run(
+    size: u64,
+    recv: &Receiver<ThreadMessages>,
+    sender: &Sender<Msg>,
+    link: &Url,
+    ver: String,
+    p: &mut PathBuf,
+) {
+    if let Ok(w) = crate::RUNNING.read() {
+        if !*w {
+            return;
+        }
+    };
+    if let Ok(m) = recv.try_recv() {
+        process_epic_thread_message(ver, sender, &m);
+        return;
+    }
+    debug!(
+        "Downloading engine {} from {} to {:?}",
+        ver,
+        link.to_string(),
+        p
+    );
+    fs::create_dir_all(p.parent().unwrap()).unwrap();
+    let mut client = if p.exists() {
+        let metadata = std::fs::metadata(&p.as_path()).expect("unable to read metadata");
+        if metadata.size() == size {
+            debug!("Already downloaded {}", p.to_str().unwrap_or_default());
+            sender
+                .send(super::Msg::EpicDownloadProgress(ver.clone(), size as u64))
+                .unwrap();
+            sender.send(Msg::EpicFileFinished(ver)).unwrap();
+            return;
+        };
+
+        let c = reqwest::blocking::Client::new();
+        debug!("Trying to resume download");
+        match c
+            .get(link.clone())
+            .header(
+                reqwest::header::RANGE,
+                format!("bytes={}-{}", metadata.size(), size),
+            )
+            .send()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                error!("Failed to resume Engine download: {}", e);
+                return;
+            }
+        }
+    } else {
+        match reqwest::blocking::get(link.clone()) {
+            Ok(c) => c,
+            Err(e) => {
+                error!("Failed to start Engine download: {}", e);
+                return;
+            }
+        }
+    };
+    let mut buffer: [u8; 1024] = [0; 1024];
+    let mut file = File::create(&p).unwrap();
+    loop {
+        if let Ok(m) = recv.try_recv() {
+            process_epic_thread_message(ver, sender, &m);
+            return;
+        }
+        if let Ok(w) = crate::RUNNING.read() {
+            if !*w {
+                return;
+            }
+        }
+        match client.read(&mut buffer) {
+            Ok(size) => {
+                if let Ok(m) = recv.try_recv() {
+                    process_epic_thread_message(ver, sender, &m);
+                    return;
+                }
+                if size > 0 {
+                    file.write_all(&buffer[0..size]).unwrap();
+                    sender
+                        .send(super::Msg::EpicDownloadProgress(ver.clone(), size as u64))
+                        .unwrap();
+                } else {
+                    break;
+                }
+            }
+            Err(e) => {
+                error!("Download error: {:?}", e);
+                break;
+            }
         }
     }
-    None
+    sender.send(Msg::EpicFileFinished(ver)).unwrap();
+}
+
+fn filter_versions(versions: Vec<Blob>, version: &str) -> Option<Blob> {
+    versions.into_iter().find(|ver| ver.name.eq(version))
 }
 
 fn process_epic_thread_message(version: String, sender: &Sender<Msg>, m: &ThreadMessages) {

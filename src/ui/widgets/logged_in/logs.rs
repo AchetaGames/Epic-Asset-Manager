@@ -31,7 +31,7 @@ pub enum Msg {
     AddLog(String, String, bool),
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
     use gtk4::glib::Object;
@@ -82,9 +82,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicLogs {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_messaging();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_messaging();
         }
     }
 
@@ -105,7 +105,7 @@ impl Default for EpicLogs {
 
 impl EpicLogs {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLogs")
+        glib::Object::new(&[])
     }
 
     pub fn setup_messaging(&self) {
@@ -159,12 +159,14 @@ impl EpicLogs {
         // Create the children
         factory.connect_setup(move |_factory, item| {
             let row = crate::ui::widgets::logged_in::log_line::EpicLogLine::new();
+            let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
             item.set_child(Some(&row));
         });
 
         // Populate children
         factory.connect_bind(move |_, list_item| {
-            Self::populate_model(list_item);
+            let item = list_item.downcast_ref::<gtk4::ListItem>().unwrap();
+            Self::populate_model(item);
         });
 
         let sorter_model = gtk4::SortListModel::new(Some(&self_.model), Some(&Self::sorter()));

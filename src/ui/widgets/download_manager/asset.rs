@@ -18,15 +18,15 @@ use std::str::FromStr;
 
 #[derive(Default, Debug, Clone)]
 pub struct DownloadedFile {
-    pub(crate) asset: String,
-    pub(crate) release: String,
-    pub(crate) name: String,
-    pub(crate) chunks: Vec<egs_api::api::types::download_manifest::FileChunkPart>,
-    pub(crate) finished_chunks: Vec<egs_api::api::types::download_manifest::FileChunkPart>,
+    pub asset: String,
+    pub release: String,
+    pub name: String,
+    pub chunks: Vec<egs_api::api::types::download_manifest::FileChunkPart>,
+    pub finished_chunks: Vec<egs_api::api::types::download_manifest::FileChunkPart>,
     hash: String,
 }
 
-pub(crate) trait Asset {
+pub trait Asset {
     /// Add an asset for download
     /// This is the first step in the process
     fn add_asset_download(
@@ -1061,11 +1061,13 @@ fn extract_chunks(
         match File::open(t) {
             Ok(mut f) => {
                 let metadata = f.metadata().expect("Unable to read metadata");
-                let mut buffer = vec![0_u8; metadata.len() as usize];
+                let mut buffer = vec![0_u8; usize::try_from(metadata.len()).unwrap()];
                 f.read_exact(&mut buffer).expect("Read failed");
                 let ch = egs_api::api::types::chunk::Chunk::from_vec(buffer).unwrap();
-                if u128::from(ch.uncompressed_size.unwrap_or(ch.data.len() as u32))
-                    < chunk.offset + chunk.size
+                if u128::from(
+                    ch.uncompressed_size
+                        .unwrap_or_else(|| u32::try_from(ch.data.len()).unwrap()),
+                ) < chunk.offset + chunk.size
                 {
                     error!("Chunk is not big enough");
                     break;

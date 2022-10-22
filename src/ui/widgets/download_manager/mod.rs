@@ -1,7 +1,7 @@
-pub(crate) mod asset;
-pub(crate) mod docker;
+pub mod asset;
+pub mod docker;
 mod download_item;
-pub(crate) mod epic_file;
+pub mod epic_file;
 
 use crate::ui::widgets::download_manager::asset::Asset;
 use crate::ui::widgets::download_manager::docker::Docker;
@@ -66,19 +66,19 @@ pub enum DownloadStatus {
     Extracted,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum PostDownloadAction {
     Copy(String, bool),
     NoVault,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ThreadMessages {
     Cancel,
     Pause,
 }
 
-pub(crate) mod imp {
+pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
@@ -159,8 +159,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicDownloadManager {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -168,13 +169,9 @@ pub(crate) mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "tick",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("tick")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -193,13 +190,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "has-items" => {
                     let has_children = value.get().unwrap();
@@ -209,7 +200,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "has-items" => self.has_children.borrow().to_value(),
                 _ => unimplemented!(),
@@ -234,9 +225,7 @@ impl Default for EpicDownloadManager {
 
 impl EpicDownloadManager {
     pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicDownloadManager");
-
-        stack
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -359,8 +348,7 @@ impl EpicDownloadManager {
             Msg::EpicDownloadStart(version, url, size) => {
                 self.perform_file_download(&url, size, &version);
             }
-            Msg::EpicCanceled(_) => {}
-            Msg::EpicPaused(_) => {}
+            Msg::EpicCanceled(_) | Msg::EpicPaused(_) => {}
             Msg::EpicDownloadProgress(ver, size) => {
                 self.epic_download_progress(&ver, size);
             }
@@ -510,11 +498,7 @@ impl EpicDownloadManager {
         });
     }
 
-    pub(crate) fn add_thread_sender(
-        &self,
-        key: String,
-        sender: std::sync::mpsc::Sender<ThreadMessages>,
-    ) {
+    pub fn add_thread_sender(&self, key: String, sender: std::sync::mpsc::Sender<ThreadMessages>) {
         let self_ = self.imp();
         self_
             .thread_senders
@@ -524,7 +508,7 @@ impl EpicDownloadManager {
             .push(sender);
     }
 
-    pub(crate) fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
+    pub fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
         let self_ = self.imp();
         if let Some(senders) = self_.thread_senders.borrow_mut().remove(key) {
             for sender in senders {

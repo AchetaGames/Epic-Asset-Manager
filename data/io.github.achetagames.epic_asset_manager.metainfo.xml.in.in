@@ -64,6 +64,15 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.8.0" date="2022-10-23">
+       <description>
+              <p>GTK update</p>
+              <ul>
+                  <li>Fix engine naming for previews</li>
+                  <li>Update gtk and gtk-rs</li>
+	      </ul>
+       </description>
+    </release>
     <release version="3.7.1" date="2022-09-03">
        <description>
               <p>Fix OpenDir Panic</p>
