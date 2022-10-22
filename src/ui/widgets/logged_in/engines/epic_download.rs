@@ -323,10 +323,18 @@ impl EpicEngineDownload {
                 self_.version_selector.remove_all();
                 let mut result: HashMap<String, Blob> = HashMap::new();
                 for version in versions {
-                    let re = Regex::new(r"(\d\.\d+.\d+)").unwrap();
+                    let re = Regex::new(r"(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
                     if re.is_match(&version.name) {
                         for cap in re.captures_iter(&version.name) {
-                            result.insert(cap[1].to_string(), version.clone());
+                            result.insert(
+                                match cap.get(2) {
+                                    None => cap[1].to_string(),
+                                    Some(suffix) => {
+                                        format!("{} ({})", cap[1].to_string(), suffix.as_str())
+                                    }
+                                },
+                                version.clone(),
+                            );
                         }
                     }
                 }

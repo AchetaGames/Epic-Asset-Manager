@@ -118,7 +118,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn download_engine_from_epic(&self, version: &str) {
         debug!("Initializing epic engine download of {}", version);
         let self_ = self.imp();
-        let re = Regex::new(r"(\d\.\d+.\d+)").unwrap();
+        let re = Regex::new(r"(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
         let mut items = self_.download_items.borrow_mut();
         let item = match items.get_mut(version) {
             None => {
@@ -139,7 +139,15 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         item.set_property("version", version);
         item.set_property("item-type", download_item::ItemType::Epic);
         for cap in re.captures_iter(version) {
-            item.set_property("label", cap[1].to_string());
+            item.set_property(
+                "label",
+                match cap.get(2) {
+                    None => cap[1].to_string(),
+                    Some(suffix) => {
+                        format!("{} ({})", cap[1].to_string(), suffix.as_str())
+                    }
+                },
+            );
         }
         item.set_property("status", "initializing...".to_string());
 
@@ -277,7 +285,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             .expect("Invalid Target directory");
         p.push("epic");
         p.push(version);
-        let re = Regex::new(r"(\d\.\d+.\d+)").unwrap();
+        let re = Regex::new(r"(\d\.\d+.\d+(?:_preview-\d+)?)").unwrap();
 
         let mut target = self
             .engine_target_directory()
