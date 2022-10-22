@@ -1,3 +1,4 @@
+use adw::gtk;
 use glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
@@ -105,13 +106,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "title" => {
                     let title = value.get().unwrap();
@@ -120,7 +115,7 @@ pub(crate) mod imp {
                 "path" => {
                     let path: Option<String> = value.get().unwrap();
                     self.path.replace(path);
-                    obj.has_previous();
+                    self.instance().has_previous();
                 }
                 "filter" => {
                     let filter = value.get().unwrap();
@@ -138,7 +133,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "title" => self.title.borrow().to_value(),
                 "icon-name" => self.icon_name.borrow().to_value(),
@@ -149,8 +144,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_categories();
         }
@@ -178,7 +174,7 @@ impl EpicSidebarCategories {
         filter: Option<&str>,
         sidebar: Option<&crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
     ) -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarCategories");
+        let stack: Self = glib::Object::new(&[]);
 
         stack.set_property("title", title);
         stack.set_property("path", path);
@@ -257,10 +253,12 @@ impl EpicSidebarCategories {
         let self_ = self.imp();
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
+            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             item.set_child(Some(&crate::ui::widgets::logged_in::library::sidebar::category::EpicSidebarCategory::new()));
         });
 
         factory.connect_bind(move |_factory, list_item| {
+            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
             let data = list_item
                 .item()
                 .unwrap()

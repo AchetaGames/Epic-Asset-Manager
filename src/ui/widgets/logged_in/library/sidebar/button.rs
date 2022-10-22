@@ -108,13 +108,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "tooltip-text" => {
                     let tooltip_text = value.get().unwrap();
@@ -142,7 +136,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "tooltip-text" => self.tooltip_text.borrow().to_value(),
                 "icon-name" => self.icon_name.borrow().to_value(),
@@ -153,9 +147,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_actions();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_actions();
         }
     }
 
@@ -176,9 +170,7 @@ impl Default for EpicSidebarButton {
 
 impl EpicSidebarButton {
     pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicSidebarButton");
-
-        stack
+        glib::Object::new(&[])
     }
 
     pub fn set_sidebar(

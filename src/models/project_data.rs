@@ -86,21 +86,17 @@ mod imp {
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
     impl ObjectImpl for ProjectData {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
-            obj.setup_messaging();
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.instance().setup_messaging();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "finished",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("finished")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -124,13 +120,7 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "guid" => {
                     let guid = value.get().unwrap();
@@ -154,7 +144,7 @@ mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "guid" => self.guid.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
@@ -176,7 +166,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl ProjectData {
     pub fn new(path: &str, name: &str) -> ProjectData {
-        let data: Self = glib::Object::new(&[]).expect("Failed to create ProjectData");
+        let data: Self = glib::Object::new::<Self>(&[]);
         let self_ = data.imp();
         data.set_property("path", &path);
         data.set_property("name", &name);

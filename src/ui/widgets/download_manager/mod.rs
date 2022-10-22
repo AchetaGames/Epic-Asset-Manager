@@ -159,8 +159,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicDownloadManager {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -168,13 +169,9 @@ pub(crate) mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "tick",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("tick")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -193,13 +190,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "has-items" => {
                     let has_children = value.get().unwrap();
@@ -209,7 +200,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "has-items" => self.has_children.borrow().to_value(),
                 _ => unimplemented!(),
@@ -234,9 +225,7 @@ impl Default for EpicDownloadManager {
 
 impl EpicDownloadManager {
     pub fn new() -> Self {
-        let stack: Self = glib::Object::new(&[]).expect("Failed to create EpicDownloadManager");
-
-        stack
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

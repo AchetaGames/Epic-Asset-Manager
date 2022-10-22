@@ -50,8 +50,8 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEngineInstall {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
     }
 
@@ -73,7 +73,7 @@ impl Default for EpicEngineInstall {
 
 impl EpicEngineInstall {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicEngineInstall")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

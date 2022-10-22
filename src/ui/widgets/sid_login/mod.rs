@@ -45,8 +45,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for SidBox {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_events();
         }

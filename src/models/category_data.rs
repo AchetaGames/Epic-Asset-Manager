@@ -19,7 +19,6 @@ mod imp {
     impl ObjectSubclass for CategoryData {
         const NAME: &'static str = "CategoryData";
         type Type = super::CategoryData;
-        type ParentType = glib::Object;
 
         fn new() -> Self {
             Self {
@@ -70,13 +69,7 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "name" => {
                     let name = value
@@ -106,7 +99,7 @@ mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "name" => self.name.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
@@ -124,14 +117,12 @@ glib::wrapper! {
 
 impl CategoryData {
     pub fn new(name: &str, filter: &str, path: &str, leaf: bool) -> CategoryData {
-        let data: Self = glib::Object::new(&[
+        glib::Object::new::<Self>(&[
             ("name", &name),
             ("filter", &filter),
             ("path", &path),
             ("leaf", &leaf),
         ])
-        .expect("Failed to create CategoryData");
-        data
     }
 
     pub fn name(&self) -> String {

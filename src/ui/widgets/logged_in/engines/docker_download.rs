@@ -83,8 +83,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for DockerEngineDownload {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_messaging();
             obj.setup_actions();
         }
@@ -112,13 +113,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "selected" => {
                     let selected = value.get().unwrap();
@@ -132,7 +127,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "selected" => self.selected.borrow().to_value(),
                 "download-size" => self.download_size.borrow().to_value(),
@@ -159,7 +154,7 @@ impl Default for DockerEngineDownload {
 
 impl DockerEngineDownload {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create DockerEngineDownload")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

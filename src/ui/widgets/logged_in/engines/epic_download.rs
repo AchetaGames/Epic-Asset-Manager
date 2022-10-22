@@ -109,8 +109,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEngineDownload {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_messaging();
             obj.setup_actions();
             obj.setup_widgets();
@@ -134,7 +135,7 @@ impl Default for EpicEngineDownload {
 
 impl EpicEngineDownload {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

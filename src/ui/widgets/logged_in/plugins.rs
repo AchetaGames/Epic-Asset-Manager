@@ -53,8 +53,8 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicPlugins {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
     }
 
@@ -75,7 +75,7 @@ impl Default for EpicPlugins {
 
 impl EpicPlugins {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicPlugins")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

@@ -69,13 +69,9 @@ mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "refreshed",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("refreshed")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -125,13 +121,7 @@ mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "name" => {
                     let name = value
@@ -167,7 +157,7 @@ mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "name" => self.name.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
@@ -190,7 +180,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl AssetData {
     pub fn new(asset: &AssetInfo, image: Option<Texture>) -> AssetData {
-        let data: Self = glib::Object::new(&[]).expect("Failed to create AssetData");
+        let data: Self = glib::Object::new::<Self>(&[]);
         let self_ = data.imp();
 
         data.set_property("id", &asset.id);

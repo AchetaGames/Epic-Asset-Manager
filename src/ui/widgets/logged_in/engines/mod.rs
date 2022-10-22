@@ -1,4 +1,5 @@
 use crate::ui::widgets::logged_in::refresh::Refresh;
+use adw::gtk;
 use engine::EpicEngine;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -127,8 +128,9 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicEnginesBox {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -156,13 +158,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let expanded = value.get().unwrap();
@@ -176,7 +172,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 "selected" => self.selected.borrow().to_value(),
@@ -202,7 +198,7 @@ impl Default for EpicEnginesBox {
 
 impl EpicEnginesBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn setup_messaging(&self) {
@@ -239,10 +235,12 @@ impl EpicEnginesBox {
         let factory = gtk4::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let row = EpicEngine::new();
+            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             item.set_child(Some(&row));
         });
 
         factory.connect_bind(move |_factory, list_item| {
+            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
             let data = list_item
                 .item()
                 .unwrap()

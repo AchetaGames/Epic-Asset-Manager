@@ -208,24 +208,14 @@ pub(crate) mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "finished",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("finished")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "label" => {
                     let label = value
@@ -246,8 +236,9 @@ pub(crate) mod imp {
                         action!(
                             self.actions,
                             "open",
-                            clone!(@weak obj as item =>  move |_, _| {
-                                item.open_path();
+                            clone!(@weak self as imp =>  move |_, _| {
+                                let obj = imp.instance();
+                                obj.open_path();
                             })
                         );
                     }
@@ -323,7 +314,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "label" => self.label.borrow().to_value(),
                 "target" => self.target.borrow().to_value(),
@@ -341,8 +332,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_messaging();
             obj.setup_timer();
@@ -366,7 +358,7 @@ impl Default for EpicDownloadItem {
 
 impl EpicDownloadItem {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicDownloadItem")
+        glib::Object::new(&[])
     }
 
     pub fn set_download_manager(

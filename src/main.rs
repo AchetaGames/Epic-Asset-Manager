@@ -60,7 +60,7 @@ fn main() {
     gtk4::glib::set_prgname(Some("epic_asset_manager"));
 
     gtk4::init().expect("Unable to start GTK4");
-    adw::init();
+    adw::init().expect("Unable to start Adwaita");
 
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
     gio::resources_register(&res);

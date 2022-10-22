@@ -43,9 +43,9 @@ pub(crate) mod imp {
     impl ObjectImpl for EpicAssetManager {}
 
     impl ApplicationImpl for EpicAssetManager {
-        fn activate(&self, app: &Self::Type) {
+        fn activate(&self) {
             debug!("GtkApplication<EpicAssetManager>::activate");
-
+            let app = self.instance();
             let self_ = app.imp();
             if let Some(window) = self_.window.get() {
                 window.show();
@@ -62,7 +62,7 @@ pub(crate) mod imp {
                 return;
             }
 
-            let mut window = EpicAssetManagerWindow::new(app);
+            let mut window = EpicAssetManagerWindow::new(&app);
 
             if let Ok(item) = self.item.borrow().to_value().get::<String>() {
                 window.set_property("item", item);
@@ -81,7 +81,7 @@ pub(crate) mod imp {
             window.present();
         }
 
-        fn open(&self, app: &Self::Type, files: &[gtk4::gio::File], _int: &str) {
+        fn open(&self, files: &[gtk4::gio::File], _int: &str) {
             for file in files {
                 if file.uri_scheme() == Some(gtk4::glib::GString::from("com.epicgames.launcher")) {
                     if let Some(asset) = file.basename() {
@@ -120,15 +120,13 @@ pub(crate) mod imp {
                     }
                 }
             }
-            self.activate(app);
+            self.activate();
         }
 
-        fn startup(&self, app: &Self::Type) {
+        fn startup(&self) {
             debug!("GtkApplication<EpicAssetManager>::startup");
-
-            self.parent_startup(app);
-
-            adw::functions::init();
+            self.parent_startup();
+            let app = self.instance();
 
             app.set_resource_base_path(Some("/io/github/achetagames/epic_asset_manager"));
             Self::Type::setup_css();
@@ -163,7 +161,7 @@ impl Default for EpicAssetManager {
 
 impl EpicAssetManager {
     pub fn new() -> Self {
-        glib::Object::new(&[
+        glib::Object::new::<Self>(&[
             ("application-id", &Some(config::APP_ID)),
             ("flags", &ApplicationFlags::HANDLES_OPEN),
             (
@@ -171,7 +169,6 @@ impl EpicAssetManager {
                 &Some("/io/github/achetagames/epic_asset_manager/"),
             ),
         ])
-        .expect("Application initialization failed...")
     }
 
     pub fn main_window(&self) -> &EpicAssetManagerWindow {

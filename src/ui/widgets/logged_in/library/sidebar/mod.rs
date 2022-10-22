@@ -87,12 +87,13 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicSidebar {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.setup_actions();
-            self.all_category.set_sidebar(obj);
-            self.unreal_category.set_sidebar(obj);
-            self.games_category.set_sidebar(obj);
+            self.all_category.set_sidebar(&obj);
+            self.unreal_category.set_sidebar(&obj);
+            self.games_category.set_sidebar(&obj);
             obj.setup_widgets();
         }
 
@@ -111,13 +112,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "expanded" => {
                     let sidebar_expanded = value.get().unwrap();
@@ -127,7 +122,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "expanded" => self.expanded.borrow().to_value(),
                 _ => unimplemented!(),
@@ -152,7 +147,7 @@ impl Default for EpicSidebar {
 
 impl EpicSidebar {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicSidebar")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

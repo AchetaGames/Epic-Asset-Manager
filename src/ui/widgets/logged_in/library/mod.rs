@@ -186,13 +186,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "sidebar-expanded" => {
                     let sidebar_expanded = value.get().unwrap();
@@ -217,7 +211,7 @@ pub(crate) mod imp {
                             }
                         }
                     });
-                    obj.apply_filter();
+                    self.instance().apply_filter();
                 }
                 "search" => {
                     let search: Option<String> = value.get().unwrap();
@@ -231,25 +225,25 @@ pub(crate) mod imp {
                             }
                         }
                     });
-                    obj.apply_filter();
+                    self.instance().apply_filter();
                 }
                 "item" => {
                     let item = value.get().unwrap();
                     self.product.replace(None);
                     self.item.replace(item);
-                    obj.open_asset();
+                    self.instance().open_asset();
                 }
                 "product" => {
                     let product = value.get().unwrap();
                     self.item.replace(None);
                     self.product.replace(product);
-                    obj.open_asset();
+                    self.instance().open_asset();
                 }
                 _ => unimplemented!(),
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
                 "to-load" => self.loading.borrow().to_value(),
@@ -262,8 +256,9 @@ pub(crate) mod imp {
             }
         }
 
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.instance();
             obj.bind_properties();
             obj.setup_actions();
             obj.setup_widgets();
@@ -287,7 +282,7 @@ impl Default for EpicLibraryBox {
 
 impl EpicLibraryBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new(&[])
     }
 
     pub fn set_download_manager(
@@ -321,12 +316,14 @@ impl EpicLibraryBox {
         // Create the children
         factory.connect_setup(move |_factory, item| {
             let row = EpicAsset::new();
+            let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
             item.set_child(Some(&row));
         });
 
         // Populate children
         factory.connect_bind(move |_, list_item| {
-            Self::populate_model(list_item);
+            let item = list_item.downcast_ref::<gtk4::ListItem>().unwrap();
+            Self::populate_model(item);
         });
 
         self_.filter_model.set_model(Some(&self_.grid_model));

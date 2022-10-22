@@ -130,9 +130,10 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicAssetActions {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
             self.details_group.add_widget(&*self.version_label);
+            let obj = self.instance();
             obj.setup_actions();
             obj.setup_events();
         }
@@ -140,13 +141,9 @@ pub(crate) mod imp {
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder(
-                        "start-download",
-                        &[],
-                        <()>::static_type().into(),
-                    )
-                    .flags(glib::SignalFlags::ACTION)
-                    .build()]
+                    vec![gtk4::glib::subclass::Signal::builder("start-download")
+                        .flags(glib::SignalFlags::ACTION)
+                        .build()]
                 });
             SIGNALS.as_ref()
         }
@@ -196,13 +193,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &glib::ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
                 "supported-versions" => {
                     let supported_versions = value
@@ -238,7 +229,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
                 "supported-versions" => self.supported_versions.borrow().to_value(),
                 "selected-version" => self.selected_version.borrow().to_value(),
@@ -267,7 +258,7 @@ impl Default for EpicAssetActions {
 
 impl EpicAssetActions {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create Epic Asset Actions")
+        glib::Object::new(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

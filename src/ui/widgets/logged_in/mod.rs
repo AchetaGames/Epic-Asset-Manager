@@ -68,8 +68,8 @@ pub(crate) mod imp {
     }
 
     impl ObjectImpl for EpicLoggedInBox {
-        fn constructed(&self, obj: &Self::Type) {
-            self.parent_constructed(obj);
+        fn constructed(&self) {
+            self.parent_constructed();
         }
 
         fn properties() -> &'static [ParamSpec] {
@@ -96,13 +96,7 @@ pub(crate) mod imp {
             PROPERTIES.as_ref()
         }
 
-        fn set_property(
-            &self,
-            _obj: &Self::Type,
-            _id: usize,
-            value: &glib::Value,
-            pspec: &ParamSpec,
-        ) {
+        fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
                 "item" => {
                     let item: Option<String> = value.get().unwrap();
@@ -122,7 +116,7 @@ pub(crate) mod imp {
             }
         }
 
-        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> glib::Value {
+        fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
                 "item" => self.library.property("item"),
                 "product" => self.library.property("product"),
@@ -149,7 +143,7 @@ impl Default for EpicLoggedInBox {
 
 impl EpicLoggedInBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create EpicLibraryBox")
+        glib::Object::new::<Self>(&[])
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
