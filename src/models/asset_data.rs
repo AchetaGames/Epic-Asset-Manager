@@ -6,6 +6,7 @@ use glib::ObjectExt;
 use gtk4::gdk::Texture;
 use gtk4::gio::prelude::SettingsExt;
 use gtk4::{glib, subclass::prelude::*};
+use log::error;
 use std::path::PathBuf;
 
 pub enum AssetType {

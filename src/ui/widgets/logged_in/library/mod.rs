@@ -5,7 +5,7 @@ use glib::clone;
 use gtk4::{self, prelude::*, CustomSorter};
 use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
-use log::debug;
+use log::{debug, error, trace};
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;

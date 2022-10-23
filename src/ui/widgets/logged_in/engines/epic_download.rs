@@ -6,6 +6,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
+use log::error;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -330,7 +331,18 @@ impl EpicEngineDownload {
                                 match cap.get(2) {
                                     None => cap[1].to_string(),
                                     Some(suffix) => {
-                                        format!("{} ({})", cap[1].to_string(), suffix.as_str())
+                                        format!(
+                                            "{} ({})",
+                                            match cap.get(1) {
+                                                None => {
+                                                    ""
+                                                }
+                                                Some(v) => {
+                                                    v.as_str()
+                                                }
+                                            },
+                                            suffix.as_str()
+                                        )
                                     }
                                 },
                                 version.clone(),

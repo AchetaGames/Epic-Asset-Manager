@@ -8,6 +8,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*, ComboBoxText};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
+use log::debug;
 use std::path::PathBuf;
 
 pub mod imp {

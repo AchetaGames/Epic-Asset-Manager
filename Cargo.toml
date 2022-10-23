@@ -16,16 +16,13 @@ adw = { package = "libadwaita", version = "0.2" }
 anyhow = "1.0"
 byte-unit = "4.0"
 chrono = "0.4"
-clap = "4"
 diesel = { version = "2.0.0", features = ["sqlite", "r2d2"] }
 diesel_migrations = { version = "2.0.0", features = ["sqlite"] }
 egs-api = "0.6"
 env_logger = "0.9"
 fs2 = "0.4.3"
-futures = "0.3"
 gtk4 = { version = "0.5", features = ["v4_8"] }
 gtk-macros = "0.3"
-hex = "0.4"
 html2pango = "0.5"
 lazy_static = "1.4"
 libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
@@ -38,7 +35,6 @@ reqwest = { version = "0.11", features = ["json", "cookies", "blocking"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha-1 = "0.10"
-slab_tree = "0.3"
 threadpool = "1.8"
 tokio = "1"
 version-compare = "0.1"
@@ -52,7 +48,6 @@ open = "3"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = "0.3"
-enumflags2 = "0.7.3"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
 ghregistry = "^0.2"
 git2 = "0.15"

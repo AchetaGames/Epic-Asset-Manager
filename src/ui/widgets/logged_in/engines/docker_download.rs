@@ -4,6 +4,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
+use log::{debug, error};
 use regex::Regex;
 use std::collections::HashMap;
 use std::thread;

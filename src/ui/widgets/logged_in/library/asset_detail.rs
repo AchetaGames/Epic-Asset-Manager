@@ -7,7 +7,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use log::info;
+use log::{error, info};
 
 pub mod imp {
     use super::*;

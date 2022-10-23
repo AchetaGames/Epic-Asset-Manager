@@ -12,7 +12,7 @@ use gtk4::gdk::Texture;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, glib, prelude::*, CompositeTemplate};
 use gtk_macros::action;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use reqwest::Url;
 use std::ffi::OsStr;
 use std::fs::File;

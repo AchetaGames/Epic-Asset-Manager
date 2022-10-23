@@ -8,19 +8,6 @@ mod tools;
 mod ui;
 mod window;
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
-#[macro_use]
-extern crate lazy_static;
-#[cfg(target_os = "linux")]
-extern crate ashpd;
-extern crate fs2;
-extern crate futures;
-
 use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_FILE, VERSION};
 use application::EpicAssetManager;
 use env_logger::Env;
@@ -31,7 +18,7 @@ use log::debug;
 use std::io::Write;
 use std::sync::Arc;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
 }
 

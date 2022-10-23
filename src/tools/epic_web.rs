@@ -1,3 +1,4 @@
+use log::{debug, error};
 use reqwest::blocking::{Client, ClientBuilder};
 use reqwest::header::HeaderMap;
 use serde::de::DeserializeOwned;

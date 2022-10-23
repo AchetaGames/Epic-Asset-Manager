@@ -2,7 +2,7 @@ use glib::ObjectExt;
 use gtk4::gdk::Texture;
 use gtk4::glib::clone;
 use gtk4::{self, glib, prelude::*, subclass::prelude::*};
-use log::info;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;

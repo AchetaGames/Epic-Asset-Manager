@@ -6,7 +6,7 @@ use gtk4::prelude::*;
 use gtk4::subclass::prelude::*;
 use gtk4::{gdk, gio, glib};
 use gtk_macros::{action, stateful_action};
-use log::{debug, info};
+use log::{debug, error, info};
 use once_cell::sync::OnceCell;
 
 pub mod imp {
