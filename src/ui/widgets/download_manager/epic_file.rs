@@ -8,6 +8,7 @@ use gtk4::glib::{MainContext, ObjectExt, PRIORITY_DEFAULT};
 use gtk4::prelude::WidgetExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use gtk4::{self, prelude::*};
+use log::{debug, error, info, warn};
 use regex::Regex;
 use reqwest::Url;
 use std::fs;
@@ -144,7 +145,18 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                 match cap.get(2) {
                     None => cap[1].to_string(),
                     Some(suffix) => {
-                        format!("{} ({})", cap[1].to_string(), suffix.as_str())
+                        format!(
+                            "{} ({})",
+                            match cap.get(1) {
+                                None => {
+                                    ""
+                                }
+                                Some(v) => {
+                                    v.as_str()
+                                }
+                            },
+                            suffix.as_str()
+                        )
                     }
                 },
             );

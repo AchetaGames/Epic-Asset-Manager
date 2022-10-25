@@ -6,6 +6,7 @@ use gtk4::glib;
 use gtk4::glib::Sender;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
+use log::{debug, error, info, warn};
 use rand::Rng;
 use reqwest::Url;
 use sha1::digest::core_api::CoreWrapper;

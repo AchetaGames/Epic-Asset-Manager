@@ -11,7 +11,7 @@ use egs_api::EpicGames;
 use gtk4::gio;
 use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT};
 use gtk4::prelude::*;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::cell::RefCell;
 use std::thread;
 

@@ -64,6 +64,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.8.1" date="2022-10-25">
+       <description>
+              <p>Post release fixes</p>
+              <ul>
+                  <li>Fix inability to launch the engine</li>
+                  <li>Remove unnecessary conversion</li>
+                  <li>Cleanup dependencies</li>
+	     </ul>
+       </description>
+    </release>
     <release version="3.8.0" date="2022-10-23">
        <description>
               <p>GTK update</p>

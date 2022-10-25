@@ -4,7 +4,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use log::debug;
+use log::{debug, error};
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::path::Path;

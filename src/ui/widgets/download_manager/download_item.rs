@@ -421,12 +421,12 @@ impl EpicDownloadItem {
 
             let time = end - start;
             if time > chrono::Duration::seconds(1) {
-                Some((downloaded as f64) / (time.num_milliseconds().abs() as f64 / 1000.0))
+                Some(downloaded / (time.num_milliseconds().abs() / 1000) as u128)
             } else {
                 None
             }
         } {
-            let byte = byte_unit::Byte::from_bytes(speed as u128).get_appropriate_unit(false);
+            let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
             self.set_property("speed", format!("{}/s", byte.format(1)));
         };
     }

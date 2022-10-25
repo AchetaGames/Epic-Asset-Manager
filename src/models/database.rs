@@ -1,6 +1,7 @@
-use crate::diesel_migrations::MigrationHarness;
 use anyhow::Result;
 use diesel::{prelude::*, r2d2, r2d2::ConnectionManager};
+use diesel_migrations::MigrationHarness;
+use log::info;
 use once_cell::sync::Lazy;
 use std::{error::Error, fs, fs::File, path::PathBuf};
 
@@ -10,7 +11,8 @@ static DB_PATH: Lazy<PathBuf> =
     Lazy::new(|| gtk4::glib::user_data_dir().join("epic_asset_manager"));
 static POOL: Lazy<Pool> = Lazy::new(|| init_pool().expect("Failed to create a pool"));
 
-pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = embed_migrations!("migrations/");
+pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations =
+    diesel_migrations::embed_migrations!("migrations/");
 
 pub fn connection() -> Pool {
     POOL.clone()
@@ -38,6 +40,6 @@ fn init_pool() -> Result<Pool, Box<dyn Error + Send + Sync + 'static>> {
         let mut db = pool.get()?;
         run_migration_on(&mut db)?;
     }
-    info!("Database pool initialized.");
+    log::info!("Database pool initialized.");
     Ok(pool)
 }

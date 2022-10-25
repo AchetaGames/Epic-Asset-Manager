@@ -1,7 +1,7 @@
 use crate::ui::widgets::logged_in::refresh::Refresh;
 use adw::gtk;
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
-use log::info;
+use log::{debug, info};
 use project::EpicProject;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;

@@ -4,6 +4,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
+use log::{debug, error, warn};
 use std::ffi::OsString;
 use std::str::FromStr;
 
@@ -127,6 +128,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
+            self.instance().setup_actions();
         }
     }
 

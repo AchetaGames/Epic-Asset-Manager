@@ -2,6 +2,7 @@ use crate::ui::messages::Msg;
 use crate::window::EpicAssetManagerWindow;
 use gtk4::prelude::SettingsExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
+use log::error;
 
 pub trait Update {
     fn update(&self, _event: Msg) {

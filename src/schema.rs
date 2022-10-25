@@ -1,17 +1,17 @@
-table! {
+diesel::table! {
     unreal_project_latest_engine (project) {
         project -> Text,
         engine -> Text,
     }
 }
 
-table! {
+diesel::table! {
     favorite_asset (asset) {
         asset -> Text,
     }
 }
 
-table! {
+diesel::table! {
     user_data (name) {
         name -> Text,
         value -> Text,

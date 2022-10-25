@@ -1,6 +1,7 @@
 use glib::ObjectExt;
 use gtk4::glib::clone;
 use gtk4::{self, glib, subclass::prelude::*};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
