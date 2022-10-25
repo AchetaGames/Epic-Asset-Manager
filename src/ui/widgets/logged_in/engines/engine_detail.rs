@@ -128,6 +128,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
+            self.instance().setup_actions();
         }
     }
 
