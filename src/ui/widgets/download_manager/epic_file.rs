@@ -119,7 +119,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn download_engine_from_epic(&self, version: &str) {
         debug!("Initializing epic engine download of {}", version);
         let self_ = self.imp();
-        let re = Regex::new(r"(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
+        let re = Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
         let mut items = self_.download_items.borrow_mut();
         let item = match items.get_mut(version) {
             None => {
@@ -297,7 +297,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             .expect("Invalid Target directory");
         p.push("epic");
         p.push(version);
-        let re = Regex::new(r"(\d\.\d+.\d+(?:_preview-\d+)?)").unwrap();
+        let re = Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+(?:_preview-\d+)?)").unwrap();
 
         let mut target = self
             .engine_target_directory()
