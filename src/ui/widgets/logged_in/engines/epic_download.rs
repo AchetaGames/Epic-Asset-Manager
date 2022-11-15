@@ -324,7 +324,8 @@ impl EpicEngineDownload {
                 self_.version_selector.remove_all();
                 let mut result: HashMap<String, Blob> = HashMap::new();
                 for version in versions {
-                    let re = Regex::new(r"(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
+                    let re =
+                        Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
                     if re.is_match(&version.name) {
                         for cap in re.captures_iter(&version.name) {
                             result.insert(
