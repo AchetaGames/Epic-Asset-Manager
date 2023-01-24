@@ -498,7 +498,8 @@ impl EpicAssetManagerWindow {
         attributes.insert("type", secret_type);
         let d = match expiration {
             None => chrono::Utc
-                .timestamp(0, 0)
+                .timestamp_opt(0, 0)
+                .unwrap()
                 .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
             Some(e) => e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
         };
