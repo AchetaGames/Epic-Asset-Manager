@@ -207,7 +207,13 @@ impl ProjectData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return serde_json::from_str(&contents).unwrap();
+                return match serde_json::from_str::<Uproject>(&contents) {
+                    Ok(uproject) => uproject,
+                    Err(e) => {
+                        error!("Unable to parse uproject {path}: {e}");
+                        Uproject::default()
+                    }
+                };
             }
         }
         Uproject::default()

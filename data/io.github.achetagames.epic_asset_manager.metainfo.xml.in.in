@@ -64,6 +64,15 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.8.3" date="2023-01-24">
+       <description>
+              <p>Bug fixing</p>
+              <ul>
+                  <li>Handle malformed uproject properly</li>
+                  <li>Fix dependencies and remove git2 dependency</li>
+</ul>
+       </description>
+    </release>
     <release version="3.8.2" date="2022-11-15">
        <description>
               <p>Engine Install fix</p>

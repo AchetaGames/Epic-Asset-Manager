@@ -1,6 +1,6 @@
 [package]
 name = "epic_asset_manager"
-version = "3.8.2"
+version = "3.8.3"
 authors = ["Milan Stastny <milan@stastnej.ch>"]
 edition = "2021"
 license-file = "LICENSE"
@@ -19,7 +19,7 @@ chrono = "0.4"
 diesel = { version = "2.0.0", features = ["sqlite", "r2d2"] }
 diesel_migrations = { version = "2.0.0", features = ["sqlite"] }
 egs-api = "0.6"
-env_logger = "0.9"
+env_logger = "0.10.0"
 fs2 = "0.4.3"
 gtk4 = { version = "0.5", features = ["v4_8"] }
 gtk-macros = "0.3"
@@ -50,5 +50,4 @@ open = "3"
 ashpd = "0.3"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
 ghregistry = "^0.2"
-git2 = "0.15"
 secret-service = "2.0"

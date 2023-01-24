@@ -1,7 +1,6 @@
 use glib::clone;
 use glib::ObjectExt;
 use gtk4::{glib, prelude::*, subclass::prelude::*};
-use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::io::Read;
@@ -97,9 +96,9 @@ mod imp {
         branch: RefCell<Option<String>>,
         updatable: RefCell<bool>,
         has_branch: RefCell<bool>,
-        pub ueversion: RefCell<Option<super::UnrealVersion>>,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub ueversion: RefCell<Option<UnrealVersion>>,
+        pub sender: glib::Sender<Msg>,
+        pub receiver: RefCell<Option<glib::Receiver<Msg>>>,
         pub model: OnceCell<gtk4::gio::ListStore>,
         pub position: OnceCell<u32>,
     }
@@ -111,7 +110,7 @@ mod imp {
         type Type = super::EngineData;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -140,10 +139,10 @@ mod imp {
             self.instance().setup_messaging();
         }
 
-        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder("finished")
+                    vec![glib::subclass::Signal::builder("finished")
                         .flags(glib::SignalFlags::ACTION)
                         .build()]
                 });
@@ -306,73 +305,74 @@ impl EngineData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    fn needs_repo_update(path: &str, sender: Option<gtk4::glib::Sender<Msg>>) -> bool {
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(repo) = git2::Repository::open(&path) {
-                let mut commit = git2::Oid::zero();
-                let mut branch = String::new();
-                if let Ok(head) = repo.head() {
-                    if head.is_branch() {
-                        commit = head.target().unwrap();
-                        branch = head.name().unwrap().to_string();
-                        if let Some(s) = sender.clone() {
-                            s.send(Msg::Branch(
-                                head.shorthand().unwrap_or_default().to_string(),
-                            ))
-                            .unwrap();
-                        }
-                    }
-                }
-                let mut time = git2::Time::new(0, 0);
-                if let Ok(c) = repo.find_commit(commit) {
-                    time = c.time();
-                }
-                if let Ok(remotes) = repo.remotes() {
-                    let num_remotes = remotes.len();
-                    for remote in remotes.iter().flatten() {
-                        if let Ok(mut r) = repo.find_remote(remote) {
-                            if num_remotes > 1 {
-                                if let Some(url) = r.url() {
-                                    if !url.contains("EpicGames/UnrealEngine.git") {
-                                        continue;
-                                    }
-                                }
-                            }
-                            let cb = Self::git_callbacks();
-                            if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
-                                warn!("Unable to connect: {}", e);
-                            }
-                            if let Ok(list) = r.list() {
-                                for head in list {
-                                    if branch.eq(&head.name()) {
-                                        if head.oid().eq(&commit) {
-                                            debug!("{} Up to date", path);
-                                            if let Some(s) = sender {
-                                                s.send(Msg::Update(false)).unwrap();
-                                            }
-                                            return false;
-                                        }
-                                        info!("{} needs updating", path);
-                                        debug!(
-                                            "{} Local commit {}({}), remote commit {}",
-                                            path,
-                                            commit,
-                                            time.seconds(),
-                                            head.oid()
-                                        );
-                                        if let Some(s) = sender {
-                                            s.send(Msg::Update(true)).unwrap();
-                                        }
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-        }
+    fn needs_repo_update(_path: &str, _sender: Option<glib::Sender<Msg>>) -> bool {
+        // #[cfg(target_os = "linux")]
+        // This is disabled due to issues with git2 crate and constant need to rebuild if git lib gets updated
+        // {
+        //     if let Ok(repo) = git2::Repository::open(&path) {
+        //         let mut commit = git2::Oid::zero();
+        //         let mut branch = String::new();
+        //         if let Ok(head) = repo.head() {
+        //             if head.is_branch() {
+        //                 commit = head.target().unwrap();
+        //                 branch = head.name().unwrap().to_string();
+        //                 if let Some(s) = sender.clone() {
+        //                     s.send(Msg::Branch(
+        //                         head.shorthand().unwrap_or_default().to_string(),
+        //                     ))
+        //                     .unwrap();
+        //                 }
+        //             }
+        //         }
+        //         let mut time = git2::Time::new(0, 0);
+        //         if let Ok(c) = repo.find_commit(commit) {
+        //             time = c.time();
+        //         }
+        //         if let Ok(remotes) = repo.remotes() {
+        //             let num_remotes = remotes.len();
+        //             for remote in remotes.iter().flatten() {
+        //                 if let Ok(mut r) = repo.find_remote(remote) {
+        //                     if num_remotes > 1 {
+        //                         if let Some(url) = r.url() {
+        //                             if !url.contains("EpicGames/UnrealEngine.git") {
+        //                                 continue;
+        //                             }
+        //                         }
+        //                     }
+        //                     let cb = Self::git_callbacks();
+        //                     if let Err(e) = r.connect_auth(git2::Direction::Fetch, Some(cb), None) {
+        //                         warn!("Unable to connect: {}", e);
+        //                     }
+        //                     if let Ok(list) = r.list() {
+        //                         for head in list {
+        //                             if branch.eq(&head.name()) {
+        //                                 if head.oid().eq(&commit) {
+        //                                     debug!("{} Up to date", path);
+        //                                     if let Some(s) = sender {
+        //                                         s.send(Msg::Update(false)).unwrap();
+        //                                     }
+        //                                     return false;
+        //                                 }
+        //                                 info!("{} needs updating", path);
+        //                                 debug!(
+        //                                     "{} Local commit {}({}), remote commit {}",
+        //                                     path,
+        //                                     commit,
+        //                                     time.seconds(),
+        //                                     head.oid()
+        //                                 );
+        //                                 if let Some(s) = sender {
+        //                                     s.send(Msg::Update(true)).unwrap();
+        //                                 }
+        //                                 return true;
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     };
+        // }
         false
     }
 
@@ -412,36 +412,36 @@ impl EngineData {
         self.property("needs-update")
     }
 
-    #[cfg(target_os = "linux")]
-    fn git_callbacks() -> git2::RemoteCallbacks<'static> {
-        let git_config = git2::Config::open_default().unwrap();
-        let mut cb = git2::RemoteCallbacks::new();
-        cb.credentials(move |url, username, allowed| {
-            let mut cred_helper = git2::CredentialHelper::new(url);
-            cred_helper.config(&git_config);
-            if allowed.is_ssh_key() {
-                // TODO: Add configuration to specify the ssh key and password(if needed)
-                let mut key = glib::home_dir();
-                key.push(".ssh");
-                key.push("id_rsa");
-
-                let user = username
-                    .map(std::string::ToString::to_string)
-                    .or_else(|| cred_helper.username.clone())
-                    .unwrap_or_else(|| "git".to_string());
-                if key.exists() {
-                    git2::Cred::ssh_key(&user, None, key.as_path(), None)
-                } else {
-                    git2::Cred::ssh_key_from_agent(&user)
-                }
-            } else if allowed.is_user_pass_plaintext() {
-                git2::Cred::credential_helper(&git_config, url, username)
-            } else if allowed.is_default() {
-                git2::Cred::default()
-            } else {
-                Err(git2::Error::from_str("no authentication available"))
-            }
-        });
-        cb
-    }
+    // #[cfg(target_os = "linux")]
+    // fn git_callbacks() -> git2::RemoteCallbacks<'static> {
+    //     let git_config = git2::Config::open_default().unwrap();
+    //     let mut cb = git2::RemoteCallbacks::new();
+    //     cb.credentials(move |url, username, allowed| {
+    //         let mut cred_helper = git2::CredentialHelper::new(url);
+    //         cred_helper.config(&git_config);
+    //         if allowed.is_ssh_key() {
+    //             // TODO: Add configuration to specify the ssh key and password(if needed)
+    //             let mut key = glib::home_dir();
+    //             key.push(".ssh");
+    //             key.push("id_rsa");
+    //
+    //             let user = username
+    //                 .map(std::string::ToString::to_string)
+    //                 .or_else(|| cred_helper.username.clone())
+    //                 .unwrap_or_else(|| "git".to_string());
+    //             if key.exists() {
+    //                 git2::Cred::ssh_key(&user, None, key.as_path(), None)
+    //             } else {
+    //                 git2::Cred::ssh_key_from_agent(&user)
+    //             }
+    //         } else if allowed.is_user_pass_plaintext() {
+    //             git2::Cred::credential_helper(&git_config, url, username)
+    //         } else if allowed.is_default() {
+    //             git2::Cred::default()
+    //         } else {
+    //             Err(git2::Error::from_str("no authentication available"))
+    //         }
+    //     });
+    //     cb
+    // }
 }

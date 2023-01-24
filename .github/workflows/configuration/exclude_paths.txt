@@ -1,2 +1,3 @@
 io.github.achetagames.epic_asset_manager
 src/ui/widgets/sid_login/mod.rs
+data/resources/ui/sid_login/sid.ui
