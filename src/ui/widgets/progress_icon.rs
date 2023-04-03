@@ -35,29 +35,14 @@ pub mod imp {
         fn properties() -> &'static [glib::ParamSpec] {
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecFloat::new(
-                        "fraction",
-                        "Progress",
-                        "Progress of the icon",
-                        0.0,
-                        1.0,
-                        0.0,
-                        glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "inverted",
-                        "Inverted",
-                        "Invert icon colors",
-                        false,
-                        glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "clockwise",
-                        "Clockwise",
-                        "Direction of the icon",
-                        false,
-                        glib::ParamFlags::READWRITE | glib::ParamFlags::EXPLICIT_NOTIFY,
-                    ),
+                    ParamSpecFloat::builder("fraction")
+                        .maximum(1.0)
+                        .default_value(0.0)
+                        .explicit_notify()
+                        .readwrite()
+                        .build(),
+                    glib::ParamSpecBoolean::builder("inverted").build(),
+                    glib::ParamSpecBoolean::builder("clockwise").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -65,18 +50,18 @@ pub mod imp {
 
         fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
-                "fraction" => self.instance().fraction().to_value(),
-                "inverted" => self.instance().inverted().to_value(),
-                "clockwise" => self.instance().clockwise().to_value(),
+                "fraction" => self.obj().fraction().to_value(),
+                "inverted" => self.obj().inverted().to_value(),
+                "clockwise" => self.obj().clockwise().to_value(),
                 _ => unreachable!(),
             }
         }
 
         fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
             match pspec.name() {
-                "fraction" => self.instance().set_fraction(value.get().unwrap()),
-                "inverted" => self.instance().set_inverted(value.get().unwrap()),
-                "clockwise" => self.instance().set_clockwise(value.get().unwrap()),
+                "fraction" => self.obj().set_fraction(value.get().unwrap()),
+                "inverted" => self.obj().set_inverted(value.get().unwrap()),
+                "clockwise" => self.obj().set_clockwise(value.get().unwrap()),
                 _ => unreachable!(),
             }
         }
@@ -84,13 +69,13 @@ pub mod imp {
         fn constructed(&self) {
             self.parent_constructed();
 
-            self.instance().set_valign(gtk4::Align::Center);
+            self.obj().set_valign(gtk4::Align::Center);
         }
     }
 
     impl WidgetImpl for ProgressIcon {
         fn snapshot(&self, snapshot: &gtk4::Snapshot) {
-            let widget = self.instance();
+            let widget = self.obj();
             let size = widget.size() as f32;
             let radius = size / 2.0;
             let mut color = widget.style_context().color();
@@ -125,7 +110,7 @@ pub mod imp {
         }
 
         fn measure(&self, _orientation: gtk4::Orientation, _for_size: i32) -> (i32, i32, i32, i32) {
-            let widget = self.instance();
+            let widget = self.obj();
             (widget.size(), widget.size(), -1, -1)
         }
     }
@@ -144,7 +129,7 @@ glib::wrapper! {
 
 impl Default for ProgressIcon {
     fn default() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 }
 
@@ -190,14 +175,14 @@ pub trait ProgressIconExt {
 
 impl<W: IsA<ProgressIcon>> ProgressIconExt for W {
     fn fraction(&self) -> f32 {
-        let this = imp::ProgressIcon::from_instance(self.as_ref());
+        let this = imp::ProgressIcon::from_obj(self.as_ref());
         *this.fraction.borrow()
     }
     fn set_fraction(&self, fraction: f32) {
         if (fraction - self.fraction()).abs() < f32::EPSILON {
             return;
         }
-        let this = imp::ProgressIcon::from_instance(self.as_ref());
+        let this = imp::ProgressIcon::from_obj(self.as_ref());
         let clamped = fraction.clamp(0.0, 1.0);
         this.fraction.replace(clamped);
         self.as_ref().queue_draw();
@@ -205,28 +190,28 @@ impl<W: IsA<ProgressIcon>> ProgressIconExt for W {
     }
 
     fn inverted(&self) -> bool {
-        let this = imp::ProgressIcon::from_instance(self.as_ref());
+        let this = imp::ProgressIcon::from_obj(self.as_ref());
         *this.inverted.borrow()
     }
     fn set_inverted(&self, inverted: bool) {
         if inverted == self.inverted() {
             return;
         }
-        let this = imp::ProgressIcon::from_instance(self.as_ref());
+        let this = imp::ProgressIcon::from_obj(self.as_ref());
         this.inverted.replace(inverted);
         self.as_ref().queue_draw();
         self.notify("inverted");
     }
 
     fn clockwise(&self) -> bool {
-        let this = imp::ProgressIcon::from_instance(self.as_ref());
+        let this = imp::ProgressIcon::from_obj(self.as_ref());
         *this.clockwise.borrow()
     }
     fn set_clockwise(&self, clockwise: bool) {
         if clockwise == self.clockwise() {
             return;
         }
-        let this = imp::ProgressIcon::from_instance(self.as_ref());
+        let this = imp::ProgressIcon::from_obj(self.as_ref());
         this.clockwise.replace(clockwise);
         self.as_ref().queue_draw();
         self.notify("clockwise");

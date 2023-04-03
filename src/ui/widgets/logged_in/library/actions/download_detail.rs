@@ -55,7 +55,7 @@ pub mod imp {
     impl ObjectImpl for EpicDownloadDetails {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.set_target_directories();
         }
@@ -72,15 +72,8 @@ pub mod imp {
 
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
-            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![glib::ParamSpecString::new(
-                    "selected-version",
-                    "selected_version",
-                    "selected_version",
-                    None, // Default value
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> =
+                Lazy::new(|| vec![glib::ParamSpecString::builder("selected-version").build()]);
 
             PROPERTIES.as_ref()
         }
@@ -122,7 +115,7 @@ impl Default for EpicDownloadDetails {
 
 impl EpicDownloadDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_target_directories(&self) {

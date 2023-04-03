@@ -65,14 +65,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "engine",
-                        "Engine",
-                        "Engine",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("name").build(),
+                    ParamSpecString::builder("engine").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -124,7 +118,7 @@ impl Default for EpicProject {
 
 impl EpicProject {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

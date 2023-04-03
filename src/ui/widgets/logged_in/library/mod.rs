@@ -100,8 +100,14 @@ pub mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
-                filter_model: gtk4::FilterListModel::new(gio::ListModel::NONE, gtk4::Filter::NONE),
-                sorter_model: gtk4::SortListModel::new(gio::ListModel::NONE, gtk4::Sorter::NONE),
+                filter_model: gtk4::FilterListModel::new(
+                    gio::ListModel::NONE.cloned(),
+                    gtk4::Filter::NONE.cloned(),
+                ),
+                sorter_model: gtk4::SortListModel::new(
+                    gio::ListModel::NONE.cloned(),
+                    gtk4::Sorter::NONE.cloned(),
+                ),
                 grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
@@ -134,53 +140,19 @@ pub mod imp {
 
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "sidebar-expanded",
-                        "sidebar expanded",
-                        "Is Sidebar expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecUInt::new(
-                        "to-load",
-                        "to load",
-                        "Assets to load",
-                        0,
-                        u32::MAX,
-                        0,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecUInt::new(
-                        "loaded",
-                        "loaded",
-                        "Assets to load",
-                        0,
-                        u32::MAX,
-                        0,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "filter",
-                        "Filter",
-                        "Filter",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "search",
-                        "Search",
-                        "Search",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "product",
-                        "product",
-                        "product",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecBoolean::builder("sidebar-expanded").build(),
+                    ParamSpecUInt::builder("to-load")
+                        .minimum(0)
+                        .default_value(0)
+                        .build(),
+                    ParamSpecUInt::builder("loaded")
+                        .minimum(0)
+                        .default_value(0)
+                        .build(),
+                    ParamSpecString::builder("filter").build(),
+                    ParamSpecString::builder("search").build(),
+                    ParamSpecString::builder("item").build(),
+                    ParamSpecString::builder("product").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -202,24 +174,24 @@ pub mod imp {
                     let filter: Option<String> = value.get().unwrap();
 
                     self.filter.replace(filter.filter(|f| !f.is_empty()));
-                    self.instance().apply_filter();
+                    self.obj().apply_filter();
                 }
                 "search" => {
                     let search: Option<String> = value.get().unwrap();
                     self.search.replace(search.filter(|f| !f.is_empty()));
-                    self.instance().apply_filter();
+                    self.obj().apply_filter();
                 }
                 "item" => {
                     let item = value.get().unwrap();
                     self.product.replace(None);
                     self.item.replace(item);
-                    self.instance().open_asset();
+                    self.obj().open_asset();
                 }
                 "product" => {
                     let product = value.get().unwrap();
                     self.item.replace(None);
                     self.product.replace(product);
-                    self.instance().open_asset();
+                    self.obj().open_asset();
                 }
                 _ => unimplemented!(),
             }
@@ -240,7 +212,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.bind_properties();
             obj.setup_actions();
             obj.setup_widgets();
@@ -264,7 +236,7 @@ impl Default for EpicLibraryBox {
 
 impl EpicLibraryBox {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_download_manager(
@@ -314,9 +286,11 @@ impl EpicLibraryBox {
         self_
             .sorter_model
             .set_sorter(Some(&Self::sorter("name", true)));
-        let selection_model = gtk4::SingleSelection::new(Some(&self_.sorter_model));
-        selection_model.set_autoselect(false);
-        selection_model.set_can_unselect(true);
+        let selection_model = gtk4::SingleSelection::builder()
+            .model(&self_.sorter_model)
+            .autoselect(false)
+            .can_unselect(true)
+            .build();
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
 

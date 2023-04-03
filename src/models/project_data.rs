@@ -1,7 +1,7 @@
 use glib::ObjectExt;
 use gtk4::gdk::Texture;
 use gtk4::glib::clone;
-use gtk4::{self, glib, prelude::*, subclass::prelude::*};
+use gtk4::{self, glib, subclass::prelude::*};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -88,7 +88,7 @@ mod imp {
     impl ObjectImpl for ProjectData {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_messaging();
+            self.obj().setup_messaging();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -105,16 +105,10 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
-                    ParamSpecObject::new(
-                        "thumbnail",
-                        "Thumbnail",
-                        "Thumbnail",
-                        Texture::static_type(),
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("guid").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("name").build(),
+                    ParamSpecObject::builder::<Texture>("thumbnail").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -166,7 +160,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl ProjectData {
     pub fn new(path: &str, name: &str) -> ProjectData {
-        let data: Self = glib::Object::new::<Self>(&[]);
+        let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
         data.set_property("path", &path);
         data.set_property("name", &name);

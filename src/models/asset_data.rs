@@ -4,7 +4,7 @@ use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
 use glib::ObjectExt;
 use gtk4::gdk::Texture;
-use gtk4::gio::prelude::SettingsExt;
+use gtk4::prelude::SettingsExtManual;
 use gtk4::{glib, subclass::prelude::*};
 use log::error;
 use std::path::PathBuf;
@@ -22,7 +22,7 @@ mod imp {
     use super::*;
     use glib::ToValue;
     use gtk4::gdk::Texture;
-    use gtk4::glib::{ParamSpecObject, StaticType};
+    use gtk4::glib::ParamSpecObject;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -34,7 +34,7 @@ mod imp {
         favorite: RefCell<bool>,
         downloaded: RefCell<bool>,
         pub kind: RefCell<Option<String>>,
-        pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub asset: RefCell<Option<AssetInfo>>,
         thumbnail: RefCell<Option<Texture>>,
         pub settings: gtk4::gio::Settings,
     }
@@ -67,10 +67,10 @@ mod imp {
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
     impl ObjectImpl for AssetData {
-        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder("refreshed")
+                    vec![glib::subclass::Signal::builder("refreshed")
                         .flags(glib::SignalFlags::ACTION)
                         .build()]
                 });
@@ -81,41 +81,11 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "name",
-                        "Name",
-                        "Name",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "id",
-                        "ID",
-                        "ID",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecObject::new(
-                        "thumbnail",
-                        "Thumbnail",
-                        "Thumbnail",
-                        Texture::static_type(),
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "favorite",
-                        "favorite",
-                        "Is favorite",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "downloaded",
-                        "downloaded",
-                        "Is Downloaded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("name").build(),
+                    glib::ParamSpecString::builder("id").build(),
+                    ParamSpecObject::builder::<Texture>("thumbnail").build(),
+                    glib::ParamSpecBoolean::builder("favorite").build(),
+                    glib::ParamSpecBoolean::builder("downloaded").build(),
                 ]
             });
 
@@ -181,7 +151,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl AssetData {
     pub fn new(asset: &AssetInfo, image: Option<Texture>) -> AssetData {
-        let data: Self = glib::Object::new::<Self>(&[]);
+        let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
 
         data.set_property("id", &asset.id);
@@ -374,13 +344,10 @@ impl AssetData {
         self.set_property("downloaded", false);
     }
 
-    pub fn downloaded_locations(
-        directories: &[gtk4::glib::GString],
-        asset_id: &str,
-    ) -> Vec<PathBuf> {
-        let mut result: Vec<std::path::PathBuf> = Vec::new();
+    pub fn downloaded_locations(directories: &glib::StrV, asset_id: &str) -> Vec<PathBuf> {
+        let mut result: Vec<PathBuf> = Vec::new();
         for directory in directories {
-            let mut path = std::path::PathBuf::from(&directory);
+            let mut path = std::path::PathBuf::from(directory.to_str());
             path.push(asset_id);
             path.push("data");
             if path.exists() {

@@ -8,11 +8,9 @@ pub async fn open_directory(path: &str) {
     #[cfg(target_os = "linux")]
     {
         if let Ok(dir) = std::fs::File::open(path) {
-            match ashpd::desktop::open_uri::open_directory(
-                &ashpd::WindowIdentifier::default(),
-                &dir,
-            )
-            .await
+            match ashpd::desktop::open_uri::OpenDirectoryRequest::default()
+                .send(&dir)
+                .await
             {
                 Err(e) => {
                     error!("Unable to open directory using portals: {}", e);

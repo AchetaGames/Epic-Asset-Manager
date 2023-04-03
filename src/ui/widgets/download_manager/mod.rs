@@ -161,7 +161,7 @@ pub mod imp {
     impl ObjectImpl for EpicDownloadManager {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -178,15 +178,8 @@ pub mod imp {
 
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpecBoolean::new(
-                    "has-items",
-                    "has items",
-                    "Has Items",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<ParamSpec>> =
+                Lazy::new(|| vec![ParamSpecBoolean::builder("has-items").build()]);
             PROPERTIES.as_ref()
         }
 
@@ -225,7 +218,7 @@ impl Default for EpicDownloadManager {
 
 impl EpicDownloadManager {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -245,7 +238,7 @@ impl EpicDownloadManager {
             self_.actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&details);
+                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_obj(&details);
                 if let Some(w) = self_.window.get() {
                    w.show_logged_in();
                 }

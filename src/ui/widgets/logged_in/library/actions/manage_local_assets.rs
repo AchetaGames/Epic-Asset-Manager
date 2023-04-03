@@ -91,7 +91,7 @@ impl Default for EpicLocalAssets {
 
 impl EpicLocalAssets {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {

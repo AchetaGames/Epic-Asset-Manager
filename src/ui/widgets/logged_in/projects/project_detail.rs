@@ -89,23 +89,12 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecUInt::new(
-                        "position",
-                        "position",
-                        "item_position",
-                        0,
-                        u32::MAX,
-                        0,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecBoolean::builder("expanded").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecUInt::builder("position")
+                        .minimum(0)
+                        .default_value(0)
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -140,7 +129,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
     }
 
@@ -161,7 +150,7 @@ impl Default for UnrealProjectDetails {
 
 impl UnrealProjectDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn setup_actions(&self) {
@@ -205,30 +194,31 @@ impl UnrealProjectDetails {
                 if let Ok(mut conn) = db.get() {
                     diesel::replace_into(unreal_project_latest_engine::table)
                         .values((
-                            crate::schema::unreal_project_latest_engine::project.eq(path.clone()),
-                            crate::schema::unreal_project_latest_engine::engine.eq(eng.path),
+                            unreal_project_latest_engine::project.eq(path.clone()),
+                            unreal_project_latest_engine::engine.eq(eng.path),
                         ))
                         .execute(&mut conn)
                         .expect("Unable to insert last engine to the DB");
                 };
-                let context = gtk4::gio::AppLaunchContext::new();
+                let context = gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                let app = gtk4::gio::AppInfo::create_from_commandline(
-                    if ashpd::is_sandboxed() {
-                        format!(
-                            "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
-                            p.to_str().unwrap(),
-                            path
-                        )
-                    } else {
-                        format!("\"{p:?}\" \"{path}\"")
-                    },
-                    Some("Unreal Engine"),
-                    gtk4::gio::AppInfoCreateFlags::NONE,
-                )
-                .unwrap();
-                app.launch(&[], Some(&context))
-                    .expect("Failed to launch application");
+                let ctx = glib::MainContext::default();
+                ctx.spawn_local(async move {
+                    let app = gio::AppInfo::create_from_commandline(
+                        if ashpd::is_sandboxed().await {
+                            format!(
+                                "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
+                                p.to_str().unwrap(),
+                                path
+                            )
+                        } else {
+                            format!("\"{p:?}\" \"{path}\"")
+                        },
+                        Some("Unreal Engine"),
+                        gio::AppInfoCreateFlags::NONE,
+                    ).unwrap();
+                    app.launch(&[], Some(&context)).expect("Failed to launch application");
+                });
             }
         };
         let self_ = self.imp();
@@ -269,11 +259,7 @@ impl UnrealProjectDetails {
         self_.confirmation_revealer.set_vexpand_set(false);
     }
 
-    pub fn set_project(
-        &self,
-        project: &crate::models::project_data::Uproject,
-        path: Option<String>,
-    ) {
+    pub fn set_project(&self, project: &Uproject, path: Option<String>) {
         let self_ = self.imp();
         self.show_details();
         self.set_property("path", &path);
@@ -301,7 +287,7 @@ impl UnrealProjectDetails {
         }
 
         // Engine
-        let combo = gtk4::ComboBoxText::new();
+        let combo = ComboBoxText::new();
         let associated = self.associated_engine(project);
         self.set_launch_enabled(false);
         let db = crate::models::database::connection();
@@ -309,11 +295,8 @@ impl UnrealProjectDetails {
         if let Ok(mut conn) = db.get() {
             let engines: Result<String, diesel::result::Error> =
                 unreal_project_latest_engine::table
-                    .filter(
-                        crate::schema::unreal_project_latest_engine::project
-                            .eq(&self.path().unwrap()),
-                    )
-                    .select(crate::schema::unreal_project_latest_engine::engine)
+                    .filter(unreal_project_latest_engine::project.eq(&self.path().unwrap()))
+                    .select(unreal_project_latest_engine::engine)
                     .first(&mut conn);
             if let Ok(last) = engines {
                 last_engine = Some(last);
@@ -414,7 +397,7 @@ impl UnrealProjectDetails {
         }
     }
 
-    fn engine_selected(&self, combo: &gtk4::ComboBoxText) {
+    fn engine_selected(&self, combo: &ComboBoxText) {
         if let Some(eng) = combo.active_id() {
             let self_ = self.imp();
             for engine in self.available_engines() {

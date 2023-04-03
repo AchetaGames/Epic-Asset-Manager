@@ -47,7 +47,7 @@ pub mod imp {
     impl ObjectImpl for SidBox {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_events();
         }

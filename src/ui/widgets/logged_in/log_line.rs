@@ -47,7 +47,7 @@ pub mod imp {
     impl ObjectImpl for EpicLogLine {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -64,27 +64,9 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "label",
-                        "label",
-                        "label",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "path",
-                        "path",
-                        "path",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "crash",
-                        "crash",
-                        "Is Crash",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("label").build(),
+                    glib::ParamSpecString::builder("path").build(),
+                    ParamSpecBoolean::builder("crash").build(),
                 ]
             });
 
@@ -141,7 +123,7 @@ impl Default for EpicLogLine {
 
 impl EpicLogLine {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn setup_actions(&self) {
@@ -189,12 +171,7 @@ impl EpicLogLine {
                 if let Ok(dir) = std::fs::File::open(&p) {
                     let ctx = glib::MainContext::default();
                     ctx.spawn_local(clone!(@weak self as asset_details => async move {
-                        ashpd::desktop::open_uri::open_file(
-                            &ashpd::WindowIdentifier::default(),
-                            &dir,
-                            false,
-                            false
-                        )
+                        ashpd::desktop::open_uri::OpenFileRequest::default().send_file(&dir)
                         .await.unwrap();
                     }));
                 };

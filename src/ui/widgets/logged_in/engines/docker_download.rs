@@ -86,7 +86,7 @@ pub mod imp {
     impl ObjectImpl for DockerEngineDownload {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_messaging();
             obj.setup_actions();
         }
@@ -95,20 +95,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new(
-                        "selected",
-                        "Selected",
-                        "Selected",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "download-size",
-                        "Download Size",
-                        "Download Size",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("selected").build(),
+                    ParamSpecString::builder("download-size").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -155,7 +143,7 @@ impl Default for DockerEngineDownload {
 
 impl DockerEngineDownload {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -467,7 +455,7 @@ impl DockerEngineDownload {
                                   w.add_notification("missing engine config", "Unable to install engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
                                   get_action!(self_.actions, @install).set_enabled(false);
                               }, |p| {
-                              let mut path = std::path::Path::new(p);
+                              let mut path = std::path::Path::new(p.to_str());
                               while !path.exists() {
                                           path = match path.parent() {
                                                       None => break,

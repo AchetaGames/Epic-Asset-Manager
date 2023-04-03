@@ -106,7 +106,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+                crate::window::imp::EpicAssetManagerWindow::from_obj(window);
             if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                 let ver = version.to_string();
                 let d = digest.0.clone();
@@ -283,7 +283,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 }
                 return None;
             }
-            Some(p) => PathBuf::from(p),
+            Some(p) => PathBuf::from(p.to_str()),
         };
         target.push("docker");
         Some(target)
@@ -345,7 +345,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     .map_or_else(
                         || PathBuf::from(&version),
                         |p| {
-                            let mut path = PathBuf::from(p);
+                            let mut path = PathBuf::from(p.to_str());
                             path.push(version);
                             path
                         },

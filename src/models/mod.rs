@@ -17,7 +17,7 @@ use std::collections::HashMap;
 use std::thread;
 
 #[cfg(target_os = "linux")]
-use secret_service::{EncryptionType, SecretService};
+use secret_service::{blocking::SecretService, EncryptionType};
 
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
@@ -42,7 +42,7 @@ impl Model {
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
             #[cfg(target_os = "linux")]
-            secret_service: match SecretService::new(EncryptionType::Dh) {
+            secret_service: match SecretService::connect(EncryptionType::Dh) {
                 Ok(ss) => Some(ss),
                 Err(e) => {
                     error!(
@@ -91,7 +91,7 @@ impl Model {
                 Some(mut dir) => {
                     dir.push("Unreal Projects");
                     self.settings
-                        .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
+                        .set_strv("unreal-projects-directories", vec![dir.to_str().unwrap()])
                         .unwrap();
                 }
             };
@@ -105,7 +105,7 @@ impl Model {
                 Some(mut dir) => {
                     dir.push("EpicVault");
                     self.settings
-                        .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
+                        .set_strv("unreal-vault-directories", vec![dir.to_str().unwrap()])
                         .unwrap();
                 }
             };
@@ -119,7 +119,7 @@ impl Model {
                 Some(mut dir) => {
                     dir.push("Unreal Engine");
                     self.settings
-                        .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
+                        .set_strv("unreal-engine-directories", vec![dir.to_str().unwrap()])
                         .unwrap();
                 }
             };
@@ -279,7 +279,7 @@ impl Model {
 
     fn load_egs_secrets(
         &self,
-        item: &secret_service::Item,
+        item: &secret_service::blocking::Item,
         attributes: &std::collections::HashMap<String, String>,
         expiration: &str,
     ) -> Option<(String, String, chrono::DateTime<chrono::Utc>)> {

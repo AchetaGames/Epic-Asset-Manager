@@ -133,7 +133,7 @@ pub mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             self.details_group.add_widget(&*self.version_label);
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_events();
         }
@@ -152,41 +152,11 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "selected-version",
-                        "selected_version",
-                        "selected_version",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "supported-versions",
-                        "supported_versions",
-                        "supported_versions",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "platforms",
-                        "platforms",
-                        "platforms",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "release-date",
-                        "release_date",
-                        "release_date",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "release-notes",
-                        "release_notes",
-                        "release_notes",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("selected-version").build(),
+                    glib::ParamSpecString::builder("supported-versions").build(),
+                    glib::ParamSpecString::builder("platforms").build(),
+                    glib::ParamSpecString::builder("release-date").build(),
+                    glib::ParamSpecString::builder("release-notes").build(),
                 ]
             });
 
@@ -258,7 +228,7 @@ impl Default for EpicAssetActions {
 
 impl EpicAssetActions {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

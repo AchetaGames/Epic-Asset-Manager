@@ -68,22 +68,15 @@ pub mod imp {
     impl ObjectImpl for EpicImageOverlay {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_receiver();
         }
 
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
-            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![glib::ParamSpecString::new(
-                    "asset",
-                    "Asset",
-                    "Asset",
-                    None, // Default value
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> =
+                Lazy::new(|| vec![glib::ParamSpecString::builder("asset").build()]);
 
             PROPERTIES.as_ref()
         }
@@ -132,7 +125,7 @@ pub enum Msg {
 
 impl EpicImageOverlay {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn clear(&self) {

@@ -66,7 +66,7 @@ pub mod imp {
     impl ObjectImpl for EpicCreateAssetProject {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.set_target_directories();
         }
@@ -85,20 +85,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "selected-version",
-                        "selected_version",
-                        "selected_version",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "project-name",
-                        "Project Name",
-                        "Project Name",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("selected-version").build(),
+                    glib::ParamSpecString::builder("project-name").build(),
                 ]
             });
 
@@ -149,7 +137,7 @@ impl Default for EpicCreateAssetProject {
 
 impl EpicCreateAssetProject {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_target_directories(&self) {

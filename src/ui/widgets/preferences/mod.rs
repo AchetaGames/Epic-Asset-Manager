@@ -103,7 +103,7 @@ pub mod imp {
     impl ObjectImpl for PreferencesWindow {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.bind_settings();
             obj.load_settings();
             obj.setup_actions();
@@ -138,7 +138,7 @@ impl Default for PreferencesWindow {
 
 impl PreferencesWindow {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -554,11 +554,7 @@ impl PreferencesWindow {
                         current.push(gtk4::glib::GString::from(n.clone()));
                         self.add_directory_row(widget, n, kind);
                     }
-                    let new: Vec<&str> = current.iter().map(gtk4::glib::GString::as_str).collect();
-                    self_
-                        .settings
-                        .set_strv(setting_name, new.as_slice())
-                        .unwrap();
+                    self_.settings.set_strv(setting_name, current).unwrap();
                 }
             }
             DirectoryConfigType::Games => {}

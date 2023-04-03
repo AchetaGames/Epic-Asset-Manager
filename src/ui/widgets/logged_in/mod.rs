@@ -76,21 +76,9 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "product",
-                        "product",
-                        "product",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecObject::new(
-                        "stack",
-                        "Stack",
-                        "Stack",
-                        adw::ViewStack::static_type(),
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("item").build(),
+                    ParamSpecString::builder("product").build(),
+                    ParamSpecObject::builder::<adw::ViewStack>("stack").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -143,7 +131,7 @@ impl Default for EpicLoggedInBox {
 
 impl EpicLoggedInBox {
     pub fn new() -> Self {
-        glib::Object::new::<Self>(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

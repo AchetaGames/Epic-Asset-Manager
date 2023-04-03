@@ -108,29 +108,18 @@ pub mod imp {
     impl ObjectImpl for EpicAssetDetails {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
 
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecUInt::new(
-                        "position",
-                        "position",
-                        "item_position",
-                        0,
-                        u32::MAX,
-                        0,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecBoolean::builder("expanded").build(),
+                    ParamSpecUInt::builder("position")
+                        .minimum(0)
+                        .default_value(0)
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -176,7 +165,7 @@ impl Default for EpicAssetDetails {
 
 impl EpicAssetDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

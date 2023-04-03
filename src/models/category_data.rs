@@ -35,34 +35,10 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "name",
-                        "Name",
-                        "Name",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "path",
-                        "Path",
-                        "Path",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "filter",
-                        "Filter",
-                        "Filter",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "leaf",
-                        "Leaf",
-                        "Is leaf",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("name").build(),
+                    glib::ParamSpecString::builder("path").build(),
+                    glib::ParamSpecString::builder("filter").build(),
+                    glib::ParamSpecBoolean::builder("leaf").build(),
                 ]
             });
 
@@ -117,12 +93,12 @@ glib::wrapper! {
 
 impl CategoryData {
     pub fn new(name: &str, filter: &str, path: &str, leaf: bool) -> CategoryData {
-        glib::Object::new::<Self>(&[
-            ("name", &name),
-            ("filter", &filter),
-            ("path", &path),
-            ("leaf", &leaf),
-        ])
+        glib::Object::builder()
+            .property("name", &name)
+            .property("filter", &filter)
+            .property("path", &path)
+            .property("leaf", &leaf)
+            .build()
     }
 
     pub fn name(&self) -> String {

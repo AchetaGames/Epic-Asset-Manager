@@ -108,7 +108,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                 }
                 return None;
             }
-            Some(p) => PathBuf::from(p),
+            Some(p) => PathBuf::from(p.to_str()),
         };
         Some(target)
     }

@@ -90,7 +90,7 @@ pub mod imp {
     impl ObjectImpl for EpicSidebar {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             self.all_category.set_sidebar(&obj);
             self.unreal_category.set_sidebar(&obj);
@@ -101,15 +101,8 @@ pub mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
 
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpecBoolean::new(
-                    "expanded",
-                    "sidebar expanded",
-                    "Is Sidebar expanded",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<ParamSpec>> =
+                Lazy::new(|| vec![ParamSpecBoolean::builder("expanded").build()]);
             PROPERTIES.as_ref()
         }
 
@@ -148,7 +141,7 @@ impl Default for EpicSidebar {
 
 impl EpicSidebar {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

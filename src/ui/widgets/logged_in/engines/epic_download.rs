@@ -112,7 +112,7 @@ pub mod imp {
     impl ObjectImpl for EpicEngineDownload {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_messaging();
             obj.setup_actions();
             obj.setup_widgets();
@@ -136,7 +136,7 @@ impl Default for EpicEngineDownload {
 
 impl EpicEngineDownload {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

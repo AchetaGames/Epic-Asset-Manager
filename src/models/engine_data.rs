@@ -136,7 +136,7 @@ mod imp {
     impl ObjectImpl for EngineData {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_messaging();
+            self.obj().setup_messaging();
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -153,36 +153,12 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "version",
-                        "Version",
-                        "Version",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "needs-update",
-                        "needs update",
-                        "Check if engine needs update",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "branch",
-                        "Branch",
-                        "Branch",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "has-branch",
-                        "Has Branch",
-                        "Has Branch",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("guid").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("version").build(),
+                    ParamSpecBoolean::builder("needs-update").build(),
+                    ParamSpecString::builder("branch").build(),
+                    ParamSpecBoolean::builder("has-branch").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -249,7 +225,7 @@ impl EngineData {
         version: &UnrealVersion,
         model: &gtk4::gio::ListStore,
     ) -> EngineData {
-        let data: Self = glib::Object::new::<Self>(&[]);
+        let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
