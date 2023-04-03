@@ -39,18 +39,14 @@ impl Search for AssetInfo {
                 }
             }
         }
-        match search {
-            None => tag_found,
-            Some(f) => {
-                if tag_found {
-                    match &self.title {
-                        None => true,
-                        Some(title) => title.to_lowercase().contains(&f.to_lowercase()),
-                    }
-                } else {
-                    false
-                }
+        search.map_or(tag_found, |f| {
+            if tag_found {
+                self.title.as_ref().map_or(true, |title| {
+                    title.to_lowercase().contains(&f.to_lowercase())
+                })
+            } else {
+                false
             }
-        }
+        })
     }
 }

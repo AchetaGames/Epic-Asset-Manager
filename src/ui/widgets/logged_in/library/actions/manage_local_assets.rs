@@ -91,7 +91,7 @@ impl Default for EpicLocalAssets {
 
 impl EpicLocalAssets {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_asset(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
@@ -158,7 +158,7 @@ impl EpicLocalAssets {
             if let Ok(path) = PathBuf::from_str(&p) {
                 if path.exists() {
                     if let Some(parent) = path.parent() {
-                        if let Err(e) = std::fs::remove_dir_all(&parent) {
+                        if let Err(e) = std::fs::remove_dir_all(parent) {
                             error!("Unable to remove vault data: {:?}", e);
                         };
                     }

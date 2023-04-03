@@ -136,7 +136,7 @@ mod imp {
     impl ObjectImpl for EngineData {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_messaging();
+            self.obj().setup_messaging();
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -153,36 +153,12 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "version",
-                        "Version",
-                        "Version",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "needs-update",
-                        "needs update",
-                        "Check if engine needs update",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "branch",
-                        "Branch",
-                        "Branch",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "has-branch",
-                        "Has Branch",
-                        "Has Branch",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("guid").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("version").build(),
+                    ParamSpecBoolean::builder("needs-update").build(),
+                    ParamSpecString::builder("branch").build(),
+                    ParamSpecBoolean::builder("has-branch").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -249,7 +225,7 @@ impl EngineData {
         version: &UnrealVersion,
         model: &gtk4::gio::ListStore,
     ) -> EngineData {
-        let data: Self = glib::Object::new::<Self>(&[]);
+        let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
@@ -260,7 +236,7 @@ impl EngineData {
         if let Some(path) = data.path() {
             let sender = self_.sender.clone();
             thread::spawn(move || {
-                Self::needs_repo_update(&path, Some(sender));
+                Self::needs_repo_update(&path, &Some(sender));
             });
         }
         data
@@ -305,7 +281,8 @@ impl EngineData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    fn needs_repo_update(_path: &str, _sender: Option<glib::Sender<Msg>>) -> bool {
+    #[allow(clippy::missing_const_for_fn)]
+    fn needs_repo_update(_path: &str, _sender: &Option<glib::Sender<Msg>>) -> bool {
         // #[cfg(target_os = "linux")]
         // This is disabled due to issues with git2 crate and constant need to rebuild if git lib gets updated
         // {
@@ -394,10 +371,7 @@ impl EngineData {
     }
 
     pub fn valid(&self) -> bool {
-        match self.ueversion() {
-            None => false,
-            Some(v) => v.valid(),
-        }
+        self.ueversion().map_or(false, |v| v.valid())
     }
 
     pub fn version(&self) -> Option<String> {

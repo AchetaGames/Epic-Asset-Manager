@@ -9,7 +9,7 @@ pub mod imp {
     use crate::models::category_data::CategoryData;
     use glib::ParamSpec;
     use gtk4::glib::{ParamSpecBoolean, ParamSpecString};
-    use gtk4::{gio, gio::ListStore, SingleSelection};
+    use gtk4::{gio, gio::ListStore};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -28,7 +28,6 @@ pub mod imp {
         #[template_child]
         pub separator: TemplateChild<gtk4::Separator>,
         pub categories: ListStore,
-        pub selection_model: SingleSelection,
     }
 
     #[glib::object_subclass]
@@ -49,7 +48,6 @@ pub mod imp {
                 category_button: TemplateChild::default(),
                 separator: TemplateChild::default(),
                 categories: ListStore::new(CategoryData::static_type()),
-                selection_model: SingleSelection::new(None::<&gtk4::SortListModel>),
             }
         }
 
@@ -68,41 +66,11 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new(
-                        "tooltip-text",
-                        "tooltip text",
-                        "The category name",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "path",
-                        "path",
-                        "The category path",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "icon-name",
-                        "icon name",
-                        "The Icon Name",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "filter",
-                        "Filter",
-                        "Filter",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("tooltip-text").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("icon-name").build(),
+                    ParamSpecString::builder("filter").build(),
+                    ParamSpecBoolean::builder("expanded").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -149,7 +117,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
     }
 
@@ -170,7 +138,7 @@ impl Default for EpicSidebarButton {
 
 impl EpicSidebarButton {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_sidebar(

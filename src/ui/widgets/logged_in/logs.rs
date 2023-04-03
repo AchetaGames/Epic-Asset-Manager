@@ -84,7 +84,7 @@ pub mod imp {
     impl ObjectImpl for EpicLogs {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_messaging();
+            self.obj().setup_messaging();
         }
     }
 
@@ -105,7 +105,7 @@ impl Default for EpicLogs {
 
 impl EpicLogs {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn setup_messaging(&self) {
@@ -169,8 +169,11 @@ impl EpicLogs {
             Self::populate_model(item);
         });
 
-        let sorter_model = gtk4::SortListModel::new(Some(&self_.model), Some(&Self::sorter()));
-        let selection_model = gtk4::NoSelection::new(Some(&sorter_model));
+        let sorter_model = gtk4::SortListModel::builder()
+            .model(&self_.model)
+            .sorter(&Self::sorter())
+            .build();
+        let selection_model = gtk4::NoSelection::new(Some(sorter_model));
         self_.logs.set_model(Some(&selection_model));
         self_.logs.set_factory(Some(&factory));
     }
@@ -307,18 +310,17 @@ impl EpicLogs {
                             };
                         }
                     };
-                    let metadata =
-                        std::fs::metadata(&p.as_path()).expect("unable to read metadata");
+                    let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
                     sender
                         .send(Msg::AddLog(
                             p.to_str().unwrap_or_default().to_string(),
-                            match metadata.modified() {
-                                Ok(time) => {
+                            metadata.modified().map_or_else(
+                                |_| p.to_str().unwrap_or_default().to_string(),
+                                |time| {
                                     let t: chrono::DateTime<chrono::Utc> = time.into();
                                     format!("{}", t.format("%Y-%m-%d %T"))
-                                }
-                                Err(_) => p.to_str().unwrap_or_default().to_string(),
-                            },
+                                },
+                            ),
                             crash,
                         ))
                         .unwrap();

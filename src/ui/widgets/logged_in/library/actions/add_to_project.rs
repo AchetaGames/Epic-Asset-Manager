@@ -64,7 +64,7 @@ pub mod imp {
     impl ObjectImpl for EpicAddToProject {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -79,15 +79,8 @@ pub mod imp {
 
         fn properties() -> &'static [glib::ParamSpec] {
             use once_cell::sync::Lazy;
-            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-                vec![glib::ParamSpecString::new(
-                    "selected-version",
-                    "selected_version",
-                    "selected_version",
-                    None, // Default value
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> =
+                Lazy::new(|| vec![glib::ParamSpecString::builder("selected-version").build()]);
 
             PROPERTIES.as_ref()
         }
@@ -129,7 +122,7 @@ impl Default for EpicAddToProject {
 
 impl EpicAddToProject {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

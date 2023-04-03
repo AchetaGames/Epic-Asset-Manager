@@ -161,7 +161,7 @@ pub mod imp {
     impl ObjectImpl for EpicDownloadManager {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -178,15 +178,8 @@ pub mod imp {
 
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpecBoolean::new(
-                    "has-items",
-                    "has items",
-                    "Has Items",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<ParamSpec>> =
+                Lazy::new(|| vec![ParamSpecBoolean::builder("has-items").build()]);
             PROPERTIES.as_ref()
         }
 
@@ -225,7 +218,7 @@ impl Default for EpicDownloadManager {
 
 impl EpicDownloadManager {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -245,7 +238,7 @@ impl EpicDownloadManager {
             self_.actions,
             "close",
             clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_instance(&details);
+                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_obj(&details);
                 if let Some(w) = self_.window.get() {
                    w.show_logged_in();
                 }
@@ -271,10 +264,7 @@ impl EpicDownloadManager {
         let self_ = self.imp();
         match msg {
             Msg::ProcessItemThumbnail(id, image) => {
-                let item = match self.get_item(&id) {
-                    None => return,
-                    Some(i) => i,
-                };
+                let Some(item) = self.get_item(&id) else { return };
                 item.set_property("thumbnail", Some(image));
             }
             Msg::StartAssetDownload(id, manifest) => {
@@ -299,12 +289,7 @@ impl EpicDownloadManager {
                 self.file_already_extracted(id, progress, fullname, filename);
             }
             Msg::FileExtracted(id) => {
-                let item = match self.get_item(&id) {
-                    None => {
-                        return;
-                    }
-                    Some(i) => i,
-                };
+                let Some(item) = self.get_item(&id) else { return };
                 item.file_processed();
                 self.emit_by_name::<()>("tick", &[]);
             }
@@ -328,7 +313,7 @@ impl EpicDownloadManager {
                 if let Some(w) = self_.window.get() {
                     w.add_notification(
                         "iodownloaderror",
-                        &format!("Unable to download file: {}", e),
+                        &format!("Unable to download file: {e}"),
                         gtk4::MessageType::Error,
                     );
                 }
@@ -409,13 +394,15 @@ impl EpicDownloadManager {
         info!("File finished: {}", file);
         self_.downloaded_files.borrow_mut().remove(file);
         let vaults = self_.settings.strv("unreal-vault-directories");
-        let temp_dir = std::path::PathBuf::from(match vaults.first() {
-            None => self_
-                .settings
-                .string("temporary-download-directory")
-                .to_string(),
-            Some(v) => v.to_string(),
-        });
+        let temp_dir = std::path::PathBuf::from(vaults.first().map_or_else(
+            || {
+                self_
+                    .settings
+                    .string("temporary-download-directory")
+                    .to_string()
+            },
+            std::string::ToString::to_string,
+        ));
         for chunk in file_details.finished_chunks {
             if let Some(ch) = self_.downloaded_chunks.borrow_mut().get_mut(&chunk.guid) {
                 ch.retain(|x| !x.eq(file));
@@ -480,7 +467,7 @@ impl EpicDownloadManager {
             }
             if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                 if let Ok(b) = response.bytes() {
-                    std::fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
+                    std::fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
                     //TODO: Report downloaded size
                     match File::create(cache_path.as_path()) {
                         Ok(mut thumbnail) => {
@@ -504,7 +491,7 @@ impl EpicDownloadManager {
             .thread_senders
             .borrow_mut()
             .entry(key)
-            .or_insert(vec![])
+            .or_default()
             .push(sender);
     }
 
@@ -543,7 +530,7 @@ impl EpicDownloadManager {
             debug!("Downloading image");
             if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
                 if let Ok(b) = response.bytes() {
-                    std::fs::create_dir_all(&cache_path.parent().unwrap()).unwrap();
+                    std::fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
                     //TODO: Report downloaded size
                     match File::create(cache_path.as_path()) {
                         Ok(mut thumbnail) => {

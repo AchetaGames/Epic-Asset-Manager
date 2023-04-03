@@ -5,7 +5,7 @@ use glib::clone;
 use gtk4::prelude::*;
 use gtk4::subclass::prelude::*;
 use gtk4::{gdk, gio, glib};
-use gtk_macros::{action, stateful_action};
+use gtk_macros::action;
 use log::{debug, error, info};
 use once_cell::sync::OnceCell;
 
@@ -45,7 +45,7 @@ pub mod imp {
     impl ApplicationImpl for EpicAssetManager {
         fn activate(&self) {
             debug!("GtkApplication<EpicAssetManager>::activate");
-            let app = self.instance();
+            let app = self.obj();
             let self_ = app.imp();
             if let Some(window) = self_.window.get() {
                 window.show();
@@ -126,7 +126,7 @@ pub mod imp {
         fn startup(&self) {
             debug!("GtkApplication<EpicAssetManager>::startup");
             self.parent_startup();
-            let app = self.instance();
+            let app = self.obj();
 
             app.set_resource_base_path(Some("/io/github/achetagames/epic_asset_manager"));
             Self::Type::setup_css();
@@ -161,14 +161,14 @@ impl Default for EpicAssetManager {
 
 impl EpicAssetManager {
     pub fn new() -> Self {
-        glib::Object::new::<Self>(&[
-            ("application-id", &Some(config::APP_ID)),
-            ("flags", &ApplicationFlags::HANDLES_OPEN),
-            (
+        glib::Object::builder()
+            .property("application-id", config::APP_ID)
+            .property("flags", ApplicationFlags::HANDLES_OPEN)
+            .property(
                 "resource-base-path",
-                &Some("/io/github/achetagames/epic_asset_manager/"),
-            ),
-        ])
+                "/io/github/achetagames/epic_asset_manager/",
+            )
+            .build()
     }
 
     pub fn main_window(&self) -> &EpicAssetManagerWindow {
@@ -194,14 +194,12 @@ impl EpicAssetManager {
         );
 
         let is_dark_mode = self_.settings.boolean("dark-mode");
-        stateful_action!(
-            self,
-            "dark-mode",
-            is_dark_mode,
-            clone!(@weak self as app =>  move |action, _| {
-                app.toggle_dark_mode(action);
-            })
-        );
+        let simple_action =
+            gio::SimpleAction::new_stateful("dark-mode", None, is_dark_mode.to_variant());
+        simple_action.connect_activate(clone!(@weak self as app =>  move |action, _| {
+            app.toggle_dark_mode(action);
+        }));
+        self.add_action(&simple_action);
 
         // About
         action!(
@@ -227,7 +225,7 @@ impl EpicAssetManager {
         let state = action.state().unwrap();
         let action_state: bool = state.get().unwrap();
         let is_dark_mode = !action_state;
-        action.set_state(&is_dark_mode.to_variant());
+        action.set_state(is_dark_mode.to_variant());
         if let Err(err) = self_.settings.set_boolean("dark-mode", is_dark_mode) {
             error!("Failed to switch dark mode: {} ", err);
         }
@@ -263,8 +261,8 @@ impl EpicAssetManager {
             .version(config::VERSION)
             .transient_for(self.main_window())
             .modal(true)
-            .authors(vec!["Acheta Games".into()])
-            .documenters(vec!["Osayami".into()])
+            .authors(vec!["Acheta Games".to_string()])
+            .documenters(vec!["Osayami".to_string()])
             .build();
 
         dialog.show();

@@ -85,7 +85,7 @@ pub mod imp {
     impl ObjectImpl for EpicProjectsBox {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -94,20 +94,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "selected",
-                        "Selected",
-                        "Selected",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecBoolean::builder("expanded").build(),
+                    ParamSpecString::builder("selected").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -153,7 +141,7 @@ impl Default for EpicProjectsBox {
 
 impl EpicProjectsBox {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn setup_messaging(&self) {
@@ -227,10 +215,15 @@ impl EpicProjectsBox {
                     .into(),
             }
         });
-        let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
-        let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
-        selection_model.set_autoselect(false);
-        selection_model.set_can_unselect(true);
+        let sorted_model = gtk4::SortListModel::builder()
+            .model(&self_.grid_model)
+            .sorter(&sorter)
+            .build();
+        let selection_model = gtk4::SingleSelection::builder()
+            .model(&sorted_model)
+            .autoselect(false)
+            .can_unselect(true)
+            .build();
 
         selection_model.connect_selected_notify(clone!(@weak self as projects => move |model| {
             projects.project_selected(model);
@@ -276,19 +269,19 @@ impl EpicProjectsBox {
                 .clone()
                 .downcast::<crate::models::project_data::ProjectData>()
                 .unwrap();
-            match data.path() {
-                None => self.remove_item(&item, data.path()),
-                Some(path) => {
-                    match PathBuf::from_str(&path) {
-                        Ok(p) => {
+            data.path().map_or_else(
+                || self.remove_item(&item, data.path()),
+                |path| {
+                    PathBuf::from_str(&path).map_or_else(
+                        |_| self.remove_item(&item, data.path()),
+                        |p| {
                             if !p.exists() {
                                 self.remove_item(&item, data.path());
                             }
-                        }
-                        Err(_) => self.remove_item(&item, data.path()),
-                    };
-                }
-            }
+                        },
+                    );
+                },
+            );
         }
     }
 

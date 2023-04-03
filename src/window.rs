@@ -96,14 +96,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("item", "item", "item", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "product",
-                        "product",
-                        "product",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("item").build(),
+                    ParamSpecString::builder("product").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -133,7 +127,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             // Devel Profile
             if PROFILE == "Devel" {
                 obj.style_context().add_class("devel");
@@ -165,7 +159,7 @@ pub mod imp {
     impl WindowImpl for EpicAssetManagerWindow {
         // save window state on delete event
         fn close_request(&self) -> Inhibit {
-            if let Err(err) = self.instance().save_window_size() {
+            if let Err(err) = self.obj().save_window_size() {
                 warn!("Failed to save window state, {}", &err);
             }
             Inhibit(false)
@@ -182,7 +176,7 @@ glib::wrapper! {
 
 impl EpicAssetManagerWindow {
     pub fn new(app: &EpicAssetManager) -> Self {
-        let window: Self = glib::Object::new(&[]);
+        let window: Self = glib::Object::new();
         window.set_application(Some(app));
 
         gtk4::Window::set_default_icon_name(APP_ID);
@@ -496,13 +490,15 @@ impl EpicAssetManagerWindow {
         let mut attributes = HashMap::new();
         attributes.insert("application", crate::config::APP_ID);
         attributes.insert("type", secret_type);
-        let d = match expiration {
-            None => chrono::Utc
-                .timestamp_opt(0, 0)
-                .unwrap()
-                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-            Some(e) => e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-        };
+        let d = expiration.map_or_else(
+            || {
+                chrono::Utc
+                    .timestamp_opt(0, 0)
+                    .unwrap()
+                    .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+            },
+            |e| e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        );
         self_
             .model
             .borrow()

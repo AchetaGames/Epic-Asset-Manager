@@ -90,7 +90,7 @@ pub mod imp {
     impl ObjectImpl for EpicSidebar {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             self.all_category.set_sidebar(&obj);
             self.unreal_category.set_sidebar(&obj);
@@ -101,15 +101,8 @@ pub mod imp {
         fn properties() -> &'static [ParamSpec] {
             use once_cell::sync::Lazy;
 
-            static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-                vec![ParamSpecBoolean::new(
-                    "expanded",
-                    "sidebar expanded",
-                    "Is Sidebar expanded",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                )]
-            });
+            static PROPERTIES: Lazy<Vec<ParamSpec>> =
+                Lazy::new(|| vec![ParamSpecBoolean::builder("expanded").build()]);
             PROPERTIES.as_ref()
         }
 
@@ -148,7 +141,7 @@ impl Default for EpicSidebar {
 
 impl EpicSidebar {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -320,27 +313,24 @@ impl EpicSidebar {
                 self_.stack.set_visible_child_name(&p);
             }
             if let Some(l) = self_.loggedin.get() {
-                match self.category_by_name(&p) {
-                    None => {
+                self.category_by_name(&p).map_or_else(
+                    || {
                         l.set_property("filter", filter);
-                    }
-                    Some(cat) => {
-                        let filter = match cat.filter() {
-                            None => None,
-                            Some(filter) => {
-                                let mut prefix = String::new();
-                                if self_.downloaded_switch.is_active() {
-                                    prefix.push_str("downloaded&");
-                                }
-                                if self_.favorites_switch.is_active() {
-                                    prefix.push_str("favorites&");
-                                }
-                                Some(format!("{}{}", prefix, filter))
+                    },
+                    |cat| {
+                        let filter = cat.filter().map(|filter| {
+                            let mut prefix = String::new();
+                            if self_.downloaded_switch.is_active() {
+                                prefix.push_str("downloaded&");
                             }
-                        };
+                            if self_.favorites_switch.is_active() {
+                                prefix.push_str("favorites&");
+                            }
+                            format!("{prefix}{filter}")
+                        });
                         l.set_property("filter", filter);
-                    }
-                }
+                    },
+                );
             };
         }
     }
@@ -386,8 +376,8 @@ impl EpicSidebar {
 
     fn add_category_by_name(&self, part: &str, p: &str) -> EpicSidebarCategories {
         let self_ = self.imp();
-        match self.category_by_name(p) {
-            None => {
+        self.category_by_name(p).map_or_else(
+            || {
                 let c = categories::EpicSidebarCategories::new(
                     &categories::EpicSidebarCategories::capitalize_first_letter(part),
                     p,
@@ -397,17 +387,17 @@ impl EpicSidebar {
                 c.set_widget_name(p);
                 self_.stack.add_named(&c, Some(p));
                 c
-            }
-            Some(c) => c,
-        }
+            },
+            |c| c,
+        )
     }
 }
 
 fn open_browser(code: &str) {
     #[cfg(target_os = "linux")]
-    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code), None::<&gio::AppLaunchContext>).is_err() {
-        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code);
+    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace"), None::<&gio::AppLaunchContext>).is_err() {
+        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace");
     }
     #[cfg(target_os = "windows")]
-    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace", code));
+    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace"));
 }

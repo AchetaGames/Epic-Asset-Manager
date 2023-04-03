@@ -53,34 +53,10 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new(
-                        "title",
-                        "title",
-                        "The category title",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "icon-name",
-                        "icon name",
-                        "The Icon Name",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "filter",
-                        "Filter",
-                        "Filter",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "leaf",
-                        "Leaf",
-                        "Is leaf",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("title").build(),
+                    ParamSpecString::builder("icon-name").build(),
+                    ParamSpecString::builder("filter").build(),
+                    glib::ParamSpecBoolean::builder("leaf").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -138,6 +114,6 @@ impl Default for EpicSidebarCategory {
 
 impl EpicSidebarCategory {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 }

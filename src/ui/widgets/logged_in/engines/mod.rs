@@ -130,7 +130,7 @@ pub mod imp {
     impl ObjectImpl for EpicEnginesBox {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_messaging();
         }
@@ -139,20 +139,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "selected",
-                        "Selected",
-                        "Selected",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecBoolean::builder("expanded").build(),
+                    ParamSpecString::builder("selected").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -198,7 +186,7 @@ impl Default for EpicEnginesBox {
 
 impl EpicEnginesBox {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn setup_messaging(&self) {
@@ -270,22 +258,25 @@ impl EpicEnginesBox {
                 return gtk4::Ordering::Smaller;
             }
 
-            match version_compare::compare(
-                &info1.version().unwrap_or_default(),
-                &info2.version().unwrap_or_default(),
-            ) {
-                Ok(comp) => match comp {
-                    Cmp::Lt => gtk4::Ordering::Larger,
-                    Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
-                    Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
-                },
-                Err(_) => gtk4::Ordering::Smaller,
-            }
+            version_compare::compare(
+                info1.version().unwrap_or_default(),
+                info2.version().unwrap_or_default(),
+            )
+            .map_or(gtk4::Ordering::Smaller, |comp| match comp {
+                Cmp::Lt => gtk4::Ordering::Larger,
+                Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
+                Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
+            })
         });
-        let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
-        let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
-        selection_model.set_autoselect(false);
-        selection_model.set_can_unselect(true);
+        let sorted_model = gtk4::SortListModel::builder()
+            .model(&self_.grid_model)
+            .sorter(&sorter)
+            .build();
+        let selection_model = gtk4::SingleSelection::builder()
+            .model(&sorted_model)
+            .autoselect(false)
+            .can_unselect(true)
+            .build();
         self_.engine_grid.set_model(Some(&selection_model));
         self_.engine_grid.set_factory(Some(&factory));
 
@@ -408,11 +399,12 @@ impl EpicEnginesBox {
             if !data.valid() {
                 continue;
             }
-            match data.path() {
-                None => self.remove_item(&item, data.guid()),
-                Some(path) => {
-                    match PathBuf::from_str(&path) {
-                        Ok(mut p) => {
+            data.path().map_or_else(
+                || self.remove_item(&item, data.guid()),
+                |path| {
+                    PathBuf::from_str(&path).map_or_else(
+                        |_| self.remove_item(&item, data.guid()),
+                        |mut p| {
                             if !p.exists() {
                                 self.remove_item(&item, data.guid());
                             }
@@ -422,11 +414,10 @@ impl EpicEnginesBox {
                             if !p.exists() {
                                 self.remove_item(&item, data.guid());
                             }
-                        }
-                        Err(_) => self.remove_item(&item, data.guid()),
-                    };
-                }
-            }
+                        },
+                    );
+                },
+            );
         }
     }
 
@@ -533,9 +524,13 @@ impl EpicEnginesBox {
         };
 
         if let Ok(keys) = ini.keys("Installations") {
-            for item in keys.0 {
-                if let Ok(path) = ini.value("Installations", &item) {
-                    let guid: String = item.chars().filter(|c| c != &'{' && c != &'}').collect();
+            for item in keys {
+                if let Ok(path) = ini.value("Installations", item.to_str()) {
+                    let guid: String = item
+                        .to_string()
+                        .chars()
+                        .filter(|c| c != &'{' && c != &'}')
+                        .collect();
                     debug!("Got engine install: {} in {}", guid, path);
                     match path.to_string().strip_suffix('/') {
                         None => {

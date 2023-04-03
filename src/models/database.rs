@@ -28,10 +28,10 @@ fn run_migration_on(
 
 fn init_pool() -> Result<Pool, Box<dyn Error + Send + Sync + 'static>> {
     let db_path = &DB_PATH;
-    fs::create_dir_all(&db_path.to_str().unwrap())?;
+    fs::create_dir_all(db_path.to_str().unwrap())?;
     let db_path = db_path.join("eam.db");
     if !db_path.exists() {
-        File::create(&db_path.to_str().unwrap())?;
+        File::create(db_path.to_str().unwrap())?;
     }
     let manager = ConnectionManager::<SqliteConnection>::new(db_path.to_str().unwrap());
     let pool = r2d2::Pool::builder().build(manager)?;

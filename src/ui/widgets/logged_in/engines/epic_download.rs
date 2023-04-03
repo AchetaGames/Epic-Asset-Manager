@@ -112,7 +112,7 @@ pub mod imp {
     impl ObjectImpl for EpicEngineDownload {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_messaging();
             obj.setup_actions();
             obj.setup_widgets();
@@ -136,7 +136,7 @@ impl Default for EpicEngineDownload {
 
 impl EpicEngineDownload {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -329,37 +329,32 @@ impl EpicEngineDownload {
                     if re.is_match(&version.name) {
                         for cap in re.captures_iter(&version.name) {
                             result.insert(
-                                match cap.get(2) {
-                                    None => cap[1].to_string(),
-                                    Some(suffix) => {
+                                cap.get(2).map_or_else(
+                                    || cap[1].to_string(),
+                                    |suffix| {
                                         format!(
                                             "{} ({})",
-                                            match cap.get(1) {
-                                                None => {
-                                                    ""
-                                                }
-                                                Some(v) => {
-                                                    v.as_str()
-                                                }
-                                            },
+                                            cap.get(1).map_or("", |v| v.as_str()),
                                             suffix.as_str()
                                         )
-                                    }
-                                },
+                                    },
+                                ),
                                 version.clone(),
                             );
                         }
                     }
                 }
                 self_.engine_versions.replace(Some(result.clone()));
-                let mut version: Vec<&String> = result.keys().into_iter().collect();
-                version.sort_by(|a, b| match version_compare::compare(b, a) {
-                    Ok(cmp) => match cmp {
-                        Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
-                        Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
-                        Cmp::Gt => std::cmp::Ordering::Greater,
-                    },
-                    Err(_) => std::cmp::Ordering::Equal,
+                let mut version: Vec<&String> = result.keys().collect();
+                version.sort_by(|a, b| {
+                    version_compare::compare(b, a).map_or(
+                        std::cmp::Ordering::Equal,
+                        |cmp| match cmp {
+                            Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
+                            Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
+                            Cmp::Gt => std::cmp::Ordering::Greater,
+                        },
+                    )
                 });
 
                 for ver in version {
@@ -379,12 +374,9 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
-            let id = match eg.user_details().account_id {
-                None => {
-                    sender.send(Msg::EULAValid(false)).unwrap();
-                    return;
-                }
-                Some(i) => i,
+            let Some(id) = eg.user_details().account_id else {
+                sender.send(Msg::EULAValid(false)).unwrap();
+                return;
             };
             thread::spawn(move || {
                 if let Some(token) = tokio::runtime::Runtime::new()
@@ -424,8 +416,8 @@ impl EpicEngineDownload {
 
 fn open_browser(code: &str) {
     #[cfg(target_os = "linux")]
-    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code), None::<&gio::AppLaunchContext>).is_err() {
-        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code);
+    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal"), None::<&gio::AppLaunchContext>).is_err() {
+        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
     }
     #[cfg(target_os = "windows")]
     open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code));

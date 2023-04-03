@@ -1,5 +1,5 @@
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*};
+use gtk4::{self, gio};
 use gtk4::{glib, CompositeTemplate};
 
 pub mod imp {
@@ -73,7 +73,7 @@ impl Default for EpicEngineInstall {
 
 impl EpicEngineInstall {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

@@ -1,6 +1,7 @@
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::Msg::CancelChunk;
 use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessages};
+use egs_api::api::types::chunk::Chunk;
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -274,10 +275,7 @@ impl Asset for super::EpicDownloadManager {
         dm: &[egs_api::api::types::download_manifest::DownloadManifest],
     ) {
         let self_ = self.imp();
-        let item = match self.get_item(id) {
-            None => return,
-            Some(i) => i,
-        };
+        let Some(item) = self.get_item(id) else { return };
         if dm.is_empty() {
             item.set_property("status", "Failed to get download manifests".to_string());
             return;
@@ -369,21 +367,20 @@ impl Asset for super::EpicDownloadManager {
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
         let self_ = self.imp();
-        let _item = match self.get_item(&id) {
-            None => return,
-            Some(i) => i,
-        };
+        let Some(_item) = self.get_item(&id) else { return };
         let vaults = self_.settings.strv("unreal-vault-directories");
-        let mut target = std::path::PathBuf::from(match vaults.first() {
-            None => self_
-                .settings
-                .string("temporary-download-directory")
-                .to_string(),
-            Some(v) => v.to_string(),
-        });
+        let mut target = std::path::PathBuf::from(vaults.first().map_or_else(
+            || {
+                self_
+                    .settings
+                    .string("temporary-download-directory")
+                    .to_string()
+            },
+            std::string::ToString::to_string,
+        ));
         target.push(release.clone());
         target.push("temp");
-        let full_filename = format!("{}/{}/{}", id, release, filename);
+        let full_filename = format!("{id}/{release}/{filename}");
         self_.downloaded_files.borrow_mut().insert(
             full_filename.clone(),
             DownloadedFile {
@@ -402,7 +399,7 @@ impl Asset for super::EpicDownloadManager {
                 .asset_guids
                 .borrow_mut()
                 .entry(id.clone())
-                .or_insert(vec![])
+                .or_default()
                 .push(chunk.guid.clone());
             let mut chunks = self_.downloaded_chunks.borrow_mut();
             match chunks.get_mut(&chunk.guid) {
@@ -410,7 +407,7 @@ impl Asset for super::EpicDownloadManager {
                     chunks.insert(chunk.guid.clone(), vec![full_filename.clone()]);
                     let mut p = target.clone();
                     let g = chunk.guid.clone();
-                    p.push(format!("{}.chunk", g));
+                    p.push(format!("{g}.chunk"));
                     sender
                         .send(super::Msg::RedownloadChunk(
                             reqwest::Url::parse("unix:/").unwrap(),
@@ -604,12 +601,9 @@ impl Asset for super::EpicDownloadManager {
             if let Some(files) = chunks.get(guid) {
                 for file in files {
                     if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
-                        let item = match self.get_item(&f.asset) {
-                            None => {
-                                break;
-                            }
-                            Some(i) => i,
-                        };
+                        let Some(item) = self.get_item(&f.asset) else {
+                                                             break;
+                                                    };
                         item.add_downloaded_size(progress);
                         self.emit_by_name::<()>("tick", &[]);
                         break;
@@ -634,12 +628,7 @@ impl Asset for super::EpicDownloadManager {
         filename: String,
     ) {
         let self_ = self.imp();
-        let item = match self.get_item(&asset_id) {
-            None => {
-                return;
-            }
-            Some(i) => i,
-        };
+        let Some(item) = self.get_item(&asset_id) else { return; };
 
         let mut targets: Vec<(String, bool)> = Vec::new();
         {
@@ -673,7 +662,7 @@ impl Asset for super::EpicDownloadManager {
         }
         if let Some(item) = self.get_item(&asset) {
             item.set_property("status", "Paused".to_string());
-            item.set_property("speed", "".to_string());
+            item.set_property("speed", String::new());
         }
     }
 
@@ -707,7 +696,7 @@ impl Asset for super::EpicDownloadManager {
             .paused_asset_chunks
             .borrow_mut()
             .entry(guid)
-            .or_insert(vec![])
+            .or_default()
             .push((url, path));
     }
 
@@ -736,7 +725,7 @@ impl Asset for super::EpicDownloadManager {
         if let Some(guids) = self_.asset_guids.borrow_mut().remove(&asset) {
             if let Some(item) = self.get_item(&asset) {
                 item.set_property("status", "Canceled".to_string());
-                item.set_property("speed", "".to_string());
+                item.set_property("speed", String::new());
                 if let Some(v) = item.version() {
                     self_.download_items.borrow_mut().remove(&v);
                 }
@@ -876,10 +865,8 @@ fn initiate_file_download(
                 }
             }
             let hash = hasher.finalize();
-            if m.file_hash.eq(&hash
-                .iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>())
+            if m.file_hash
+                .eq(&hash.iter().map(|b| format!("{b:02x}")).collect::<String>())
             {
                 sender
                     .send(super::Msg::FileAlreadyDownloaded(
@@ -963,20 +950,21 @@ impl AssetPriv for super::EpicDownloadManager {
     ) {
         let self_ = self.imp();
         let vaults = self_.settings.strv("unreal-vault-directories");
-        let temp_dir = std::path::PathBuf::from(match vaults.first() {
-            None => self_
-                .settings
-                .string("temporary-download-directory")
-                .to_string(),
-            Some(v) => v.to_string(),
-        });
+        let temp_dir = std::path::PathBuf::from(vaults.first().map_or_else(
+            || {
+                self_
+                    .settings
+                    .string("temporary-download-directory")
+                    .to_string()
+            },
+            std::string::ToString::to_string,
+        ));
         let mut targets: Vec<(String, bool)> = Vec::new();
         let mut to_vault = true;
         {
-            let actions = match self.get_item(&f.asset) {
-                None => vec![],
-                Some(i) => i.actions(),
-            };
+            let actions = self
+                .get_item(&f.asset)
+                .map_or_else(Vec::new, |i| i.actions());
 
             for act in actions {
                 match act {
@@ -1025,10 +1013,9 @@ impl AssetPriv for super::EpicDownloadManager {
                 Ok(mut target) => {
                     let hash =
                         extract_chunks(finished.chunks, &temp.clone(), &mut target).finalize();
-                    if finished.hash.eq(&hash
-                        .iter()
-                        .map(|b| format!("{:02x}", b))
-                        .collect::<String>())
+                    if finished
+                        .hash
+                        .eq(&hash.iter().map(|b| format!("{b:02x}")).collect::<String>())
                     {
                         copy_files(&vault.clone(), targets, &finished.name);
                         sender
@@ -1064,7 +1051,13 @@ fn extract_chunks(
                 let metadata = f.metadata().expect("Unable to read metadata");
                 let mut buffer = vec![0_u8; usize::try_from(metadata.len()).unwrap()];
                 f.read_exact(&mut buffer).expect("Read failed");
-                let ch = egs_api::api::types::chunk::Chunk::from_vec(buffer).unwrap();
+                let ch = match egs_api::api::types::chunk::Chunk::from_vec(buffer) {
+                    None => {
+                        error!("Failed to parse chunk from file: {:?}", chunk.link);
+                        break;
+                    }
+                    Some(c) => c,
+                };
                 if u128::from(
                     ch.uncompressed_size
                         .unwrap_or_else(|| u32::try_from(ch.data.len()).unwrap()),
@@ -1098,14 +1091,14 @@ fn copy_files(from: &Path, targets: Vec<(String, bool)>, filename: &str) {
             continue;
         }
         if tar.exists() {
-            let ext = match tar.extension() {
-                None => OsString::from_str(".bak").unwrap(),
-                Some(ext) => {
+            let ext = tar.extension().map_or_else(
+                || OsString::from_str(".bak").unwrap(),
+                |ext| {
                     let mut new = ext.to_os_string();
                     new.push(".bak");
                     new
-                }
-            };
+                },
+            );
             let mut bak = tar.clone();
             bak.set_extension(ext);
             if let Err(err) = std::fs::rename(&tar, bak) {

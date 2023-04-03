@@ -65,14 +65,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "engine",
-                        "Engine",
-                        "Engine",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("name").build(),
+                    ParamSpecString::builder("engine").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -84,14 +78,14 @@ pub mod imp {
                     let name = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<span size=\"xx-large\"><b><u>{}</u></b></span>", l));
+                        .map(|l| format!("<span size=\"xx-large\"><b><u>{l}</u></b></span>"));
                     self.name.replace(name);
                 }
                 "engine" => {
                     let engine = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i>{}</i>", l));
+                        .map(|l| format!("<i>{l}</i>"));
                     self.engine.replace(engine);
                 }
                 _ => unimplemented!(),
@@ -124,7 +118,7 @@ impl Default for EpicProject {
 
 impl EpicProject {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -159,11 +153,11 @@ impl EpicProject {
         self_.data.replace(Some(data.clone()));
         self.set_property("name", &data.name());
         self.set_property("tooltip-text", &data.path());
-        match data.uproject() {
-            None => {
+        data.uproject().map_or_else(
+            || {
                 self.set_property("engine", "");
-            }
-            Some(uproject) => match self.associated_engine(&uproject) {
+            },
+            |uproject| match self.associated_engine(&uproject) {
                 None => {
                     let db = crate::models::database::connection();
                     let mut last_engine: Option<String> = None;
@@ -180,41 +174,41 @@ impl EpicProject {
                             last_engine = Some(last);
                         }
                     };
-                    match last_engine {
-                        None => {
+                    last_engine.map_or_else(
+                        || {
                             self.set_property("engine", "Unknown Engine");
-                        }
-                        Some(eng) => {
-                            match crate::models::engine_data::EngineData::read_engine_version(&eng)
-                            {
-                                None => {
-                                    self.set_property("engine", eng);
-                                }
-                                Some(version) => {
-                                    self.set_property("engine", version.format());
-                                }
-                            }
-                        }
-                    }
+                        },
+                        |eng| {
+                            crate::models::engine_data::EngineData::read_engine_version(&eng)
+                                .map_or_else(
+                                    || {
+                                        self.set_property("engine", eng);
+                                    },
+                                    |version| {
+                                        self.set_property("engine", version.format());
+                                    },
+                                );
+                        },
+                    );
                 }
                 Some(eng) => {
                     self.set_property("engine", eng.version.format());
                 }
             },
-        };
+        );
 
         if let Some(pix) = data.image() {
             self_.thumbnail.set_custom_image(Some(&pix));
         }
 
-        match data.path() {
-            None => {
+        data.path().map_or_else(
+            || {
                 self_.thumbnail.set_text(None);
-            }
-            Some(path) => {
+            },
+            |path| {
                 self_.thumbnail.set_text(Some(&path));
-            }
-        }
+            },
+        );
 
         self_.handler.replace(Some(data.connect_local(
             "finished",

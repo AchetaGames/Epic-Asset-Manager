@@ -68,36 +68,12 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::new(
-                        "needs-update",
-                        "needs update",
-                        "Check if engine needs update",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "version",
-                        "Version",
-                        "Version",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "branch",
-                        "Branch",
-                        "Branch",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "has-branch",
-                        "Has Branch",
-                        "Has Branch",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
+                    ParamSpecBoolean::builder("needs-update").build(),
+                    ParamSpecString::builder("version").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("branch").build(),
+                    ParamSpecBoolean::builder("has-branch").build(),
+                    ParamSpecString::builder("guid").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -113,7 +89,7 @@ pub mod imp {
                     let version = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<span size=\"xx-large\"><b><u>{}</u></b></span>", l));
+                        .map(|l| format!("<span size=\"xx-large\"><b><u>{l}</u></b></span>"));
                     self.version.replace(version);
                 }
                 "path" => {
@@ -124,7 +100,7 @@ pub mod imp {
                     let branch = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i><b>Branch:</b> {}</i>", l));
+                        .map(|l| format!("<i><b>Branch:</b> {l}</i>"));
                     self.branch.replace(branch);
                 }
                 "has-branch" => {
@@ -169,7 +145,7 @@ impl Default for EpicEngine {
 
 impl EpicEngine {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn path(&self) -> Option<String> {

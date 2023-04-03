@@ -6,9 +6,10 @@ use gtk4::glib::clone;
 use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::{action, get_action};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, glib::Enum)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, glib::Enum)]
 #[enum_type(name = "ItemType")]
 pub enum ItemType {
+    #[default]
     Unknown,
     Asset,
     Docker,
@@ -21,7 +22,6 @@ pub mod imp {
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gdk::Texture;
     use gtk4::gio;
-    use gtk4::glib::ParamSpecObject;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::VecDeque;
@@ -114,91 +114,20 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecEnum::new(
-                        "item-type",
-                        "Item Type",
-                        "Item Type",
-                        ItemType::static_type(),
-                        0,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "label",
-                        "Label",
-                        "Label",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "paused",
-                        "paused",
-                        "Is paused",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "canceled",
-                        "canceled",
-                        "Is canceled",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "asset",
-                        "Asset",
-                        "Asset",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "version",
-                        "Version",
-                        "Version",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "release",
-                        "Release",
-                        "Release",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "speed",
-                        "Speed",
-                        "Speed",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "target",
-                        "Target",
-                        "Target",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "path",
-                        "Path",
-                        "Path",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "status",
-                        "status",
-                        "status",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecObject::new(
-                        "thumbnail",
-                        "Thumbnail",
-                        "Thumbnail",
-                        Texture::static_type(),
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecEnum::builder::<ItemType>("item-type")
+                        .default_value(ItemType::Unknown)
+                        .build(),
+                    glib::ParamSpecString::builder("label").build(),
+                    glib::ParamSpecBoolean::builder("paused").build(),
+                    glib::ParamSpecBoolean::builder("canceled").build(),
+                    glib::ParamSpecString::builder("asset").build(),
+                    glib::ParamSpecString::builder("version").build(),
+                    glib::ParamSpecString::builder("release").build(),
+                    glib::ParamSpecString::builder("speed").build(),
+                    glib::ParamSpecString::builder("target").build(),
+                    glib::ParamSpecString::builder("path").build(),
+                    glib::ParamSpecString::builder("status").build(),
+                    glib::ParamSpecObject::builder::<Texture>("thumbnail").build(),
                 ]
             });
 
@@ -221,7 +150,7 @@ pub mod imp {
                     let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<b><u>{}</u></b>", l));
+                        .map(|l| format!("<b><u>{l}</u></b>"));
 
                     self.label.replace(label);
                 }
@@ -237,7 +166,7 @@ pub mod imp {
                             self.actions,
                             "open",
                             clone!(@weak self as imp =>  move |_, _| {
-                                let obj = imp.instance();
+                                let obj = imp.obj();
                                 obj.open_path();
                             })
                         );
@@ -247,7 +176,7 @@ pub mod imp {
                     let status = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i>{}</i>", l));
+                        .map(|l| format!("<i>{l}</i>"));
                     self.stack.set_visible_child_name("label");
                     self.status.replace(status);
                 }
@@ -334,7 +263,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_messaging();
             obj.setup_timer();
@@ -358,7 +287,7 @@ impl Default for EpicDownloadItem {
 
 impl EpicDownloadItem {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_download_manager(
@@ -614,7 +543,7 @@ impl EpicDownloadItem {
         let total = *self_.total_files.borrow();
         self_
             .extraction_progress
-            .set_tooltip_text(Some(&format!("{}/{}", new_count, total)));
+            .set_tooltip_text(Some(&format!("{new_count}/{total}")));
         self_
             .extraction_progress
             .set_fraction(new_count as f64 / total as f64);

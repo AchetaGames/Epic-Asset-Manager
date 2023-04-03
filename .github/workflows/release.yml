@@ -17,7 +17,7 @@ jobs:
     name: "Flatpak"
     runs-on: ubuntu-20.04
     container:
-      image: bilelmoussaoui/flatpak-github-actions:gnome-43
+      image: bilelmoussaoui/flatpak-github-actions:gnome-44
       options: --privileged
     steps:
       - uses: actions/checkout@v2

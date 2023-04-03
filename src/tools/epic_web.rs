@@ -127,8 +127,7 @@ impl EpicWeb {
         if let Err(e) = self
             .client
             .get(format!(
-                "https://www.unrealengine.com/id/api/set-sid?sid={}",
-                sid
+                "https://www.unrealengine.com/id/api/set-sid?sid={sid}"
             ))
             .send()
         {
@@ -151,28 +150,25 @@ impl EpicWeb {
             }
             Ok(r) => {
                 match r.text() {
-                    Ok(t) => match serde_json::from_str::<EULAResponse>(&t) {
-                        Ok(eula) => {
-                            return match eula.data.eula.has_account_accepted {
-                                None => {
-                                    match eula.errors {
-                                        None => {}
-                                        Some(errors) => {
-                                            for error in errors {
-                                                error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
-                                            }
-                                        }
+                    Ok(t) => {
+                        match serde_json::from_str::<EULAResponse>(&t) {
+                            Ok(eula) => {
+                                return match eula.data.eula.has_account_accepted {
+                                    None => {
+                                        eula.errors.map_or((), |errors| for error in errors {
+                                                                                      error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
+                                                                                });
+                                        false
                                     }
-                                    false
-                                }
-                                Some(accepted) => accepted.accepted,
-                            };
+                                    Some(accepted) => accepted.accepted,
+                                };
+                            }
+                            Err(e) => {
+                                error!("Failed to parse EULA json: {}", e);
+                                debug!("Response: {}", t);
+                            }
                         }
-                        Err(e) => {
-                            error!("Failed to parse EULA json: {}", e);
-                            debug!("Response: {}", t);
-                        }
-                    },
+                    }
                     Err(e) => {
                         error!("Failed to read EULA text: {}", e);
                     }

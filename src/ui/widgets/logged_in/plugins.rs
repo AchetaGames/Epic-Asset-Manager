@@ -75,7 +75,7 @@ impl Default for EpicPlugins {
 
 impl EpicPlugins {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {

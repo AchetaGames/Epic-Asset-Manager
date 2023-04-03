@@ -151,7 +151,7 @@ mod imp {
     impl ObjectImpl for PluginData {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_messaging();
+            self.obj().setup_messaging();
         }
 
         fn signals() -> &'static [gtk4::glib::subclass::Signal] {
@@ -168,9 +168,9 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("guid", "GUID", "GUID", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
+                    ParamSpecString::builder("guid").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("name").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -215,7 +215,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl PluginData {
     pub fn new(path: &str, name: &str) -> PluginData {
-        let data: Self = glib::Object::new(&[]);
+        let data: Self = glib::Object::new();
         data.set_property("path", &path);
         data.set_property("name", &name);
         data

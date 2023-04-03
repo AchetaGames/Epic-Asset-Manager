@@ -61,41 +61,11 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "label",
-                        "Label",
-                        "Label",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "id",
-                        "ID",
-                        "ID",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecObject::new(
-                        "thumbnail",
-                        "Thumbnail",
-                        "Thumbnail",
-                        Texture::static_type(),
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "favorite",
-                        "favorite",
-                        "Is favorite",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecBoolean::new(
-                        "downloaded",
-                        "downloaded",
-                        "Is Downloaded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("label").build(),
+                    glib::ParamSpecString::builder("id").build(),
+                    ParamSpecObject::builder::<Texture>("thumbnail").build(),
+                    glib::ParamSpecBoolean::builder("favorite").build(),
+                    glib::ParamSpecBoolean::builder("downloaded").build(),
                 ]
             });
 
@@ -134,14 +104,14 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
 
                     self.thumbnail.replace(thumbnail.clone());
-                    match thumbnail {
-                        None => {
+                    thumbnail.map_or_else(
+                        || {
                             self.image.set_icon_name(Some("ue-logo-symbolic"));
-                        }
-                        Some(t) => {
+                        },
+                        |t| {
                             self.image.set_from_paintable(Some(&t));
-                        }
-                    }
+                        },
+                    );
                 }
                 _ => unimplemented!(),
             }
@@ -176,7 +146,7 @@ impl Default for EpicAsset {
 
 impl EpicAsset {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_data(&self, data: &crate::models::asset_data::AssetData) {

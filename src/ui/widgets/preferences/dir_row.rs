@@ -75,7 +75,7 @@ glib::wrapper! {
 
 impl DirectoryRow {
     pub fn new(dir: &str, window: &crate::ui::widgets::preferences::PreferencesWindow) -> Self {
-        let row: Self = glib::Object::new(&[]);
+        let row: Self = glib::Object::new();
         adw::prelude::PreferencesRowExt::set_title(&row, dir);
         let self_ = row.imp();
         self_.window.set(window.clone()).unwrap();

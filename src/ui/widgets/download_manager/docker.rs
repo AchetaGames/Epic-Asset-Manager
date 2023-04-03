@@ -77,12 +77,9 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     #[cfg(target_os = "linux")]
     fn perform_docker_blob_downloads(&self, version: &str, size: u64, digests: Vec<(String, u64)>) {
         let self_ = self.imp();
-        let item = match self.get_item(version) {
-            None => {
-                return;
-            }
-            Some(i) => i,
-        };
+        let Some(item) = self.get_item(version) else {
+                           return;
+                       };
         item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(u128::from(size));
         item.set_total_files(digests.len() as u64);
@@ -109,7 +106,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_: &crate::window::imp::EpicAssetManagerWindow =
-                crate::window::imp::EpicAssetManagerWindow::from_instance(window);
+                crate::window::imp::EpicAssetManagerWindow::from_obj(window);
             if let Some(dclient) = &*win_.model.borrow().dclient.borrow() {
                 let ver = version.to_string();
                 let d = digest.0.clone();
@@ -117,10 +114,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let client = dclient.clone();
                 let sender = self_.sender.clone();
                 let pool = self_.download_pool.clone();
-                let target = match self.docker_target_directory() {
-                    None => return,
-                    Some(t) => t,
-                };
+                let Some(target) = self.docker_target_directory() else { return };
                 debug!("Going to download to {:?}", target);
                 let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
                 self.add_thread_sender(ver.clone(), send);
@@ -179,10 +173,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     }
     #[cfg(target_os = "linux")]
     fn cancel_docker_digest(&self, _version: &str, digest: (String, u64)) {
-        let mut target = match self.docker_target_directory() {
-            None => return,
-            Some(t) => t,
-        };
+        let Some(mut target) = self.docker_target_directory() else { return };
         target.push(digest.0);
         if let Err(e) = std::fs::remove_file(target) {
             warn!("Unable to remove docker file {:?}", e);
@@ -196,7 +187,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             .paused_docker_digests
             .borrow_mut()
             .entry(version)
-            .or_insert(vec![])
+            .or_default()
             .push(digest);
     }
 
@@ -292,7 +283,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 }
                 return None;
             }
-            Some(p) => PathBuf::from(p),
+            Some(p) => PathBuf::from(p.to_str()),
         };
         target.push("docker");
         Some(target)
@@ -300,12 +291,9 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     #[cfg(target_os = "linux")]
     fn docker_download_progress(&self, version: &str, progress: u64) {
-        let item = match self.get_item(version) {
-            None => {
-                return;
-            }
-            Some(i) => i,
-        };
+        let Some(item) = self.get_item(version) else {
+                            return;
+                      };
         item.add_downloaded_size(u128::from(progress));
 
         self.emit_by_name::<()>("tick", &[]);
@@ -329,10 +317,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
             let mut to_extract: Vec<String> = Vec::new();
-            let target = match self.docker_target_directory() {
-                None => return,
-                Some(t) => t,
-            };
+            let Some(target) = self.docker_target_directory() else { return };
             for d in digests {
                 match d.1 {
                     DownloadStatus::Init => {
@@ -353,14 +338,18 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 };
             }
             if !to_extract.is_empty() {
-                let path = match self_.settings.strv("unreal-engine-directories").get(0) {
-                    None => PathBuf::from(&version),
-                    Some(p) => {
-                        let mut path = PathBuf::from(p);
-                        path.push(&version);
-                        path
-                    }
-                };
+                let path = self_
+                    .settings
+                    .strv("unreal-engine-directories")
+                    .get(0)
+                    .map_or_else(
+                        || PathBuf::from(&version),
+                        |p| {
+                            let mut path = PathBuf::from(p.to_str());
+                            path.push(version);
+                            path
+                        },
+                    );
                 if let Err(e) = std::fs::create_dir_all(&path) {
                     warn!("Unable to create target directory: {}", e);
                 };
@@ -396,16 +385,10 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn docker_extraction_finished(&self, version: &str) {
         let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
-            let item = match self.get_item(version) {
-                None => {
-                    return;
-                }
-                Some(i) => i,
-            };
-            let target = match self.docker_target_directory() {
-                None => return,
-                Some(t) => t,
-            };
+            let Some(item) = self.get_item(version) else {
+                                    return;
+                             };
+            let Some(target) = self.docker_target_directory() else { return };
             let mut remaining = 0;
             for d in digests {
                 match d.1 {
@@ -450,7 +433,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         if let Some(item) = self.get_item(&version) {
             self.send_to_thread_sender(&version.clone(), &ThreadMessages::Cancel);
             item.set_property("status", "Canceled".to_string());
-            item.set_property("speed", "".to_string());
+            item.set_property("speed", String::new());
             if let Some(v) = item.version() {
                 self_.download_items.borrow_mut().remove(&v);
             }
@@ -475,7 +458,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         if let Some(item) = self.get_item(&version) {
             self.send_to_thread_sender(&version, &ThreadMessages::Pause);
             item.set_property("status", "Paused".to_string());
-            item.set_property("speed", "".to_string());
+            item.set_property("speed", String::new());
         }
     }
 

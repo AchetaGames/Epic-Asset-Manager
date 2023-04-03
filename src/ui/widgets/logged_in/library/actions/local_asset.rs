@@ -44,7 +44,7 @@ pub mod imp {
     impl ObjectImpl for EpicLocalAsset {
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
 
         fn signals() -> &'static [glib::subclass::Signal] {
@@ -61,20 +61,8 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
                 vec![
-                    glib::ParamSpecString::new(
-                        "label",
-                        "label",
-                        "label",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    glib::ParamSpecString::new(
-                        "path",
-                        "path",
-                        "path",
-                        None, // Default value
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    glib::ParamSpecString::builder("label").build(),
+                    glib::ParamSpecString::builder("path").build(),
                 ]
             });
 
@@ -87,9 +75,9 @@ pub mod imp {
                     let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`");
-                    let formatted = label.as_ref().map(|l| format!("<b><u>{}</u></b>", l));
+                    let formatted = label.as_ref().map(|l| format!("<b><u>{l}</u></b>"));
                     self.label.replace(formatted);
-                    self.instance().set_property("path", label);
+                    self.obj().set_property("path", label);
                 }
                 "path" => {
                     let path = value
@@ -127,7 +115,7 @@ impl Default for EpicLocalAsset {
 
 impl EpicLocalAsset {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn setup_actions(&self) {

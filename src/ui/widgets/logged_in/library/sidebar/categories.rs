@@ -51,7 +51,7 @@ pub mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 categories: TemplateChild::default(),
                 cats: ListStore::new(CategoryData::static_type()),
-                selection_model: SingleSelection::new(None::<&gtk4::SortListModel>),
+                selection_model: SingleSelection::new(None::<gtk4::gio::ListModel>),
                 categories_set: RefCell::new(HashSet::new()),
                 previous: TemplateChild::default(),
             }
@@ -72,35 +72,11 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new(
-                        "title",
-                        "title",
-                        "The category title",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new(
-                        "icon-name",
-                        "icon name",
-                        "The Icon Name",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new(
-                        "filter",
-                        "Filter",
-                        "Filter",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecBoolean::new(
-                        "expanded",
-                        "expanded",
-                        "Is expanded",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("title").build(),
+                    ParamSpecString::builder("icon-name").build(),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("filter").build(),
+                    ParamSpecBoolean::builder("expanded").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -115,7 +91,7 @@ pub mod imp {
                 "path" => {
                     let path: Option<String> = value.get().unwrap();
                     self.path.replace(path);
-                    self.instance().has_previous();
+                    self.obj().has_previous();
                 }
                 "filter" => {
                     let filter = value.get().unwrap();
@@ -146,7 +122,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.setup_actions();
             obj.setup_categories();
         }
@@ -174,7 +150,7 @@ impl EpicSidebarCategories {
         filter: Option<&str>,
         sidebar: Option<&crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
     ) -> Self {
-        let stack: Self = glib::Object::new(&[]);
+        let stack: Self = glib::Object::new();
 
         stack.set_property("title", title);
         stack.set_property("path", path);
@@ -232,10 +208,9 @@ impl EpicSidebarCategories {
 
     pub fn capitalize_first_letter(s: &str) -> String {
         let mut c = s.chars();
-        match c.next() {
-            None => String::new(),
-            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-        }
+        c.next().map_or_else(String::new, |f| {
+            f.to_uppercase().collect::<String>() + c.as_str()
+        })
     }
     pub fn title(&self) -> Option<String> {
         self.property("title")
@@ -298,7 +273,10 @@ impl EpicSidebarCategories {
             }
         });
 
-        let sorted_model = gtk4::SortListModel::new(Some(&self_.cats), Some(&sorter));
+        let sorted_model = gtk4::SortListModel::builder()
+            .model(&self_.cats)
+            .sorter(&sorter)
+            .build();
         self_.selection_model.set_model(Some(&sorted_model));
         self_.selection_model.set_autoselect(false);
         self_.selection_model.set_can_unselect(true);

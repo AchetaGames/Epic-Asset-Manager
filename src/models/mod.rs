@@ -13,10 +13,11 @@ use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT}
 use gtk4::prelude::*;
 use log::{debug, error, info, warn};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::thread;
 
 #[cfg(target_os = "linux")]
-use secret_service::{EncryptionType, SecretService};
+use secret_service::{blocking::SecretService, EncryptionType};
 
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
@@ -41,7 +42,7 @@ impl Model {
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
             #[cfg(target_os = "linux")]
-            secret_service: match SecretService::new(EncryptionType::Dh) {
+            secret_service: match SecretService::connect(EncryptionType::Dh) {
                 Ok(ss) => Some(ss),
                 Err(e) => {
                     error!(
@@ -90,7 +91,7 @@ impl Model {
                 Some(mut dir) => {
                     dir.push("Unreal Projects");
                     self.settings
-                        .set_strv("unreal-projects-directories", &[dir.to_str().unwrap()])
+                        .set_strv("unreal-projects-directories", vec![dir.to_str().unwrap()])
                         .unwrap();
                 }
             };
@@ -104,7 +105,7 @@ impl Model {
                 Some(mut dir) => {
                     dir.push("EpicVault");
                     self.settings
-                        .set_strv("unreal-vault-directories", &[dir.to_str().unwrap()])
+                        .set_strv("unreal-vault-directories", vec![dir.to_str().unwrap()])
                         .unwrap();
                 }
             };
@@ -118,7 +119,7 @@ impl Model {
                 Some(mut dir) => {
                     dir.push("Unreal Engine");
                     self.settings
-                        .set_strv("unreal-engine-directories", &[dir.to_str().unwrap()])
+                        .set_strv("unreal-engine-directories", vec![dir.to_str().unwrap()])
                         .unwrap();
                 }
             };
@@ -175,21 +176,17 @@ impl Model {
                 Some(ss) => {
                     match ss.get_any_collection() {
                         Ok(collection) => {
-                            match collection.search_items(
-                                [("application", crate::config::APP_ID)]
-                                    .iter()
-                                    .copied()
-                                    .collect(),
-                            ) {
+                            match collection.search_items(HashMap::from([(
+                                "application",
+                                crate::config::APP_ID,
+                            )])) {
                                 Ok(items) => {
                                     let mut ud = egs_api::api::types::account::UserData::new();
                                     for item in items {
-                                        let label = if let Ok(l) = item.get_label() {
-                                            l
-                                        } else {
-                                            debug!("No label skipping");
-                                            continue;
-                                        };
+                                        let Ok(label) = item.get_label() else {
+                                                                                    debug!("No label skipping");
+                                                                                    continue;
+                                                                                };
                                         debug!("Loading: {}", label);
                                         if let Ok(attributes) = item.get_attributes() {
                                             match label.as_str() {
@@ -282,7 +279,7 @@ impl Model {
 
     fn load_egs_secrets(
         &self,
-        item: &secret_service::Item,
+        item: &secret_service::blocking::Item,
         attributes: &std::collections::HashMap<String, String>,
         expiration: &str,
     ) -> Option<(String, String, chrono::DateTime<chrono::Utc>)> {
@@ -323,9 +320,7 @@ impl Model {
         item: &str,
     ) -> Option<(String, chrono::DateTime<chrono::Utc>)> {
         let exp = match chrono::DateTime::parse_from_rfc3339(
-            self.settings
-                .string(&format!("{}-expiration", item))
-                .as_str(),
+            self.settings.string(&format!("{item}-expiration")).as_str(),
         ) {
             Ok(d) => d.with_timezone(&chrono::Utc),
             Err(e) => {

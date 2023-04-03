@@ -48,15 +48,9 @@ mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new("path", "Path", "Path", None, glib::ParamFlags::READWRITE),
-                    ParamSpecString::new("name", "Name", "Name", None, glib::ParamFlags::READWRITE),
-                    ParamSpecBoolean::new(
-                        "crash",
-                        "crash",
-                        "Is Crash",
-                        false,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("path").build(),
+                    ParamSpecString::builder("name").build(),
+                    ParamSpecBoolean::builder("crash").build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -101,7 +95,7 @@ glib::wrapper! {
 // initial values for our two properties and then returns the new instance
 impl LogData {
     pub fn new(path: &str, name: &str, crash: bool) -> LogData {
-        let data: Self = glib::Object::new::<Self>(&[]);
+        let data: Self = glib::Object::new::<Self>();
         data.set_property("path", &path);
         data.set_property("name", &name);
         data.set_property("crash", crash);

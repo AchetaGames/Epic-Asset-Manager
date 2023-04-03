@@ -103,7 +103,7 @@ pub mod imp {
     impl ObjectImpl for PreferencesWindow {
         fn constructed(&self) {
             self.parent_constructed();
-            let obj = self.instance();
+            let obj = self.obj();
             obj.bind_settings();
             obj.load_settings();
             obj.setup_actions();
@@ -138,7 +138,7 @@ impl Default for PreferencesWindow {
 
 impl PreferencesWindow {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -313,7 +313,7 @@ impl PreferencesWindow {
         let level = self_.settings.int("log-level");
         self_
             .log_level_selection
-            .set_active_id(Some(&format!("{}", level)));
+            .set_active_id(Some(&format!("{level}")));
         self.log_level_changed();
         let category = self_.settings.string("default-category");
         self_
@@ -329,27 +329,23 @@ impl PreferencesWindow {
                 let win_ = w.imp();
                 #[cfg(target_os = "linux")]
                 {
-                    match &win_.model.borrow().secret_service {
-                        None => {
-                            w.add_notification("ss_none", "org.freedesktop.Secret.Service not available for use, secrets will not be stored securely", gtk4::MessageType::Warning);
+                    win_.model.borrow().secret_service.as_ref().map_or_else(
+                        || {
+                            // w.add_notification("ss_none", "org.freedesktop.Secret.Service not available for use, secrets will not be stored securely", gtk4::MessageType::Warning);
                             self.load_secrets_insecure();
-                        }
-                        Some(ss) => {
+                        },
+                        |ss| {
                             if let Ok(collection) = ss.get_any_collection() {
-                                if let Ok(items) = collection.search_items(
-                                    [("application", crate::config::APP_ID)]
-                                        .iter()
-                                        .copied()
-                                        .collect(),
-                                ) {
+                                if let Ok(items) = collection.search_items(HashMap::from([(
+                                    "application",
+                                    crate::config::APP_ID,
+                                )])) {
                                     for item in items {
-                                        let label = if let Ok(l) = item.get_label() {
-                                            l
-                                        } else {
-                                            debug!("No label skipping");
-                                            continue;
-                                        };
-                                        debug!("Loading: {}", label);
+                                        let Ok(label) = item.get_label() else {
+                                                                                        debug!("No label skipping");
+                                                                                        continue;
+                                                                              };
+                                        debug!("Loading: {label}");
                                         match label.as_str() {
                                             "eam_github_token" => {
                                                 if let Ok(d) = item.get_secret() {
@@ -364,8 +360,8 @@ impl PreferencesWindow {
                                     }
                                 };
                             };
-                        }
-                    }
+                        },
+                    );
                 }
                 #[cfg(target_os = "windows")]
                 {
@@ -406,12 +402,12 @@ impl PreferencesWindow {
             let model = win_.model.borrow();
             #[cfg(target_os = "linux")]
             {
-                match &model.secret_service {
-                    None => {
-                        w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
+                model.secret_service.as_ref().map_or_else(
+                    || {
+                        // w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
                         self.save_github_token_insecure();
-                    }
-                    Some(ss) => {
+                    },
+                    |ss| {
                         self_.settings.set_string("github-token", "").unwrap();
                         if let Err(e) = ss.get_any_collection().unwrap().create_item(
                             "eam_github_token",
@@ -421,11 +417,11 @@ impl PreferencesWindow {
                             "text/plain",
                         ) {
                             error!("Failed to save secret {}", e);
-                            w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
+                            // w.add_notification("ss_none_gh", "org.freedesktop.Secret.Service not available for use, github token will not be saved securely", gtk4::MessageType::Warning);
                             self.save_github_token_insecure();
                         };
-                    }
-                }
+                    },
+                );
             }
             #[cfg(target_os = "windows")]
             {
@@ -550,9 +546,7 @@ impl PreferencesWindow {
             | DirectoryConfigType::Projects => {
                 if let Some((setting_name, widget)) = self.setting_name_and_box_from_type(kind) {
                     let mut current = self_.settings.strv(setting_name);
-                    let n = if let Ok(s) = name.into_string() {
-                        s
-                    } else {
+                    let Ok(n) = name.into_string() else {
                         error!("Selected directory is not UTF8");
                         return;
                     };
@@ -560,11 +554,7 @@ impl PreferencesWindow {
                         current.push(gtk4::glib::GString::from(n.clone()));
                         self.add_directory_row(widget, n, kind);
                     }
-                    let new: Vec<&str> = current.iter().map(gtk4::glib::GString::as_str).collect();
-                    self_
-                        .settings
-                        .set_strv(setting_name, new.as_slice())
-                        .unwrap();
+                    self_.settings.set_strv(setting_name, current).unwrap();
                 }
             }
             DirectoryConfigType::Games => {}
@@ -623,6 +613,7 @@ impl PreferencesWindow {
         let self_ = self.imp();
 
         let mut rows = self_.directory_rows.borrow_mut();
+        #[allow(clippy::option_if_let_else)]
         match rows.get_mut(&kind) {
             None => {
                 row.set_up_enabled(false);
@@ -717,10 +708,7 @@ impl PreferencesWindow {
         {
             let mut rows = self_.directory_rows.borrow_mut();
             if let Some(r) = rows.get_mut(&kind) {
-                let current_position = match r.iter().position(|i| i.0 == dir) {
-                    Some(p) => p,
-                    None => return,
-                };
+                let Some(current_position) = r.iter().position(|i| i.0 == dir) else { return };
                 let item = r.remove(current_position);
 
                 let sibling = &r[current_position - 1];
@@ -744,10 +732,7 @@ impl PreferencesWindow {
         {
             let mut rows = self_.directory_rows.borrow_mut();
             if let Some(r) = rows.get_mut(&kind) {
-                let current_position = match r.iter().position(|i| i.0 == dir) {
-                    Some(p) => p,
-                    None => return,
-                };
+                let Some(current_position) = r.iter().position(|i| i.0 == dir) else { return };
                 let item = r.remove(current_position);
                 let total = r.len();
                 if current_position < total {

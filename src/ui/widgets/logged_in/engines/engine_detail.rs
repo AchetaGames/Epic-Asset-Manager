@@ -83,22 +83,11 @@ pub mod imp {
             use once_cell::sync::Lazy;
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecString::new(
-                        "selected",
-                        "Selected",
-                        "Selected",
-                        None,
-                        glib::ParamFlags::READWRITE,
-                    ),
-                    ParamSpecUInt::new(
-                        "position",
-                        "position",
-                        "item_position",
-                        0,
-                        u32::MAX,
-                        0,
-                        glib::ParamFlags::READWRITE,
-                    ),
+                    ParamSpecString::builder("selected").build(),
+                    ParamSpecUInt::builder("position")
+                        .minimum(0)
+                        .default_value(0)
+                        .build(),
                 ]
             });
             PROPERTIES.as_ref()
@@ -128,7 +117,7 @@ pub mod imp {
 
         fn constructed(&self) {
             self.parent_constructed();
-            self.instance().setup_actions();
+            self.obj().setup_actions();
         }
     }
 
@@ -149,7 +138,7 @@ impl Default for EpicEngineDetails {
 
 impl EpicEngineDetails {
     pub fn new() -> Self {
-        glib::Object::new(&[])
+        glib::Object::new()
     }
 
     pub fn set_download_manager(
@@ -181,27 +170,25 @@ impl EpicEngineDetails {
     fn launch_engine(&self) {
         let path = self.path();
         if let Some(path) = path {
-            match Self::get_engine_binary_path(&path) {
-                None => {
-                    warn!("No path");
-                }
-                Some(p) => {
-                    let context = gtk4::gio::AppLaunchContext::new();
-                    context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
+            Self::get_engine_binary_path(&path).map_or_else(|| {
+                warn!("No path");
+            }, |p| {
+                let context = gtk4::gio::AppLaunchContext::new();
+                context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
+                let ctx = glib::MainContext::default();
+                ctx.spawn_local(async move {
                     let app = gtk4::gio::AppInfo::create_from_commandline(
-                        if ashpd::is_sandboxed() {
+                        if ashpd::is_sandboxed().await {
                             format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
                         } else {
                             format!("\"{}\"", p.to_str().unwrap())
                         },
                         Some("Unreal Engine"),
                         gtk4::gio::AppInfoCreateFlags::NONE,
-                    )
-                    .unwrap();
-                    app.launch(&[], Some(&context))
-                        .expect("Failed to launch application");
-                }
-            }
+                    ).unwrap();
+                    app.launch(&[], Some(&context)).expect("Failed to launch application");
+                });
+            });
         };
         self.show_confirmation("<b><big>Engine Launched</big></b>");
     }
@@ -293,7 +280,7 @@ impl EpicEngineDetails {
             {
                 let ctx = glib::MainContext::default();
                 ctx.spawn_local(async move {
-                    crate::tools::open_directory(&format!("{}/Engine", p)).await;
+                    crate::tools::open_directory(&format!("{p}/Engine")).await;
                 });
             };
         }
