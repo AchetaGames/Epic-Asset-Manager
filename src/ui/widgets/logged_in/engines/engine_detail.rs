@@ -181,27 +181,22 @@ impl EpicEngineDetails {
     fn launch_engine(&self) {
         let path = self.path();
         if let Some(path) = path {
-            match Self::get_engine_binary_path(&path) {
-                None => {
-                    warn!("No path");
-                }
-                Some(p) => {
-                    let context = gtk4::gio::AppLaunchContext::new();
-                    context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                    let app = gtk4::gio::AppInfo::create_from_commandline(
-                        if ashpd::is_sandboxed() {
-                            format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
-                        } else {
-                            format!("\"{}\"", p.to_str().unwrap())
-                        },
-                        Some("Unreal Engine"),
-                        gtk4::gio::AppInfoCreateFlags::NONE,
-                    )
-                    .unwrap();
-                    app.launch(&[], Some(&context))
-                        .expect("Failed to launch application");
-                }
-            }
+            Self::get_engine_binary_path(&path).map_or_else(|| {
+                warn!("No path");
+            }, |p| {
+                let context = gtk4::gio::AppLaunchContext::new();
+                context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
+                let app = gtk4::gio::AppInfo::create_from_commandline(
+                    if ashpd::is_sandboxed() {
+                        format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
+                    } else {
+                        format!("\"{}\"", p.to_str().unwrap())
+                    },
+                    Some("Unreal Engine"),
+                    gtk4::gio::AppInfoCreateFlags::NONE,
+                ).unwrap();
+                app.launch(&[], Some(&context)).expect("Failed to launch application");
+            });
         };
         self.show_confirmation("<b><big>Engine Launched</big></b>");
     }
@@ -293,7 +288,7 @@ impl EpicEngineDetails {
             {
                 let ctx = glib::MainContext::default();
                 ctx.spawn_local(async move {
-                    crate::tools::open_directory(&format!("{}/Engine", p)).await;
+                    crate::tools::open_directory(&format!("{p}/Engine")).await;
                 });
             };
         }

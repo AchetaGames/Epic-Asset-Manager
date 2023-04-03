@@ -307,18 +307,17 @@ impl EpicLogs {
                             };
                         }
                     };
-                    let metadata =
-                        std::fs::metadata(&p.as_path()).expect("unable to read metadata");
+                    let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
                     sender
                         .send(Msg::AddLog(
                             p.to_str().unwrap_or_default().to_string(),
-                            match metadata.modified() {
-                                Ok(time) => {
+                            metadata.modified().map_or_else(
+                                |_| p.to_str().unwrap_or_default().to_string(),
+                                |time| {
                                     let t: chrono::DateTime<chrono::Utc> = time.into();
                                     format!("{}", t.format("%Y-%m-%d %T"))
-                                }
-                                Err(_) => p.to_str().unwrap_or_default().to_string(),
-                            },
+                                },
+                            ),
                             crash,
                         ))
                         .unwrap();

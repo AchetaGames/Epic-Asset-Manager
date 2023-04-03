@@ -418,14 +418,14 @@ impl EpicAssetActions {
                     }
                 }
                 self_.select_download_version.append(
-                    Some(release.id.as_ref().unwrap_or(&"".to_string())),
+                    Some(release.id.as_ref().unwrap_or(&String::new())),
                     &format!(
                         "{}{}",
                         release
                             .version_title
                             .as_ref()
-                            .unwrap_or(&"".to_string())
-                            .or(release.app_id.as_ref().unwrap_or(&"".to_string())),
+                            .unwrap_or(&String::new())
+                            .or(release.app_id.as_ref().unwrap_or(&String::new())),
                         if id == 0 { " (latest)" } else { "" }
                     ),
                 );

@@ -496,13 +496,15 @@ impl EpicAssetManagerWindow {
         let mut attributes = HashMap::new();
         attributes.insert("application", crate::config::APP_ID);
         attributes.insert("type", secret_type);
-        let d = match expiration {
-            None => chrono::Utc
-                .timestamp_opt(0, 0)
-                .unwrap()
-                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-            Some(e) => e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-        };
+        let d = expiration.map_or_else(
+            || {
+                chrono::Utc
+                    .timestamp_opt(0, 0)
+                    .unwrap()
+                    .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+            },
+            |e| e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        );
         self_
             .model
             .borrow()

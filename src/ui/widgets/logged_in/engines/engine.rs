@@ -113,7 +113,7 @@ pub mod imp {
                     let version = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<span size=\"xx-large\"><b><u>{}</u></b></span>", l));
+                        .map(|l| format!("<span size=\"xx-large\"><b><u>{l}</u></b></span>"));
                     self.version.replace(version);
                 }
                 "path" => {
@@ -124,7 +124,7 @@ pub mod imp {
                     let branch = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i><b>Branch:</b> {}</i>", l));
+                        .map(|l| format!("<i><b>Branch:</b> {l}</i>"));
                     self.branch.replace(branch);
                 }
                 "has-branch" => {

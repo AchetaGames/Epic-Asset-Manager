@@ -73,11 +73,8 @@ pub trait EpicFile {
 impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn perform_file_download(&self, url: &str, size: u64, version: &str) {
         let self_ = self.imp();
-        let item = match self.get_item(version) {
-            None => {
-                return;
-            }
-            Some(i) => i,
+        let Some(item) = self.get_item(version) else {
+            return;
         };
         item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(u128::from(size));
@@ -142,23 +139,16 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         for cap in re.captures_iter(version) {
             item.set_property(
                 "label",
-                match cap.get(2) {
-                    None => cap[1].to_string(),
-                    Some(suffix) => {
+                cap.get(2).map_or_else(
+                    || cap[1].to_string(),
+                    |suffix| {
                         format!(
                             "{} ({})",
-                            match cap.get(1) {
-                                None => {
-                                    ""
-                                }
-                                Some(v) => {
-                                    v.as_str()
-                                }
-                            },
+                            cap.get(1).map_or("", |v| v.as_str()),
                             suffix.as_str()
                         )
-                    }
-                },
+                    },
+                ),
             );
         }
         item.set_property("status", "initializing...".to_string());
@@ -237,11 +227,8 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     }
 
     fn epic_download_progress(&self, version: &str, progress: u64) {
-        let item = match self.get_item(version) {
-            None => {
-                return;
-            }
-            Some(i) => i,
+        let Some(item) = self.get_item(version) else {
+            return;
         };
         item.add_downloaded_size(u128::from(progress));
 
@@ -253,7 +240,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         if let Some(item) = self.get_item(&version) {
             self.send_to_thread_sender(&version.clone(), &ThreadMessages::Cancel);
             item.set_property("status", "Canceled".to_string());
-            item.set_property("speed", "".to_string());
+            item.set_property("speed", String::new());
             if let Some(v) = item.version() {
                 self_.download_items.borrow_mut().remove(&v);
             }
@@ -274,7 +261,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         if let Some(item) = self.get_item(&version) {
             self.send_to_thread_sender(&version, &ThreadMessages::Pause);
             item.set_property("status", "Paused".to_string());
-            item.set_property("speed", "".to_string());
+            item.set_property("speed", String::new());
         }
     }
 
@@ -307,7 +294,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
         if p.exists() {
             if let Some(item) = self.get_item(version) {
-                let metadata = std::fs::metadata(&p.as_path()).expect("unable to read metadata");
+                let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
                 item.add_downloaded_size(item.total_size() - item.downloaded_size());
                 if u128::from(metadata.size()) == item.total_size() {
                     let file = fs::File::open(&p).unwrap();
@@ -358,7 +345,7 @@ fn extract(
         file_target.push(&outpath);
         if file_target.exists() {
             let metadata =
-                std::fs::metadata(&file_target.as_path()).expect("unable to read metadata");
+                std::fs::metadata(file_target.as_path()).expect("unable to read metadata");
             if metadata.size() == file.size() {
                 sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
                 continue;
@@ -369,7 +356,7 @@ fn extract(
         } else {
             if let Some(p) = file_target.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(&p).unwrap();
+                    fs::create_dir_all(p).unwrap();
                 }
             }
             let mut outfile = fs::File::create(&file_target).unwrap();
@@ -450,11 +437,11 @@ fn run(
     );
     fs::create_dir_all(p.parent().unwrap()).unwrap();
     let mut client = if p.exists() {
-        let metadata = std::fs::metadata(&p.as_path()).expect("unable to read metadata");
+        let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
         if metadata.size() == size {
             debug!("Already downloaded {}", p.to_str().unwrap_or_default());
             sender
-                .send(super::Msg::EpicDownloadProgress(ver.clone(), size as u64))
+                .send(super::Msg::EpicDownloadProgress(ver.clone(), size))
                 .unwrap();
             sender.send(Msg::EpicFileFinished(ver)).unwrap();
             return;

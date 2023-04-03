@@ -9,8 +9,6 @@ description = "An unofficial client to install Unreal Engine, download and manag
 keywords = ["unreal", "engine", "gamedev", "assets", "epic"]
 categories = ["gui"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 adw = { package = "libadwaita", version = "0.2" }
 anyhow = "1.0"

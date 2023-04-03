@@ -221,7 +221,7 @@ pub mod imp {
                     let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<b><u>{}</u></b>", l));
+                        .map(|l| format!("<b><u>{l}</u></b>"));
 
                     self.label.replace(label);
                 }
@@ -247,7 +247,7 @@ pub mod imp {
                     let status = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i>{}</i>", l));
+                        .map(|l| format!("<i>{l}</i>"));
                     self.stack.set_visible_child_name("label");
                     self.status.replace(status);
                 }
@@ -614,7 +614,7 @@ impl EpicDownloadItem {
         let total = *self_.total_files.borrow();
         self_
             .extraction_progress
-            .set_tooltip_text(Some(&format!("{}/{}", new_count, total)));
+            .set_tooltip_text(Some(&format!("{new_count}/{total}")));
         self_
             .extraction_progress
             .set_fraction(new_count as f64 / total as f64);

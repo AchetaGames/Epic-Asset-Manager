@@ -134,14 +134,14 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
 
                     self.thumbnail.replace(thumbnail.clone());
-                    match thumbnail {
-                        None => {
+                    thumbnail.map_or_else(
+                        || {
                             self.image.set_icon_name(Some("ue-logo-symbolic"));
-                        }
-                        Some(t) => {
+                        },
+                        |t| {
                             self.image.set_from_paintable(Some(&t));
-                        }
-                    }
+                        },
+                    );
                 }
                 _ => unimplemented!(),
             }

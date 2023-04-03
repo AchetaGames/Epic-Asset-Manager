@@ -260,7 +260,7 @@ impl EngineData {
         if let Some(path) = data.path() {
             let sender = self_.sender.clone();
             thread::spawn(move || {
-                Self::needs_repo_update(&path, Some(sender));
+                Self::needs_repo_update(&path, &Some(sender));
             });
         }
         data
@@ -305,7 +305,8 @@ impl EngineData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    fn needs_repo_update(_path: &str, _sender: Option<glib::Sender<Msg>>) -> bool {
+    #[allow(clippy::missing_const_for_fn)]
+    fn needs_repo_update(_path: &str, _sender: &Option<glib::Sender<Msg>>) -> bool {
         // #[cfg(target_os = "linux")]
         // This is disabled due to issues with git2 crate and constant need to rebuild if git lib gets updated
         // {
@@ -394,10 +395,7 @@ impl EngineData {
     }
 
     pub fn valid(&self) -> bool {
-        match self.ueversion() {
-            None => false,
-            Some(v) => v.valid(),
-        }
+        self.ueversion().map_or(false, |v| v.valid())
     }
 
     pub fn version(&self) -> Option<String> {

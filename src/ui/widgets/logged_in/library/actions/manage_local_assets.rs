@@ -158,7 +158,7 @@ impl EpicLocalAssets {
             if let Ok(path) = PathBuf::from_str(&p) {
                 if path.exists() {
                     if let Some(parent) = path.parent() {
-                        if let Err(e) = std::fs::remove_dir_all(&parent) {
+                        if let Err(e) = std::fs::remove_dir_all(parent) {
                             error!("Unable to remove vault data: {:?}", e);
                         };
                     }

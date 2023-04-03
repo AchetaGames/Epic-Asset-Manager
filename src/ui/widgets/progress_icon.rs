@@ -109,14 +109,14 @@ pub mod imp {
             } else {
                 color.set_alpha(0.15);
             }
-            let color_stop = gsk::ColorStop::new(fraction as f32, color);
+            let color_stop = gsk::ColorStop::new(fraction, color);
 
             if widget.inverted() {
                 color.set_alpha(0.15);
             } else {
                 color.set_alpha(1.0);
             }
-            let color_stop_end = gsk::ColorStop::new(fraction as f32, color);
+            let color_stop_end = gsk::ColorStop::new(fraction, color);
 
             let rotation = 0.0;
             snapshot.push_rounded_clip(&circle);

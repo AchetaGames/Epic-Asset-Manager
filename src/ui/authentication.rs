@@ -40,12 +40,8 @@ impl EpicAssetManagerWindow {
 
     pub fn token_time(&self, key: &str) -> Option<DateTime<Utc>> {
         let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
-        match chrono::DateTime::parse_from_rfc3339(
-            self_.model.borrow().settings.string(key).as_str(),
-        ) {
-            Ok(d) => Some(d.with_timezone(&chrono::Utc)),
-            Err(_) => None,
-        }
+        chrono::DateTime::parse_from_rfc3339(self_.model.borrow().settings.string(key).as_str())
+            .map_or(None, |d| Some(d.with_timezone(&chrono::Utc)))
     }
 
     pub fn can_relogin(&self) -> bool {

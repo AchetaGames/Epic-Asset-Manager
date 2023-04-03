@@ -226,11 +226,11 @@ impl AssetData {
 
     fn configure_kind(&self, asset: &AssetInfo) {
         let self_ = self.imp();
-        match Self::decide_kind(asset) {
-            None => {
+        Self::decide_kind(asset).map_or_else(
+            || {
                 self_.kind.replace(None);
-            }
-            Some(kind) => match kind {
+            },
+            |kind| match kind {
                 AssetType::Asset => {
                     self_.kind.replace(Some("asset".to_string()));
                 }
@@ -247,7 +247,7 @@ impl AssetData {
                     self_.kind.replace(Some("plugins".to_string()));
                 }
             },
-        }
+        );
     }
 
     pub fn id(&self) -> String {
@@ -268,36 +268,33 @@ impl AssetData {
 
     pub fn release(&self) -> Option<DateTime<Utc>> {
         let self_ = self.imp();
-        match &*self_.asset.borrow() {
-            Some(a) => match a.latest_release() {
+        (*self_.asset.borrow())
+            .as_ref()
+            .and_then(|a| match a.latest_release() {
                 None => a.last_modified_date,
                 Some(ri) => ri.date_added,
-            },
-            None => None,
-        }
+            })
     }
 
     pub fn kind(&self) -> Option<AssetType> {
         let self_ = self.imp();
-        match &*self_.kind.borrow() {
-            Some(a) => match a.as_str() {
+        (*self_.kind.borrow())
+            .as_ref()
+            .and_then(|a| match a.as_str() {
                 "asset" => Some(AssetType::Asset),
                 "games" => Some(AssetType::Game),
                 "plugins" => Some(AssetType::Plugin),
                 "projects" => Some(AssetType::Project),
                 "engines" => Some(AssetType::Engine),
                 _ => None,
-            },
-            None => None,
-        }
+            })
     }
 
     pub fn last_modified(&self) -> Option<DateTime<Utc>> {
         let self_ = self.imp();
-        match &*self_.asset.borrow() {
-            Some(a) => a.last_modified_date,
-            None => None,
-        }
+        (*self_.asset.borrow())
+            .as_ref()
+            .and_then(|a| a.last_modified_date)
     }
 
     pub fn image(&self) -> Option<Texture> {
@@ -338,26 +335,23 @@ impl AssetData {
                 self.has_category(c)
             };
 
-            match cat.chars().nth(c.len()) {
-                None => result,
-                Some(operator) => {
-                    let remainder: String = cat.chars().into_iter().skip(c.len() + 1).collect();
-                    match operator {
-                        '&' => {
-                            if result {
-                                self.check_category(&remainder)
-                            } else {
-                                result
-                            }
-                        }
-                        '|' => result || self.check_category(&remainder),
-                        _ => {
-                            error!("Unimplemented operator");
-                            false
+            cat.chars().nth(c.len()).map_or(result, |operator| {
+                let remainder: String = cat.chars().skip(c.len() + 1).collect();
+                match operator {
+                    '&' => {
+                        if result {
+                            self.check_category(&remainder)
+                        } else {
+                            result
                         }
                     }
+                    '|' => result || self.check_category(&remainder),
+                    _ => {
+                        error!("Unimplemented operator");
+                        false
+                    }
                 }
-            }
+            })
         })
     }
 

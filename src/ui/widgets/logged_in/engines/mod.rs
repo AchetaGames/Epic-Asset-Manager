@@ -270,17 +270,15 @@ impl EpicEnginesBox {
                 return gtk4::Ordering::Smaller;
             }
 
-            match version_compare::compare(
-                &info1.version().unwrap_or_default(),
-                &info2.version().unwrap_or_default(),
-            ) {
-                Ok(comp) => match comp {
-                    Cmp::Lt => gtk4::Ordering::Larger,
-                    Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
-                    Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
-                },
-                Err(_) => gtk4::Ordering::Smaller,
-            }
+            version_compare::compare(
+                info1.version().unwrap_or_default(),
+                info2.version().unwrap_or_default(),
+            )
+            .map_or(gtk4::Ordering::Smaller, |comp| match comp {
+                Cmp::Lt => gtk4::Ordering::Larger,
+                Cmp::Eq | Cmp::Le | Cmp::Ge => gtk4::Ordering::Equal,
+                Cmp::Gt | Cmp::Ne => gtk4::Ordering::Smaller,
+            })
         });
         let sorted_model = gtk4::SortListModel::new(Some(&self_.grid_model), Some(&sorter));
         let selection_model = gtk4::SingleSelection::new(Some(&sorted_model));
@@ -408,11 +406,12 @@ impl EpicEnginesBox {
             if !data.valid() {
                 continue;
             }
-            match data.path() {
-                None => self.remove_item(&item, data.guid()),
-                Some(path) => {
-                    match PathBuf::from_str(&path) {
-                        Ok(mut p) => {
+            data.path().map_or_else(
+                || self.remove_item(&item, data.guid()),
+                |path| {
+                    PathBuf::from_str(&path).map_or_else(
+                        |_| self.remove_item(&item, data.guid()),
+                        |mut p| {
                             if !p.exists() {
                                 self.remove_item(&item, data.guid());
                             }
@@ -422,11 +421,10 @@ impl EpicEnginesBox {
                             if !p.exists() {
                                 self.remove_item(&item, data.guid());
                             }
-                        }
-                        Err(_) => self.remove_item(&item, data.guid()),
-                    };
-                }
-            }
+                        },
+                    );
+                },
+            );
         }
     }
 

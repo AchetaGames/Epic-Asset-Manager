@@ -13,6 +13,7 @@ use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT}
 use gtk4::prelude::*;
 use log::{debug, error, info, warn};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::thread;
 
 #[cfg(target_os = "linux")]
@@ -175,21 +176,17 @@ impl Model {
                 Some(ss) => {
                     match ss.get_any_collection() {
                         Ok(collection) => {
-                            match collection.search_items(
-                                [("application", crate::config::APP_ID)]
-                                    .iter()
-                                    .copied()
-                                    .collect(),
-                            ) {
+                            match collection.search_items(HashMap::from([(
+                                "application",
+                                crate::config::APP_ID,
+                            )])) {
                                 Ok(items) => {
                                     let mut ud = egs_api::api::types::account::UserData::new();
                                     for item in items {
-                                        let label = if let Ok(l) = item.get_label() {
-                                            l
-                                        } else {
-                                            debug!("No label skipping");
-                                            continue;
-                                        };
+                                        let Ok(label) = item.get_label() else {
+                                                                                    debug!("No label skipping");
+                                                                                    continue;
+                                                                                };
                                         debug!("Loading: {}", label);
                                         if let Ok(attributes) = item.get_attributes() {
                                             match label.as_str() {
@@ -323,9 +320,7 @@ impl Model {
         item: &str,
     ) -> Option<(String, chrono::DateTime<chrono::Utc>)> {
         let exp = match chrono::DateTime::parse_from_rfc3339(
-            self.settings
-                .string(&format!("{}-expiration", item))
-                .as_str(),
+            self.settings.string(&format!("{item}-expiration")).as_str(),
         ) {
             Ok(d) => d.with_timezone(&chrono::Utc),
             Err(e) => {

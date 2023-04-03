@@ -221,7 +221,7 @@ impl UnrealProjectDetails {
                             path
                         )
                     } else {
-                        format!("\"{:?}\" \"{}\"", p, path)
+                        format!("\"{p:?}\" \"{path}\"")
                     },
                     Some("Unreal Engine"),
                     gtk4::gio::AppInfoCreateFlags::NONE,

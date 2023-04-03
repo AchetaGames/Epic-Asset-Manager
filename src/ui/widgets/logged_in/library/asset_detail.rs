@@ -509,7 +509,7 @@ impl EpicAssetDetails {
         if let Some(title) = &asset.title {
             self_
                 .title
-                .set_markup(&format!("<b><u><big>{}</big></u></b>", title));
+                .set_markup(&format!("<b><u><big>{title}</big></u></b>"));
         }
 
         self_.images.clear();

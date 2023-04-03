@@ -201,30 +201,12 @@ pub mod imp {
                 "filter" => {
                     let filter: Option<String> = value.get().unwrap();
 
-                    self.filter.replace(match filter {
-                        None => None,
-                        Some(f) => {
-                            if f.is_empty() {
-                                None
-                            } else {
-                                Some(f)
-                            }
-                        }
-                    });
+                    self.filter.replace(filter.filter(|f| !f.is_empty()));
                     self.instance().apply_filter();
                 }
                 "search" => {
                     let search: Option<String> = value.get().unwrap();
-                    self.search.replace(match search {
-                        None => None,
-                        Some(f) => {
-                            if f.is_empty() {
-                                None
-                            } else {
-                                Some(f)
-                            }
-                        }
-                    });
+                    self.search.replace(search.filter(|f| !f.is_empty()));
                     self.instance().apply_filter();
                 }
                 "item" => {
@@ -452,13 +434,8 @@ impl EpicLibraryBox {
                 if let Some(product) = self.product() {
                     let assets = self_.loaded_assets.borrow();
                     let products = self_.asset_product_names.borrow();
-                    match products.get(&product) {
-                        Some(id) => {
-                            if let Some(a) = assets.get(id) {
-                                self_.details.set_asset(a);
-                            }
-                        }
-                        None => {
+                    products.get(&product).map_or_else(
+                        || {
                             for prod in products.keys() {
                                 if product.starts_with(prod) {
                                     if let Some(id) = products.get(prod) {
@@ -469,8 +446,13 @@ impl EpicLibraryBox {
                                     break;
                                 }
                             }
-                        }
-                    }
+                        },
+                        |id| {
+                            if let Some(a) = assets.get(id) {
+                                self_.details.set_asset(a);
+                            }
+                        },
+                    );
                 }
             },
             |id| {
@@ -637,16 +619,12 @@ impl EpicLibraryBox {
             let asset = object
                 .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
-            (match &search {
-                None => true,
-                Some(se) => asset
+            search.as_ref().map_or(true, |se| {
+                asset
                     .name()
                     .to_ascii_lowercase()
-                    .contains(&se.to_ascii_lowercase()),
-            }) && (match &filter_p {
-                None => true,
-                Some(f) => asset.check_category(f),
-            })
+                    .contains(&se.to_ascii_lowercase())
+            }) && filter_p.as_ref().map_or(true, |f| asset.check_category(f))
         });
         self_.filter_model.set_filter(Some(&filter));
         self.update_count();
@@ -794,10 +772,7 @@ impl EpicLibraryBox {
 
     fn main_window(&self) -> Option<&crate::window::EpicAssetManagerWindow> {
         let self_ = self.imp();
-        match self_.window.get() {
-            Some(window) => Some(window),
-            None => None,
-        }
+        self_.window.get()
     }
 
     pub fn fetch_assets(&self) {

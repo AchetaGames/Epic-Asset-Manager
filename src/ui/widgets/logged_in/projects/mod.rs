@@ -276,19 +276,19 @@ impl EpicProjectsBox {
                 .clone()
                 .downcast::<crate::models::project_data::ProjectData>()
                 .unwrap();
-            match data.path() {
-                None => self.remove_item(&item, data.path()),
-                Some(path) => {
-                    match PathBuf::from_str(&path) {
-                        Ok(p) => {
+            data.path().map_or_else(
+                || self.remove_item(&item, data.path()),
+                |path| {
+                    PathBuf::from_str(&path).map_or_else(
+                        |_| self.remove_item(&item, data.path()),
+                        |p| {
                             if !p.exists() {
                                 self.remove_item(&item, data.path());
                             }
-                        }
-                        Err(_) => self.remove_item(&item, data.path()),
-                    };
-                }
-            }
+                        },
+                    );
+                },
+            );
         }
     }
 

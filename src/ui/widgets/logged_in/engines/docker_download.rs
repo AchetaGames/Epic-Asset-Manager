@@ -291,6 +291,7 @@ impl DockerEngineDownload {
                                         for tag in tags {
                                             if re.is_match(&tag) {
                                                 for cap in re.captures_iter(&tag) {
+                                                    #[allow(clippy::option_if_let_else)]
                                                     match result.get_mut(&cap[1]) {
                                                         None => {
                                                             result.insert(
@@ -307,12 +308,9 @@ impl DockerEngineDownload {
                                         }
                                     }
                                     Err(e) => {
-                                        error!("Failed to get tags: {:?}", e);
+                                        error!("Failed to get tags: {e:?}");
                                         sender
-                                            .send(Msg::Error(format!(
-                                                "Failed to get tags: {:?}",
-                                                e
-                                            )))
+                                            .send(Msg::Error(format!("Failed to get tags: {e:?}")))
                                             .unwrap();
                                     }
                                 }
@@ -389,15 +387,12 @@ impl DockerEngineDownload {
                     }),
                 );
 
-                let mut version: Vec<&String> = versions.keys().into_iter().collect();
-                version.sort_by(|a, b| match version_compare::compare(b, a) {
-                    Ok(cmp) => match cmp {
-                        Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
-                        Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
-                        Cmp::Gt => std::cmp::Ordering::Greater,
-                    },
-                    Err(_) => std::cmp::Ordering::Equal,
-                });
+                let mut version: Vec<&String> = versions.keys().collect();
+                version.sort_by(|a, b| version_compare::compare(b, a).map_or(std::cmp::Ordering::Equal, |cmp| match cmp {
+                                   Cmp::Eq | Cmp::Le | Cmp::Ge => std::cmp::Ordering::Equal,
+                                   Cmp::Ne | Cmp::Lt => std::cmp::Ordering::Less,
+                                   Cmp::Gt => std::cmp::Ordering::Greater,
+                               }));
 
                 for ver in version {
                     combo.append(Some(ver), ver);
@@ -468,34 +463,29 @@ impl DockerEngineDownload {
             Msg::ManifestSize(size) => {
                 let byte =
                     byte_unit::Byte::from_bytes(u128::from(size)).get_appropriate_unit(false);
-                match self_.settings.strv("unreal-engine-directories").get(0) {
-                    None => {
-                        if let Some(w) = self_.window.get() {
-                            w.add_notification("missing engine config", "Unable to install engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
-                            get_action!(self_.actions, @install).set_enabled(false);
-                        }
-                    }
-                    Some(p) => {
-                        let mut path = std::path::Path::new(p);
-                        while !path.exists() {
-                            path = match path.parent() {
-                                None => break,
-                                Some(p) => p,
-                            }
-                        }
-                        if fs2::available_space(path).unwrap_or_default() < size {
-                            if let Some(w) = self_.window.get() {
-                                w.add_notification("no space left on device engine", "Not enough space left in the Engine directory for install, please choose a different one.", gtk4::MessageType::Error);
-                            }
-                            get_action!(self_.actions, @install).set_enabled(false);
-                        } else {
-                            if let Some(w) = self_.window.get() {
-                                w.clear_notification("no space left on device engine");
-                            }
-                            get_action!(self_.actions, @install).set_enabled(true);
-                        }
-                    }
-                };
+                self_.settings.strv("unreal-engine-directories").get(0).map_or_else(|| if let Some(w) = self_.window.get() {
+                                  w.add_notification("missing engine config", "Unable to install engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
+                                  get_action!(self_.actions, @install).set_enabled(false);
+                              }, |p| {
+                              let mut path = std::path::Path::new(p);
+                              while !path.exists() {
+                                          path = match path.parent() {
+                                                      None => break,
+                                                      Some(p) => p,
+                                                  }
+                                      }
+                              if fs2::available_space(path).unwrap_or_default() < size {
+                                          if let Some(w) = self_.window.get() {
+                                                      w.add_notification("no space left on device engine", "Not enough space left in the Engine directory for install, please choose a different one.", gtk4::MessageType::Error);
+                                                  }
+                                          get_action!(self_.actions, @install).set_enabled(false);
+                                      } else {
+                                          if let Some(w) = self_.window.get() {
+                                                      w.clear_notification("no space left on device engine");
+                                                  }
+                                          get_action!(self_.actions, @install).set_enabled(true);
+                                      }
+                          });
                 self.set_property("download-size", Some(byte.format(1)));
             }
             Msg::Error(_error) => {
