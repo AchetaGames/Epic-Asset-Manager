@@ -64,6 +64,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.8.4" date="2023-04-03">
+       <description>
+              <p>Update release</p>
+              <ul>
+                  <li>Gracefully handle corrupted chunk</li>
+                  <li>Update dependencies</li>
+                  <li>Fix actions</li>
+</ul>
+       </description>
+    </release>
     <release version="3.8.3" date="2023-01-24">
        <description>
               <p>Bug fixing</p>
