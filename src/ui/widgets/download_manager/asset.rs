@@ -1,6 +1,7 @@
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::Msg::CancelChunk;
 use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessages};
+use egs_api::api::types::chunk::Chunk;
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::Sender;
@@ -1050,7 +1051,13 @@ fn extract_chunks(
                 let metadata = f.metadata().expect("Unable to read metadata");
                 let mut buffer = vec![0_u8; usize::try_from(metadata.len()).unwrap()];
                 f.read_exact(&mut buffer).expect("Read failed");
-                let ch = egs_api::api::types::chunk::Chunk::from_vec(buffer).unwrap();
+                let ch = match egs_api::api::types::chunk::Chunk::from_vec(buffer) {
+                    None => {
+                        error!("Failed to parse chunk from file: {:?}", chunk.link);
+                        break;
+                    }
+                    Some(c) => c,
+                };
                 if u128::from(
                     ch.uncompressed_size
                         .unwrap_or_else(|| u32::try_from(ch.data.len()).unwrap()),
