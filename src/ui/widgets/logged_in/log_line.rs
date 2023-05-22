@@ -153,7 +153,7 @@ impl EpicLogLine {
     pub fn open_path(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             {
                 let ctx = glib::MainContext::default();
                 ctx.spawn_local(async move {
@@ -166,7 +166,7 @@ impl EpicLogLine {
     pub fn open_file(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             {
                 if let Ok(dir) = std::fs::File::open(&p) {
                     let ctx = glib::MainContext::default();

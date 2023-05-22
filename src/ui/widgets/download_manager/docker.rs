@@ -74,7 +74,7 @@ pub trait Docker {
 }
 
 impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn perform_docker_blob_downloads(&self, version: &str, size: u64, digests: Vec<(String, u64)>) {
         let self_ = self.imp();
         let Some(item) = self.get_item(version) else {
@@ -101,7 +101,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn download_docker_digest(&self, version: &str, digest: (String, u64)) {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
@@ -171,7 +171,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
         }
     }
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn cancel_docker_digest(&self, _version: &str, digest: (String, u64)) {
         let Some(mut target) = self.docker_target_directory() else { return };
         target.push(digest.0);
@@ -180,7 +180,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         };
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn pause_docker_digest(&self, version: String, digest: (String, u64)) {
         let self_ = self.imp();
         self_
@@ -191,7 +191,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
             .push(digest);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn download_engine_from_docker(&self, version: &str) {
         debug!("Initializing docker engine download of {}", version);
         let self_ = self.imp();
@@ -289,7 +289,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         Some(target)
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn docker_download_progress(&self, version: &str, progress: u64) {
         let Some(item) = self.get_item(version) else {
                             return;
@@ -299,7 +299,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.emit_by_name::<()>("tick", &[]);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn docker_blob_finished(&self, version: &str, digest: &str) {
         let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
@@ -312,7 +312,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.docker_extract_digests(version);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn docker_extract_digests(&self, version: &str) {
         let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
@@ -356,7 +356,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let can_path = path.canonicalize().unwrap();
                 let sender = self_.sender.clone();
                 let v = version.to_string();
-                #[cfg(target_os = "linux")]
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
                 {
                     self_.file_pool.execute(move || {
                         match ghregistry::render::unpack_partial_files(
@@ -381,7 +381,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn docker_extraction_finished(&self, version: &str) {
         let self_ = self.imp();
         if let Some(digests) = self_.docker_digests.borrow_mut().get_mut(version) {
@@ -427,7 +427,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         self.finish(item);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn cancel_docker_download(&self, version: String) {
         let self_ = self.imp();
         if let Some(item) = self.get_item(&version) {
@@ -453,7 +453,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn pause_docker_download(&self, version: String) {
         if let Some(item) = self.get_item(&version) {
             self.send_to_thread_sender(&version, &ThreadMessages::Pause);
@@ -462,7 +462,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn resume_docker_download(&self, version: String) {
         let self_ = self.imp();
         if let Some(values) = self_.paused_docker_digests.borrow_mut().remove(&version) {
@@ -476,7 +476,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn process_docker_thread_message(
     version: String,
     digest: (String, u64),

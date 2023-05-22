@@ -283,7 +283,7 @@ impl EngineData {
 
     #[allow(clippy::missing_const_for_fn)]
     fn needs_repo_update(_path: &str, _sender: &Option<glib::Sender<Msg>>) -> bool {
-        // #[cfg(target_os = "linux")]
+        // #[cfg(any(target_os = "linux", target_os = "macos"))]
         // This is disabled due to issues with git2 crate and constant need to rebuild if git lib gets updated
         // {
         //     if let Ok(repo) = git2::Repository::open(&path) {
@@ -386,7 +386,7 @@ impl EngineData {
         self.property("needs-update")
     }
 
-    // #[cfg(target_os = "linux")]
+    // #[cfg(any(target_os = "linux", target_os = "macos"))]
     // fn git_callbacks() -> git2::RemoteCallbacks<'static> {
     //     let git_config = git2::Config::open_default().unwrap();
     //     let mut cb = git2::RemoteCallbacks::new();

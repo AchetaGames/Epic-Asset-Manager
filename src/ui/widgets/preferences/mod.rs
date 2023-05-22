@@ -322,12 +322,12 @@ impl PreferencesWindow {
     }
 
     fn load_secrets(&self) {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let self_ = self.imp();
             if let Some(w) = self_.window.get() {
                 let win_ = w.imp();
-                #[cfg(target_os = "linux")]
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
                 {
                     win_.model.borrow().secret_service.as_ref().map_or_else(
                         || {
@@ -400,7 +400,7 @@ impl PreferencesWindow {
             attributes.insert("type", "token");
             let win_ = w.imp();
             let model = win_.model.borrow();
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             {
                 model.secret_service.as_ref().map_or_else(
                     || {

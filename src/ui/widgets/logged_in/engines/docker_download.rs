@@ -255,7 +255,7 @@ impl DockerEngineDownload {
 
     pub fn update_docker(&self) {
         debug!("Trying to query docker API for images");
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let self_ = self.imp();
             if let Some(window) = self_.window.get() {
@@ -313,7 +313,7 @@ impl DockerEngineDownload {
 
     pub fn add_engine(&self) {
         let self_ = self.imp();
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             // remove old details
             while let Some(el) = self_.details.first_child() {
@@ -495,7 +495,7 @@ impl DockerEngineDownload {
         self.property("selected")
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux",target_os = "macos"))]
     pub fn docker_manifest(&self) {
         let self_ = self.imp();
         get_action!(self_.actions, @install).set_enabled(true);

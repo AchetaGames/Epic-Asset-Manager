@@ -16,17 +16,17 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::thread;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use secret_service::{blocking::SecretService, EncryptionType};
 
 pub struct Model {
     pub epic_games: RefCell<EpicGames>,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub secret_service: Option<SecretService<'static>>,
     pub sender: Sender<crate::ui::messages::Msg>,
     pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
     pub settings: gio::Settings,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub dclient: RefCell<Option<ghregistry::Client>>,
 }
 
@@ -41,7 +41,7 @@ impl Model {
         let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             secret_service: match SecretService::connect(EncryptionType::Dh) {
                 Ok(ss) => Some(ss),
                 Err(e) => {
@@ -55,7 +55,7 @@ impl Model {
             sender,
             receiver: RefCell::new(Some(receiver)),
             settings: gio::Settings::new(APP_ID),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             dclient: RefCell::new(None),
         };
         obj.load_secrets();
@@ -128,7 +128,7 @@ impl Model {
 
     pub fn validate_registry_login(&self, user: String, token: String) {
         debug!("Trying to validate token for {}", user);
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let client = ghregistry::Client::configure()
                 .registry("ghcr.io")
@@ -166,7 +166,7 @@ impl Model {
     }
 
     fn load_secrets(&mut self) {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             match &self.secret_service {
                 None => {

@@ -39,13 +39,13 @@ impl Update for EpicAssetManagerWindow {
             Msg::ProcessEpicAsset(epic_asset) => {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             Msg::DockerClient(dclient) => {
                 self_.model.borrow_mut().dclient.replace(Some(dclient));
                 self.clear_notification("GithubAuth");
                 self_.logged_in_stack.update_docker();
             }
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             Msg::GithubAuthFailed => {
                 self_.model.borrow_mut().dclient.replace(None);
                 if !self_

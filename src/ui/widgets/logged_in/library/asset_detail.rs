@@ -398,7 +398,7 @@ impl EpicAssetDetails {
                         );
                     }
                     AssetType::Game => {
-                        #[cfg(target_os = "linux")]
+                        #[cfg(any(target_os = "linux", target_os = "macos"))]
                         {
                             self_.warning.set_revealed(true);
                             self_.warning_message.set_markup("Games can currently only be downloaded, installing and running them is out of scope of the project right now.");
@@ -415,7 +415,7 @@ impl EpicAssetDetails {
                         // );
                     }
                     AssetType::Engine => {
-                        #[cfg(target_os = "linux")]
+                        #[cfg(any(target_os = "linux", target_os = "macos"))]
                         {
                             self_.warning.set_revealed(true);
                             self_.warning_message.set_markup("This is a Windows Build of the Engine. To install Linux version please use the <a href=\"engines\">Engines</a> tab.");

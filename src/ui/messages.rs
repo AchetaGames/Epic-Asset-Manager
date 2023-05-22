@@ -15,8 +15,8 @@ pub enum Msg {
     ProcessAssetThumbnail(AssetInfo, Option<gtk4::gdk::Texture>),
     FlushAssetThumbnails,
     DownloadImage(KeyImage, AssetInfo),
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     DockerClient(ghregistry::Client),
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     GithubAuthFailed,
 }

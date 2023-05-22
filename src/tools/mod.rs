@@ -1,11 +1,12 @@
 use log::error;
+use ashpd;
 
 pub mod asset_info;
 pub mod epic_web;
 pub mod or;
 
 pub async fn open_directory(path: &str) {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
         if let Ok(dir) = std::fs::File::open(path) {
             match ashpd::desktop::open_uri::OpenDirectoryRequest::default()
