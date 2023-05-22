@@ -506,7 +506,7 @@ impl EpicAssetManagerWindow {
             .set_string(expiration_name, d.as_str())
             .unwrap();
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             debug!("Saving {} secret", secret_name);
             match &self_.model.borrow().secret_service {

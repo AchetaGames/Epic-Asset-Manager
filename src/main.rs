@@ -12,7 +12,7 @@ use crate::config::{GETTEXT_PACKAGE, LOCALEDIR, PKGDATADIR, PROFILE, RESOURCES_F
 use application::EpicAssetManager;
 use env_logger::Env;
 use gettextrs::{bindtextdomain, setlocale, textdomain, LocaleCategory};
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os= "macos"))]
 use gtk4::gio;
 use log::debug;
 use std::io::Write;
@@ -36,7 +36,7 @@ fn main() {
         .init();
 
     // Prepare i18n
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
         setlocale(LocaleCategory::LcAll, "");
         bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).unwrap();

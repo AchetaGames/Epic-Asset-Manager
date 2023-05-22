@@ -394,7 +394,7 @@ impl EpicSidebar {
 }
 
 fn open_browser(code: &str) {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace"), None::<&gio::AppLaunchContext>).is_err() {
         error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace");
     }
