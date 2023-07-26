@@ -34,7 +34,7 @@ if get_option('windows')
     datadir = 'data'
     pkgdatadir = datadir
     iconsdir = datadir / 'icons'
-    podir = meson.source_root() / 'po'
+    podir = meson.project_source_root() / 'po'
 else
     prefix = get_option('prefix')
     bindir = prefix / get_option('bindir')
@@ -43,7 +43,7 @@ else
     datadir = prefix / get_option('datadir')
     pkgdatadir = datadir / meson.project_name()
     iconsdir = datadir / 'icons'
-    podir = meson.source_root() / 'po'
+    podir = meson.project_source_root() / 'po'
 endif
 gettext_package = meson.project_name()
 
@@ -64,8 +64,8 @@ endif
 
 meson.add_dist_script(
   'build-aux/dist-vendor.sh',
-  meson.build_root() / 'meson-dist' / meson.project_name() + '-' + version,
-  meson.source_root()
+  meson.project_build_root() / 'meson-dist' / meson.project_name() + '-' + version,
+  meson.project_source_root()
 )
 
 if get_option('profile') == 'development'
