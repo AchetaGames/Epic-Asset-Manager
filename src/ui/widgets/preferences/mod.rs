@@ -342,9 +342,9 @@ impl PreferencesWindow {
                                 )])) {
                                     for item in items {
                                         let Ok(label) = item.get_label() else {
-                                                                                        debug!("No label skipping");
-                                                                                        continue;
-                                                                              };
+                                            debug!("No label skipping");
+                                            continue;
+                                        };
                                         debug!("Loading: {label}");
                                         match label.as_str() {
                                             "eam_github_token" => {
@@ -708,7 +708,9 @@ impl PreferencesWindow {
         {
             let mut rows = self_.directory_rows.borrow_mut();
             if let Some(r) = rows.get_mut(&kind) {
-                let Some(current_position) = r.iter().position(|i| i.0 == dir) else { return };
+                let Some(current_position) = r.iter().position(|i| i.0 == dir) else {
+                    return;
+                };
                 let item = r.remove(current_position);
 
                 let sibling = &r[current_position - 1];
@@ -732,7 +734,9 @@ impl PreferencesWindow {
         {
             let mut rows = self_.directory_rows.borrow_mut();
             if let Some(r) = rows.get_mut(&kind) {
-                let Some(current_position) = r.iter().position(|i| i.0 == dir) else { return };
+                let Some(current_position) = r.iter().position(|i| i.0 == dir) else {
+                    return;
+                };
                 let item = r.remove(current_position);
                 let total = r.len();
                 if current_position < total {

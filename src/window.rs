@@ -7,7 +7,6 @@ use crate::ui::PreferencesWindow;
 use chrono::TimeZone;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use glib::clone;
-use glib::signal::Inhibit;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*, ListBoxRow};
 use gtk4::{gio, glib, CompositeTemplate};
@@ -158,11 +157,13 @@ pub mod imp {
 
     impl WindowImpl for EpicAssetManagerWindow {
         // save window state on delete event
-        fn close_request(&self) -> Inhibit {
+        fn close_request(&self) -> glib::Propagation {
             if let Err(err) = self.obj().save_window_size() {
                 warn!("Failed to save window state, {}", &err);
             }
-            Inhibit(false)
+
+            // Pass close request on to the parent
+            self.parent_close_request()
         }
     }
 
@@ -246,7 +247,7 @@ impl EpicAssetManagerWindow {
                 None,
                 clone!(@weak self as window => @default-panic, move |msg| {
                     window.update(msg);
-                    glib::Continue(true)
+                    glib::ControlFlow::Continue
                 }),
             );
     }

@@ -20,7 +20,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::{ParamSpec, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecString, Priority};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -54,7 +54,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -208,7 +208,7 @@ impl DockerEngineDownload {
             2,
             clone!(@weak self as obj => @default-panic, move || {
                 obj.show_details();
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }
@@ -229,7 +229,7 @@ impl DockerEngineDownload {
             None,
             clone!(@weak self as docker => @default-panic, move |msg| {
                 docker.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -325,9 +325,9 @@ impl DockerEngineDownload {
                     .use_markup(true)
                     .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
                     .build();
-                label.connect_activate_link(clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
+                label.connect_activate_link(clone!(@weak self as details => @default-return glib::Propagation::Stop, move |_, uri| {
                     details.open_preferences(uri);
-                    gtk4::Inhibit(true)
+                    glib::Propagation::Stop
                 }));
 
                 self_.details.append(&label);

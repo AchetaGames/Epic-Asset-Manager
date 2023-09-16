@@ -1,7 +1,7 @@
 use crate::gio::glib::Sender;
 use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
-use gtk4::glib::{clone, MainContext, PRIORITY_DEFAULT};
+use gtk4::glib::{clone, MainContext, Priority};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -37,6 +37,7 @@ pub struct Blob {
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
+    use gtk4::glib::Priority;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -78,7 +79,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -174,7 +175,7 @@ impl EpicEngineDownload {
             2,
             clone!(@weak self as obj => @default-panic, move || {
                 obj.show_details();
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }
@@ -195,7 +196,7 @@ impl EpicEngineDownload {
             None,
             clone!(@weak self as docker => @default-panic, move |msg| {
                 docker.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -275,13 +276,13 @@ impl EpicEngineDownload {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
 
             receiver.attach(
                 None,
                 clone!(@weak self as sidebar => @default-panic, move |code: String| {
                     open_browser(&code);
-                    glib::Continue(false)
+                    glib::ControlFlow::Break
                 }),
             );
 
@@ -304,7 +305,7 @@ impl EpicEngineDownload {
                     self_.size_row.set_visible(true);
                     self_.versions_row.set_visible(true);
                     self_.eula_stack.set_visible_child_name("valid");
-                    let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+                    let (sender, receiver) = MainContext::channel(Priority::default());
 
                     receiver.attach(
                         None,
@@ -312,7 +313,7 @@ impl EpicEngineDownload {
                             let self_ = ed.imp();
                             let s = self_.sender.clone();
                             s.send(Msg::Versions(v)).unwrap();
-                            glib::Continue(false)
+                            glib::ControlFlow::Break
                         }),
                     );
                     self.get_versions(sender);

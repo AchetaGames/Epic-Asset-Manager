@@ -1,5 +1,5 @@
 use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
-use gtk4::glib::clone;
+use gtk4::glib::{clone, Priority};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -196,13 +196,13 @@ impl EpicSidebar {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
 
             receiver.attach(
                 None,
                 clone!(@weak self as sidebar => @default-panic, move |code:String| {
                     open_browser(&code);
-                    glib::Continue(false)
+                    glib::ControlFlow::Break
                 }),
             );
 

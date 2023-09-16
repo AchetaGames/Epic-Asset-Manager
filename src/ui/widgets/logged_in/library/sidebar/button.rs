@@ -47,7 +47,7 @@ pub mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 category_button: TemplateChild::default(),
                 separator: TemplateChild::default(),
-                categories: ListStore::new(CategoryData::static_type()),
+                categories: ListStore::new::<CategoryData>(),
             }
         }
 

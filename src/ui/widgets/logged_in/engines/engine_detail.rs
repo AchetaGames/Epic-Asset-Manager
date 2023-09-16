@@ -204,7 +204,7 @@ impl EpicEngineDetails {
             2,
             clone!(@weak self as obj => @default-panic, move || {
                 obj.show_details();
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }

@@ -82,7 +82,7 @@ pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, Priority};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -123,7 +123,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 actions: gio::SimpleActionGroup::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
@@ -255,7 +255,7 @@ impl EpicDownloadManager {
             None,
             clone!(@weak self as download_manager => @default-panic, move |msg| {
                 download_manager.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -264,7 +264,9 @@ impl EpicDownloadManager {
         let self_ = self.imp();
         match msg {
             Msg::ProcessItemThumbnail(id, image) => {
-                let Some(item) = self.get_item(&id) else { return };
+                let Some(item) = self.get_item(&id) else {
+                    return;
+                };
                 item.set_property("thumbnail", Some(image));
             }
             Msg::StartAssetDownload(id, manifest) => {
@@ -289,7 +291,9 @@ impl EpicDownloadManager {
                 self.file_already_extracted(id, progress, fullname, filename);
             }
             Msg::FileExtracted(id) => {
-                let Some(item) = self.get_item(&id) else { return };
+                let Some(item) = self.get_item(&id) else {
+                    return;
+                };
                 item.file_processed();
                 self.emit_by_name::<()>("tick", &[]);
             }

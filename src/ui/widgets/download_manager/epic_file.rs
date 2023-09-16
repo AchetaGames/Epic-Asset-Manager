@@ -3,8 +3,8 @@ use crate::ui::widgets::logged_in::engines::epic_download::Blob;
 use crate::ui::widgets::logged_in::refresh::Refresh;
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::Sender;
-use gtk4::glib::{MainContext, ObjectExt, PRIORITY_DEFAULT};
+use gtk4::glib::{MainContext, ObjectExt};
+use gtk4::glib::{Priority, Sender};
 use gtk4::prelude::WidgetExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use gtk4::{self, prelude::*};
@@ -174,7 +174,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     fn start_version_file_download(&self, version: &str) {
         let self_ = self.imp();
-        let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+        let (sender, receiver) = MainContext::channel(Priority::default());
 
         let vers = version.to_string();
         receiver.attach(
@@ -185,7 +185,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                 if let Some(ver) = filter_versions(v, &vers) {
                     s.send(Msg::EpicDownloadStart(ver.name, ver.url, ver.size)).unwrap();
                 }
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
         if let Some(window) = self_.window.get() {

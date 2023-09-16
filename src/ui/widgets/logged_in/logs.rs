@@ -34,7 +34,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
-    use gtk4::glib::Object;
+    use gtk4::glib::{Object, Priority};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -59,11 +59,11 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 window: OnceCell::new(),
                 logs: TemplateChild::default(),
-                model: gtk4::gio::ListStore::new(crate::models::log_data::LogData::static_type()),
+                model: gtk4::gio::ListStore::new::<crate::models::log_data::LogData>(),
                 sender,
                 receiver: RefCell::new(Some(receiver)),
                 pending: std::sync::Arc::new(std::sync::RwLock::default()),
@@ -115,7 +115,7 @@ impl EpicLogs {
             None,
             clone!(@weak self as engine => @default-panic, move |msg| {
                 engine.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -286,7 +286,11 @@ impl EpicLogs {
             });
         }
         glib::idle_add_local(clone!(@weak self as logs => @default-panic, move || {
-            glib::Continue(logs.flush_logs())
+            if logs.flush_logs() {
+                glib::ControlFlow::Continue
+            } else {
+                glib::ControlFlow::Break
+            }
         }));
     }
 

@@ -107,7 +107,7 @@ pub enum Msg {}
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::glib::{ParamSpec, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecString, Priority};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -130,7 +130,7 @@ mod imp {
         type ParentType = glib::Object;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -256,7 +256,7 @@ impl PluginData {
             None,
             clone!(@weak self as project => @default-panic, move |msg| {
                 project.update(&msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }

@@ -15,7 +15,7 @@ pub enum Msg {
 
 pub mod imp {
     use super::*;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Priority};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::BTreeMap;
@@ -51,7 +51,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
@@ -59,9 +59,7 @@ pub mod imp {
                 projects_grid: TemplateChild::default(),
                 details: TemplateChild::default(),
                 projects: RefCell::new(BTreeMap::new()),
-                grid_model: gtk4::gio::ListStore::new(
-                    crate::models::project_data::ProjectData::static_type(),
-                ),
+                grid_model: gtk4::gio::ListStore::new::<crate::models::project_data::ProjectData>(),
                 expanded: RefCell::new(false),
                 selected: RefCell::new(None),
                 selected_uproject: RefCell::new(None),
@@ -151,7 +149,7 @@ impl EpicProjectsBox {
             None,
             clone!(@weak self as projects => @default-panic, move |msg| {
                 projects.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -236,7 +234,7 @@ impl EpicProjectsBox {
             clone!(@weak self as obj => @default-panic, move || {
                 debug!("Starting timed projects refresh");
                 obj.run_refresh();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }

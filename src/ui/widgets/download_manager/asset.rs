@@ -4,7 +4,7 @@ use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessag
 use egs_api::api::types::chunk::Chunk;
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::Sender;
+use gtk4::glib::{Priority, Sender};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use log::{debug, error, info, warn};
@@ -206,7 +206,7 @@ impl Asset for super::EpicDownloadManager {
             }),
         );
 
-        let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+        let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
 
         receiver.attach(
             None,
@@ -214,7 +214,7 @@ impl Asset for super::EpicDownloadManager {
                 let self_ = download_manager.imp();
                 let sender = self_.sender.clone();
                 sender.send(super::Msg::StartAssetDownload(id, manifest)).unwrap();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
 
@@ -275,7 +275,9 @@ impl Asset for super::EpicDownloadManager {
         dm: &[egs_api::api::types::download_manifest::DownloadManifest],
     ) {
         let self_ = self.imp();
-        let Some(item) = self.get_item(id) else { return };
+        let Some(item) = self.get_item(id) else {
+            return;
+        };
         if dm.is_empty() {
             item.set_property("status", "Failed to get download manifests".to_string());
             return;
@@ -367,7 +369,9 @@ impl Asset for super::EpicDownloadManager {
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
         let self_ = self.imp();
-        let Some(_item) = self.get_item(&id) else { return };
+        let Some(_item) = self.get_item(&id) else {
+            return;
+        };
         let vaults = self_.settings.strv("unreal-vault-directories");
         let mut target = std::path::PathBuf::from(vaults.first().map_or_else(
             || {
@@ -602,8 +606,8 @@ impl Asset for super::EpicDownloadManager {
                 for file in files {
                     if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
                         let Some(item) = self.get_item(&f.asset) else {
-                                                             break;
-                                                    };
+                            break;
+                        };
                         item.add_downloaded_size(progress);
                         self.emit_by_name::<()>("tick", &[]);
                         break;
@@ -628,7 +632,9 @@ impl Asset for super::EpicDownloadManager {
         filename: String,
     ) {
         let self_ = self.imp();
-        let Some(item) = self.get_item(&asset_id) else { return; };
+        let Some(item) = self.get_item(&asset_id) else {
+            return;
+        };
 
         let mut targets: Vec<(String, bool)> = Vec::new();
         {

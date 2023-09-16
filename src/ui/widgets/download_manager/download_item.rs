@@ -316,9 +316,9 @@ impl EpicDownloadItem {
     pub fn setup_timer(&self) {
         glib::timeout_add_seconds_local(
             1,
-            clone!(@weak self as obj => @default-return glib::Continue(false), move || {
+            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
                 obj.speed_update();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -418,10 +418,10 @@ impl EpicDownloadItem {
         get_action!(self_.actions, @pause).set_enabled(false);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-return glib::Continue(false), move || {
+            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
                 let self_ = obj.imp();
                 get_action!(self_.actions, @pause).set_enabled(true);
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
         if let Some(dm) = self_.download_manager.get() {
@@ -571,9 +571,9 @@ impl EpicDownloadItem {
     fn remove_from_parent_with_timer(&self, timer: u32) {
         glib::timeout_add_seconds_local(
             timer,
-            clone!(@weak self as obj => @default-return glib::Continue(false), move || {
+            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
                 obj.emit_by_name::<()>("finished", &[]);
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }

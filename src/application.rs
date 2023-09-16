@@ -195,7 +195,7 @@ impl EpicAssetManager {
 
         let is_dark_mode = self_.settings.boolean("dark-mode");
         let simple_action =
-            gio::SimpleAction::new_stateful("dark-mode", None, is_dark_mode.to_variant());
+            gio::SimpleAction::new_stateful("dark-mode", None, &is_dark_mode.to_variant());
         simple_action.connect_activate(clone!(@weak self as app =>  move |action, _| {
             app.toggle_dark_mode(action);
         }));
@@ -225,7 +225,7 @@ impl EpicAssetManager {
         let state = action.state().unwrap();
         let action_state: bool = state.get().unwrap();
         let is_dark_mode = !action_state;
-        action.set_state(is_dark_mode.to_variant());
+        action.set_state(&is_dark_mode.to_variant());
         if let Err(err) = self_.settings.set_boolean("dark-mode", is_dark_mode) {
             error!("Failed to switch dark mode: {} ", err);
         }

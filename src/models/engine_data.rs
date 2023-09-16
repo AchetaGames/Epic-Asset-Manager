@@ -82,7 +82,7 @@ pub enum Msg {
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Priority};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -110,7 +110,7 @@ mod imp {
         type Type = super::EngineData;
 
         fn new() -> Self {
-            let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = glib::MainContext::channel(Priority::default());
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -263,7 +263,7 @@ impl EngineData {
             None,
             clone!(@weak self as engine => @default-panic, move |msg| {
                 engine.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }

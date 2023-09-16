@@ -210,7 +210,7 @@ impl EpicAssetDetails {
             2,
             clone!(@weak self as obj => @default-panic, move || {
                 obj.hide_confirmation();
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }
@@ -289,9 +289,9 @@ impl EpicAssetDetails {
         );
 
         self_.warning_message.connect_activate_link(
-            clone!(@weak self as details => @default-return gtk4::Inhibit(true), move |_, uri| {
+            clone!(@weak self as details => @default-return glib::Propagation::Stop, move |_, uri| {
                 details.process_uri(uri);
-                gtk4::Inhibit(true)
+                glib::Propagation::Stop
             }),
         );
     }

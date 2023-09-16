@@ -108,7 +108,7 @@ pub mod imp {
                     gio::ListModel::NONE.cloned(),
                     gtk4::Sorter::NONE.cloned(),
                 ),
-                grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
+                grid_model: gio::ListStore::new::<crate::models::asset_data::AssetData>(),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
@@ -304,7 +304,7 @@ impl EpicLibraryBox {
             clone!(@weak self as obj => @default-panic, move || {
                 debug!("Library timed refresh starting");
                 obj.run_refresh();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -832,7 +832,11 @@ impl EpicLibraryBox {
             });
             self.refresh_state_changed();
             glib::idle_add_local(clone!(@weak self as library => @default-panic, move || {
-                glib::Continue(library.flush_loop())
+                if library.flush_loop() {
+                    glib::ControlFlow::Continue
+                } else {
+                    glib::ControlFlow::Break
+                }
             }));
         }
     }
