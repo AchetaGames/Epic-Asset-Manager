@@ -293,10 +293,10 @@ impl EpicSidebar {
         if let Err(e) = self_.settings.set_boolean("sidebar-expanded", new_value) {
             warn!("Unable to save sidebar state: {}", e);
         };
-        self.set_property("expanded", &new_value);
-        self_.all_category.set_property("expanded", &new_value);
-        self_.unreal_category.set_property("expanded", &new_value);
-        self_.games_category.set_property("expanded", &new_value);
+        self.set_property("expanded", new_value);
+        self_.all_category.set_property("expanded", new_value);
+        self_.unreal_category.set_property("expanded", new_value);
+        self_.games_category.set_property("expanded", new_value);
     }
 
     pub fn filter_changed(&self) {

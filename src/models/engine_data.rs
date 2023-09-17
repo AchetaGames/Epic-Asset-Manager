@@ -229,8 +229,8 @@ impl EngineData {
         let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
-        data.set_property("path", &path);
-        data.set_property("guid", &guid);
+        data.set_property("path", path);
+        data.set_property("guid", guid);
         self_.ueversion.replace(Some(version.clone()));
         data.set_property("version", version.format());
         if let Some(path) = data.path() {

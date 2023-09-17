@@ -137,7 +137,7 @@ impl EpicWeb {
 
     pub fn validate_eula(&self, id: &str) -> bool {
         let mut map = HashMap::new();
-        let query= vec!["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", id, "\"){            accepted            key            locale            version        }    }}"];
+        let query= ["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", id, "\"){            accepted            key            locale            version        }    }}"];
         map.insert("query", query.join(""));
         match self
             .client

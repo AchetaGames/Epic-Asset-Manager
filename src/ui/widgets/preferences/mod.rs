@@ -771,7 +771,7 @@ impl PreferencesWindow {
         native.set_modal(true);
         native.set_transient_for(Some(self));
 
-        for f in filters.iter() {
+        for f in filters {
             let filter = gtk4::FileFilter::new();
             filter.add_mime_type(f);
             filter.set_name(Some(f));

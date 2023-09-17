@@ -29,7 +29,6 @@ pub mod imp {
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::{HashMap, HashSet};
-    use std::sync::Arc;
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -68,7 +67,7 @@ pub mod imp {
         pub asset_product_names: RefCell<HashMap<String, String>>,
         pub asset_load_pool: ThreadPool,
         pub image_load_pool: ThreadPool,
-        pub assets_pending: Arc<std::sync::RwLock<Vec<Object>>>,
+        pub assets_pending: std::sync::RwLock<Vec<Object>>,
         pub categories: RefCell<HashSet<String>>,
         pub settings: gio::Settings,
         loading: RefCell<u32>,
@@ -114,7 +113,7 @@ pub mod imp {
                 asset_product_names: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 15),
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 15),
-                assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
+                assets_pending: std::sync::RwLock::new(vec![]),
                 categories: RefCell::new(HashSet::new()),
                 settings: gio::Settings::new(config::APP_ID),
                 loading: RefCell::new(0),

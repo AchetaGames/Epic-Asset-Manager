@@ -190,10 +190,10 @@ impl EpicEngine {
         }
 
         self_.data.replace(Some(data.clone()));
-        self.set_property("path", &data.path());
-        self.set_property("guid", &data.guid());
-        self.set_property("version", &data.version());
-        self.set_property("tooltip-text", &data.path());
+        self.set_property("path", data.path());
+        self.set_property("guid", data.guid());
+        self.set_property("version", data.version());
+        self.set_property("tooltip-text", data.path());
         self_.handler.replace(Some(data.connect_local(
             "finished",
             false,
@@ -205,8 +205,8 @@ impl EpicEngine {
     }
 
     fn finished(&self, data: &crate::models::engine_data::EngineData) {
-        self.set_property("branch", &data.branch());
-        self.set_property("has-branch", &data.has_branch());
-        self.set_property("needs-update", &data.needs_update());
+        self.set_property("branch", data.branch());
+        self.set_property("has-branch", data.has_branch());
+        self.set_property("needs-update", data.needs_update());
     }
 }

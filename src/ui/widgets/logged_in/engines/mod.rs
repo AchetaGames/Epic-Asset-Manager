@@ -236,9 +236,9 @@ impl EpicEnginesBox {
             let child = list_item.child().unwrap().downcast::<EpicEngine>().unwrap();
             child.set_data(&data);
 
-            child.set_property("branch", &data.branch());
-            child.set_property("has-branch", &data.has_branch());
-            child.set_property("needs-update", &data.needs_update());
+            child.set_property("branch", data.branch());
+            child.set_property("has-branch", data.has_branch());
+            child.set_property("needs-update", data.needs_update());
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {

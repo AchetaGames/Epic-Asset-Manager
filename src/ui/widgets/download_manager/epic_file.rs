@@ -79,7 +79,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         item.set_property("status", "waiting for download slot".to_string());
         item.set_total_size(u128::from(size));
         item.set_total_files(1);
-        let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
+        let (send, recv) = std::sync::mpsc::channel::<ThreadMessages>();
         self.add_thread_sender(version.to_string(), send);
         let sender = self_.sender.clone();
         let link = Url::parse(url).expect("Valid URL");
@@ -120,8 +120,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         let mut items = self_.download_items.borrow_mut();
         let item = match items.get_mut(version) {
             None => {
-                let item =
-                    crate::ui::widgets::download_manager::download_item::EpicDownloadItem::new();
+                let item = download_item::EpicDownloadItem::new();
                 debug!("Adding item to the list under: {}", version);
                 items.insert(version.to_string(), item.clone());
                 item
@@ -207,11 +206,11 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                 .expect("Invalid Target directory");
             p.push("epic");
             p.push(version);
-            if let Err(e) = std::fs::remove_file(&p) {
+            if let Err(e) = fs::remove_file(&p) {
                 error!("Unable to remove downloaded file: {}", e);
             };
             if let Some(parent) = p.parent() {
-                if let Err(e) = std::fs::remove_dir(parent) {
+                if let Err(e) = fs::remove_dir(parent) {
                     error!("Unable to remove epic download directory: {}", e);
                 };
             }
@@ -251,9 +250,8 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             .expect("Invalid Target directory");
         p.push("epic");
         p.push(version);
-        if let Err(e) = std::fs::remove_file(p) {
+        if let Err(e) = fs::remove_file(p) {
             warn!("Unable to remove file {:?}", e);
-        } else {
         };
     }
 
@@ -294,18 +292,18 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         }
         if p.exists() {
             if let Some(item) = self.get_item(version) {
-                let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
+                let metadata = fs::metadata(p.as_path()).expect("unable to read metadata");
                 item.add_downloaded_size(item.total_size() - item.downloaded_size());
                 if u128::from(metadata.size()) == item.total_size() {
-                    let file = fs::File::open(&p).unwrap();
+                    let file = File::open(&p).unwrap();
                     if target.exists() {
                         warn!("Target already exists.");
                     }
-                    let archive = zip::ZipArchive::new(file).unwrap();
+                    let archive = ZipArchive::new(file).unwrap();
                     item.set_total_files(archive.len() as u64);
                     let sender = self_.sender.clone();
                     let ver = version.to_string();
-                    let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
+                    let (send, recv) = std::sync::mpsc::channel::<ThreadMessages>();
                     self.add_thread_sender(version.to_string(), send);
                     self_.file_pool.execute(move || {
                         extract(&target, archive, &sender, ver, &recv);
@@ -344,8 +342,7 @@ fn extract(
         };
         file_target.push(&outpath);
         if file_target.exists() {
-            let metadata =
-                std::fs::metadata(file_target.as_path()).expect("unable to read metadata");
+            let metadata = fs::metadata(file_target.as_path()).expect("unable to read metadata");
             if metadata.size() == file.size() {
                 sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
                 continue;
@@ -359,7 +356,7 @@ fn extract(
                     fs::create_dir_all(p).unwrap();
                 }
             }
-            let mut outfile = fs::File::create(&file_target).unwrap();
+            let mut outfile = File::create(&file_target).unwrap();
 
             let mut buffer: [u8; 1024] = [0; 1024];
             loop {
@@ -377,10 +374,7 @@ fn extract(
                         if size > 0 {
                             outfile.write_all(&buffer[0..size]).unwrap();
                             sender
-                                .send(super::Msg::EpicFileExtractionProgress(
-                                    ver.clone(),
-                                    size as u64,
-                                ))
+                                .send(Msg::EpicFileExtractionProgress(ver.clone(), size as u64))
                                 .unwrap();
                         } else {
                             break;
@@ -437,11 +431,11 @@ fn run(
     );
     fs::create_dir_all(p.parent().unwrap()).unwrap();
     let mut client = if p.exists() {
-        let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
+        let metadata = fs::metadata(p.as_path()).expect("unable to read metadata");
         if metadata.size() == size {
             debug!("Already downloaded {}", p.to_str().unwrap_or_default());
             sender
-                .send(super::Msg::EpicDownloadProgress(ver.clone(), size))
+                .send(Msg::EpicDownloadProgress(ver.clone(), size))
                 .unwrap();
             sender.send(Msg::EpicFileFinished(ver)).unwrap();
             return;
@@ -493,7 +487,7 @@ fn run(
                 if size > 0 {
                     file.write_all(&buffer[0..size]).unwrap();
                     sender
-                        .send(super::Msg::EpicDownloadProgress(ver.clone(), size as u64))
+                        .send(Msg::EpicDownloadProgress(ver.clone(), size as u64))
                         .unwrap();
                 } else {
                     break;

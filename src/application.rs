@@ -243,7 +243,7 @@ impl EpicAssetManager {
         let provider = gtk4::CssProvider::new();
         provider.load_from_resource("/io/github/achetagames/epic_asset_manager/style.css");
         if let Some(display) = gdk::Display::default() {
-            gtk4::StyleContext::add_provider_for_display(
+            gtk4::style_context_add_provider_for_display(
                 &display,
                 &provider,
                 gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,

@@ -241,7 +241,7 @@ impl EpicSidebarCategories {
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<crate::ui::widgets::logged_in::library::sidebar::category::EpicSidebarCategory>().unwrap();
-            child.set_property("title", &data.name());
+            child.set_property("title", data.name());
             child.set_property("leaf", data.leaf());
         });
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {

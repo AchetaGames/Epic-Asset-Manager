@@ -151,8 +151,8 @@ impl EpicProject {
             }
         }
         self_.data.replace(Some(data.clone()));
-        self.set_property("name", &data.name());
-        self.set_property("tooltip-text", &data.path());
+        self.set_property("name", data.name());
+        self.set_property("tooltip-text", data.path());
         data.uproject().map_or_else(
             || {
                 self.set_property("engine", "");
@@ -160,6 +160,7 @@ impl EpicProject {
             |uproject| match self.associated_engine(&uproject) {
                 None => {
                     let db = crate::models::database::connection();
+                    #[allow(clippy::collection_is_never_read)]
                     let mut last_engine: Option<String> = None;
                     if let Ok(mut conn) = db.get() {
                         let engines: Result<String, diesel::result::Error> =

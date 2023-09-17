@@ -216,8 +216,8 @@ glib::wrapper! {
 impl PluginData {
     pub fn new(path: &str, name: &str) -> PluginData {
         let data: Self = glib::Object::new();
-        data.set_property("path", &path);
-        data.set_property("name", &name);
+        data.set_property("path", path);
+        data.set_property("name", name);
         data
     }
 

@@ -162,8 +162,8 @@ impl ProjectData {
     pub fn new(path: &str, name: &str) -> ProjectData {
         let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
-        data.set_property("path", &path);
-        data.set_property("name", &name);
+        data.set_property("path", path);
+        data.set_property("name", name);
         let mut uproject = Self::read_uproject(path);
         uproject.engine_association = uproject
             .engine_association

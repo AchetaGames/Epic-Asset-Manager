@@ -48,7 +48,7 @@ pub mod imp {
         pub model: ListStore,
         pub sender: gtk4::glib::Sender<super::Msg>,
         pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
-        pub pending: std::sync::Arc<std::sync::RwLock<Vec<Object>>>,
+        pub pending: std::sync::RwLock<Vec<Object>>,
         pub load_pool: ThreadPool,
     }
 
@@ -66,7 +66,7 @@ pub mod imp {
                 model: gtk4::gio::ListStore::new::<crate::models::log_data::LogData>(),
                 sender,
                 receiver: RefCell::new(Some(receiver)),
-                pending: std::sync::Arc::new(std::sync::RwLock::default()),
+                pending: std::sync::RwLock::default(),
                 load_pool: ThreadPool::with_name("Logs Load Pool".to_string(), 1),
             }
         }

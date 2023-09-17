@@ -157,16 +157,16 @@ impl EpicAsset {
             }
         }
         self_.data.replace(Some(data.clone()));
-        self.set_property("label", &data.name());
-        self.set_property("thumbnail", &data.image());
-        self.set_property("favorite", &data.favorite());
-        self.set_property("downloaded", &data.downloaded());
+        self.set_property("label", data.name());
+        self.set_property("thumbnail", data.image());
+        self.set_property("favorite", data.favorite());
+        self.set_property("downloaded", data.downloaded());
         self_.handler.replace(Some(data.connect_local(
             "refreshed",
             false,
             clone!(@weak self as asset, @weak data => @default-return None, move |_| {
-                asset.set_property("favorite", &data.favorite());
-                asset.set_property("downloaded", &data.downloaded());
+                asset.set_property("favorite", data.favorite());
+                asset.set_property("downloaded", data.downloaded());
                 None
             }),
         )));

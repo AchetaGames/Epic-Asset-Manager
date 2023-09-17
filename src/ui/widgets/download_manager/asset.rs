@@ -1,7 +1,6 @@
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::Msg::CancelChunk;
 use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessages};
-use egs_api::api::types::chunk::Chunk;
 use glib::clone;
 use gtk4::glib;
 use gtk4::glib::{Priority, Sender};

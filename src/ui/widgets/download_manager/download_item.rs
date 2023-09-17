@@ -338,7 +338,7 @@ impl EpicDownloadItem {
             let start = queue.front().unwrap().0;
             let end = queue.back().unwrap().0;
             let mut pop_counter = 0;
-            for (t, s) in queue.iter() {
+            for (t, s) in &*queue {
                 if end - *t > chrono::Duration::seconds(1) {
                     pop_counter += 1;
                 }
