@@ -8,7 +8,7 @@ if [ "$1" = "clean" ]; then
 fi
 
 if [ "$1" = "build" ]; then
-    ~/.cargo/bin/fenv build
+    ~/.cargo/bin/fenv exec -- ninja -C _build
     exit 0
 fi
 
@@ -22,4 +22,5 @@ if [ "$1" = "dist" ]; then
     exit 0
 fi
 
+~/.cargo/bin/fenv exec -- ninja -C _build install
 ~/.cargo/bin/fenv run
