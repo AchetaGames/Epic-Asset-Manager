@@ -455,7 +455,7 @@ impl DockerEngineDownload {
                                   w.add_notification("missing engine config", "Unable to install engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
                                   get_action!(self_.actions, @install).set_enabled(false);
                               }, |p| {
-                              let mut path = std::path::Path::new(p.to_str());
+                              let mut path = std::path::Path::new(p.as_str());
                               while !path.exists() {
                                           path = match path.parent() {
                                                       None => break,

@@ -523,7 +523,7 @@ impl EpicEnginesBox {
 
         if let Ok(keys) = ini.keys("Installations") {
             for item in keys {
-                if let Ok(path) = ini.value("Installations", item.to_str()) {
+                if let Ok(path) = ini.value("Installations", item.as_str()) {
                     let guid: String = item
                         .to_string()
                         .chars()

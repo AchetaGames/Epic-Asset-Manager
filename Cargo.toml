@@ -21,7 +21,7 @@ env_logger = "0.10.0"
 fs2 = "0.4.3"
 gtk4 = { version = "0.7.2", features = ["v4_8"] }
 gtk-macros = "0.3"
-html2pango = "0.5"
+html2pango = "0.6"
 lazy_static = "1.4"
 libsqlite3-sys = { version = "0.25.2", features = ["bundled"] }
 log = "0.4"

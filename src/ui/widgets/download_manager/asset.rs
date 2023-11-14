@@ -12,8 +12,9 @@ use reqwest::Url;
 use sha1::digest::core_api::CoreWrapper;
 use sha1::{Digest, Sha1, Sha1Core};
 use std::ffi::OsString;
+use std::fmt::Write;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -524,7 +525,7 @@ impl Asset for super::EpicDownloadManager {
                         }
                         if size > 0 {
                             downloaded += size as u128;
-                            file.write_all(&buffer[0..size]).unwrap();
+                            std::io::Write::write_all(&mut file, &buffer[0..size]).unwrap();
                             sender
                                 .send(Msg::ChunkDownloadProgress(g.clone(), size as u128, false))
                                 .unwrap();
@@ -793,9 +794,7 @@ fn save_asset_manifest(
     match File::create(tar.join("manifest.json")) {
         Ok(mut json_manifest_file) => match serde_json::to_string(&manifest) {
             Ok(json) => {
-                json_manifest_file
-                    .write_all(json.as_bytes().as_ref())
-                    .unwrap();
+                std::io::Write::write_all(&mut json_manifest_file, json.as_bytes()).unwrap();
             }
             Err(e) => {
                 error!("Unable to save json manifest: {}", e);
@@ -807,7 +806,7 @@ fn save_asset_manifest(
     }
     match File::create(tar.join("manifest")) {
         Ok(mut manifest_file) => {
-            manifest_file.write_all(&manifest.to_vec()).unwrap();
+            std::io::Write::write_all(&mut manifest_file, &manifest.to_vec()).unwrap();
         }
         Err(e) => {
             error!("Unable to save binary Manifest: {:?}", e);
@@ -844,7 +843,10 @@ fn initiate_file_download(
             }
             let hash = hasher.finalize();
             if m.file_hash
-                .eq(&hash.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                .eq(&hash.iter().fold(String::new(), |mut output, b| {
+                    write!(output, "{b:02x}").unwrap();
+                    output
+                }))
             {
                 sender
                     .send(Msg::FileAlreadyDownloaded(
@@ -993,7 +995,10 @@ impl AssetPriv for super::EpicDownloadManager {
                         extract_chunks(finished.chunks, &temp.clone(), &mut target).finalize();
                     if finished
                         .hash
-                        .eq(&hash.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                        .eq(&hash.iter().fold(String::new(), |mut output, b| {
+                            write!(output, "{b:02x}").unwrap();
+                            output
+                        }))
                     {
                         copy_files(&vault.clone(), targets, &finished.name);
                         sender
@@ -1043,11 +1048,11 @@ fn extract_chunks(
                 };
                 hasher
                     .update(&ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize]);
-                target
-                    .write_all(
-                        &ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize],
-                    )
-                    .unwrap();
+                std::io::Write::write_all(
+                    target,
+                    &ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize],
+                )
+                .unwrap();
             }
             Err(e) => {
                 error!("Error opening the chunk file: {:?}", e);

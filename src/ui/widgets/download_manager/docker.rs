@@ -287,7 +287,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                 }
                 return None;
             }
-            Some(p) => PathBuf::from(p.to_str()),
+            Some(p) => PathBuf::from(p.as_str()),
         };
         target.push("docker");
         Some(target)
@@ -351,7 +351,7 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
                     .map_or_else(
                         || PathBuf::from(&version),
                         |p| {
-                            let mut path = PathBuf::from(p.to_str());
+                            let mut path = PathBuf::from(p.as_str());
                             path.push(version);
                             path
                         },
