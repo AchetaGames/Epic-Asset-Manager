@@ -251,6 +251,14 @@ impl EpicEngineDownload {
                 details.open_eula_browser();
             })
         );
+
+        action!(
+            actions,
+            "download",
+            clone!(@weak self as details => move |_, _| {
+                details.open_download_browser();
+            })
+        );
         get_action!(self_.actions, @install).set_enabled(false);
     }
 
@@ -281,7 +289,33 @@ impl EpicEngineDownload {
             receiver.attach(
                 None,
                 clone!(@weak self as sidebar => @default-panic, move |code: String| {
-                    open_browser(&code);
+                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
+                    glib::ControlFlow::Break
+                }),
+            );
+
+            thread::spawn(move || {
+                if let Some(token) = tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(eg.game_token())
+                {
+                    sender.send(token.code).unwrap();
+                }
+            });
+        }
+    }
+
+    pub fn open_download_browser(&self) {
+        let self_ = self.imp();
+        if let Some(window) = self_.window.get() {
+            let win_ = window.imp();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+
+            receiver.attach(
+                None,
+                clone!(@weak self as sidebar => @default-panic, move |code: String| {
+                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Flinux");
                     glib::ControlFlow::Break
                 }),
             );
@@ -415,11 +449,21 @@ impl EpicEngineDownload {
     }
 }
 
-fn open_browser(code: &str) {
+fn open_browser(code: &str, redirect: &str) {
     #[cfg(target_os = "linux")]
-    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal"), None::<&gio::AppLaunchContext>).is_err() {
-        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
+    if gio::AppInfo::launch_default_for_uri(
+        &format!(
+            "https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl={redirect}"
+        ),
+        None::<&gio::AppLaunchContext>,
+    )
+    .is_err()
+    {
+        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl={redirect}");
     }
     #[cfg(target_os = "windows")]
-    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code));
+    open::that(format!(
+        "https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl={redirect}",
+        code
+    ));
 }
