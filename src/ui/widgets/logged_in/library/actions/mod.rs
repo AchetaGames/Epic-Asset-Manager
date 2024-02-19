@@ -447,15 +447,17 @@ impl EpicAssetActions {
                     self_.download_details.set_manifest(&manifest);
                     self_.create_asset_project.set_manifest(&manifest);
                     self_.size_label.borrow().set_label(&format!(
-                        "{}",
-                        byte_unit::Byte::from_bytes(manifest.total_download_size())
-                            .get_appropriate_unit(false)
+                        "{:.2}",
+                        byte_unit::Byte::from_u128(manifest.total_download_size())
+                            .unwrap_or_default()
+                            .get_appropriate_unit(byte_unit::UnitType::Decimal)
                     ));
 
                     self_.disk_size_label.borrow().set_label(&format!(
-                        "{}",
-                        byte_unit::Byte::from_bytes(manifest.total_size())
-                            .get_appropriate_unit(false)
+                        "{:.2}",
+                        byte_unit::Byte::from_u128(manifest.total_size())
+                            .unwrap_or_default()
+                            .get_appropriate_unit(byte_unit::UnitType::Decimal)
                     ));
                 }
             }

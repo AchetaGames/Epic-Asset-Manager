@@ -215,9 +215,9 @@ impl EpicEngineDownload {
         if let Some(selected) = self_.version_selector.active_id() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
-                    let byte = byte_unit::Byte::from_bytes(u128::from(version.size))
-                        .get_appropriate_unit(false);
-                    self_.size_value.set_label(&byte.format(1));
+                    let byte = byte_unit::Byte::from_u64(version.size)
+                        .get_appropriate_unit(byte_unit::UnitType::Decimal);
+                    self_.size_value.set_label(&format!("{byte:.2}"));
                 }
             }
         }

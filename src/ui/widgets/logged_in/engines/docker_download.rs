@@ -449,8 +449,8 @@ impl DockerEngineDownload {
                 self.updated_docker_versions(&ver);
             }
             Msg::ManifestSize(size) => {
-                let byte =
-                    byte_unit::Byte::from_bytes(u128::from(size)).get_appropriate_unit(false);
+                let byte = byte_unit::Byte::from_u64(size)
+                    .get_appropriate_unit(byte_unit::UnitType::Decimal);
                 self_.settings.strv("unreal-engine-directories").get(0).map_or_else(|| if let Some(w) = self_.window.get() {
                                   w.add_notification("missing engine config", "Unable to install engine missing Unreal Engine Directories configuration", gtk4::MessageType::Error);
                                   get_action!(self_.actions, @install).set_enabled(false);
@@ -474,7 +474,7 @@ impl DockerEngineDownload {
                                           get_action!(self_.actions, @install).set_enabled(true);
                                       }
                           });
-                self.set_property("download-size", Some(byte.format(1)));
+                self.set_property("download-size", Some(format!("{byte:.2}")));
             }
             Msg::Error(_error) => {
                 if let Some(w) = self_.window.get() {

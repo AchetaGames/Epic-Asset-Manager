@@ -355,8 +355,10 @@ impl EpicDownloadItem {
                 None
             }
         } {
-            let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
-            self.set_property("speed", format!("{}/s", byte.format(1)));
+            let byte = byte_unit::Byte::from_u128(speed)
+                .unwrap_or_default()
+                .get_appropriate_unit(byte_unit::UnitType::Decimal);
+            self.set_property("speed", format!("{byte:.2}/s"));
         };
     }
 
