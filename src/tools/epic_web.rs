@@ -155,7 +155,7 @@ impl EpicWeb {
                             Ok(eula) => {
                                 return match eula.data.eula.has_account_accepted {
                                     None => {
-                                        eula.errors.map_or((), |errors| for error in errors {
+                                        let _ = eula.errors.map_or((), |errors| for error in errors {
                                             error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
                                         });
                                         false
