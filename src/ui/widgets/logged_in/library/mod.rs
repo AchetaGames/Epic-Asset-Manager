@@ -11,6 +11,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use tokio::runtime::Builder;
 
 mod actions;
 mod asset;
@@ -804,7 +805,8 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             // Start loading assets from the API
             self_.asset_load_pool.execute(move || {
-                let mut assets = tokio::runtime::Runtime::new()
+                let mut assets = Builder::new_current_thread()
+                    .build()
                     .unwrap()
                     .block_on(eg.list_assets(None, None));
                 assets.sort_by(|a, b| {
@@ -877,7 +879,8 @@ impl EpicLibraryBox {
                         return;
                     }
                 }
-                if let Some(asset) = tokio::runtime::Runtime::new()
+                if let Some(asset) = Builder::new_current_thread()
+                    .build()
                     .unwrap()
                     .block_on(eg.asset_info(epic_asset.clone()))
                 {

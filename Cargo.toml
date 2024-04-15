@@ -12,6 +12,7 @@ categories = ["gui"]
 [dependencies]
 adw = { package = "libadwaita", version = "0.5.3" }
 anyhow = "1.0"
+async-channel = "2.2"
 byte-unit = "5.1"
 chrono = "0.4"
 diesel = { version = "2", features = ["sqlite", "r2d2"] }
@@ -48,4 +49,4 @@ open = "5.0.0"
 ashpd = "0.6.8"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
 ghregistry = "^0.2"
-secret-service = { version = "3.0", features = ["crypto-rust"]}
+secret-service = { version = "3.0", features = ["crypto-rust"] }

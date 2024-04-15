@@ -17,6 +17,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use tokio::runtime::Builder;
 
 #[derive(Default, Debug, Clone)]
 pub struct DownloadedFile {
@@ -243,7 +244,8 @@ impl Asset for super::EpicDownloadManager {
                 let start = std::time::Instant::now();
                 if let Some(release_info) = asset.release_info(&release_id) {
                     if let Some(manifest) =
-                        tokio::runtime::Runtime::new()
+                        Builder::new_current_thread()
+                            .build()
                             .unwrap()
                             .block_on(eg.asset_manifest(
                                 None,
@@ -254,7 +256,8 @@ impl Asset for super::EpicDownloadManager {
                             ))
                     {
                         debug!("Got asset manifest: {:?}", manifest);
-                        let d = tokio::runtime::Runtime::new()
+                        let d = Builder::new_current_thread()
+                            .build()
                             .unwrap()
                             .block_on(eg.asset_download_manifests(manifest));
                         debug!("Got asset download manifests for {}", id);
