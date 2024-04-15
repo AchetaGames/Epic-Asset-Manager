@@ -1,4 +1,4 @@
-use gtk4::glib::{clone, Sender};
+use gtk4::glib::clone;
 use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate, CustomSorter};
 use std::cmp::Ordering;
 use std::path::Path;
@@ -34,7 +34,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
-    use gtk4::glib::{Object, Priority};
+    use gtk4::glib::Object;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -46,8 +46,8 @@ pub mod imp {
         #[template_child]
         pub logs: TemplateChild<gtk4::ListView>,
         pub model: ListStore,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub pending: std::sync::RwLock<Vec<Object>>,
         pub load_pool: ThreadPool,
     }
@@ -59,7 +59,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded(1);
             Self {
                 window: OnceCell::new(),
                 logs: TemplateChild::default(),
@@ -111,13 +111,13 @@ impl EpicLogs {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as engine => @default-panic, move |msg| {
-                engine.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let logs = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                log::info!("Got log");
+                logs.update(response);
+            }
+        });
     }
 
     pub fn update(&self, msg: Msg) {
@@ -261,7 +261,7 @@ impl EpicLogs {
         let s = self_.sender.clone();
         if project.exists() {
             self_.load_pool.execute(move || {
-                Self::read_logs_in_path(project.as_path(), false, &s);
+                Self::read_logs_in_path(project.as_path(), false, s);
             });
         }
         let mut project = location;
@@ -279,7 +279,7 @@ impl EpicLogs {
                         };
                         let p = d.path();
                         if p.is_dir() {
-                            Self::read_logs_in_path(p.as_path(), true, &s.clone());
+                            Self::read_logs_in_path(p.as_path(), true, s.clone());
                         }
                     }
                 }
@@ -294,7 +294,7 @@ impl EpicLogs {
         }));
     }
 
-    fn read_logs_in_path(project: &Path, crash: bool, sender: &Sender<Msg>) {
+    fn read_logs_in_path(project: &Path, crash: bool, sender: async_channel::Sender<Msg>) {
         if let Ok(rd) = project.read_dir() {
             for d in rd.flatten() {
                 if let Ok(w) = crate::RUNNING.read() {
@@ -315,7 +315,11 @@ impl EpicLogs {
                         }
                     };
                     let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
-                    sender
+                    log::info!("Found logs in: {}", p.to_str().unwrap_or_default());
+
+                    crate::runtime().spawn(clone!(@strong sender => async move {
+                        log::info!("Sending message");
+                        sender
                         .send(Msg::AddLog(
                             p.to_str().unwrap_or_default().to_string(),
                             metadata.modified().map_or_else(
@@ -327,7 +331,9 @@ impl EpicLogs {
                             ),
                             crash,
                         ))
+                        .await
                         .unwrap();
+                    }));
                 }
             }
         }

@@ -22,6 +22,15 @@ lazy_static::lazy_static! {
     static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
 }
 
+fn runtime() -> &'static tokio::runtime::Runtime {
+    static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+    RUNTIME.get_or_init(|| {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Setting up tokio runtime needs to succeed.")
+    })
+}
 fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or("epic_asset_manager:info"))
         .format(|buf, record| {
