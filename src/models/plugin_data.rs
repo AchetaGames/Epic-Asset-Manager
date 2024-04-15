@@ -1,5 +1,4 @@
 use glib::ObjectExt;
-use gtk4::glib::clone;
 use gtk4::{self, glib, subclass::prelude::*};
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -107,7 +106,7 @@ pub enum Msg {}
 mod imp {
     use super::*;
     use glib::ToValue;
-    use gtk4::glib::{ParamSpec, ParamSpecString, Priority};
+    use gtk4::glib::{ParamSpec, ParamSpecString};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -118,8 +117,8 @@ mod imp {
         path: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
         pub uplugin: RefCell<Option<Uplugin>>,
-        pub sender: glib::Sender<Msg>,
-        pub receiver: RefCell<Option<glib::Receiver<Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -130,7 +129,7 @@ mod imp {
         type ParentType = glib::Object;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -252,16 +251,15 @@ impl PluginData {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as project => @default-panic, move |msg| {
-                project.update(&msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let project = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                project.update(response);
+            }
+        });
     }
 
-    pub fn update(&self, _msg: &Msg) {
+    pub fn update(&self, _msg: Msg) {
         debug!("Update for {:?}", self.name());
     }
 }

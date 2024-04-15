@@ -806,6 +806,7 @@ impl EpicLibraryBox {
             // Start loading assets from the API
             self_.asset_load_pool.execute(move || {
                 let mut assets = Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.list_assets(None, None));
@@ -880,6 +881,7 @@ impl EpicLibraryBox {
                     }
                 }
                 if let Some(asset) = Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.asset_info(epic_asset.clone()))

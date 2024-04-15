@@ -17,6 +17,7 @@ impl EpicAssetManagerWindow {
         thread::spawn(move || {
             let start = std::time::Instant::now();
             if Builder::new_current_thread()
+                .enable_all()
                 .build()
                 .unwrap()
                 .block_on(eg.auth_code(None, Some(s)))
@@ -90,6 +91,7 @@ impl EpicAssetManagerWindow {
         thread::spawn(move || {
             let start = std::time::Instant::now();
             if Builder::new_current_thread()
+                .enable_all()
                 .build()
                 .unwrap()
                 .block_on(eg.login())
@@ -119,6 +121,7 @@ impl EpicAssetManagerWindow {
 
         thread::spawn(move || {
             Builder::new_current_thread()
+                .enable_all()
                 .build()
                 .unwrap()
                 .block_on(eg.logout());

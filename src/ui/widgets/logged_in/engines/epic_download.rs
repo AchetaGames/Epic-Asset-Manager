@@ -297,6 +297,7 @@ impl EpicEngineDownload {
 
             thread::spawn(move || {
                 if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.game_token())
@@ -324,6 +325,7 @@ impl EpicEngineDownload {
 
             thread::spawn(move || {
                 if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.game_token())
@@ -418,6 +420,7 @@ impl EpicEngineDownload {
             };
             thread::spawn(move || {
                 if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.game_token())
@@ -437,6 +440,7 @@ impl EpicEngineDownload {
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
                 if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.game_token())

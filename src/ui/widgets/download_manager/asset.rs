@@ -243,20 +243,21 @@ impl Asset for super::EpicDownloadManager {
                 }
                 let start = std::time::Instant::now();
                 if let Some(release_info) = asset.release_info(&release_id) {
-                    if let Some(manifest) =
-                        Builder::new_current_thread()
-                            .build()
-                            .unwrap()
-                            .block_on(eg.asset_manifest(
-                                None,
-                                None,
-                                Some(asset.namespace),
-                                Some(asset.id),
-                                Some(release_info.app_id.unwrap_or_default()),
-                            ))
+                    if let Some(manifest) = Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap()
+                        .block_on(eg.asset_manifest(
+                            None,
+                            None,
+                            Some(asset.namespace),
+                            Some(asset.id),
+                            Some(release_info.app_id.unwrap_or_default()),
+                        ))
                     {
                         debug!("Got asset manifest: {:?}", manifest);
                         let d = Builder::new_current_thread()
+                            .enable_all()
                             .build()
                             .unwrap()
                             .block_on(eg.asset_download_manifests(manifest));

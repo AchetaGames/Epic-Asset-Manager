@@ -209,6 +209,7 @@ impl EpicSidebar {
 
             thread::spawn(move || {
                 match Builder::new_current_thread()
+                    .enable_all()
                     .build()
                     .unwrap()
                     .block_on(eg.game_token())
