@@ -1,13 +1,13 @@
-use glib::ObjectExt;
-use gtk4::gdk::Texture;
-use gtk4::glib::clone;
-use gtk4::{self, glib, subclass::prelude::*};
-use log::{error, info};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::PathBuf;
 use std::thread;
+
+use glib::ObjectExt;
+use gtk4::gdk::Texture;
+use gtk4::{self, glib, subclass::prelude::*};
+use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -34,16 +34,18 @@ pub struct Uproject {
 
 #[derive(Debug, Clone)]
 pub enum Msg {
-    Thumbnail(gtk4::gdk::Texture),
+    Thumbnail(Texture),
 }
 
 // Implementation sub-module of the GObject
 mod imp {
-    use super::*;
+    use std::cell::RefCell;
+
     use glib::ToValue;
     use gtk4::gdk::Texture;
-    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString, Priority};
-    use std::cell::RefCell;
+    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
+
+    use super::*;
 
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
@@ -52,10 +54,10 @@ mod imp {
         guid: RefCell<Option<String>>,
         path: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
-        pub uproject: RefCell<Option<super::Uproject>>,
+        pub uproject: RefCell<Option<Uproject>>,
         thumbnail: RefCell<Option<Texture>>,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -66,7 +68,7 @@ mod imp {
         type ParentType = glib::Object;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded(1);
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -91,10 +93,10 @@ mod imp {
             self.obj().setup_messaging();
         }
 
-        fn signals() -> &'static [gtk4::glib::subclass::Signal] {
-            static SIGNALS: once_cell::sync::Lazy<Vec<gtk4::glib::subclass::Signal>> =
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
-                    vec![gtk4::glib::subclass::Signal::builder("finished")
+                    vec![glib::subclass::Signal::builder("finished")
                         .flags(glib::SignalFlags::ACTION)
                         .build()]
                 });
@@ -201,13 +203,10 @@ impl ProjectData {
         if let Ok(mut file) = std::fs::File::open(p) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() {
-                return match serde_json::from_str::<Uproject>(&contents) {
-                    Ok(uproject) => uproject,
-                    Err(e) => {
-                        error!("Unable to parse uproject {path}: {e}");
-                        Uproject::default()
-                    }
-                };
+                return serde_json::from_str::<Uproject>(&contents).unwrap_or_else(|e| {
+                    error!("Unable to parse uproject {path}: {e}");
+                    Uproject::default()
+                });
             }
         }
         Uproject::default()
@@ -221,13 +220,13 @@ impl ProjectData {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as project => @default-panic, move |msg| {
-                project.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let project = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                debug!("project_data: {:?}", &response);
+                project.update(response);
+            }
+        });
     }
 
     pub fn update(&self, msg: Msg) {
@@ -239,7 +238,7 @@ impl ProjectData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<Msg>) {
+    pub fn load_thumbnail(path: &str, sender: &async_channel::Sender<Msg>) {
         let mut pathbuf = match PathBuf::from(&path).parent() {
             None => return,
             Some(p) => p.to_path_buf(),
@@ -247,8 +246,8 @@ impl ProjectData {
         pathbuf.push("Saved");
         pathbuf.push("AutoScreenshot.png");
         if pathbuf.exists() {
-            match gtk4::gdk::Texture::from_file(&gtk4::gio::File::for_path(pathbuf.as_path())) {
-                Ok(t) => sender.send(Msg::Thumbnail(t)).unwrap(),
+            match Texture::from_file(&gtk4::gio::File::for_path(pathbuf.as_path())) {
+                Ok(t) => sender.send_blocking(Msg::Thumbnail(t)).unwrap(),
                 Err(e) => {
                     error!("Unable to load file to texture: {}", e);
                 }

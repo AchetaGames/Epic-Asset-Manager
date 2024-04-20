@@ -20,7 +20,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::{ParamSpec, ParamSpecString, Priority};
+    use gtk4::glib::{ParamSpec, ParamSpecString};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 
@@ -40,8 +40,8 @@ pub mod imp {
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
         pub docker_versions: RefCell<Option<HashMap<String, Vec<String>>>>,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub settings: gio::Settings,
         selected: RefCell<Option<String>>,
         download_size: RefCell<Option<String>>,
@@ -54,7 +54,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded(1);
             Self {
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -225,13 +225,13 @@ impl DockerEngineDownload {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as docker => @default-panic, move |msg| {
-                docker.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let docker = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                debug!("docker download message: {:?}", &response);
+                docker.update(response);
+            }
+        });
     }
 
     fn type_selected(&self, check: &gtk4::CheckButton, combo: &gtk4::ComboBoxText) {
@@ -298,12 +298,14 @@ impl DockerEngineDownload {
                                     Err(e) => {
                                         error!("Failed to get tags: {e:?}");
                                         sender
-                                            .send(Msg::Error(format!("Failed to get tags: {e:?}")))
+                                            .send_blocking(Msg::Error(format!(
+                                                "Failed to get tags: {e:?}"
+                                            )))
                                             .unwrap();
                                     }
                                 }
 
-                                sender.send(Msg::EngineVersions(result)).unwrap();
+                                sender.send_blocking(Msg::EngineVersions(result)).unwrap();
                             });
                         },
                     );
@@ -513,7 +515,7 @@ impl DockerEngineDownload {
                     match client.get_manifest("epicgames/unreal-engine", &version) {
                         Ok(manifest) => match manifest.download_size() {
                             Ok(size) => {
-                                sender.send(Msg::ManifestSize(size)).unwrap();
+                                sender.send_blocking(Msg::ManifestSize(size)).unwrap();
                             }
                             Err(e) => {
                                 error!("Unable to get manifest size: {:?}", e);

@@ -1,24 +1,29 @@
-use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
-use gtk4::glib::{clone, Priority};
+use std::thread;
+
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
-use log::{error, warn};
-use std::thread;
+use log::{debug, error, warn};
 use tokio::runtime::Builder;
+
+use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
 
 pub mod button;
 pub mod categories;
 mod category;
 
 pub mod imp {
-    use super::*;
-    use crate::ui::widgets::download_manager::EpicDownloadManager;
-    use crate::window::EpicAssetManagerWindow;
+    use std::cell::RefCell;
+
     use gtk4::glib::{ParamSpec, ParamSpecBoolean};
     use once_cell::sync::OnceCell;
-    use std::cell::RefCell;
+
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
+    use crate::window::EpicAssetManagerWindow;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/sidebar.ui")]
@@ -197,15 +202,15 @@ impl EpicSidebar {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded::<String>(1);
 
-            receiver.attach(
-                None,
-                clone!(@weak self as sidebar => @default-panic, move |code:String| {
-                    open_browser(&code);
-                    glib::ControlFlow::Break
-                }),
-            );
+            glib::spawn_future_local(async move {
+                while let Ok(response) = receiver.recv().await {
+                    open_browser(&response);
+                    // TODO: This used to break
+                    debug!("Marketplace opened");
+                }
+            });
 
             thread::spawn(move || {
                 match Builder::new_current_thread()
@@ -216,7 +221,7 @@ impl EpicSidebar {
                 {
                     None => {}
                     Some(token) => {
-                        sender.send(token.code).unwrap();
+                        sender.send_blocking(token.code).unwrap();
                     }
                 }
             });

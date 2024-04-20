@@ -1,25 +1,31 @@
-use crate::ui::widgets::logged_in::refresh::Refresh;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+
 use adw::gtk;
 use gtk4::{self, glib, glib::clone, prelude::*, subclass::prelude::*, CompositeTemplate};
 use log::{debug, info};
+
 use project::EpicProject;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+
+use crate::ui::widgets::logged_in::refresh::Refresh;
 
 mod project;
 mod project_detail;
 
+#[derive(Debug, Clone)]
 pub enum Msg {
     AddProject { uproject_file: PathBuf },
 }
 
 pub mod imp {
-    use super::*;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Priority};
-    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::BTreeMap;
+
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use once_cell::sync::OnceCell;
     use threadpool::ThreadPool;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/projects.ui")]
@@ -39,8 +45,8 @@ pub mod imp {
         selected: RefCell<Option<String>>,
         pub selected_uproject: RefCell<Option<crate::models::project_data::Uproject>>,
         pub actions: gtk4::gio::SimpleActionGroup,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub file_pool: ThreadPool,
     }
 
@@ -51,7 +57,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded(1);
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
@@ -145,13 +151,13 @@ impl EpicProjectsBox {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as projects => @default-panic, move |msg| {
-                projects.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let projects = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                debug!("projects Received message: {:?}", &response);
+                projects.update(response);
+            }
+        });
     }
 
     fn update(&self, msg: Msg) {
@@ -342,7 +348,7 @@ impl EpicProjectsBox {
         self.refresh_state_changed();
     }
 
-    fn check_path_for_uproject(path: &Path, sender: &gtk4::glib::Sender<Msg>) {
+    fn check_path_for_uproject(path: &Path, sender: &async_channel::Sender<Msg>) {
         if let Ok(rd) = path.read_dir() {
             for d in rd {
                 match d {
@@ -354,7 +360,9 @@ impl EpicProjectsBox {
                                     Self::check_path_for_uproject(&p, &sender.clone());
                                 },
                                 |uproject_file| {
-                                    sender.send(Msg::AddProject { uproject_file }).unwrap();
+                                    sender
+                                        .send_blocking(Msg::AddProject { uproject_file })
+                                        .unwrap();
                                 },
                             );
                         } else {

@@ -254,6 +254,7 @@ impl PluginData {
         let project = self.clone();
         glib::spawn_future_local(async move {
             while let Ok(response) = receiver.recv().await {
+                debug!("plugin_data: {:?}", &response);
                 project.update(response);
             }
         });

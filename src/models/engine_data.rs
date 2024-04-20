@@ -1,5 +1,6 @@
 use glib::ObjectExt;
 use gtk4::{glib, prelude::*, subclass::prelude::*};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::io::Read;
@@ -261,6 +262,7 @@ impl EngineData {
         let engine = self.clone();
         glib::spawn_future_local(async move {
             while let Ok(response) = receiver.recv().await {
+                debug!("engine_data: {:?}", &response);
                 engine.update(response);
             }
         });

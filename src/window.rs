@@ -235,21 +235,21 @@ impl EpicAssetManagerWindow {
 
     pub fn setup_receiver(&self) {
         let self_ = self.imp();
-        self_
+        let receiver = self_
             .model
             .borrow()
             .deref()
             .receiver
             .borrow_mut()
             .take()
-            .unwrap()
-            .attach(
-                None,
-                clone!(@weak self as window => @default-panic, move |msg| {
-                    window.update(msg);
-                    glib::ControlFlow::Continue
-                }),
-            );
+            .unwrap();
+        let window = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                debug!("window received {:?}", &response);
+                window.update(response);
+            }
+        });
     }
 
     pub fn setup_actions(&self) {

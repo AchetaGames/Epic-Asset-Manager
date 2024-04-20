@@ -1,5 +1,6 @@
 use gtk4::glib::clone;
 use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate, CustomSorter};
+use log::debug;
 use std::cmp::Ordering;
 use std::path::Path;
 use std::{iter::Peekable, str::Chars};
@@ -114,7 +115,7 @@ impl EpicLogs {
         let logs = self.clone();
         glib::spawn_future_local(async move {
             while let Ok(response) = receiver.recv().await {
-                log::info!("Got log");
+                debug!("logs: {:?}", &response);
                 logs.update(response);
             }
         });
@@ -315,12 +316,9 @@ impl EpicLogs {
                         }
                     };
                     let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
-                    log::info!("Found logs in: {}", p.to_str().unwrap_or_default());
 
-                    crate::runtime().spawn(clone!(@strong sender => async move {
-                        log::info!("Sending message");
-                        sender
-                        .send(Msg::AddLog(
+                    sender
+                        .send_blocking(Msg::AddLog(
                             p.to_str().unwrap_or_default().to_string(),
                             metadata.modified().map_or_else(
                                 |_| p.to_str().unwrap_or_default().to_string(),
@@ -331,9 +329,7 @@ impl EpicLogs {
                             ),
                             crash,
                         ))
-                        .await
                         .unwrap();
-                    }));
                 }
             }
         }

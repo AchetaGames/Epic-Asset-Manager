@@ -11,7 +11,9 @@
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="EXECUTE_IN_TERMINAL" value="false" />
     <option name="EXECUTE_SCRIPT_FILE" value="true" />
-    <envs />
+    <envs>
+      <env name="RUST_LOG" value="debug" />
+    </envs>
     <method v="2">
       <option name="RunConfigurationTask" enabled="true" run_configuration_name="Build" run_configuration_type="ShConfigurationType" />
       <option name="RunConfigurationTask" enabled="true" run_configuration_name="Install" run_configuration_type="ShConfigurationType" />

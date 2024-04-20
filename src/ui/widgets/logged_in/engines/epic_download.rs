@@ -1,18 +1,19 @@
-use crate::gio::glib::Sender;
-use crate::tools::epic_web::EpicWeb;
-use crate::ui::widgets::download_manager::epic_file::EpicFile;
-use gtk4::glib::{clone, MainContext, Priority};
+use std::collections::HashMap;
+use std::thread;
+
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use log::error;
+use log::{debug, error};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::thread;
 use tokio::runtime::Builder;
 use version_compare::Cmp;
+
+use crate::tools::epic_web::EpicWeb;
+use crate::ui::widgets::download_manager::epic_file::EpicFile;
 
 #[derive(Debug, Clone)]
 pub enum Msg {
@@ -36,12 +37,14 @@ pub struct Blob {
 }
 
 pub mod imp {
-    use super::*;
-    use crate::window::EpicAssetManagerWindow;
-    use gtk4::glib::Priority;
-    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
+
+    use once_cell::sync::OnceCell;
+
+    use crate::window::EpicAssetManagerWindow;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/epic_download.ui")]
@@ -68,8 +71,8 @@ pub mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         pub actions: gio::SimpleActionGroup,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub engine_versions: RefCell<Option<HashMap<String, Blob>>>,
     }
 
@@ -80,7 +83,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded(1);
             Self {
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -193,13 +196,13 @@ impl EpicEngineDownload {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as docker => @default-panic, move |msg| {
-                docker.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let epic = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                debug!("epic_download: {:?}", &response);
+                epic.update(response);
+            }
+        });
     }
 
     pub fn setup_widgets(&self) {
@@ -285,15 +288,18 @@ impl EpicEngineDownload {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded::<String>(1);
 
-            receiver.attach(
-                None,
-                clone!(@weak self as sidebar => @default-panic, move |code: String| {
-                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
-                    glib::ControlFlow::Break
-                }),
-            );
+            glib::spawn_future_local(async move {
+                while let Ok(response) = receiver.recv().await {
+                    debug!("Opening browser with code: {response}");
+                    open_browser(
+                        &response,
+                        "https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal",
+                    );
+                    // TODO: This used to break
+                }
+            });
 
             thread::spawn(move || {
                 if let Some(token) = Builder::new_current_thread()
@@ -302,7 +308,7 @@ impl EpicEngineDownload {
                     .unwrap()
                     .block_on(eg.game_token())
                 {
-                    sender.send(token.code).unwrap();
+                    sender.send_blocking(token.code).unwrap();
                 }
             });
         }
@@ -313,15 +319,14 @@ impl EpicEngineDownload {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded::<String>(1);
 
-            receiver.attach(
-                None,
-                clone!(@weak self as sidebar => @default-panic, move |code: String| {
-                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Flinux");
-                    glib::ControlFlow::Break
-                }),
-            );
+            glib::spawn_future_local(async move {
+                while let Ok(response) = receiver.recv().await {
+                    debug!("Opening browser with code: {response}");
+                    open_browser(&response, "https%3A%2F%2Fwww.unrealengine.com%2Flinux");
+                }
+            });
 
             thread::spawn(move || {
                 if let Some(token) = Builder::new_current_thread()
@@ -330,7 +335,7 @@ impl EpicEngineDownload {
                     .unwrap()
                     .block_on(eg.game_token())
                 {
-                    sender.send(token.code).unwrap();
+                    sender.send_blocking(token.code).unwrap();
                 }
             });
         }
@@ -344,17 +349,19 @@ impl EpicEngineDownload {
                     self_.size_row.set_visible(true);
                     self_.versions_row.set_visible(true);
                     self_.eula_stack.set_visible_child_name("valid");
-                    let (sender, receiver) = MainContext::channel(Priority::default());
+                    let (sender, receiver) = async_channel::bounded(1);
 
-                    receiver.attach(
-                        None,
-                        clone!(@weak self as ed => @default-panic, move |v| {
+                    let ed = self.clone();
+                    glib::spawn_future_local(async move {
+                        while let Ok(response) = receiver.recv().await {
                             let self_ = ed.imp();
                             let s = self_.sender.clone();
-                            s.send(Msg::Versions(v)).unwrap();
-                            glib::ControlFlow::Break
-                        }),
-                    );
+                            debug!("Sending versions to download manager");
+                            s.send_blocking(Msg::Versions(response)).unwrap();
+                            // TODO: This used to break
+                        }
+                    });
+
                     self.get_versions(sender);
                 } else {
                     self_.eula_stack.set_visible_child_name("invalid");
@@ -415,7 +422,7 @@ impl EpicEngineDownload {
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
             let Some(id) = eg.user_details().account_id else {
-                sender.send(Msg::EULAValid(false)).unwrap();
+                sender.send_blocking(Msg::EULAValid(false)).unwrap();
                 return;
             };
             thread::spawn(move || {
@@ -427,13 +434,15 @@ impl EpicEngineDownload {
                 {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
-                    sender.send(Msg::EULAValid(web.validate_eula(&id))).unwrap();
+                    sender
+                        .send_blocking(Msg::EULAValid(web.validate_eula(&id)))
+                        .unwrap();
                 };
             });
         }
     }
 
-    pub fn get_versions(&self, sender: Sender<Vec<Blob>>) {
+    pub fn get_versions(&self, sender: async_channel::Sender<Vec<Blob>>) {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
@@ -450,7 +459,7 @@ impl EpicEngineDownload {
                     if let Ok(versions) = web.run_query::<VersionResponse>(
                         "https://www.unrealengine.com/api/blobs/linux".to_string(),
                     ) {
-                        sender.send(versions.blobs).unwrap();
+                        sender.send_blocking(versions.blobs).unwrap();
                     };
                 }
             });

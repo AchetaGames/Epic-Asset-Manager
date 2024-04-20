@@ -1,23 +1,26 @@
-use adw::gdk::Texture;
-use gtk4::glib::{clone, MainContext, Receiver, Sender};
-use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*};
-use gtk4::{glib, CompositeTemplate};
-use gtk_macros::{action, get_action};
-use log::{debug, error};
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
+use adw::gdk::Texture;
+use gtk4::glib::clone;
+use gtk4::subclass::prelude::*;
+use gtk4::{self, gio, prelude::*};
+use gtk4::{glib, CompositeTemplate};
+use gtk_macros::{action, get_action};
+use log::{debug, error};
+
 pub mod imp {
-    use super::*;
-    use crate::ui::widgets::download_manager::EpicDownloadManager;
-    use gtk4::gio;
-    use gtk4::glib::Priority;
-    use once_cell::sync::OnceCell;
     use std::cell::RefCell;
+
+    use gtk4::gio;
+    use once_cell::sync::OnceCell;
     use threadpool::ThreadPool;
+
+    use crate::ui::widgets::download_manager::EpicDownloadManager;
+
+    use super::*;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/image_stack.ui")]
@@ -30,8 +33,8 @@ pub mod imp {
         pub settings: gio::Settings,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
-        pub sender: Sender<super::Msg>,
-        pub receiver: RefCell<Option<Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<super::Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<super::Msg>>>,
         asset: RefCell<Option<String>>,
     }
 
@@ -42,7 +45,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::bounded(1);
             Self {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 stack: TemplateChild::default(),
@@ -153,13 +156,14 @@ impl EpicImageOverlay {
 
     pub fn setup_receiver(&self) {
         let self_ = self.imp();
-        self_.receiver.borrow_mut().take().unwrap().attach(
-            None,
-            clone!(@weak self as img => @default-panic, move |msg| {
-                img.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let receiver = self_.receiver.borrow_mut().take().unwrap();
+        let img = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                debug!("image_stack: {:?}", &response);
+                img.update(response);
+            }
+        });
     }
 
     pub fn update(&self, msg: Msg) {
@@ -281,14 +285,16 @@ impl EpicImageOverlay {
         self_.image_load_pool.execute(move || {
             if cache_path.as_path().exists() {
                 match Texture::from_file(&gio::File::for_path(cache_path.as_path())) {
-                    Ok(t) => sender.send(Msg::ImageLoaded(t)).unwrap(),
+                    Ok(t) => sender.send_blocking(Msg::ImageLoaded(t)).unwrap(),
                     Err(e) => {
                         error!("Unable to load file to texture: {}", e);
                     }
                 };
             } else {
                 debug!("Need to download image");
-                sender.send(Msg::DownloadImage(asset, img.clone())).unwrap();
+                sender
+                    .send_blocking(Msg::DownloadImage(asset, img.clone()))
+                    .unwrap();
             };
         });
     }
