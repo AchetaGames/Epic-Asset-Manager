@@ -8,15 +8,15 @@
     <summary>Manage your Epic assets</summary>
     <icon type="remote" height="256" width="256">https://github.com/AchetaGames/Epic-Asset-Manager/raw/main/data/icons/io.github.achetagames.epic_asset_manager.png</icon>
     <description>
-      <p>An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store</p>
-      <p>Features:</p>
-      <ul>
-        <li>Downloading purchased assets from unreal marketplace</li>
-        <li>Downloading official binary Unreal Engine packages</li>
-        <li>Adding assets to projects and creating new projects from assets</li>
-        <li>Listing and launching Unreal projects</li>
-        <li>Listing and launching Unreal Engine installations</li>
-      </ul>
+        <p>An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store</p>
+        <p>Features:</p>
+        <ul>
+            <li>Downloading purchased assets from unreal marketplace</li>
+            <li>Downloading official binary Unreal Engine packages</li>
+            <li>Adding assets to projects and creating new projects from assets</li>
+            <li>Listing and launching Unreal projects</li>
+            <li>Listing and launching Unreal Engine installations</li>
+        </ul>
     </description>
     <categories>
         <category>Development</category>
@@ -27,11 +27,11 @@
         <category>FileTools</category>
     </categories>
     <keywords>
-      <keyword>unreal</keyword>
-      <keyword>engine</keyword>
-      <keyword>gamedev</keyword>
-      <keyword>assets</keyword>
-      <keyword>epic</keyword>
+        <keyword>unreal</keyword>
+        <keyword>engine</keyword>
+        <keyword>gamedev</keyword>
+        <keyword>assets</keyword>
+        <keyword>epic</keyword>
     </keywords>
     <screenshots>
         <screenshot type="default">
@@ -64,391 +64,409 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
-    <release version="3.8.4" date="2023-04-03">
-       <description>
-              <p>Update release</p>
-              <ul>
-                  <li>Gracefully handle corrupted chunk</li>
-                  <li>Update dependencies</li>
-                  <li>Fix actions</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.8.3" date="2023-01-24">
-       <description>
-              <p>Bug fixing</p>
-              <ul>
-                  <li>Handle malformed uproject properly</li>
-                  <li>Fix dependencies and remove git2 dependency</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.8.2" date="2022-11-15">
-       <description>
-              <p>Engine Install fix</p>
-              <ul>
-                  <li>Fix Engine version parsing</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.8.1" date="2022-10-25">
-       <description>
-              <p>Post release fixes</p>
-              <ul>
-                  <li>Fix inability to launch the engine</li>
-                  <li>Remove unnecessary conversion</li>
-                  <li>Cleanup dependencies</li>
-	     </ul>
-       </description>
-    </release>
-    <release version="3.8.0" date="2022-10-23">
-       <description>
-              <p>GTK update</p>
-              <ul>
-                  <li>Fix engine naming for previews</li>
-                  <li>Update gtk and gtk-rs</li>
-	      </ul>
-       </description>
-    </release>
-    <release version="3.7.1" date="2022-09-03">
-       <description>
-              <p>Fix OpenDir Panic</p>
-              <ul>
-                  <li>Handle directory open gracefully</li>
-                  <li>Update description</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.7.0" date="2022-09-01">
-       <description>
-              <p>Fix Epic login issue</p>
-              <ul>
-                  <li>Fix Epic login issue, closes #213</li>
-                  <li>Add exit conditions to logs reading threads</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.6.2" date="2022-07-30">
-       <description>
-              <p>Fix EULA validation</p>
-              <ul>
-                  <li>Remove hardcoded account ID</li>
-                  <li>Add more output to EULA verification</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.6.1" date="2022-07-27">
-       <description>
-              <p>Threading fixes</p>
-              <ul>
-                  <li>Add some thread exit conditions</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.6.0" date="2022-07-27">
-       <description>
-              <p>Official Engine Download</p>
-              <ul>
-                  <li>Add official engine download</li>
-                  <li>Add Marketplace button</li>
-                  <li>Add separator between side panels</li>
-                  <li>Rework the Engine install UI</li>
-                  <li>Update the API library</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.5.2" date="2022-07-12">
-       <description>
-              <p>Crash fixes</p>
-              <ul>
-                  <li>Fix cash thumbnail extension</li>
-                  <li>Switch to Texture for image loading, fixes #152, updates #192</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.5.1" date="2022-06-13">
-       <description>
-              <p>Additional Fixes</p>
-              <ul>
-                  <li>Fetch new assets first</li>
-                  <li>Add more details to confirmation</li>
-                  <li>Reverse into directory for space check</li>
-                  <li>Show loading for download size</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.5.0" date="2022-05-24">
-       <description>
-              <p>Minor improvements</p>
-              <ul>
-                  <li>Add timer to refresh</li>
-                  <li>Download chunks to vault</li>
-                  <li>Runtime log level modification</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.4.2" date="2022-05-23">
-       <description>
-              <p>Glibc patch</p>
-              <ul>
-                  <li>Force the GLIBC env variable</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.4.1" date="2022-05-18">
-       <description>
-              <p>GTK bump</p>
-              <ul>
-                  <li>Remove unnecessary variable</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.4.0" date="2022-05-09">
-       <description>
-              <p>Logs Overview</p>
-              <ul>
-                  <li>Log list for Projects and Engines</li>
-                  <li>Open button to Engine and Project</li>
-                  <li>Further improvements of the Secrets fallback</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.3.0" date="2022-05-02">
-       <description>
-              <p>Pause And Cancel</p>
-              <ul>
-                  <li>Local Assets Actions</li>
-                  <li>Show confirmation on engine install</li>
-                  <li>Add cancel and pause buttons to downloads</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.2.1" date="2022-04-25">
-       <description>
-              <p>Secret Fallback</p>
-              <ul>
-                  <li>Add secret service fallback</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.2.0" date="2022-04-24">
-       <description>
-              <p>Library Category rework</p>
-              <ul>
-                  <li>Complete Categories rewrite</li>
-                  <li>Remember the sidebar state on startup</li>
-                  <li>Add sidebar expanded setting</li>
-                  <li>Add sidebar category setting</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.1.2" date="2022-04-19">
-       <description>
-              <p>Category fixes</p>
-              <ul>
-                  <li>Use existing icon for "All" category</li>
-                  <li>Rework category filtering and add some subcategories by default to all</li>
-                  <li>Hide Images if there are no images to show Scale images properly</li>
-                  <li>Add warning message to Engine and Games</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.1.1" date="2022-04-17">
-       <description>
-              <p>Refresh fixes</p>
-              <ul>
-                  <li>Add confirmation on project and engine actions</li>
-                  <li>Clean invalid engines and projects on refresh</li>
-             </ul>
-       </description>
-    </release>
-    <release version="3.1.0" date="2022-04-15">
-       <description>
-              <p>Refresh button</p>
-              <ul>
-                  <li>Add refresh button and optimize Engine and Project loading</li>
-                  <li>Update the about dialog</li>
-                  <li>Move the Install Engine button</li>
-             </ul>
-       </description>
-    </release>
-    <release version="3.0.4" date="2022-04-11">
-       <description>
-              <p>Dark mode changes</p>
-              <ul>
-                  <li>Add force dark back so the app can be dark while rest of the system is light</li>
-                  <li>Remove Dark Theme button</li>
-                  <li>Do not have engine tab open by default</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.0.3" date="2022-04-09">
-       <description>
-              <p>Further fixes</p>
-              <ul>
-                  <li>Save the manifest to the correct path</li>
-                  <li>Unselect item on details closed</li>
-                  <li>Do not have project selected on start</li>
-                  <li>Close the download manager when you click open directory button</li>
-                  <li>Fix download URL case</li>
-</ul>
-       </description>
-    </release>
-    <release version="3.0.2" date="2022-04-08">
-       <description>
-              <p>Minor fixes</p>
-              <ul>
-                  <li>Update asset item after asset is finished downloading</li>
-                  <li>Create copy of duplicate file for safety</li>
-                  <li>Properly handle failed auth to ghcr</li>
-	     </ul>
-       </description>
-    </release>
-    <release version="3.0.0" date="2022-04-07">
-       <description>
-              <p>Asset management release</p>
-              <ul>
-                  <li>Add to project functionality</li>
-                  <li>Add open vault directory on already downloaded assets</li>
-                  <li>Add create project functionality</li>
-                  <li>Account for None filter</li>
-                  <li>Add additional details from download manifest</li>
-                  <li>Update to stable gnome 42</li>
-                  <li>Refactor the download manager</li>
-                  <li>Download respects the target download directory</li>
-                  <li>Add progress bar to asset loading</li>
-                  <li>Properly display the initial sorting choice</li>
-                  <li>Fix login issue</li>
-                  <li>Add logout button to the menu</li>
-                  <li>Add target directory selection</li>
-                  <li>Launch the engine properly from inside the flatpak</li>
-                  <li>Add donation link</li>
-                  <li>Load dark mode properly</li>
-                  <li>Add Actions button</li>
-                  <li>Open preferences on a correct page if GitHub token is not set up</li>
-                  <li>Save user details in DB</li>
-		</ul>
-       </description>
-    </release>
-    <release version="2.9.4" date="2022-01-21">
-       <description>
-              <p>Dark mode Fix</p>
-       </description>
-    </release>
-    <release version="2.9.3" date="2022-01-10">
-       <description>
-              <p>Crash fix</p>
-              <ul>
-                  <li>Remove non-existent property</li>
-              </ul>
-       </description>
-    </release>
-    <release version="2.9.2" date="2021-12-27">
-       <description>
-              <p>Fix release</p>
-              <ul>
-                  <li>Fix panic on creating json manifest</li>
-                  <li>Fix build due to libadwaita change</li>
-                  <li>Opening project with engine binary containing space fails.</li>
-                  <li>Fix the dependency to reflect the required ghregistry version</li>
-                  <li>If secret service is not available do not panic but display reasonable messages</li>
-              </ul>
-       </description>
-    </release>
-    <release version="2.9.0" date="2021-11-12">
-       <description>
-              <p>Engine install fixes</p>
-              <ul>
-                  <li>Check for disk space before engine install, fixed #126</li>
-                  <li>Fix engine not launching when there is space in the path, fixed #128</li>
-                  <li>Report broken download to the user, fixed #123</li>
-                  <li>Recursively scan for projects, fixed #83</li>
-</ul>
-       </description>
-    </release>
-    <release version="2.8.0" date="2021-11-08">
-       <description>
-              <p>A polish release fixing minor annoyances</p>
-              <ul>
-                  <li>Display available engine details</li>
-                  <li>Display if asset downloaded</li>
-                  <li>Display Category information in assets</li>
-                  <li>Display message instead of GUID on unmatched project</li>
-                  <li>Respect the default_view setting</li>
-                  <li>Add Asset counter</li>
-                  <li>Add visual indication of categories</li>
-                  <li>Windows build</li>
-</ul>
-       </description>
-    </release>
-    <release version="2.7.4" date="2021-11-02">
-       <description>
-              <p>Add notifications and implement them in couple places</p>
-       </description>
-    </release>
-    <release version="2.7.3" date="2021-11-01">
-       <description>
-              <p>Added Dark Mode</p>
-       </description>
-    </release>
-    <release version="2.7.2" date="2021-10-30">
-       <description>
-              <p>Fix crashes on XFCE</p>
-       </description>
-    </release>
-    <release version="2.7.1" date="2021-10-29">
-       <description>
-                  <p>Change ghregistry from github to crates.io</p>
-       </description>
-    </release>
-    <release version="2.7.0" date="2021-10-29">
-       <description>
-              <p>Install Engine from Docker</p>
-              <ul>
-                  <li>Fix the previous button enabled on empty images</li>
-              </ul>
-       </description>
-    </release>
-    <release version="2.6.1" date="2021-10-13">
-       <description>
-              <p>Asset Sorting</p>
-              <ul>
-                  <li>FIX: Correctly quit the application on exit</li>
-              </ul>
-       </description>
-    </release>
-    <release version="2.5.1" date="2021-10-12">
-       <description>
-              <p>UI Improvements</p>
-              <ul>
-                  <li>Use different(random) CDNs for download</li>
-              </ul>
-       </description>
-    </release>
-    <release version="2.4.0" date="2021-10-10">
-       <description>
-              <p>Add favorites functionality</p>
-              <ul>
-                  <li>Better code organisation</li>
-                  <li>Add database</li>
-</ul>
-       </description>
-    </release>
-    <release version="2.3.0" date="2021-10-03">
-       <description>
-              <p>Add Engine and Project sections</p>
-              <ul>
-                  <li>FIX: Redownload chunk if the download fails</li> 
-                  <li>FIX: assets not loading after the initial login</li>
-                  <li>Discover engines and check if they can be updated</li>
-                  <li>Load engines from configured directories</li>
-                  <li>Load projects and display them</li>
-                  <li>Launch a project if able</li> 
-                  <li>Remember last used engine</li> 
-                  <li>Remove the Unreal logo from the icon</li> 
-              </ul>
-       </description>
-    </release>
+        <release version="3.8.5" date="2024-05-10">
+            <description>
+                <p>Fix asset downloading</p>
+                <ul>
+                    <li>Update egs-api to the fixed version</li>
+                    <li>Fix tokio changes</li>
+                    <li>update env-logger</li>
+                    <li>Update byte-unit</li>
+                    <li>Add manual download instructions</li>
+                    <li>Update crates and fix code</li>
+                    <li>Add configuration files</li>
+                    <li>Add more debug messages</li>
+                    <li>Fix deprecations and clippy</li>
+                    <li>Update dependencies</li>
+                    <li>Update actions to latest gnome image</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.8.4" date="2023-04-03">
+            <description>
+                <p>Update release</p>
+                <ul>
+                    <li>Gracefully handle corrupted chunk</li>
+                    <li>Update dependencies</li>
+                    <li>Fix actions</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.8.3" date="2023-01-24">
+            <description>
+                <p>Bug fixing</p>
+                <ul>
+                    <li>Handle malformed uproject properly</li>
+                    <li>Fix dependencies and remove git2 dependency</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.8.2" date="2022-11-15">
+            <description>
+                <p>Engine Install fix</p>
+                <ul>
+                    <li>Fix Engine version parsing</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.8.1" date="2022-10-25">
+            <description>
+                <p>Post release fixes</p>
+                <ul>
+                    <li>Fix inability to launch the engine</li>
+                    <li>Remove unnecessary conversion</li>
+                    <li>Cleanup dependencies</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.8.0" date="2022-10-23">
+            <description>
+                <p>GTK update</p>
+                <ul>
+                    <li>Fix engine naming for previews</li>
+                    <li>Update gtk and gtk-rs</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.7.1" date="2022-09-03">
+            <description>
+                <p>Fix OpenDir Panic</p>
+                <ul>
+                    <li>Handle directory open gracefully</li>
+                    <li>Update description</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.7.0" date="2022-09-01">
+            <description>
+                <p>Fix Epic login issue</p>
+                <ul>
+                    <li>Fix Epic login issue, closes #213</li>
+                    <li>Add exit conditions to logs reading threads</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.6.2" date="2022-07-30">
+            <description>
+                <p>Fix EULA validation</p>
+                <ul>
+                    <li>Remove hardcoded account ID</li>
+                    <li>Add more output to EULA verification</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.6.1" date="2022-07-27">
+            <description>
+                <p>Threading fixes</p>
+                <ul>
+                    <li>Add some thread exit conditions</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.6.0" date="2022-07-27">
+            <description>
+                <p>Official Engine Download</p>
+                <ul>
+                    <li>Add official engine download</li>
+                    <li>Add Marketplace button</li>
+                    <li>Add separator between side panels</li>
+                    <li>Rework the Engine install UI</li>
+                    <li>Update the API library</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.5.2" date="2022-07-12">
+            <description>
+                <p>Crash fixes</p>
+                <ul>
+                    <li>Fix cash thumbnail extension</li>
+                    <li>Switch to Texture for image loading, fixes #152, updates #192</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.5.1" date="2022-06-13">
+            <description>
+                <p>Additional Fixes</p>
+                <ul>
+                    <li>Fetch new assets first</li>
+                    <li>Add more details to confirmation</li>
+                    <li>Reverse into directory for space check</li>
+                    <li>Show loading for download size</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.5.0" date="2022-05-24">
+            <description>
+                <p>Minor improvements</p>
+                <ul>
+                    <li>Add timer to refresh</li>
+                    <li>Download chunks to vault</li>
+                    <li>Runtime log level modification</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.4.2" date="2022-05-23">
+            <description>
+                <p>Glibc patch</p>
+                <ul>
+                    <li>Force the GLIBC env variable</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.4.1" date="2022-05-18">
+            <description>
+                <p>GTK bump</p>
+                <ul>
+                    <li>Remove unnecessary variable</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.4.0" date="2022-05-09">
+            <description>
+                <p>Logs Overview</p>
+                <ul>
+                    <li>Log list for Projects and Engines</li>
+                    <li>Open button to Engine and Project</li>
+                    <li>Further improvements of the Secrets fallback</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.3.0" date="2022-05-02">
+            <description>
+                <p>Pause And Cancel</p>
+                <ul>
+                    <li>Local Assets Actions</li>
+                    <li>Show confirmation on engine install</li>
+                    <li>Add cancel and pause buttons to downloads</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.2.1" date="2022-04-25">
+            <description>
+                <p>Secret Fallback</p>
+                <ul>
+                    <li>Add secret service fallback</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.2.0" date="2022-04-24">
+            <description>
+                <p>Library Category rework</p>
+                <ul>
+                    <li>Complete Categories rewrite</li>
+                    <li>Remember the sidebar state on startup</li>
+                    <li>Add sidebar expanded setting</li>
+                    <li>Add sidebar category setting</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.1.2" date="2022-04-19">
+            <description>
+                <p>Category fixes</p>
+                <ul>
+                    <li>Use existing icon for "All" category</li>
+                    <li>Rework category filtering and add some subcategories by default to all</li>
+                    <li>Hide Images if there are no images to show Scale images properly</li>
+                    <li>Add warning message to Engine and Games</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.1.1" date="2022-04-17">
+            <description>
+                <p>Refresh fixes</p>
+                <ul>
+                    <li>Add confirmation on project and engine actions</li>
+                    <li>Clean invalid engines and projects on refresh</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.1.0" date="2022-04-15">
+            <description>
+                <p>Refresh button</p>
+                <ul>
+                    <li>Add refresh button and optimize Engine and Project loading</li>
+                    <li>Update the about dialog</li>
+                    <li>Move the Install Engine button</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.0.4" date="2022-04-11">
+            <description>
+                <p>Dark mode changes</p>
+                <ul>
+                    <li>Add force dark back so the app can be dark while rest of the system is light</li>
+                    <li>Remove Dark Theme button</li>
+                    <li>Do not have engine tab open by default</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.0.3" date="2022-04-09">
+            <description>
+                <p>Further fixes</p>
+                <ul>
+                    <li>Save the manifest to the correct path</li>
+                    <li>Unselect item on details closed</li>
+                    <li>Do not have project selected on start</li>
+                    <li>Close the download manager when you click open directory button</li>
+                    <li>Fix download URL case</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.0.2" date="2022-04-08">
+            <description>
+                <p>Minor fixes</p>
+                <ul>
+                    <li>Update asset item after asset is finished downloading</li>
+                    <li>Create copy of duplicate file for safety</li>
+                    <li>Properly handle failed auth to ghcr</li>
+                </ul>
+            </description>
+        </release>
+        <release version="3.0.0" date="2022-04-07">
+            <description>
+                <p>Asset management release</p>
+                <ul>
+                    <li>Add to project functionality</li>
+                    <li>Add open vault directory on already downloaded assets</li>
+                    <li>Add create project functionality</li>
+                    <li>Account for None filter</li>
+                    <li>Add additional details from download manifest</li>
+                    <li>Update to stable gnome 42</li>
+                    <li>Refactor the download manager</li>
+                    <li>Download respects the target download directory</li>
+                    <li>Add progress bar to asset loading</li>
+                    <li>Properly display the initial sorting choice</li>
+                    <li>Fix login issue</li>
+                    <li>Add logout button to the menu</li>
+                    <li>Add target directory selection</li>
+                    <li>Launch the engine properly from inside the flatpak</li>
+                    <li>Add donation link</li>
+                    <li>Load dark mode properly</li>
+                    <li>Add Actions button</li>
+                    <li>Open preferences on a correct page if GitHub token is not set up</li>
+                    <li>Save user details in DB</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.9.4" date="2022-01-21">
+            <description>
+                <p>Dark mode Fix</p>
+            </description>
+        </release>
+        <release version="2.9.3" date="2022-01-10">
+            <description>
+                <p>Crash fix</p>
+                <ul>
+                    <li>Remove non-existent property</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.9.2" date="2021-12-27">
+            <description>
+                <p>Fix release</p>
+                <ul>
+                    <li>Fix panic on creating json manifest</li>
+                    <li>Fix build due to libadwaita change</li>
+                    <li>Opening project with engine binary containing space fails.</li>
+                    <li>Fix the dependency to reflect the required ghregistry version</li>
+                    <li>If secret service is not available do not panic but display reasonable messages</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.9.0" date="2021-11-12">
+            <description>
+                <p>Engine install fixes</p>
+                <ul>
+                    <li>Check for disk space before engine install, fixed #126</li>
+                    <li>Fix engine not launching when there is space in the path, fixed #128</li>
+                    <li>Report broken download to the user, fixed #123</li>
+                    <li>Recursively scan for projects, fixed #83</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.8.0" date="2021-11-08">
+            <description>
+                <p>A polish release fixing minor annoyances</p>
+                <ul>
+                    <li>Display available engine details</li>
+                    <li>Display if asset downloaded</li>
+                    <li>Display Category information in assets</li>
+                    <li>Display message instead of GUID on unmatched project</li>
+                    <li>Respect the default_view setting</li>
+                    <li>Add Asset counter</li>
+                    <li>Add visual indication of categories</li>
+                    <li>Windows build</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.7.4" date="2021-11-02">
+            <description>
+                <p>Add notifications and implement them in couple places</p>
+            </description>
+        </release>
+        <release version="2.7.3" date="2021-11-01">
+            <description>
+                <p>Added Dark Mode</p>
+            </description>
+        </release>
+        <release version="2.7.2" date="2021-10-30">
+            <description>
+                <p>Fix crashes on XFCE</p>
+            </description>
+        </release>
+        <release version="2.7.1" date="2021-10-29">
+            <description>
+                <p>Change ghregistry from github to crates.io</p>
+            </description>
+        </release>
+        <release version="2.7.0" date="2021-10-29">
+            <description>
+                <p>Install Engine from Docker</p>
+                <ul>
+                    <li>Fix the previous button enabled on empty images</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.6.1" date="2021-10-13">
+            <description>
+                <p>Asset Sorting</p>
+                <ul>
+                    <li>FIX: Correctly quit the application on exit</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.5.1" date="2021-10-12">
+            <description>
+                <p>UI Improvements</p>
+                <ul>
+                    <li>Use different(random) CDNs for download</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.4.0" date="2021-10-10">
+            <description>
+                <p>Add favorites functionality</p>
+                <ul>
+                    <li>Better code organisation</li>
+                    <li>Add database</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2.3.0" date="2021-10-03">
+            <description>
+                <p>Add Engine and Project sections</p>
+                <ul>
+                    <li>FIX: Redownload chunk if the download fails</li>
+                    <li>FIX: assets not loading after the initial login</li>
+                    <li>Discover engines and check if they can be updated</li>
+                    <li>Load engines from configured directories</li>
+                    <li>Load projects and display them</li>
+                    <li>Launch a project if able</li>
+                    <li>Remember last used engine</li>
+                    <li>Remove the Unreal logo from the icon</li>
+                </ul>
+            </description>
+        </release>
         <release version="2.2.2" date="2021-09-16">
             <description>
                 <p>Initial asset load fix</p>
