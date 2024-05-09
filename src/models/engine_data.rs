@@ -1,4 +1,3 @@
-use glib::clone;
 use glib::ObjectExt;
 use gtk4::{glib, prelude::*, subclass::prelude::*};
 use serde::{Deserialize, Serialize};
@@ -97,8 +96,8 @@ mod imp {
         updatable: RefCell<bool>,
         has_branch: RefCell<bool>,
         pub ueversion: RefCell<Option<UnrealVersion>>,
-        pub sender: glib::Sender<Msg>,
-        pub receiver: RefCell<Option<glib::Receiver<Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub model: OnceCell<gtk4::gio::ListStore>,
         pub position: OnceCell<u32>,
     }
@@ -110,7 +109,7 @@ mod imp {
         type Type = super::EngineData;
 
         fn new() -> Self {
-            let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -229,8 +228,8 @@ impl EngineData {
         let self_ = data.imp();
         self_.position.set(model.n_items()).unwrap();
         self_.model.set(model.clone()).unwrap();
-        data.set_property("path", &path);
-        data.set_property("guid", &guid);
+        data.set_property("path", path);
+        data.set_property("guid", guid);
         self_.ueversion.replace(Some(version.clone()));
         data.set_property("version", version.format());
         if let Some(path) = data.path() {
@@ -259,13 +258,12 @@ impl EngineData {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as engine => @default-panic, move |msg| {
-                engine.update(msg);
-                glib::Continue(true)
-            }),
-        );
+        let engine = self.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(response) = receiver.recv().await {
+                engine.update(response);
+            }
+        });
     }
 
     pub fn update(&self, msg: Msg) {
@@ -282,7 +280,7 @@ impl EngineData {
     }
 
     #[allow(clippy::missing_const_for_fn)]
-    fn needs_repo_update(_path: &str, _sender: &Option<glib::Sender<Msg>>) -> bool {
+    fn needs_repo_update(_path: &str, _sender: &Option<async_channel::Sender<Msg>>) -> bool {
         // #[cfg(target_os = "linux")]
         // This is disabled due to issues with git2 crate and constant need to rebuild if git lib gets updated
         // {

@@ -1,11 +1,12 @@
 use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
-use gtk4::glib::clone;
+use gtk4::glib::{clone, Priority};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{error, warn};
 use std::thread;
+use tokio::runtime::Builder;
 
 pub mod button;
 pub mod categories;
@@ -196,18 +197,20 @@ impl EpicSidebar {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
 
             receiver.attach(
                 None,
                 clone!(@weak self as sidebar => @default-panic, move |code:String| {
                     open_browser(&code);
-                    glib::Continue(false)
+                    glib::ControlFlow::Break
                 }),
             );
 
             thread::spawn(move || {
-                match tokio::runtime::Runtime::new()
+                match Builder::new_current_thread()
+                    .enable_all()
+                    .build()
                     .unwrap()
                     .block_on(eg.game_token())
                 {
@@ -293,10 +296,10 @@ impl EpicSidebar {
         if let Err(e) = self_.settings.set_boolean("sidebar-expanded", new_value) {
             warn!("Unable to save sidebar state: {}", e);
         };
-        self.set_property("expanded", &new_value);
-        self_.all_category.set_property("expanded", &new_value);
-        self_.unreal_category.set_property("expanded", &new_value);
-        self_.games_category.set_property("expanded", &new_value);
+        self.set_property("expanded", new_value);
+        self_.all_category.set_property("expanded", new_value);
+        self_.unreal_category.set_property("expanded", new_value);
+        self_.games_category.set_property("expanded", new_value);
     }
 
     pub fn filter_changed(&self) {

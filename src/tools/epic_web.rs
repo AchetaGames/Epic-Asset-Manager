@@ -137,7 +137,7 @@ impl EpicWeb {
 
     pub fn validate_eula(&self, id: &str) -> bool {
         let mut map = HashMap::new();
-        let query= vec!["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", id, "\"){            accepted            key            locale            version        }    }}"];
+        let query= ["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", id, "\"){            accepted            key            locale            version        }    }}"];
         map.insert("query", query.join(""));
         match self
             .client
@@ -155,9 +155,9 @@ impl EpicWeb {
                             Ok(eula) => {
                                 return match eula.data.eula.has_account_accepted {
                                     None => {
-                                        eula.errors.map_or((), |errors| for error in errors {
-                                                                                      error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
-                                                                                });
+                                        let _ = eula.errors.map_or((), |errors| for error in errors {
+                                            error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
+                                        });
                                         false
                                     }
                                     Some(accepted) => accepted.accepted,

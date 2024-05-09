@@ -42,7 +42,7 @@ mod imp {
     use super::*;
     use glib::ToValue;
     use gtk4::gdk::Texture;
-    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString, Priority};
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -66,7 +66,7 @@ mod imp {
         type ParentType = glib::Object;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -162,8 +162,8 @@ impl ProjectData {
     pub fn new(path: &str, name: &str) -> ProjectData {
         let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
-        data.set_property("path", &path);
-        data.set_property("name", &name);
+        data.set_property("path", path);
+        data.set_property("name", name);
         let mut uproject = Self::read_uproject(path);
         uproject.engine_association = uproject
             .engine_association
@@ -225,7 +225,7 @@ impl ProjectData {
             None,
             clone!(@weak self as project => @default-panic, move |msg| {
                 project.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }

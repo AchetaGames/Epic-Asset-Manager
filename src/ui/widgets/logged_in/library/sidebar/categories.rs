@@ -50,7 +50,7 @@ pub mod imp {
                 expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
                 categories: TemplateChild::default(),
-                cats: ListStore::new(CategoryData::static_type()),
+                cats: ListStore::new::<CategoryData>(),
                 selection_model: SingleSelection::new(None::<gtk4::gio::ListModel>),
                 categories_set: RefCell::new(HashSet::new()),
                 previous: TemplateChild::default(),
@@ -241,7 +241,7 @@ impl EpicSidebarCategories {
                 .unwrap();
 
             let child = list_item.child().unwrap().downcast::<crate::ui::widgets::logged_in::library::sidebar::category::EpicSidebarCategory>().unwrap();
-            child.set_property("title", &data.name());
+            child.set_property("title", data.name());
             child.set_property("leaf", data.leaf());
         });
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {

@@ -1,5 +1,5 @@
 use adw::gdk::Texture;
-use gtk4::glib::{clone, MainContext, Receiver, Sender, PRIORITY_DEFAULT};
+use gtk4::glib::{clone, MainContext, Receiver, Sender};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -14,6 +14,7 @@ pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use gtk4::gio;
+    use gtk4::glib::Priority;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -41,7 +42,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+            let (sender, receiver) = MainContext::channel(Priority::default());
             Self {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 stack: TemplateChild::default(),
@@ -156,7 +157,7 @@ impl EpicImageOverlay {
             None,
             clone!(@weak self as img => @default-panic, move |msg| {
                 img.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }

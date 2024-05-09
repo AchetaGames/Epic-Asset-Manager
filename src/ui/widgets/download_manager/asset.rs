@@ -1,10 +1,9 @@
 use crate::tools::asset_info::Search;
 use crate::ui::widgets::download_manager::Msg::CancelChunk;
 use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessages};
-use egs_api::api::types::chunk::Chunk;
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::Sender;
+use gtk4::glib::{Priority, Sender};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use log::{debug, error, info, warn};
@@ -13,10 +12,12 @@ use reqwest::Url;
 use sha1::digest::core_api::CoreWrapper;
 use sha1::{Digest, Sha1, Sha1Core};
 use std::ffi::OsString;
+use std::fmt::Write;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use tokio::runtime::Builder;
 
 #[derive(Default, Debug, Clone)]
 pub struct DownloadedFile {
@@ -36,7 +37,7 @@ pub trait Asset {
         _release_id: String,
         _asset: egs_api::api::types::asset_info::AssetInfo,
         _target: &Option<String>,
-        _actions: Option<Vec<super::PostDownloadAction>>,
+        _actions: Option<Vec<PostDownloadAction>>,
     ) {
         unimplemented!()
     }
@@ -77,12 +78,12 @@ pub trait Asset {
         unimplemented!()
     }
 
-    fn redownload_chunk(&self, _link: &reqwest::Url, _p: PathBuf, _g: &str) {
+    fn redownload_chunk(&self, _link: &Url, _p: PathBuf, _g: &str) {
         unimplemented!()
     }
 
     /// Download Chunks
-    fn download_chunk(&self, _link: reqwest::Url, _p: PathBuf, _g: String) {
+    fn download_chunk(&self, _link: Url, _p: PathBuf, _g: String) {
         unimplemented!()
     }
 
@@ -156,7 +157,7 @@ impl Asset for super::EpicDownloadManager {
         release_id: String,
         asset: egs_api::api::types::asset_info::AssetInfo,
         target: &Option<String>,
-        actions: Option<Vec<super::PostDownloadAction>>,
+        actions: Option<Vec<PostDownloadAction>>,
     ) {
         debug!("Adding download: {:?}", asset.title);
 
@@ -206,7 +207,7 @@ impl Asset for super::EpicDownloadManager {
             }),
         );
 
-        let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+        let (sender, receiver) = glib::MainContext::channel(Priority::default());
 
         receiver.attach(
             None,
@@ -214,7 +215,7 @@ impl Asset for super::EpicDownloadManager {
                 let self_ = download_manager.imp();
                 let sender = self_.sender.clone();
                 sender.send(super::Msg::StartAssetDownload(id, manifest)).unwrap();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
 
@@ -242,19 +243,22 @@ impl Asset for super::EpicDownloadManager {
                 }
                 let start = std::time::Instant::now();
                 if let Some(release_info) = asset.release_info(&release_id) {
-                    if let Some(manifest) =
-                        tokio::runtime::Runtime::new()
-                            .unwrap()
-                            .block_on(eg.asset_manifest(
-                                None,
-                                None,
-                                Some(asset.namespace),
-                                Some(asset.id),
-                                Some(release_info.app_id.unwrap_or_default()),
-                            ))
+                    if let Some(manifest) = Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap()
+                        .block_on(eg.asset_manifest(
+                            None,
+                            None,
+                            Some(asset.namespace),
+                            Some(asset.id),
+                            Some(release_info.app_id.unwrap_or_default()),
+                        ))
                     {
                         debug!("Got asset manifest: {:?}", manifest);
-                        let d = tokio::runtime::Runtime::new()
+                        let d = Builder::new_current_thread()
+                            .enable_all()
+                            .build()
                             .unwrap()
                             .block_on(eg.asset_download_manifests(manifest));
                         debug!("Got asset download manifests for {}", id);
@@ -275,7 +279,9 @@ impl Asset for super::EpicDownloadManager {
         dm: &[egs_api::api::types::download_manifest::DownloadManifest],
     ) {
         let self_ = self.imp();
-        let Some(item) = self.get_item(id) else { return };
+        let Some(item) = self.get_item(id) else {
+            return;
+        };
         if dm.is_empty() {
             item.set_property("status", "Failed to get download manifests".to_string());
             return;
@@ -351,6 +357,7 @@ impl Asset for super::EpicDownloadManager {
 
             let m = manifest.clone();
             let full_path = target.clone().as_path().join(filename);
+
             self_.download_pool.execute(move || {
                 initiate_file_download(&r_id, &r_name, &f_name, &sender, m, &full_path);
             });
@@ -366,8 +373,11 @@ impl Asset for super::EpicDownloadManager {
         filename: String,
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
+        info!("Downloading file {} for {}", filename, id);
         let self_ = self.imp();
-        let Some(_item) = self.get_item(&id) else { return };
+        let Some(_item) = self.get_item(&id) else {
+            return;
+        };
         let vaults = self_.settings.strv("unreal-vault-directories");
         let mut target = std::path::PathBuf::from(vaults.first().map_or_else(
             || {
@@ -405,23 +415,24 @@ impl Asset for super::EpicDownloadManager {
             match chunks.get_mut(&chunk.guid) {
                 None => {
                     chunks.insert(chunk.guid.clone(), vec![full_filename.clone()]);
+                    info!("Inserting file into chunk init {}", full_filename.clone());
                     let mut p = target.clone();
                     let g = chunk.guid.clone();
                     p.push(format!("{g}.chunk"));
                     sender
-                        .send(super::Msg::RedownloadChunk(
-                            reqwest::Url::parse("unix:/").unwrap(),
-                            p,
-                            g,
-                        ))
+                        .send(Msg::RedownloadChunk(Url::parse("unix:/").unwrap(), p, g))
                         .unwrap();
                 }
-                Some(files) => files.push(full_filename.clone()),
+                Some(files) => {
+                    files.push(full_filename.clone());
+                    info!("Inserting file into chunk {}", full_filename.clone());
+                }
             }
+            info!("Chunks length: {}", chunks.len());
         }
     }
 
-    fn redownload_chunk(&self, link: &reqwest::Url, p: PathBuf, g: &str) {
+    fn redownload_chunk(&self, link: &Url, p: PathBuf, g: &str) {
         let self_ = self.imp();
         let sender = self_.sender.clone();
         let mut chunks = self_.chunk_urls.borrow_mut();
@@ -429,11 +440,7 @@ impl Asset for super::EpicDownloadManager {
             None => {
                 // Unable to get chunk urls
                 sender
-                    .send(super::Msg::PerformChunkDownload(
-                        link.clone(),
-                        p,
-                        g.to_string(),
-                    ))
+                    .send(Msg::PerformChunkDownload(link.clone(), p, g.to_string()))
                     .unwrap();
             }
             Some(v) => {
@@ -442,7 +449,7 @@ impl Asset for super::EpicDownloadManager {
                     // No other URL available, redownloading
                     //TODO: This has the potential to loop forever
                     sender
-                        .send(super::Msg::PerformChunkDownload(
+                        .send(Msg::PerformChunkDownload(
                             link.clone(),
                             p.clone(),
                             g.to_string(),
@@ -451,26 +458,18 @@ impl Asset for super::EpicDownloadManager {
                 };
                 let mut rng = rand::thread_rng();
                 let index = rng.gen_range(0..v.len());
-                let new: Option<&reqwest::Url> = v.get(index);
+                let new: Option<&Url> = v.get(index);
                 match new {
                     None => {
                         // Unable to get random URL, retrying the same one
                         sender
-                            .send(super::Msg::PerformChunkDownload(
-                                link.clone(),
-                                p,
-                                g.to_string(),
-                            ))
+                            .send(Msg::PerformChunkDownload(link.clone(), p, g.to_string()))
                             .unwrap();
                     }
                     Some(u) => {
                         // Using new url to redownload the chunk
                         sender
-                            .send(super::Msg::PerformChunkDownload(
-                                u.clone(),
-                                p,
-                                g.to_string(),
-                            ))
+                            .send(Msg::PerformChunkDownload(u.clone(), p, g.to_string()))
                             .unwrap();
                     }
                 }
@@ -479,12 +478,12 @@ impl Asset for super::EpicDownloadManager {
     }
 
     /// Download Chunks
-    fn download_chunk(&self, link: reqwest::Url, p: PathBuf, g: String) {
+    fn download_chunk(&self, link: Url, p: PathBuf, g: String) {
         let self_ = self.imp();
         if !link.has_host() {
             return;
         }
-        let (send, recv) = std::sync::mpsc::channel::<super::ThreadMessages>();
+        let (send, recv) = std::sync::mpsc::channel::<ThreadMessages>();
         self.add_thread_sender(g.clone(), send);
         let sender = self_.sender.clone();
         self_.download_pool.execute(move || {
@@ -509,11 +508,7 @@ impl Asset for super::EpicDownloadManager {
                 Err(e) => {
                     error!("Failed to start chunk download, trying again later: {}", e);
                     sender
-                        .send(super::Msg::RedownloadChunk(
-                            link.clone(),
-                            p.clone(),
-                            g.clone(),
-                        ))
+                        .send(Msg::RedownloadChunk(link.clone(), p.clone(), g.clone()))
                         .unwrap();
                     return;
                 }
@@ -534,13 +529,9 @@ impl Asset for super::EpicDownloadManager {
                         }
                         if size > 0 {
                             downloaded += size as u128;
-                            file.write_all(&buffer[0..size]).unwrap();
+                            std::io::Write::write_all(&mut file, &buffer[0..size]).unwrap();
                             sender
-                                .send(super::Msg::ChunkDownloadProgress(
-                                    g.clone(),
-                                    size as u128,
-                                    false,
-                                ))
+                                .send(Msg::ChunkDownloadProgress(g.clone(), size as u128, false))
                                 .unwrap();
                         } else {
                             break;
@@ -553,11 +544,7 @@ impl Asset for super::EpicDownloadManager {
                 }
             }
             sender
-                .send(super::Msg::ChunkDownloadProgress(
-                    g.clone(),
-                    downloaded,
-                    true,
-                ))
+                .send(Msg::ChunkDownloadProgress(g.clone(), downloaded, true))
                 .unwrap();
         });
     }
@@ -602,8 +589,8 @@ impl Asset for super::EpicDownloadManager {
                 for file in files {
                     if let Some(f) = self_.downloaded_files.borrow_mut().get_mut(file) {
                         let Some(item) = self.get_item(&f.asset) else {
-                                                             break;
-                                                    };
+                            break;
+                        };
                         item.add_downloaded_size(progress);
                         self.emit_by_name::<()>("tick", &[]);
                         break;
@@ -628,7 +615,9 @@ impl Asset for super::EpicDownloadManager {
         filename: String,
     ) {
         let self_ = self.imp();
-        let Some(item) = self.get_item(&asset_id) else { return; };
+        let Some(item) = self.get_item(&asset_id) else {
+            return;
+        };
 
         let mut targets: Vec<(String, bool)> = Vec::new();
         {
@@ -647,10 +636,7 @@ impl Asset for super::EpicDownloadManager {
 
         item.add_downloaded_size(progress);
         self.emit_by_name::<()>("tick", &[]);
-        self_
-            .sender
-            .send(super::Msg::FileExtracted(asset_id))
-            .unwrap();
+        self_.sender.send(Msg::FileExtracted(asset_id)).unwrap();
     }
 
     fn pause_asset_download(&self, asset: String) {
@@ -766,16 +752,12 @@ fn process_thread_message(link: &Url, p: &Path, g: &str, sender: &Sender<Msg>, m
     match m {
         ThreadMessages::Cancel => {
             sender
-                .send(super::Msg::CancelChunk(
-                    link.clone(),
-                    p.to_path_buf(),
-                    g.to_string(),
-                ))
+                .send(CancelChunk(link.clone(), p.to_path_buf(), g.to_string()))
                 .unwrap();
         }
         ThreadMessages::Pause => {
             sender
-                .send(super::Msg::PauseChunk(
+                .send(Msg::PauseChunk(
                     link.clone(),
                     p.to_path_buf(),
                     g.to_string(),
@@ -816,9 +798,7 @@ fn save_asset_manifest(
     match File::create(tar.join("manifest.json")) {
         Ok(mut json_manifest_file) => match serde_json::to_string(&manifest) {
             Ok(json) => {
-                json_manifest_file
-                    .write_all(json.as_bytes().as_ref())
-                    .unwrap();
+                std::io::Write::write_all(&mut json_manifest_file, json.as_bytes()).unwrap();
             }
             Err(e) => {
                 error!("Unable to save json manifest: {}", e);
@@ -830,7 +810,7 @@ fn save_asset_manifest(
     }
     match File::create(tar.join("manifest")) {
         Ok(mut manifest_file) => {
-            manifest_file.write_all(&manifest.to_vec()).unwrap();
+            std::io::Write::write_all(&mut manifest_file, &manifest.to_vec()).unwrap();
         }
         Err(e) => {
             error!("Unable to save binary Manifest: {:?}", e);
@@ -842,10 +822,11 @@ fn initiate_file_download(
     r_id: &str,
     r_name: &str,
     f_name: &str,
-    sender: &Sender<super::Msg>,
+    sender: &Sender<Msg>,
     m: egs_api::api::types::download_manifest::FileManifestList,
     full_path: &Path,
 ) {
+    debug!("Initiating file download: {}", f_name);
     if let Ok(w) = crate::RUNNING.read() {
         if !*w {
             return;
@@ -866,10 +847,13 @@ fn initiate_file_download(
             }
             let hash = hasher.finalize();
             if m.file_hash
-                .eq(&hash.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                .eq(&hash.iter().fold(String::new(), |mut output, b| {
+                    write!(output, "{b:02x}").unwrap();
+                    output
+                }))
             {
                 sender
-                    .send(super::Msg::FileAlreadyDownloaded(
+                    .send(Msg::FileAlreadyDownloaded(
                         r_id.to_string(),
                         m.size(),
                         full_path.to_str().unwrap().to_string(),
@@ -879,7 +863,7 @@ fn initiate_file_download(
             } else {
                 warn!("Hashes do not match, downloading again: {:?}", full_path);
                 sender
-                    .send(super::Msg::PerformAssetDownload(
+                    .send(Msg::PerformAssetDownload(
                         r_id.to_string(),
                         r_name.to_string(),
                         f_name.to_string(),
@@ -891,7 +875,7 @@ fn initiate_file_download(
         // File does not exist perform download
         Err(_) => {
             sender
-                .send(super::Msg::PerformAssetDownload(
+                .send(Msg::PerformAssetDownload(
                     r_id.to_string(),
                     r_name.to_string(),
                     f_name.to_string(),
@@ -929,7 +913,7 @@ impl AssetPriv for super::EpicDownloadManager {
                         cache_path.as_path(),
                     )) {
                         Ok(t) => sender
-                            .send(super::Msg::ProcessItemThumbnail(id.clone(), t))
+                            .send(Msg::ProcessItemThumbnail(id.clone(), t))
                             .unwrap(),
                         Err(e) => {
                             error!("Unable to load file to texture: {}", e);
@@ -1015,14 +999,14 @@ impl AssetPriv for super::EpicDownloadManager {
                         extract_chunks(finished.chunks, &temp.clone(), &mut target).finalize();
                     if finished
                         .hash
-                        .eq(&hash.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                        .eq(&hash.iter().fold(String::new(), |mut output, b| {
+                            write!(output, "{b:02x}").unwrap();
+                            output
+                        }))
                     {
                         copy_files(&vault.clone(), targets, &finished.name);
                         sender
-                            .send(super::Msg::FinalizeFileDownload(
-                                file_c.to_string(),
-                                f_c.clone(),
-                            ))
+                            .send(Msg::FinalizeFileDownload(file_c.to_string(), f_c.clone()))
                             .unwrap();
                     } else {
                         error!("Failed to validate hash on: {:?}", vault);
@@ -1068,11 +1052,11 @@ fn extract_chunks(
                 };
                 hasher
                     .update(&ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize]);
-                target
-                    .write_all(
-                        &ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize],
-                    )
-                    .unwrap();
+                std::io::Write::write_all(
+                    target,
+                    &ch.data[chunk.offset as usize..(chunk.offset + chunk.size) as usize],
+                )
+                .unwrap();
             }
             Err(e) => {
                 error!("Error opening the chunk file: {:?}", e);

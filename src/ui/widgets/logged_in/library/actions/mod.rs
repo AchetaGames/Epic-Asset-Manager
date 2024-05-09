@@ -9,7 +9,7 @@ use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
 use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
-use gtk4::glib::clone;
+use gtk4::glib::{clone, Priority};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*, SizeGroupMode};
 use gtk4::{glib, CompositeTemplate};
@@ -447,15 +447,17 @@ impl EpicAssetActions {
                     self_.download_details.set_manifest(&manifest);
                     self_.create_asset_project.set_manifest(&manifest);
                     self_.size_label.borrow().set_label(&format!(
-                        "{}",
-                        byte_unit::Byte::from_bytes(manifest.total_download_size())
-                            .get_appropriate_unit(false)
+                        "{:.2}",
+                        byte_unit::Byte::from_u128(manifest.total_download_size())
+                            .unwrap_or_default()
+                            .get_appropriate_unit(byte_unit::UnitType::Decimal)
                     ));
 
                     self_.disk_size_label.borrow().set_label(&format!(
-                        "{}",
-                        byte_unit::Byte::from_bytes(manifest.total_size())
-                            .get_appropriate_unit(false)
+                        "{:.2}",
+                        byte_unit::Byte::from_u128(manifest.total_size())
+                            .unwrap_or_default()
+                            .get_appropriate_unit(byte_unit::UnitType::Decimal)
                     ));
                 }
             }
@@ -517,13 +519,13 @@ impl EpicAssetActions {
                     let (sender, receiver) = glib::MainContext::channel::<(
                         String,
                         Vec<egs_api::api::types::download_manifest::DownloadManifest>,
-                    )>(gtk4::glib::PRIORITY_DEFAULT);
+                    )>(Priority::default());
 
                     receiver.attach(
                         None,
                         clone!(@weak self as asset_actions => @default-panic, move |(id, manifest)| {
                             asset_actions.process_download_manifest(&id, manifest);
-                            glib::Continue(true)
+                            glib::ControlFlow::Continue
                         }),
                     );
 

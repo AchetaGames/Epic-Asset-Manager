@@ -1,4 +1,4 @@
-use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk4::{self, glib, subclass::prelude::*, CompositeTemplate};
 
 #[derive(Debug, Clone)]
 pub enum Msg {
@@ -8,7 +8,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
-    use gtk4::glib::Object;
+    use gtk4::glib::{Object, Priority};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -20,7 +20,7 @@ pub mod imp {
         pub model: ListStore,
         pub sender: gtk4::glib::Sender<super::Msg>,
         pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
-        pub pending: std::sync::Arc<std::sync::RwLock<Vec<Object>>>,
+        pub pending: std::sync::RwLock<Vec<Object>>,
         pub load_pool: ThreadPool,
     }
 
@@ -31,13 +31,13 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 window: OnceCell::new(),
-                model: gtk4::gio::ListStore::new(crate::models::log_data::LogData::static_type()),
+                model: gtk4::gio::ListStore::new::<crate::models::log_data::LogData>(),
                 sender,
                 receiver: RefCell::new(Some(receiver)),
-                pending: std::sync::Arc::new(std::sync::RwLock::default()),
+                pending: std::sync::RwLock::default(),
                 load_pool: ThreadPool::with_name("Logs Load Pool".to_string(), 1),
             }
         }

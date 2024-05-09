@@ -11,6 +11,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use tokio::runtime::Builder;
 
 mod actions;
 mod asset;
@@ -29,7 +30,6 @@ pub mod imp {
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::{HashMap, HashSet};
-    use std::sync::Arc;
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -68,7 +68,7 @@ pub mod imp {
         pub asset_product_names: RefCell<HashMap<String, String>>,
         pub asset_load_pool: ThreadPool,
         pub image_load_pool: ThreadPool,
-        pub assets_pending: Arc<std::sync::RwLock<Vec<Object>>>,
+        pub assets_pending: std::sync::RwLock<Vec<Object>>,
         pub categories: RefCell<HashSet<String>>,
         pub settings: gio::Settings,
         loading: RefCell<u32>,
@@ -108,13 +108,13 @@ pub mod imp {
                     gio::ListModel::NONE.cloned(),
                     gtk4::Sorter::NONE.cloned(),
                 ),
-                grid_model: gio::ListStore::new(crate::models::asset_data::AssetData::static_type()),
+                grid_model: gio::ListStore::new::<crate::models::asset_data::AssetData>(),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
                 asset_load_pool: ThreadPool::with_name("Asset Load Pool".to_string(), 15),
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 15),
-                assets_pending: Arc::new(std::sync::RwLock::new(vec![])),
+                assets_pending: std::sync::RwLock::new(vec![]),
                 categories: RefCell::new(HashSet::new()),
                 settings: gio::Settings::new(config::APP_ID),
                 loading: RefCell::new(0),
@@ -304,7 +304,7 @@ impl EpicLibraryBox {
             clone!(@weak self as obj => @default-panic, move || {
                 debug!("Library timed refresh starting");
                 obj.run_refresh();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -805,7 +805,9 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             // Start loading assets from the API
             self_.asset_load_pool.execute(move || {
-                let mut assets = tokio::runtime::Runtime::new()
+                let mut assets = Builder::new_current_thread()
+                    .enable_all()
+                    .build()
                     .unwrap()
                     .block_on(eg.list_assets(None, None));
                 assets.sort_by(|a, b| {
@@ -832,7 +834,11 @@ impl EpicLibraryBox {
             });
             self.refresh_state_changed();
             glib::idle_add_local(clone!(@weak self as library => @default-panic, move || {
-                glib::Continue(library.flush_loop())
+                if library.flush_loop() {
+                    glib::ControlFlow::Continue
+                } else {
+                    glib::ControlFlow::Break
+                }
             }));
         }
     }
@@ -874,7 +880,9 @@ impl EpicLibraryBox {
                         return;
                     }
                 }
-                if let Some(asset) = tokio::runtime::Runtime::new()
+                if let Some(asset) = Builder::new_current_thread()
+                    .enable_all()
+                    .build()
                     .unwrap()
                     .block_on(eg.asset_info(epic_asset.clone()))
                 {

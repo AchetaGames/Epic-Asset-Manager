@@ -347,7 +347,7 @@ impl AssetData {
     pub fn downloaded_locations(directories: &glib::StrV, asset_id: &str) -> Vec<PathBuf> {
         let mut result: Vec<PathBuf> = Vec::new();
         for directory in directories {
-            let mut path = std::path::PathBuf::from(directory.to_str());
+            let mut path = std::path::PathBuf::from(directory.as_str());
             path.push(asset_id);
             path.push("data");
             if path.exists() {

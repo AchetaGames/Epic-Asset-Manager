@@ -9,7 +9,7 @@ pub mod project_data;
 use crate::config::APP_ID;
 use egs_api::EpicGames;
 use gtk4::gio;
-use gtk4::glib::{MainContext, Receiver, Sender, UserDirectory, PRIORITY_DEFAULT};
+use gtk4::glib::{MainContext, Priority, Receiver, Sender, UserDirectory};
 use gtk4::prelude::*;
 use log::{debug, error, info, warn};
 use std::cell::RefCell;
@@ -38,7 +38,7 @@ impl Default for Model {
 
 impl Model {
     pub fn new() -> Self {
-        let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+        let (sender, receiver) = MainContext::channel(Priority::default());
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
             #[cfg(target_os = "linux")]
@@ -184,9 +184,9 @@ impl Model {
                                     let mut ud = egs_api::api::types::account::UserData::new();
                                     for item in items {
                                         let Ok(label) = item.get_label() else {
-                                                                                    debug!("No label skipping");
-                                                                                    continue;
-                                                                                };
+                                            debug!("No label skipping");
+                                            continue;
+                                        };
                                         debug!("Loading: {}", label);
                                         if let Ok(attributes) = item.get_attributes() {
                                             match label.as_str() {

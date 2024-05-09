@@ -1,7 +1,7 @@
 use crate::gio::glib::Sender;
 use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
-use gtk4::glib::{clone, MainContext, PRIORITY_DEFAULT};
+use gtk4::glib::{clone, MainContext, Priority};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -11,6 +11,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::thread;
+use tokio::runtime::Builder;
 use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
@@ -37,6 +38,7 @@ pub struct Blob {
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
+    use gtk4::glib::Priority;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -78,7 +80,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 details: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
@@ -174,7 +176,7 @@ impl EpicEngineDownload {
             2,
             clone!(@weak self as obj => @default-panic, move || {
                 obj.show_details();
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }
@@ -195,7 +197,7 @@ impl EpicEngineDownload {
             None,
             clone!(@weak self as docker => @default-panic, move |msg| {
                 docker.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -214,9 +216,9 @@ impl EpicEngineDownload {
         if let Some(selected) = self_.version_selector.active_id() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
-                    let byte = byte_unit::Byte::from_bytes(u128::from(version.size))
-                        .get_appropriate_unit(false);
-                    self_.size_value.set_label(&byte.format(1));
+                    let byte = byte_unit::Byte::from_u64(version.size)
+                        .get_appropriate_unit(byte_unit::UnitType::Decimal);
+                    self_.size_value.set_label(&format!("{byte:.2}"));
                 }
             }
         }
@@ -250,6 +252,14 @@ impl EpicEngineDownload {
                 details.open_eula_browser();
             })
         );
+
+        action!(
+            actions,
+            "download",
+            clone!(@weak self as details => move |_, _| {
+                details.open_download_browser();
+            })
+        );
         get_action!(self_.actions, @install).set_enabled(false);
     }
 
@@ -275,18 +285,48 @@ impl EpicEngineDownload {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
 
             receiver.attach(
                 None,
                 clone!(@weak self as sidebar => @default-panic, move |code: String| {
-                    open_browser(&code);
-                    glib::Continue(false)
+                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
+                    glib::ControlFlow::Break
                 }),
             );
 
             thread::spawn(move || {
-                if let Some(token) = tokio::runtime::Runtime::new()
+                if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap()
+                    .block_on(eg.game_token())
+                {
+                    sender.send(token.code).unwrap();
+                }
+            });
+        }
+    }
+
+    pub fn open_download_browser(&self) {
+        let self_ = self.imp();
+        if let Some(window) = self_.window.get() {
+            let win_ = window.imp();
+            let mut eg = win_.model.borrow().epic_games.borrow().clone();
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+
+            receiver.attach(
+                None,
+                clone!(@weak self as sidebar => @default-panic, move |code: String| {
+                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Flinux");
+                    glib::ControlFlow::Break
+                }),
+            );
+
+            thread::spawn(move || {
+                if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
+                    .build()
                     .unwrap()
                     .block_on(eg.game_token())
                 {
@@ -304,7 +344,7 @@ impl EpicEngineDownload {
                     self_.size_row.set_visible(true);
                     self_.versions_row.set_visible(true);
                     self_.eula_stack.set_visible_child_name("valid");
-                    let (sender, receiver) = MainContext::channel(PRIORITY_DEFAULT);
+                    let (sender, receiver) = MainContext::channel(Priority::default());
 
                     receiver.attach(
                         None,
@@ -312,7 +352,7 @@ impl EpicEngineDownload {
                             let self_ = ed.imp();
                             let s = self_.sender.clone();
                             s.send(Msg::Versions(v)).unwrap();
-                            glib::Continue(false)
+                            glib::ControlFlow::Break
                         }),
                     );
                     self.get_versions(sender);
@@ -379,7 +419,9 @@ impl EpicEngineDownload {
                 return;
             };
             thread::spawn(move || {
-                if let Some(token) = tokio::runtime::Runtime::new()
+                if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
+                    .build()
                     .unwrap()
                     .block_on(eg.game_token())
                 {
@@ -397,7 +439,9 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
-                if let Some(token) = tokio::runtime::Runtime::new()
+                if let Some(token) = Builder::new_current_thread()
+                    .enable_all()
+                    .build()
                     .unwrap()
                     .block_on(eg.game_token())
                 {
@@ -414,11 +458,21 @@ impl EpicEngineDownload {
     }
 }
 
-fn open_browser(code: &str) {
+fn open_browser(code: &str, redirect: &str) {
     #[cfg(target_os = "linux")]
-    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal"), None::<&gio::AppLaunchContext>).is_err() {
-        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
+    if gio::AppInfo::launch_default_for_uri(
+        &format!(
+            "https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl={redirect}"
+        ),
+        None::<&gio::AppLaunchContext>,
+    )
+    .is_err()
+    {
+        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl={redirect}");
     }
     #[cfg(target_os = "windows")]
-    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal", code));
+    open::that(format!(
+        "https://www.epicgames.com/id/exchange?exchangeCode={}&redirectUrl={redirect}",
+        code
+    ));
 }

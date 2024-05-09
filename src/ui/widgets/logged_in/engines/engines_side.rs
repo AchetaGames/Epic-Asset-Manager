@@ -183,7 +183,7 @@ impl EpicEnginesSide {
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
         let self_ = self.imp();
         if let Some(title) = &data.version() {
-            self.set_property("title", &format!("<b><u><big>{title}</big></u></b>"));
+            self.set_property("title", format!("<b><u><big>{title}</big></u></b>"));
         }
         self_.details.set_data(data);
         self_.stack.set_visible_child_name("details");

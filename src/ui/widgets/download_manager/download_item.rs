@@ -316,9 +316,9 @@ impl EpicDownloadItem {
     pub fn setup_timer(&self) {
         glib::timeout_add_seconds_local(
             1,
-            clone!(@weak self as obj => @default-return glib::Continue(false), move || {
+            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
                 obj.speed_update();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -338,7 +338,7 @@ impl EpicDownloadItem {
             let start = queue.front().unwrap().0;
             let end = queue.back().unwrap().0;
             let mut pop_counter = 0;
-            for (t, s) in queue.iter() {
+            for (t, s) in &*queue {
                 if end - *t > chrono::Duration::seconds(1) {
                     pop_counter += 1;
                 }
@@ -355,8 +355,10 @@ impl EpicDownloadItem {
                 None
             }
         } {
-            let byte = byte_unit::Byte::from_bytes(speed).get_appropriate_unit(false);
-            self.set_property("speed", format!("{}/s", byte.format(1)));
+            let byte = byte_unit::Byte::from_u128(speed)
+                .unwrap_or_default()
+                .get_appropriate_unit(byte_unit::UnitType::Decimal);
+            self.set_property("speed", format!("{byte:.2}/s"));
         };
     }
 
@@ -418,10 +420,10 @@ impl EpicDownloadItem {
         get_action!(self_.actions, @pause).set_enabled(false);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-return glib::Continue(false), move || {
+            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
                 let self_ = obj.imp();
                 get_action!(self_.actions, @pause).set_enabled(true);
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
         if let Some(dm) = self_.download_manager.get() {
@@ -571,9 +573,9 @@ impl EpicDownloadItem {
     fn remove_from_parent_with_timer(&self, timer: u32) {
         glib::timeout_add_seconds_local(
             timer,
-            clone!(@weak self as obj => @default-return glib::Continue(false), move || {
+            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
                 obj.emit_by_name::<()>("finished", &[]);
-                glib::Continue(false)
+                glib::ControlFlow::Break
             }),
         );
     }

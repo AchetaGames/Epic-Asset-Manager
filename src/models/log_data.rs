@@ -96,8 +96,8 @@ glib::wrapper! {
 impl LogData {
     pub fn new(path: &str, name: &str, crash: bool) -> LogData {
         let data: Self = glib::Object::new::<Self>();
-        data.set_property("path", &path);
-        data.set_property("name", &name);
+        data.set_property("path", path);
+        data.set_property("name", name);
         data.set_property("crash", crash);
         data
     }

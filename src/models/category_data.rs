@@ -94,10 +94,10 @@ glib::wrapper! {
 impl CategoryData {
     pub fn new(name: &str, filter: &str, path: &str, leaf: bool) -> CategoryData {
         glib::Object::builder()
-            .property("name", &name)
-            .property("filter", &filter)
-            .property("path", &path)
-            .property("leaf", &leaf)
+            .property("name", name)
+            .property("filter", filter)
+            .property("path", path)
+            .property("leaf", leaf)
             .build()
     }
 

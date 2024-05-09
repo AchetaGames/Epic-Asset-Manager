@@ -63,7 +63,7 @@ impl UnrealEngine {
 pub mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Priority};
     use once_cell::sync::OnceCell;
     use threadpool::ThreadPool;
 
@@ -97,15 +97,13 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(gtk4::glib::PRIORITY_DEFAULT);
+            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 engine_grid: TemplateChild::default(),
                 side: TemplateChild::default(),
-                grid_model: gtk4::gio::ListStore::new(
-                    crate::models::engine_data::EngineData::static_type(),
-                ),
+                grid_model: gtk4::gio::ListStore::new::<crate::models::engine_data::EngineData>(),
                 expanded: RefCell::new(false),
                 selected: RefCell::new(None),
                 actions: gtk4::gio::SimpleActionGroup::new(),
@@ -196,7 +194,7 @@ impl EpicEnginesBox {
             None,
             clone!(@weak self as engines => @default-panic, move |msg| {
                 engines.update(msg);
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -238,9 +236,9 @@ impl EpicEnginesBox {
             let child = list_item.child().unwrap().downcast::<EpicEngine>().unwrap();
             child.set_data(&data);
 
-            child.set_property("branch", &data.branch());
-            child.set_property("has-branch", &data.has_branch());
-            child.set_property("needs-update", &data.needs_update());
+            child.set_property("branch", data.branch());
+            child.set_property("has-branch", data.has_branch());
+            child.set_property("needs-update", data.needs_update());
         });
 
         let sorter = gtk4::CustomSorter::new(move |obj1, obj2| {
@@ -307,7 +305,7 @@ impl EpicEnginesBox {
             15 * 60 + (rand::random::<u32>() % 5) * 60,
             clone!(@weak self as obj => @default-panic, move || {
                 obj.run_refresh();
-                glib::Continue(true)
+                glib::ControlFlow::Continue
             }),
         );
     }
@@ -525,7 +523,7 @@ impl EpicEnginesBox {
 
         if let Ok(keys) = ini.keys("Installations") {
             for item in keys {
-                if let Ok(path) = ini.value("Installations", item.to_str()) {
+                if let Ok(path) = ini.value("Installations", item.as_str()) {
                     let guid: String = item
                         .to_string()
                         .chars()
