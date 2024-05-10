@@ -34,7 +34,7 @@ if get_option('windows')
     datadir = 'data'
     pkgdatadir = datadir
     iconsdir = datadir / 'icons'
-    podir = meson.source_root() / 'po'
+    podir = meson.project_source_root() / 'po'
 else
     prefix = get_option('prefix')
     bindir = prefix / get_option('bindir')
@@ -43,13 +43,13 @@ else
     datadir = prefix / get_option('datadir')
     pkgdatadir = datadir / meson.project_name()
     iconsdir = datadir / 'icons'
-    podir = meson.source_root() / 'po'
+    podir = meson.project_source_root() / 'po'
 endif
 gettext_package = meson.project_name()
 
 if get_option('profile') == 'development'
   profile = 'Devel'
-  vcs_tag = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
+  vcs_tag = run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip()
   if vcs_tag == ''
     version_suffix = '-devel'
   else
@@ -64,14 +64,14 @@ endif
 
 meson.add_dist_script(
   'build-aux/dist-vendor.sh',
-  meson.build_root() / 'meson-dist' / meson.project_name() + '-' + version,
-  meson.source_root()
+  meson.project_build_root() / 'meson-dist' / meson.project_name() + '-' + version,
+  meson.project_source_root()
 )
 
 if get_option('profile') == 'development'
   # Setup pre-commit hook for ensuring coding style is always consistent
   message('Setting up git pre-commit hook..')
-  run_command('cp', '-f', 'hooks/pre-commit.hook', '.git/hooks/pre-commit')
+  run_command('cp', '-f', 'hooks/pre-commit.hook', '.git/hooks/pre-commit', check: true)
 endif
 
 subdir('data')
