@@ -64,6 +64,16 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.8.6" date="2024-05-13">
+       <description>
+              <p>Quick fix</p>
+              <ul>
+                  <li>Fix Json download manifest parsing</li>
+                  <li>Set run_command check parameter to true in Meson build</li>
+                  <li>Replace deprecated meson build functions</li>
+</ul>
+       </description>
+    </release>
         <release version="3.8.5" date="2024-05-10">
             <description>
                 <p>Fix asset downloading</p>
