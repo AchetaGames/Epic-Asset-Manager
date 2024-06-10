@@ -11,7 +11,7 @@ jobs:
           output: reports
           type: rust,bash
       - name: Upload scan reports
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: sast-scan-reports
           path: reports
