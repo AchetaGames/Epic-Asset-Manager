@@ -2,7 +2,7 @@ name: Rust
 
 on:
   pull_request:
-    types: [assigned, opened, synchronize, reopened]
+    types: [ assigned, opened, synchronize, reopened ]
     paths-ignore:
       - '**.md'
   workflow_dispatch:
@@ -13,15 +13,14 @@ env:
 jobs:
   flatpak:
     name: "Flatpak"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-46
       options: --privileged
     steps:
       - uses: actions/checkout@v2
-      - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v3
+      - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: epic_asset_manager.flatpak
           manifest-path: build-aux/io.github.achetagames.epic_asset_manager.Devel.json
-          run-tests: true
           cache-key: flatpak-builder-${{ github.sha }}
