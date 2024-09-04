@@ -518,22 +518,14 @@ impl EpicAssetDetails {
         }
 
         if let Some(title) = &asset.title {
-            // self.add_info_row("", &gtk4::Label::new(Some(title)));
-            //Make big and center text
-
-            // let label = gtk4::Label::builder()
-            //     .label(Some(title))
-            //     .wrap(true)
-            //     .xalign(0.0);
-            // label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
-
             let label = gtk4::Label::builder()
                 .label(title)
                 .wrap(true)
                 .use_markup(true)
-                .label(&format!("<span font_desc=\"50\"><u><b>{}</b></u></span>", title))
+                .label(&format!("<span font_desc=\"50\"><b>{}</b></span>", title))
                 .valign(gtk4::Align::Center)
                 .halign(gtk4::Align::Center)
+                .hexpand(true)
                 .build();
             self.add_info_row("", &label);
         }
