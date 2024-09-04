@@ -84,3 +84,4 @@ package/
 package.zip
 /.flatpak-builder/
 /_build/
+/.idea

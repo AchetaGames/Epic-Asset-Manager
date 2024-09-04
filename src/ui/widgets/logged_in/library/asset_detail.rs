@@ -6,6 +6,7 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use gtk4::Align::Center;
 use gtk_macros::{action, get_action};
 use log::{error, info};
 
@@ -498,7 +499,7 @@ impl EpicAssetDetails {
         if let Some(title) = &asset.title {
             self_
                 .title
-                .set_markup(&format!("<b><u><big>{title}</big></u></b>"));
+                .set_markup(&format!("<b><big>{title}</big></b>"));
         }
 
         self_.images.clear();
@@ -516,8 +517,29 @@ impl EpicAssetDetails {
             self_.details_box.remove(&el);
         }
 
+        if let Some(title) = &asset.title {
+            // self.add_info_row("", &gtk4::Label::new(Some(title)));
+            //Make big and center text
+
+            // let label = gtk4::Label::builder()
+            //     .label(Some(title))
+            //     .wrap(true)
+            //     .xalign(0.0);
+            // label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
+
+            let label = gtk4::Label::builder()
+                .label(title)
+                .wrap(true)
+                .use_markup(true)
+                .label(&format!("<span font_desc=\"50\"><u><b>{}</b></u></span>", title))
+                .valign(gtk4::Align::Center)
+                .halign(gtk4::Align::Center)
+                .build();
+            self.add_info_row("", &label);
+        }
+
         if let Some(dev_name) = &asset.developer {
-            self.add_info_row("Developer", &gtk4::Label::new(Some(dev_name)));
+            self.add_info_row("Developer:", &gtk4::Label::new(Some(dev_name)));
         }
 
         if let Some(categories) = &asset.categories {
@@ -536,20 +558,20 @@ impl EpicAssetDetails {
                     cats.push(category.path.clone());
                 }
             }
-            self.add_info_row("Categories", &gtk4::Label::new(Some(&cats.join(", "))));
+            self.add_info_row("Categories:", &gtk4::Label::new(Some(&cats.join(", "))));
         }
 
         if let Some(platforms) = &asset.platforms() {
-            self.add_info_row("Platforms", &gtk4::Label::new(Some(&platforms.join(", "))));
+            self.add_info_row("Platforms:", &gtk4::Label::new(Some(&platforms.join(", "))));
         }
 
         if let Some(updated) = &asset.last_modified_date {
-            self.add_info_row("Updated", &gtk4::Label::new(Some(&updated.to_rfc3339())));
+            self.add_info_row("Updated:", &gtk4::Label::new(Some(&updated.to_rfc3339())));
         }
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
             self.add_info_row(
-                "Compatible with",
+                "Compatible with:",
                 &gtk4::Label::new(Some(&compatible_apps.join(", ").replace("UE_", ""))),
             );
         }
