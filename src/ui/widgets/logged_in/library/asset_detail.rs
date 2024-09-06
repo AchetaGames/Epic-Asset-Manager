@@ -518,11 +518,17 @@ impl EpicAssetDetails {
         }
 
         if let Some(title) = &asset.title {
+            //TODO: Set dynamic font size based on character length, 50 is ideal, any chracters plus 10, should be 30
+            let mut font_size = 40;
+
+            if (title.len() > 30) {
+                font_size = 30;
+            }
             let label = gtk4::Label::builder()
                 .label(title)
                 .wrap(true)
                 .use_markup(true)
-                .label(&format!("<span font_desc=\"50\"><b>{}</b></span>", title))
+                .label(&format!("<span font_desc=\"{font_size}\"><b>{}</b></span>", title))
                 .valign(gtk4::Align::Center)
                 .halign(gtk4::Align::Center)
                 .hexpand(true)
