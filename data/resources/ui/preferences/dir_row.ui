@@ -6,12 +6,14 @@
         <property name="hexpand">true</property>
         <child>
             <object class="GtkBox">
+              <property name="spacing">8</property>
                 <child>
                     <object class="GtkButton">
                         <property name="margin-top">6</property>
                         <property name="margin-bottom">6</property>
                         <property name="action-name">dir_row.up</property>
                         <property name="icon-name">go-up-symbolic</property>
+                        <property name="valign">center</property>
                     </object>
                 </child>
                 <child>
@@ -20,6 +22,7 @@
                         <property name="margin-bottom">6</property>
                         <property name="action-name">dir_row.down</property>
                         <property name="icon-name">go-down-symbolic</property>
+                        <property name="valign">center</property>
                     </object>
                 </child>
                 <child>
@@ -28,6 +31,7 @@
                         <property name="margin-bottom">6</property>
                         <property name="action-name">dir_row.remove</property>
                         <property name="icon-name">list-remove</property>
+                        <property name="valign">center</property>
                     </object>
                 </child>
             </object>
