@@ -3,7 +3,7 @@
     <!-- TODO: Migrate to AdwPreferencesDialog since AdwPreferencesWindow is deprecated-->
     <template class="PreferencesWindow" parent="AdwPreferencesWindow">
         <property name="default-width">500</property>
-        <property name="default-height">600</property>
+        <property name="default-height">610</property>
         <child>
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
