@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+    <!-- TODO: Migrate to AdwPreferencesDialog since AdwPreferencesWindow is deprecated-->
     <template class="PreferencesWindow" parent="AdwPreferencesWindow">
-        <property name="default-width">820</property>
-        <property name="default-height">760</property>
+        <property name="default-width">500</property>
+        <property name="default-height">610</property>
         <child>
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
@@ -13,11 +14,12 @@
                         <property name="title" translatable="yes">Startup</property>
                         <child>
                             <object class="AdwActionRow">
-                                <property name="title" translatable="yes">_Default view</property>
+                                <property name="title" translatable="yes">_Startup tab</property>
                                 <property name="use-underline">True</property>
                                 <property name="activatable-widget">default_view_selection</property>
-                                <property name="subtitle" translatable="yes">What panel to open the application on</property>
+                                <property name="subtitle" translatable="yes">What tab the application starts on</property>
                                 <child>
+                                    <!-- TODO: Migrate to AdwComboRow since GtkComboBoxText is deprecated -->
                                     <object class="GtkComboBoxText" id="default_view_selection">
                                         <property name="valign">center</property>
                                         <property name="active-id">library</property>
@@ -130,27 +132,17 @@
                                 <property name="subtitle" translatable="yes">Where asset info files will be stored</property>
                                 <child>
                                     <object class="GtkButton">
+                                        <property name="action-name">preferences.cache</property>
                                         <property name="margin-start">6</property>
                                         <property name="margin-end">6</property>
                                         <property name="margin-top">6</property>
                                         <property name="margin-bottom">6</property>
-                                        <property name="action-name">preferences.cache</property>
+                                        <property name="valign">center</property>
                                         <child>
-                                            <object class="GtkBox">
-                                                <property name="spacing">5</property>
-                                                <child>
-                                                    <object class="GtkImage">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="icon-name">folder-templates</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Change</property>
-                                                    </object>
-                                                </child>
-                                            </object>
+                                          <object class="AdwButtonContent">
+                                            <property name="icon-name">folder-templates-symbolic</property>
+                                            <property name="label" translatable="yes">Change</property>
+                                          </object>
                                         </child>
                                     </object>
                                 </child>
@@ -163,27 +155,17 @@
                                 <property name="subtitle" translatable="yes">Temporary place for chunk downloads</property>
                                 <child>
                                     <object class="GtkButton">
+                                        <property name="action-name">preferences.temp</property>
                                         <property name="margin-start">6</property>
                                         <property name="margin-end">6</property>
                                         <property name="margin-top">6</property>
                                         <property name="margin-bottom">6</property>
-                                        <property name="action-name">preferences.temp</property>
+                                        <property name="valign">center</property>
                                         <child>
-                                            <object class="GtkBox">
-                                                <property name="spacing">5</property>
-                                                <child>
-                                                    <object class="GtkImage">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="icon-name">folder-download</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="can-focus">0</property>
-                                                        <property name="label" translatable="yes">Change</property>
-                                                    </object>
-                                                </child>
-                                            </object>
+                                          <object class="AdwButtonContent">
+                                            <property name="icon-name">folder-download-symbolic</property>
+                                            <property name="label" translatable="yes">Change</property>
+                                          </object>
                                         </child>
                                     </object>
                                 </child>
@@ -209,7 +191,15 @@
                                         <child>
                                             <object class="GtkButton">
                                                 <property name="action-name">preferences.add_vault</property>
-                                                <property name="label" translatable="yes">Add new</property>
+                                                <property name="margin-top">6</property>
+                                                <property name="margin-bottom">6</property>
+                                                <property name="margin-end">6</property>
+                                                <child>
+                                                  <object class="AdwButtonContent">
+                                                    <property name="icon-name">list-add-symbolic</property>
+                                                    <property name="label" translatable="yes">Add location</property>
+                                                  </object>
+                                                </child>
                                             </object>
                                         </child>
                                     </object>
@@ -231,7 +221,15 @@
                                         <child>
                                             <object class="GtkButton">
                                                 <property name="action-name">preferences.add_engine</property>
-                                                <property name="label" translatable="yes">Add new</property>
+                                                <property name="margin-top">6</property>
+                                                <property name="margin-bottom">6</property>
+                                                <property name="margin-end">6</property>
+                                                <child>
+                                                  <object class="AdwButtonContent">
+                                                    <property name="icon-name">list-add-symbolic</property>
+                                                    <property name="label" translatable="yes">Add location</property>
+                                                  </object>
+                                                </child>
                                             </object>
                                         </child>
                                     </object>
@@ -253,7 +251,15 @@
                                         <child>
                                             <object class="GtkButton">
                                                 <property name="action-name">preferences.add_project</property>
-                                                <property name="label" translatable="yes">Add new</property>
+                                                <property name="margin-top">6</property>
+                                                <property name="margin-bottom">6</property>
+                                                <property name="margin-end">6</property>
+                                                <child>
+                                                  <object class="AdwButtonContent">
+                                                    <property name="icon-name">list-add-symbolic</property>
+                                                    <property name="label" translatable="yes">Add location</property>
+                                                  </object>
+                                                </child>
                                             </object>
                                         </child>
                                     </object>
@@ -295,13 +301,14 @@
                                 </child>
                                 <child>
                                     <object class="GtkLabel">
+                                        <property name="wrap">true</property>
                                         <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;How to obtain the token&lt;/big&gt;&lt;/b&gt;
-                                            1. Validate you have access to the &lt;a href="https://github.com/EpicGames/UnrealEngine"&gt;Unreal Engine&lt;/a&gt; repository. (&lt;a href="https://www.unrealengine.com/en-US/ue4-on-github"&gt;How to obtain?&lt;/a&gt;)
-                                            2. Go to your GitHub Settings → Developer settings → &lt;a href="https://github.com/settings/tokens"&gt;Personal access tokens&lt;/a&gt;
-                                            3. Generate new token
-                                            4. Set expiration to something reasonable
-                                            5. You only need the &lt;u&gt;read:packages&lt;/u&gt; scope for our use
-                                            6. Copy the generated token into the field above
+1. Validate you have access to the &lt;a href="https://github.com/EpicGames/UnrealEngine"&gt;Unreal Engine&lt;/a&gt; repository. (&lt;a href="https://www.unrealengine.com/en-US/ue4-on-github"&gt;How to obtain?&lt;/a&gt;)
+2. Go to your GitHub Settings → Developer settings → &lt;a href="https://github.com/settings/tokens"&gt;Personal access tokens&lt;/a&gt;
+3. Generate new token
+4. Set expiration to something reasonable
+5. You only need the &lt;u&gt;read:packages&lt;/u&gt; scope for our use
+6. Copy the generated token into the field above
                                         </property>
                                         <property name="use-markup">true</property>
                                     </object>
@@ -314,3 +321,4 @@
         </child>
     </template>
 </interface>
+
