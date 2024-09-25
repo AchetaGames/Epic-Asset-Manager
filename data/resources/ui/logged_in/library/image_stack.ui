@@ -12,9 +12,9 @@
                                 <property name="hexpand" bind-source="EpicImageOverlay" bind-property="hexpand" bind-flags="sync-create"/>
                                 <property name="child">
                                     <object class="AdwClamp">
-                                        <property name="height-request">500</property>
                                         <property name="orientation">vertical</property>
-                                        <property name="maximum-size">500</property>
+                                        <property name="maximum-size">300</property>
+                                        <property name="height-request">400</property>
                                         <child>
                                             <object class="AdwCarousel" id="stack">
                                                 <property name="vexpand">True</property>
@@ -26,8 +26,12 @@
                                 <child type="overlay">
                                     <object class="GtkButton">
                                         <property name="halign">start</property>
-                                        <property name="opacity">0.5</property>
-                                        <property name="label">&lt;</property>
+                                        <property name="valign">center</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="css-classes">osd
+circular</property>
+                                        <property name="opacity">0.75</property>
+                                        <property name="icon-name">go-previous-symbolic</property>
                                         <property name="action-name">image_stack.prev</property>
                                         <property name="tooltip-text" translatable="yes">Previous Image</property>
                                     </object>
@@ -35,8 +39,12 @@
                                 <child type="overlay">
                                     <object class="GtkButton">
                                         <property name="halign">end</property>
-                                        <property name="opacity">0.5</property>
-                                        <property name="label">></property>
+                                        <property name="valign">center</property>
+                                        <property name="margin-end">12</property>
+                                      <property name="css-classes">osd
+circular</property>
+                                        <property name="opacity">0.75</property>
+                                        <property name="icon-name">go-next-symbolic</property>
                                         <property name="action-name">image_stack.next</property>
                                         <property name="tooltip-text" translatable="yes">Next Image</property>
                                     </object>

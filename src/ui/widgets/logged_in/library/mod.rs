@@ -45,8 +45,6 @@ pub mod imp {
         #[template_child]
         pub asset_search: TemplateChild<gtk4::SearchEntry>,
         #[template_child]
-        pub search_toggle: TemplateChild<gtk4::ToggleButton>,
-        #[template_child]
         pub select_order_by: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
         pub order: TemplateChild<gtk4::Button>,
@@ -89,7 +87,6 @@ pub mod imp {
                 sidebar: TemplateChild::default(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
-                search_toggle: TemplateChild::default(),
                 select_order_by: TemplateChild::default(),
                 order: TemplateChild::default(),
                 count_label: TemplateChild::default(),
@@ -498,7 +495,6 @@ impl EpicLibraryBox {
             .asset_search
             .connect_search_changed(clone!(@weak self as library => move |_| {
                 let self_ = library.imp();
-                self_.search_toggle.set_active(true);
             }));
     }
 

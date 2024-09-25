@@ -1,5 +1,6 @@
 use crate::config;
 use crate::window::EpicAssetManagerWindow;
+use adw::subclass::prelude::*;
 use gio::ApplicationFlags;
 use glib::clone;
 use gtk4::prelude::*;
@@ -146,11 +147,12 @@ pub mod imp {
     }
 
     impl GtkApplicationImpl for EpicAssetManager {}
+    impl AdwApplicationImpl for EpicAssetManager {}
 }
 
 glib::wrapper! {
     pub struct EpicAssetManager(ObjectSubclass<imp::EpicAssetManager>)
-        @extends gio::Application, gtk4::Application, @implements gio::ActionMap, gio::ActionGroup;
+        @extends gio::Application, gtk4::Application, @implements gio::ActionMap, gio::ActionGroup, adw::Application;
 }
 
 impl Default for EpicAssetManager {

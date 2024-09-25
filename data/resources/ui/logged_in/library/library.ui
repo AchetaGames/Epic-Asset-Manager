@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicLibraryBox" parent="GtkBox">
-        <property name="hexpand">1</property>
-        <property name="vexpand">1</property>
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
         <child>
             <object class="GtkBox">
                 <child>
-                    <object class="EpicSidebar" id="sidebar"></object>
+                    <object class="EpicSidebar" id="sidebar">
+                    </object>
                 </child>
                 <child>
                     <object class="GtkOverlay" id="MainOverlay">
-                        <property name="hexpand">1</property>
-                        <property name="vexpand">1</property>
+                        <property name="hexpand">true</property>
+                        <property name="vexpand">true</property>
+                        <property name="css-classes">view</property>
                         <property name="child">
                             <object class="GtkBox">
-                                <property name="hexpand">1</property>
-                                <property name="vexpand">1</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">true</property>
                                 <property name="orientation">vertical</property>
                                 <child>
                                     <object class="GtkScrolledWindow">
-                                        <property name="hexpand">1</property>
+                                        <property name="margin-start">8</property>
+                                        <property name="margin-end">8</property>
+                                        <property name="margin-top">48</property>
                                         <property name="vexpand">1</property>
                                         <property name="child">
                                             <object class="GtkGridView" id="asset_grid">
@@ -32,73 +36,42 @@
                             </object>
                         </property>
                         <child type="overlay">
-                            <object class="GtkBox">
+                            <object class="GtkProgressBar" id="refresh_progress">
                                 <property name="valign">end</property>
-                                <child>
-                                    <object class="GtkProgressBar" id="refresh_progress">
-                                        <property name="hexpand">true</property>
-                                        <property name="valign">center</property>
-                                        <property name="can-focus">0</property>
-                                        <property name="show-text">true</property>
-                                    </object>
-                                </child>
+                                <property name="can-focus">0</property>
+                                <property name="margin-start">6</property>
+                                <property name="margin-end">72</property>
+                                <property name="margin-top">6</property>
+                                <property name="margin-bottom">6</property>
+                                <property name="show-text">true</property>
                             </object>
                         </child>
                         <child type="overlay">
-                            <object class="GtkBox">
-                                <property name="css-classes">view</property>
-                                <property name="opacity">0.7</property>
+                            <object class="GtkLabel" id="count_label">
+                                <property name="margin-end">6</property>
+                                <property name="margin-bottom">6</property>
+                                <property name="css-classes">menu</property>
+                                <property name="label" translatable="yes">0 items</property>
                                 <property name="valign">end</property>
                                 <property name="halign">end</property>
-                                <child>
-                                    <object class="GtkLabel" id="count_label">
-                                        <property name="margin-start">5</property>
-                                        <property name="margin-end">5</property>
-                                        <property name="margin-top">5</property>
-                                        <property name="margin-bottom">5</property>
-                                        <property name="label" translatable="yes">0 items</property>
-                                    </object>
-                                </child>
                             </object>
                         </child>
-                        <child type="overlay">
+                        <child type="overlay"> <!-- SEARCH+SORT CONTROLS START -->
                             <object class="GtkBox">
-                                <property name="margin-start">5</property>
-                                <property name="margin-end">5</property>
-                                <property name="margin-top">5</property>
+                                <property name="margin-start">8</property>
+                                <property name="margin-end">8</property>
+                                <property name="margin-top">8</property>
+                                <property name="spacing">8</property>
                                 <property name="valign">start</property>
                                 <child>
-                                    <object class="GtkBox">
-                                        <property name="css-classes">background</property>
-                                        <child>
-                                            <object class="GtkToggleButton" id="search_toggle">
-                                                <property name="css-classes">background</property>
-                                                <property name="halign">start</property>
-                                                <property name="valign">start</property>
-                                                <property name="icon-name">edit-find-symbolic</property>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkRevealer" id="search_bar">
-                                        <property name="halign">fill</property>
-                                        <property name="valign">start</property>
-                                        <property name="hexpand">true</property>
-                                        <property name="reveal-child" bind-source="search_toggle" bind-property="active" bind-flags="sync-create"/>
-                                        <property name="transition-type">slide-right</property>
-                                        <property name="margin-start">5</property>
-                                        <property name="margin-end">5</property>
-                                        <child>
-                                            <object class="GtkSearchEntry" id="asset_search">
-                                                <property name="css-classes">background</property>
-                                            </object>
-                                        </child>
+                                    <object class="GtkSearchEntry" id="asset_search">
+                                      <property name="hexpand">true</property>
                                     </object>
                                 </child>
                                 <child>
                                     <object class="GtkBox">
-                                        <property name="css-classes">background</property>
+                                        <property name="css-classes">linked</property>
+                                        <property name="halign">end</property>
                                         <child>
                                             <object class="GtkComboBoxText" id="select_order_by">
                                                 <items>
@@ -118,13 +91,15 @@
                                     </object>
                                 </child>
                             </object>
-                        </child>
+                        </child> <!-- SEARCH+SORT CONTROLS END -->
                     </object>
                 </child>
-                <child>
-                    <object class="EpicAssetDetails" id="details"/>
-                </child>
+                <property name="width-request">330</property>
             </object>
+        </child>
+        <!-- <property name="homogeneous">true</property> -->
+        <child>
+            <object class="EpicAssetDetails" id="details"/>
         </child>
     </template>
 </interface>

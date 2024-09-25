@@ -17,12 +17,18 @@
                         <property name="orientation">vertical</property>
                         <child>
                             <object class="GtkBox">
+                                <property name="margin-top">12</property>
+                                <property name="margin-bottom">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
                                 <child>
                                     <object class="GtkButton">
                                         <property name="halign">start</property>
-                                        <property name="valign">start</property>
+                                        <property name="valign">center</property>
                                         <property name="action-name">engines_side.close</property>
                                         <property name="icon-name">go-next-symbolic</property>
+                                        <property name="css-classes">flat
+pill</property>
                                     </object>
                                 </child>
                                 <child>
@@ -33,8 +39,9 @@
                                                           bind-property="title"
                                                           bind-flags="sync-create"/>
                                                 <property name="ellipsize">middle</property>
-                                                <property name="halign">start</property>
+                                                <property name="halign">center</property>
                                                 <property name="use-markup">true</property>
+                                                <property name="css-classes">title-1</property>
                                             </object>
                                         </child>
                                     </object>
