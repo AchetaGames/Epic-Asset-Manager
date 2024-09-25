@@ -68,7 +68,6 @@
                     <object class="GtkEntry" id="sid_entry">
                         <property name="width-chars">32</property>
                         <property name="max-length">32</property>
-                        <property name="placeholder-text">Please enter 'authorizationCode' from the response after login</property>
                     </object>
                 </child>
                 <child>
@@ -96,6 +95,11 @@
                     </object>
                 </child>
             </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="label">Please enter 'authorizationCode' from the response after login</property>
+          </object>
         </child>
     </template>
 </interface>
