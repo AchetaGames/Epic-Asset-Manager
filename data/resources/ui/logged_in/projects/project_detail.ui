@@ -8,7 +8,7 @@
             <object class="GtkRevealer" id="detail_slider">
                 <property name="hexpand" bind-source="UnrealProjectDetails" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="reveal-child" bind-source="UnrealProjectDetails" bind-property="expanded" bind-flags="sync-create"/>
-                <property name="transition-type">slide-left</property>
+                <property name="transition-type">none</property>
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
@@ -25,7 +25,7 @@
                                         <property name="halign">start</property>
                                         <property name="valign">start</property>
                                         <property name="action-name">project_details.close</property>
-                                        <property name="icon-name">go-next-symbolic</property>
+                                        <property name="icon-name">process-stop-symbolic</property>
                                     </object>
                                 </child>
                                 <child>

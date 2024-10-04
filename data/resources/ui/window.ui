@@ -34,16 +34,16 @@
                         </binding>
                     </object>
                 </property>
-                <!-- <child type="start"> --> <!-- TODO: use this button instead of EpicSidebar's -->
-                <!--     <object class="GtkToggleButton" id="expand_button"> -->
-                <!--         <property name="name">category_button</property> -->
-                <!--         <property name="action-name">sidebar.expand</property> -->
-                <!--         <property name="tooltip-text" translatable="yes">Expand Sidebar</property> -->
-                <!--         <property name="halign">center</property> -->
-                <!--         <property name="valign">center</property> -->
-                <!--         <property name="icon-name">sidebar-show-symbolic</property> -->
-                <!--     </object> -->
-                <!-- </child> -->
+                <child type="start"> <!-- TODO: use this button instead of EpicSidebar's -->
+                    <object class="GtkToggleButton" id="expand_button">
+                        <property name="name">category_button</property>
+                        <property name="action-name">sidebar.expand</property>
+                        <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
+                        <property name="icon-name">sidebar-show-symbolic</property>
+                    </object>
+                </child>
                 <child type="start">
                     <object class="GtkButton" id="refresh">
                         <property name="halign">center</property>
