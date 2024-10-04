@@ -10,7 +10,7 @@
             <object class="GtkRevealer" id="detail_slider">
                 <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
                 <property name="reveal-child" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
-                <property name="transition-type">slide-left</property>
+                <property name="transition-type">none</property>
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
@@ -36,11 +36,11 @@
                                 <child>
                                     <object class="GtkButton">
                                         <property name="halign">start</property>
-                                        <property name="valign">fill</property>
+                                        <property name="valign">center</property>
                                         <property name="action-name">details.close</property>
                                         <property name="css-classes">flat
 pill</property>
-                                        <property name="icon-name">go-next-symbolic</property>
+                                        <property name="icon-name">process-stop-symbolic</property>
                                     </object>
                                 </child>
                                 <child>
