@@ -45,7 +45,7 @@
                                                 </child>
                                                 <child>
                                                     <object class="GtkBox">
-                                                        <property name="vexpand">True</property>
+                                                        <property name="vexpand">true</property>
                                                         <property name="halign">end</property>
                                                         <child>
                                                             <object class="GtkSeparator">
@@ -68,53 +68,79 @@
                                 <child>
                                     <object class="GtkBox">
                                         <property name="orientation">vertical</property>
+                                        <property name="css-classes">background</property>
+                                        <child>
+                                          <object class="GtkBox">
+                                              <property name="margin-top">8</property>
+                                              <property name="margin-bottom">3</property>
+                                              <property name="margin-start">12</property>
+                                              <property name="margin-end">12</property>
+                                              <property name="spacing">12</property>
+                                              <child>
+                                                  <object class="GtkLabel">
+                                                      <property name="css-classes">heading</property>
+                                                      <property name="label">Filters</property>
+                                                      <property name="halign">start</property>
+                                                      <property name="valign">center</property>
+                                                  </object>
+                                              </child>
+                                              <child>
+                                                  <object class="GtkBox">
+                                                      <property name="halign">fill</property>
+                                                      <property name="css-classes">linked</property>
+                                                      <child>
+                                                          <object class="GtkToggleButton" id="downloaded_filter">
+                                                              <property name="icon-name">folder-download-symbolic</property>
+                                                              <property name="has-tooltip">true</property>
+                                                              <property name="tooltip-text">Only show downloaded</property>
+                                                              <property name="hexpand">true</property>
+                                                              <property name="halign">fill</property>
+                                                              <property name="valign">center</property>
+                                                          </object>
+                                                      </child>
+                                                      <child>
+                                                          <object class="GtkToggleButton" id="favorites_filter">
+                                                              <property name="icon-name">starred-symbolic</property>
+                                                              <property name="has-tooltip">true</property>
+                                                              <property name="tooltip-text">Only show starred</property>
+                                                              <property name="hexpand">true</property>
+                                                              <property name="halign">fill</property>
+                                                              <property name="valign">center</property>
+                                                          </object>
+                                                      </child>
+                                                  </object>
+                                              </child>
+                                          </object>
+                                        </child>
                                         <child>
                                             <object class="GtkStack" id="stack">
                                             </object>
                                         </child>
                                         <child>
-                                            <object class="GtkBox">
-                                                <property name="margin-start">6</property>
-                                                <property name="margin-end">6</property>
-                                                <property name="margin-top">12</property>
-                                                <property name="margin-bottom">12</property>
-                                                <property name="spacing">12</property>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="halign">start</property>
-                                                        <property name="label" translatable="yes">Downloaded</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkSwitch" id="downloaded_switch">
-                                                        <property name="hexpand">True</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="valign">center</property>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkBox">
-                                                <property name="margin-start">6</property>
-                                                <property name="margin-end">6</property>
-                                                <property name="margin-top">12</property>
-                                                <property name="margin-bottom">12</property>
-                                                <property name="spacing">12</property>
-                                                <child>
-                                                    <object class="GtkLabel">
-                                                        <property name="halign">start</property>
-                                                        <property name="label" translatable="yes">Favorites</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkSwitch" id="favorites_switch">
-                                                        <property name="hexpand">True</property>
-                                                        <property name="halign">end</property>
-                                                        <property name="valign">center</property>
-                                                    </object>
-                                                </child>
-                                            </object>
+                                          <object class="GtkBox">
+                                              <property name="css-classes">view</property>
+                                              <child>
+                                                  <object class="GtkButton" id="marketplace_button">
+                                                      <property name="action-name">sidebar.marketplace</property>
+                                                      <property name="halign">fill</property>
+                                                      <property name="valign">center</property>
+                                                      <property name="hexpand">true</property>
+                                                      <property name="tooltip-text" translatable="yes">Open Marketplace</property>
+                                                      <property name="css-classes">pill
+flat</property>
+                                                      <property name="margin-top">8</property>
+                                                      <property name="margin-bottom">8</property>
+                                                      <property name="margin-start">10</property>
+                                                      <property name="margin-end">10</property>
+                                                      <child>
+                                                          <object class="AdwButtonContent">
+                                                              <property name="icon-name">web-browser-symbolic</property>
+                                                              <property name="label" translatable="yes">Marketplace</property>
+                                                          </object>
+                                                      </child>
+                                                  </object>
+                                              </child>
+                                          </object>
                                         </child>
                                     </object>
                                 </child>
@@ -129,39 +155,13 @@
                         <property name="orientation">vertical</property>
                         <property name="hexpand">true</property>
                         <child>
-                            <object class="GtkButton">
-                                <property name="action-name">sidebar.marketplace</property>
-                                <property name="halign">fill</property>
-                                <property name="hexpand">true</property>
-                                <property name="tooltip-text" translatable="yes">Open Marketplace</property>
-                                <property name="valign">center</property>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="valign">center</property>
-                                        <property name="halign">fill</property>
-                                        <child>
-                                            <object class="GtkImage">
-                                                <property name="icon-name">x-office-presentation-symbolic</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkLabel" id="marketplace_label">
-                                                <property name="hexpand">true</property>
-                                                <property name="label" translatable="yes"/>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkButton" id="expand_button">
+                            <object class="GtkToggleButton" id="expand_button">
                                 <property name="name">category_button</property>
                                 <property name="action-name">sidebar.expand</property>
-                                <property name="halign">fill</property>
-                                <property name="hexpand">true</property>
                                 <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
                                 <property name="valign">center</property>
+                                <property name="can-shrink">true</property>
+                                <!-- <property name="icon-name">go-next-symbolic</property> -->
                                 <child>
                                     <object class="GtkBox">
                                         <property name="valign">center</property>
@@ -169,12 +169,6 @@
                                         <child>
                                             <object class="GtkImage" id="expand_image">
                                                 <property name="icon-name">go-next-symbolic</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkLabel" id="expand_label">
-                                                <property name="hexpand">true</property>
-                                                <property name="label" translatable="yes"/>
                                             </object>
                                         </child>
                                     </object>
@@ -187,7 +181,6 @@
         </child>
         <child>
             <object class="GtkSeparator">
-
             </object>
         </child>
     </template>

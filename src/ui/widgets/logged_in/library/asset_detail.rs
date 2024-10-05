@@ -418,6 +418,7 @@ impl EpicAssetDetails {
                         #[cfg(target_os = "linux")]
                         {
                             self_.warning.set_revealed(true);
+                            self_.warning_message.set_wrap(true);
                             self_.warning_message.set_markup("This is a Windows Build of the Engine. To install Linux version please use the <a href=\"engines\">Engines</a> tab.");
                         }
                     }

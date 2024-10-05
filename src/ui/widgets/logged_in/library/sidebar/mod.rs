@@ -30,13 +30,9 @@ pub mod imp {
         pub loggedin: OnceCell<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         pub expanded: RefCell<bool>,
         #[template_child]
-        pub expand_button: TemplateChild<gtk4::Button>,
+        pub expand_button: TemplateChild<gtk4::ToggleButton>, // TODO: Somehow use the EpicAssetManagerWindow's expand_button instead
         #[template_child]
         pub expand_image: TemplateChild<gtk4::Image>,
-        #[template_child]
-        pub expand_label: TemplateChild<gtk4::Label>,
-        #[template_child]
-        pub marketplace_label: TemplateChild<gtk4::Label>,
         #[template_child]
         pub stack: TemplateChild<gtk4::Stack>,
         #[template_child]
@@ -46,9 +42,9 @@ pub mod imp {
         #[template_child]
         pub games_category: TemplateChild<button::EpicSidebarButton>,
         #[template_child]
-        pub downloaded_switch: TemplateChild<gtk4::Switch>,
+        pub downloaded_filter: TemplateChild<gtk4::ToggleButton>,
         #[template_child]
-        pub favorites_switch: TemplateChild<gtk4::Switch>,
+        pub favorites_filter: TemplateChild<gtk4::ToggleButton>,
     }
 
     #[glib::object_subclass]
@@ -66,14 +62,12 @@ pub mod imp {
                 expanded: RefCell::new(false),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
-                expand_label: TemplateChild::default(),
-                marketplace_label: TemplateChild::default(),
                 stack: TemplateChild::default(),
                 all_category: TemplateChild::default(),
                 unreal_category: TemplateChild::default(),
                 games_category: TemplateChild::default(),
-                downloaded_switch: TemplateChild::default(),
-                favorites_switch: TemplateChild::default(),
+                downloaded_filter: TemplateChild::default(),
+                favorites_filter: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
             }
         }
@@ -246,13 +240,13 @@ impl EpicSidebar {
         self_.stack.add_named(&c, Some("all"));
 
         self_
-            .favorites_switch
-            .connect_state_notify(clone!(@weak self as sidebar => move |_| {
+            .favorites_filter
+            .connect_toggled(clone!(@weak self as sidebar => move |_| {
                 sidebar.filter_changed();
             }));
         self_
-            .downloaded_switch
-            .connect_state_notify(clone!(@weak self as sidebar => move |_| {
+            .downloaded_filter
+            .connect_toggled(clone!(@weak self as sidebar => move |_| {
                 sidebar.filter_changed();
             }));
 
@@ -285,13 +279,9 @@ impl EpicSidebar {
             self_
                 .expand_button
                 .set_tooltip_text(Some("Collapse Sidebar"));
-            self_.expand_label.set_label("Collapse");
-            self_.marketplace_label.set_label("Marketplace");
         } else {
             self_.expand_image.set_icon_name(Some("go-next-symbolic"));
             self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
-            self_.marketplace_label.set_label("");
-            self_.expand_label.set_label("");
         };
         if let Err(e) = self_.settings.set_boolean("sidebar-expanded", new_value) {
             warn!("Unable to save sidebar state: {}", e);
@@ -323,10 +313,10 @@ impl EpicSidebar {
                     |cat| {
                         let filter = cat.filter().map(|filter| {
                             let mut prefix = String::new();
-                            if self_.downloaded_switch.is_active() {
+                            if self_.downloaded_filter.is_active() {
                                 prefix.push_str("downloaded&");
                             }
-                            if self_.favorites_switch.is_active() {
+                            if self_.favorites_filter.is_active() {
                                 prefix.push_str("favorites&");
                             }
                             format!("{prefix}{filter}")
