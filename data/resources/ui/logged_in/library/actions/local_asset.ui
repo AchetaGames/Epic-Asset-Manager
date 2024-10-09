@@ -23,20 +23,9 @@
                         <property name="valign">center</property>
                         <property name="action-name">local_asset.open</property>
                         <child>
-                            <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <property name="valign">center</property>
-                                <property name="halign">center</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="icon-name">system-file-manager-symbolic</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">Open Directory</property>
-                                    </object>
-                                </child>
+                            <object class="AdwButtonContent">
+                                <property name="icon-name">folder-open-symbolic</property>
+                                <property name="label" translatable="yes">Open Directory</property>
                             </object>
                         </child>
                     </object>

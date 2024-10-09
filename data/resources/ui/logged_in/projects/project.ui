@@ -7,9 +7,9 @@
         <child>
             <object class="AdwAvatar" id="thumbnail">
                 <property name="icon-name">ue-logo-symbolic</property>
-                <property name="width-request">128</property>
-                <property name="height-request">128</property>
-                <property name="size">128</property>
+                <property name="width-request">120</property>
+                <property name="height-request">120</property>
+                <property name="size">108</property>
             </object>
         </child>
         <child>

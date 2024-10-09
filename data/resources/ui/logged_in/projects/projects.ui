@@ -4,6 +4,7 @@
     <template class="EpicProjectsBox" parent="GtkBox">
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
+        <property name="homogeneous">true</property>
         <property name="css-classes">view</property>
         <child>
             <object class="GtkScrolledWindow">

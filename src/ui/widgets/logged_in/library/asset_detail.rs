@@ -467,6 +467,7 @@ impl EpicAssetDetails {
             .child(&Self::build_box_with_icon_label(Some(label), icon))
             .action_name(action_name)
             .build();
+        button.set_css_classes(&["flat"]);
         self_.actions_box.append(&button);
     }
 
