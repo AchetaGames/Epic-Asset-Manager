@@ -33,18 +33,14 @@ pill</property>
                                     </object>
                                 </child>
                                 <child>
-                                    <object class="GtkBox">
-                                        <child>
-                                            <object class="GtkLabel" id="title">
-                                                <property name="label" bind-source="EpicEnginesSide"
-                                                          bind-property="title"
-                                                          bind-flags="sync-create"/>
-                                                <property name="ellipsize">middle</property>
-                                                <property name="halign">center</property>
-                                                <property name="use-markup">true</property>
-                                                <property name="css-classes">title-1</property>
-                                            </object>
-                                        </child>
+                                    <object class="GtkLabel" id="title">
+                                        <property name="label" bind-source="EpicEnginesSide"
+                                                  bind-property="title"
+                                                  bind-flags="sync-create"/>
+                                        <property name="ellipsize">middle</property>
+                                        <property name="halign">center</property>
+                                        <property name="use-markup">true</property>
+                                        <property name="css-classes">title-1</property>
                                     </object>
                                 </child>
                             </object>
