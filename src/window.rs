@@ -464,11 +464,11 @@ impl EpicAssetManagerWindow {
         widget: &impl IsA<gtk4::Widget>,
         size_group: &gtk4::SizeGroup,
     ) -> ListBoxRow {
-        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
-        b.set_margin_start(5);
-        b.set_margin_end(5);
-        b.set_margin_bottom(5);
-        b.set_margin_top(5);
+        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
+        b.set_margin_start(6);
+        b.set_margin_end(6);
+        b.set_margin_bottom(3);
+        b.set_margin_top(3);
         let label = gtk4::Label::new(Some(label));
         label.set_xalign(1.0);
         label.set_valign(gtk4::Align::Center);

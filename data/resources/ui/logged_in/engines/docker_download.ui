@@ -7,36 +7,23 @@
             <object class="GtkRevealer" id="details_revealer">
                 <property name="reveal-child">true</property>
                 <property name="vexpand">True</property>
+                <property name="can-target">false</property>
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
+                        <property name="spacing">12</property>
                         <child>
                             <object class="GtkButton" id="install_button">
-                                <property name="halign">end</property>
+                                <property name="halign">center</property>
                                 <property name="name">engine_install_button</property>
                                 <property name="action-name">docker_download.install</property>
+                                <property name="css-classes">pill</property>
                                 <child>
-                                    <object class="GtkBox">
-                                        <property name="spacing">5</property>
-                                        <property name="valign">center</property>
-                                        <property name="halign">center</property>
-                                        <child>
-                                            <object class="GtkImage">
-                                                <property name="icon-name">system-software-install-symbolic</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkLabel">
-                                                <property name="label" translatable="yes">Install</property>
-                                            </object>
-                                        </child>
+                                    <object class="AdwButtonContent">
+                                        <property name="icon-name">folder-download-symbolic</property>
+                                        <property name="label" translatable="yes">Install</property>
                                     </object>
                                 </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkSeparator">
-                                <property name="orientation">horizontal</property>
                             </object>
                         </child>
                         <child>
@@ -64,7 +51,7 @@
                         <property name="can-focus">0</property>
                         <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;</property>
                         <property name="use-markup">1</property>
-                        <property name="hexpand">True</property>
+                        <property name="hexpand">true</property>
                         <property name="halign">center</property>
                     </object>
                 </child>

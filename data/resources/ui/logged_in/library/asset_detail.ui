@@ -61,42 +61,52 @@ circular</property>
                                         <property name="icon-name">non-starred-symbolic</property>
                                     </object>
                                 </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="hexpand">true</property>
+                                <property name="halign">fill</property>
+                                <property name="css-classes">linked</property>
+                                <property name="margin-bottom">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
                                 <child>
-                                    <object class="GtkBox">
-                                        <property name="hexpand">false</property>
-                                        <property name="halign">end</property>
-                                        <property name="css-classes">linked</property>
+                                    <object class="GtkButton" id="information_button">
+                                        <property name="hexpand">true</property>
+                                        <property name="valign">center</property>
+                                        <property name="name">asset_details_button</property>
+                                        <property name="action-name">details.show_asset_details</property>
                                         <child>
-                                            <object class="GtkButton" id="information_button">
-                                                <property name="valign">center</property>
-                                                <property name="name">asset_details_button</property>
-                                                <property name="action-name">details.show_asset_details</property>
-                                                <child>
-                                                    <object class="AdwButtonContent">
-                                                        <property name="icon-name">dialog-information-symbolic</property>
-                                                        <property name="label" translatable="yes">Details</property>
-                                                    </object>
-                                                </child>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkMenuButton" id="actions_menu">
-                                                <property name="direction">down</property>
-                                                <property name="valign">center</property>
-                                                <property name="label" translatable="yes">Actions</property>
-                                                <property name="popover">
-                                                    <object class="GtkPopover">
-                                                        <child>
-                                                            <object class="GtkBox" id="actions_box">
-                                                                <property name="orientation">vertical</property>
-                                                            </object>
-                                                        </child>
-                                                    </object>
-                                                </property>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">dialog-information-symbolic</property>
+                                                <property name="label" translatable="yes">Details</property>
                                             </object>
                                         </child>
                                     </object>
                                 </child>
+                                <child>
+                                    <object class="GtkMenuButton" id="actions_menu">
+                                        <property name="direction">down</property>
+                                        <property name="hexpand">true</property>
+                                        <property name="valign">center</property>
+                                        <property name="label" translatable="yes">Actions</property>
+                                        <property name="popover">
+                                            <object class="GtkPopover">
+                                                <child>
+                                                    <object class="GtkBox" id="actions_box">
+                                                        <property name="orientation">vertical</property>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkSeparator">
+                                <property name="orientation">horizontal</property>
                             </object>
                         </child>
                         <child>

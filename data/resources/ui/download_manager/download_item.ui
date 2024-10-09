@@ -112,7 +112,7 @@
                                 <property name="halign">center</property>
                                 <property name="valign">center</property>
                                 <property name="action-name">download_item.open</property>
-                                <property name="icon-name">system-file-manager-symbolic</property>
+                                <property name="icon-name">folder-open-symbolic</property>
                                 <property name="css-classes">circular</property>
                             </object>
                         </child>

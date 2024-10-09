@@ -1,80 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicLogLine" parent="GtkBox">
-        <property name="orientation">vertical</property>
         <child>
             <object class="GtkBox">
-                <property name="spacing">5</property>
+                <property name="margin-top">6</property>
+                <property name="margin-bottom">6</property>
+                <property name="margin-start">12</property>
+                <property name="margin-end">12</property>
+                <property name="spacing">12</property>
                 <child>
                     <object class="GtkImage">
                         <property name="icon_name">dialog-warning-symbolic</property>
                         <property name="visible" bind-source="EpicLogLine" bind-property="crash" bind-flags="sync-create"/>
                         <property name="tooltip-text">Crash log</property>
+                        <property name="css-classes">warning</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkLabel">
-                        <property name="can-focus">0</property>
                         <property name="label" translatable="yes" bind-source="EpicLogLine" bind-property="label" bind-flags="sync-create"/>
                         <property name="tooltip-text" translatable="yes" bind-source="EpicLogLine" bind-property="path" bind-flags="sync-create"/>
                         <property name="use-markup">true</property>
-                        <property name="hexpand">True</property>
+                        <property name="hexpand">true</property>
                         <property name="ellipsize">middle</property>
                         <property name="halign">start</property>
-                    </object>
-                </child>
-            </object>
-        </child>
-        <child>
-            <object class="GtkBox">
-                <property name="spacing">5</property>
-                <property name="halign">end</property>
-                <child>
-                    <object class="GtkButton">
-                        <property name="margin-start">5</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="action-name">log_line.open</property>
-                        <child>
-                            <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <property name="valign">center</property>
-                                <property name="halign">center</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="icon-name">accessories-text-editor-symbolic</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">Open</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
+                        <property name="css-classes">heading</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton">
-                        <property name="margin-start">5</property>
-                        <property name="halign">center</property>
+                        <property name="halign">end</property>
                         <property name="valign">center</property>
                         <property name="action-name">log_line.dir</property>
                         <child>
-                            <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <property name="valign">center</property>
-                                <property name="halign">center</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="icon-name">system-file-manager-symbolic</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">Open Dir</property>
-                                    </object>
-                                </child>
+                            <object class="AdwButtonContent">
+                                <property name="icon-name">folder-open-symbolic</property>
+                                <property name="label" translatable="yes">Open</property>
                             </object>
                         </child>
                     </object>
