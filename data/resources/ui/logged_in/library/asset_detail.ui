@@ -90,7 +90,12 @@ circular</property>
                                         <property name="direction">down</property>
                                         <property name="hexpand">true</property>
                                         <property name="valign">center</property>
-                                        <property name="label" translatable="yes">Actions</property>
+                                        <child>
+                                          <object class="AdwButtonContent">
+                                              <property name="icon-name">view-more-symbolic</property>
+                                              <property name="label" translatable="yes">Actions</property>
+                                          </object>
+                                        </child>
                                         <property name="popover">
                                             <object class="GtkPopover">
                                                 <child>
