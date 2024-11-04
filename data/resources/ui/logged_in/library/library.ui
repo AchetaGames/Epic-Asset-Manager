@@ -3,6 +3,7 @@
     <template class="EpicLibraryBox" parent="GtkBox">
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
+        <property name="homogeneous">true</property>
         <child>
             <object class="GtkBox">
                 <child>
@@ -94,10 +95,8 @@
                         </child> <!-- SEARCH+SORT CONTROLS END -->
                     </object>
                 </child>
-                <property name="width-request">330</property>
             </object>
         </child>
-        <!-- <property name="homogeneous">true</property> -->
         <child>
             <object class="EpicAssetDetails" id="details"/>
         </child>

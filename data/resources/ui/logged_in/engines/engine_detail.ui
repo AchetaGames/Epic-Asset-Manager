@@ -29,11 +29,6 @@ pill</property>
                 </object>
             </child>
         <child>
-            <object class="GtkSeparator">
-                <property name="orientation">horizontal</property>
-            </object>
-        </child>
-        <child>
             <object class="GtkRevealer" id="details_revealer">
                 <property name="reveal-child">true</property>
                 <property name="vexpand">True</property>

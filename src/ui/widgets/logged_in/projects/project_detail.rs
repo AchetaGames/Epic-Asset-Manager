@@ -318,18 +318,17 @@ impl UnrealProjectDetails {
         self_
             .details
             .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                "Engine",
+                "Engine:",
                 &combo,
                 &self_.details_group,
             ));
 
         // Path
-        let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+        let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
         let label = gtk4::Label::new(Some(parent.to_str().unwrap()));
-        label.set_xalign(0.0);
-        label.set_hexpand(true);
+        label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
         path_box.append(&label);
-        let button = gtk4::Button::with_icon_and_label("system-file-manager-symbolic", "Open");
+        let button = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
         button.connect_clicked(clone!(@weak self as project => move |_| {
             project.open_dir();
         }));
@@ -337,7 +336,7 @@ impl UnrealProjectDetails {
         self_
             .details
             .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                "Path",
+                "Path:",
                 &path_box,
                 &self_.details_group,
             ));
@@ -346,7 +345,7 @@ impl UnrealProjectDetails {
         self_
             .details
             .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                "Engine Association",
+                "Engine Association:",
                 &gtk4::Label::new(Some(&project.engine_association)),
                 &self_.details_group,
             ));

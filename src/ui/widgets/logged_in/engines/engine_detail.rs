@@ -233,12 +233,11 @@ impl EpicEngineDetails {
         // Path
         if let Some(path) = &data.path() {
             self_.logs.add_path(&format!("{}/Engine", &path));
-            let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+            let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
             let label = gtk4::Label::new(Some(path));
-            label.set_xalign(0.0);
-            label.set_hexpand(true);
+            label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
             path_box.append(&label);
-            let button = gtk4::Button::with_icon_and_label("system-file-manager-symbolic", "Open");
+            let button = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
             button.connect_clicked(clone!(@weak self as engine => move |_| {
                 engine.open_dir();
             }));
