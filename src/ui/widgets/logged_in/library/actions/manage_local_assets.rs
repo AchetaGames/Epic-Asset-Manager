@@ -138,10 +138,18 @@ impl EpicLocalAssets {
                             row.connect_local(
                                 "delete",
                                 false,
-                                clone!(@weak self as mla, @weak row => @default-return None, move |_| {
-                                    mla.delete(&row);
-                                    None
-                                }),
+                                clone!(
+                                    #[weak(rename_to=mla)]
+                                    self,
+                                    #[weak]
+                                    row,
+                                    #[upgrade_or]
+                                    None,
+                                    move |_| {
+                                        mla.delete(&row);
+                                        None
+                                    }
+                                ),
                             );
                         }
                     }

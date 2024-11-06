@@ -1,4 +1,3 @@
-use crate::gio::glib::Sender;
 use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
 use gtk4::glib::{clone, MainContext, Priority};
@@ -174,10 +173,15 @@ impl EpicEngineDownload {
         self_.confirmation_revealer.set_vexpand(true);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.show_details();
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    obj.show_details();
+                    glib::ControlFlow::Break
+                }
+            ),
         );
     }
 
@@ -195,20 +199,27 @@ impl EpicEngineDownload {
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
-            clone!(@weak self as docker => @default-panic, move |msg| {
-                docker.update(msg);
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=docker)]
+                self,
+                #[upgrade_or_panic]
+                move |msg| {
+                    docker.update(msg);
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
-        self_
-            .version_selector
-            .connect_changed(clone!(@weak self as detail => move |_| {
+        self_.version_selector.connect_changed(clone!(
+            #[weak(rename_to=detail)]
+            self,
+            move |_| {
                 detail.version_selected();
-            }));
+            }
+        ));
     }
 
     pub fn version_selected(&self) {
@@ -232,33 +243,49 @@ impl EpicEngineDownload {
         action!(
             actions,
             "install",
-            clone!(@weak self as details => move |_, _| {
-                details.install_engine();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.install_engine();
+                }
+            )
         );
 
         action!(
             actions,
             "revalidate_eula",
-            clone!(@weak self as details => move |_, _| {
-                details.validate_eula();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.validate_eula();
+                }
+            )
         );
 
         action!(
             actions,
             "browser",
-            clone!(@weak self as details => move |_, _| {
-                details.open_eula_browser();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.open_eula_browser();
+                }
+            )
         );
 
         action!(
             actions,
             "download",
-            clone!(@weak self as details => move |_, _| {
-                details.open_download_browser();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.open_download_browser();
+                }
+            )
         );
         get_action!(self_.actions, @install).set_enabled(false);
     }
@@ -289,10 +316,18 @@ impl EpicEngineDownload {
 
             receiver.attach(
                 None,
-                clone!(@weak self as sidebar => @default-panic, move |code: String| {
-                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal");
-                    glib::ControlFlow::Break
-                }),
+                clone!(
+                    #[weak(rename_to=sidebar)]
+                    self,
+                    #[upgrade_or_panic]
+                    move |code: String| {
+                        open_browser(
+                            &code,
+                            "https%3A%2F%2Fwww.unrealengine.com%2Feulacheck%2Funreal",
+                        );
+                        glib::ControlFlow::Break
+                    }
+                ),
             );
 
             thread::spawn(move || {
@@ -317,10 +352,15 @@ impl EpicEngineDownload {
 
             receiver.attach(
                 None,
-                clone!(@weak self as sidebar => @default-panic, move |code: String| {
-                    open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Flinux");
-                    glib::ControlFlow::Break
-                }),
+                clone!(
+                    #[weak(rename_to=sidebar)]
+                    self,
+                    #[upgrade_or_panic]
+                    move |code: String| {
+                        open_browser(&code, "https%3A%2F%2Fwww.unrealengine.com%2Flinux");
+                        glib::ControlFlow::Break
+                    }
+                ),
             );
 
             thread::spawn(move || {
@@ -348,12 +388,17 @@ impl EpicEngineDownload {
 
                     receiver.attach(
                         None,
-                        clone!(@weak self as ed => @default-panic, move |v| {
-                            let self_ = ed.imp();
-                            let s = self_.sender.clone();
-                            s.send(Msg::Versions(v)).unwrap();
-                            glib::ControlFlow::Break
-                        }),
+                        clone!(
+                            #[weak(rename_to=ed)]
+                            self,
+                            #[upgrade_or_panic]
+                            move |v| {
+                                let self_ = ed.imp();
+                                let s = self_.sender.clone();
+                                s.send(Msg::Versions(v)).unwrap();
+                                glib::ControlFlow::Break
+                            }
+                        ),
                     );
                     self.get_versions(sender);
                 } else {

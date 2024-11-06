@@ -188,9 +188,13 @@ impl EpicSidebarCategories {
         action!(
             self_.actions,
             "previous",
-            clone!(@weak self as category => move |_, _| {
-                category.back();
-            })
+            clone!(
+                #[weak(rename_to=category)]
+                self,
+                move |_, _| {
+                    category.back();
+                }
+            )
         );
         self.has_previous();
     }
@@ -283,11 +287,13 @@ impl EpicSidebarCategories {
         self_.categories.set_model(Some(&self_.selection_model));
         self_.categories.set_factory(Some(&factory));
 
-        self_.selection_model.connect_selected_notify(
-            clone!(@weak self as category => move |model| {
+        self_.selection_model.connect_selected_notify(clone!(
+            #[weak(rename_to=category)]
+            self,
+            move |model| {
                 category.category_selected(model);
-            }),
-        );
+            }
+        ));
     }
 
     fn category_selected(&self, model: &gtk4::SingleSelection) {

@@ -3,7 +3,6 @@ use crate::ui::widgets::download_manager::{download_item, DownloadStatus, Msg, T
 use crate::ui::widgets::logged_in::refresh::Refresh;
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::Sender;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use log::{debug, error, warn};
@@ -228,10 +227,18 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         item.connect_local(
             "finished",
             false,
-            clone!(@weak self as edm, @weak item => @default-return None, move |_| {
-                edm.docker_finished(&item);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=edm)]
+                self,
+                #[weak]
+                item,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    edm.docker_finished(&item);
+                    None
+                }
+            ),
         );
 
         item.set_property("thumbnail", Some(gtk4::gdk::Texture::from_resource(
@@ -488,15 +495,19 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
 fn process_docker_thread_message(
     version: String,
     digest: (String, u64),
-    sender: &Sender<crate::ui::widgets::download_manager::Msg>,
+    sender: &async_channel::Sender<crate::ui::widgets::download_manager::Msg>,
     m: &crate::ui::widgets::download_manager::ThreadMessages,
 ) {
     match m {
         ThreadMessages::Cancel => {
-            sender.send(Msg::DockerCanceled(version, digest)).unwrap();
+            sender
+                .send_blocking(Msg::DockerCanceled(version, digest))
+                .unwrap();
         }
         ThreadMessages::Pause => {
-            sender.send(Msg::DockerPaused(version, digest)).unwrap();
+            sender
+                .send_blocking(Msg::DockerPaused(version, digest))
+                .unwrap();
         }
     }
 }

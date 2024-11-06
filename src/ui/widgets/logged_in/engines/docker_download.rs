@@ -177,9 +177,13 @@ impl DockerEngineDownload {
         action!(
             actions,
             "install",
-            clone!(@weak self as details => move |_, _| {
-                details.install_engine();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.install_engine();
+                }
+            )
         );
     }
 
@@ -206,10 +210,15 @@ impl DockerEngineDownload {
         self_.confirmation_revealer.set_vexpand(true);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.show_details();
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    obj.show_details();
+                    glib::ControlFlow::Break
+                }
+            ),
         );
     }
 
@@ -227,10 +236,15 @@ impl DockerEngineDownload {
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
-            clone!(@weak self as docker => @default-panic, move |msg| {
-                docker.update(msg);
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=docker)]
+                self,
+                #[upgrade_or_panic]
+                move |msg| {
+                    docker.update(msg);
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
@@ -325,7 +339,7 @@ impl DockerEngineDownload {
                     .use_markup(true)
                     .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
                     .build();
-                label.connect_activate_link(clone!(@weak self as details => @default-return glib::Propagation::Stop, move |_, uri| {
+                label.connect_activate_link(clone!(#[weak(rename_to=details)] self, #[upgrade_or] glib::Propagation::Stop, move |_, uri| {
                     details.open_preferences(uri);
                     glib::Propagation::Stop
                 }));
@@ -364,13 +378,13 @@ impl DockerEngineDownload {
                 self_.details.append(&row);
 
                 combo.connect_changed(
-                    clone!(@weak self as detail, @weak check as check => move |c| {
+                    clone!(#[weak(rename_to=detail)] self, #[weak] check, move |c| {
                         detail.version_selected(c, &check);
                     }),
                 );
 
                 check.connect_toggled(
-                    clone!(@weak self as detail, @weak combo as combo => move |c| {
+                    clone!(#[weak(rename_to=detail)] self, #[weak] combo, move |c| {
                         detail.type_selected(c, &combo);
                     }),
                 );

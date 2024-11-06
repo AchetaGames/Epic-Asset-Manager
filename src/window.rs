@@ -245,10 +245,16 @@ impl EpicAssetManagerWindow {
             .unwrap()
             .attach(
                 None,
-                clone!(@weak self as window => @default-panic, move |msg| {
-                    window.update(msg);
-                    glib::ControlFlow::Continue
-                }),
+                clone!(
+                    #[weak(rename_to=window)]
+                    self,
+                    #[upgrade_or]
+                    false,
+                    move |msg| {
+                        window.update(msg);
+                        true
+                    }
+                ),
             );
     }
 
@@ -258,13 +264,17 @@ impl EpicAssetManagerWindow {
             self,
             "login",
             Some(&String::static_variant_type()),
-            clone!(@weak self as window => move |_, sid_par| {
-                if let Some(sid_opt) = sid_par {
-                    if let Some(sid) = sid_opt.get::<String>() {
-                        window.login(sid);
+            clone!(
+                #[weak(rename_to=window)]
+                self,
+                move |_, sid_par| {
+                    if let Some(sid_opt) = sid_par {
+                        if let Some(sid) = sid_opt.get::<String>() {
+                            window.login(sid);
+                        }
                     }
                 }
-            })
+            )
         );
 
         self.insert_action_group("window", Some(self));
@@ -272,26 +282,43 @@ impl EpicAssetManagerWindow {
         action!(
             self,
             "logout",
-            clone!(@weak self as window => move |_,_| {
-                window.logout();
-            })
+            clone!(
+                #[weak(rename_to=window)]
+                self,
+                move |_, _| {
+                    window.logout();
+                }
+            )
         );
 
         action!(
             self,
             "refresh",
-            clone!(@weak self as window => move |_,_| {
-                window.refresh();
-            })
+            clone!(
+                #[weak(rename_to=window)]
+                self,
+                move |_, _| {
+                    window.refresh();
+                }
+            )
         );
 
         self_.download_manager.connect_local(
             "tick",
             false,
-            clone!(@weak self as window => @default-return None, move |_| {
-                let self_ = window.imp();
-                self_.progress_icon.set_fraction(self_.download_manager.progress());
-                None}),
+            clone!(
+                #[weak(rename_to=window)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    let self_ = window.imp();
+                    self_
+                        .progress_icon
+                        .set_fraction(self_.download_manager.progress());
+                    None
+                }
+            ),
         );
     }
 
@@ -374,12 +401,16 @@ impl EpicAssetManagerWindow {
             .build();
         let label = gtk4::Label::builder().label(message).build();
         notif.add_child(&label);
-        notif.connect_response(
-            clone!(@weak notif, @weak self as window => @default-panic, move |_, _| {
+        notif.connect_response(clone!(
+            #[weak]
+            notif,
+            #[weak(rename_to=window)]
+            self,
+            move |_, _| {
                 let self_ = window.imp();
                 self_.notifications.remove(&notif);
-            }),
-        );
+            }
+        ));
         self_.notifications.append(&notif);
     }
 

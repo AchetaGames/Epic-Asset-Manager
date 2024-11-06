@@ -1,4 +1,4 @@
-use glib::ObjectExt;
+use gtk4::prelude::ObjectExt;
 use gtk4::{self, glib, subclass::prelude::*};
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -105,8 +105,8 @@ pub enum Msg {}
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
-    use glib::ToValue;
     use gtk4::glib::{ParamSpec, ParamSpecString};
+    use gtk4::prelude::ToValue;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible

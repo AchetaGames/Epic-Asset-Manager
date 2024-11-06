@@ -237,12 +237,17 @@ impl EpicDownloadManager {
         action!(
             self_.actions,
             "close",
-            clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_obj(&details);
-                if let Some(w) = self_.window.get() {
-                   w.show_logged_in();
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    let self_: &imp::EpicDownloadManager =
+                        imp::EpicDownloadManager::from_obj(&details);
+                    if let Some(w) = self_.window.get() {
+                        w.show_logged_in();
+                    }
                 }
-            })
+            )
         );
 
         self.insert_action_group("download_manager", Some(&self_.actions));
@@ -253,10 +258,15 @@ impl EpicDownloadManager {
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
-            clone!(@weak self as download_manager => @default-panic, move |msg| {
-                download_manager.update(msg);
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=download_manager)]
+                self,
+                #[upgrade_or_panic]
+                move |msg| {
+                    download_manager.update(msg);
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 

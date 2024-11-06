@@ -74,9 +74,11 @@ impl SidBox {
 
     pub fn setup_events(&self) {
         let self_ = self.imp();
-        self_
-            .sid_entry
-            .connect_changed(clone!(@weak self as sid_box => move |_| sid_box.validate_sid()));
+        self_.sid_entry.connect_changed(clone!(
+            #[weak(rename_to=sid_box)]
+            self,
+            move |_| sid_box.validate_sid()
+        ));
     }
 
     fn validate_sid(&self) {
@@ -108,9 +110,13 @@ impl SidBox {
         action!(
             actions,
             "login",
-            clone!(@weak self as sid_box => move |_, _| {
-                sid_box.login();
-            })
+            clone!(
+                #[weak(rename_to=sid_box)]
+                self,
+                move |_, _| {
+                    sid_box.login();
+                }
+            )
         );
 
         get_action!(self_.actions, @login).set_enabled(false);

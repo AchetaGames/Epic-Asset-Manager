@@ -1,4 +1,4 @@
-use gtk4::glib::{clone, Sender};
+use gtk4::glib::clone;
 use gtk4::{self, glib, prelude::*, subclass::prelude::*, CompositeTemplate, CustomSorter};
 use std::cmp::Ordering;
 use std::path::Path;
@@ -34,7 +34,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
-    use gtk4::glib::{Object, Priority};
+    use gtk4::glib::Object;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -46,8 +46,8 @@ pub mod imp {
         #[template_child]
         pub logs: TemplateChild<gtk4::ListView>,
         pub model: ListStore,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub pending: std::sync::RwLock<Vec<Object>>,
         pub load_pool: ThreadPool,
     }
@@ -59,11 +59,11 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 window: OnceCell::new(),
                 logs: TemplateChild::default(),
-                model: gtk4::gio::ListStore::new::<crate::models::log_data::LogData>(),
+                model: ListStore::new::<crate::models::log_data::LogData>(),
                 sender,
                 receiver: RefCell::new(Some(receiver)),
                 pending: std::sync::RwLock::default(),
@@ -109,15 +109,17 @@ impl EpicLogs {
     }
 
     pub fn setup_messaging(&self) {
-        let self_ = self.imp();
-        let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as engine => @default-panic, move |msg| {
-                engine.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        glib::MainContext::default().spawn_local(clone!(
+            #[weak(rename_to=logs)]
+            self,
+            async move {
+                let self_ = logs.imp();
+                let receiver = self_.receiver.borrow_mut().take().unwrap();
+                while let Ok(msg) = receiver.recv().await {
+                    logs.update(msg);
+                }
+            }
+        ));
     }
 
     pub fn update(&self, msg: Msg) {
@@ -179,7 +181,7 @@ impl EpicLogs {
     }
 
     fn sorter() -> CustomSorter {
-        gtk4::CustomSorter::new(move |obj1, obj2| {
+        CustomSorter::new(move |obj1, obj2| {
             let info1 = obj1
                 .downcast_ref::<crate::models::log_data::LogData>()
                 .unwrap()
@@ -285,16 +287,21 @@ impl EpicLogs {
                 }
             });
         }
-        glib::idle_add_local(clone!(@weak self as logs => @default-panic, move || {
-            if logs.flush_logs() {
-                glib::ControlFlow::Continue
-            } else {
-                glib::ControlFlow::Break
+        glib::idle_add_local(clone!(
+            #[weak(rename_to=logs)]
+            self,
+            #[upgrade_or_panic]
+            move || {
+                if logs.flush_logs() {
+                    glib::ControlFlow::Continue
+                } else {
+                    glib::ControlFlow::Break
+                }
             }
-        }));
+        ));
     }
 
-    fn read_logs_in_path(project: &Path, crash: bool, sender: &Sender<Msg>) {
+    fn read_logs_in_path(project: &Path, crash: bool, sender: &async_channel::Sender<Msg>) {
         if let Ok(rd) = project.read_dir() {
             for d in rd.flatten() {
                 if let Ok(w) = crate::RUNNING.read() {
@@ -316,7 +323,7 @@ impl EpicLogs {
                     };
                     let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
                     sender
-                        .send(Msg::AddLog(
+                        .send_blocking(Msg::AddLog(
                             p.to_str().unwrap_or_default().to_string(),
                             metadata.modified().map_or_else(
                                 |_| p.to_str().unwrap_or_default().to_string(),

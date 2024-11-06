@@ -3,7 +3,7 @@ use crate::ui::widgets::download_manager::Msg::CancelChunk;
 use crate::ui::widgets::download_manager::{Msg, PostDownloadAction, ThreadMessages};
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::{Priority, Sender};
+use gtk4::glib::Priority;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use log::{debug, error, info, warn};
@@ -46,7 +46,7 @@ pub trait Asset {
         &self,
         _release_id: String,
         _asset: egs_api::api::types::asset_info::AssetInfo,
-        _sender: Sender<(
+        _sender: async_channel::Sender<(
             String,
             Vec<egs_api::api::types::download_manifest::DownloadManifest>,
         )>,
@@ -201,23 +201,38 @@ impl Asset for super::EpicDownloadManager {
         item.connect_local(
             "finished",
             false,
-            clone!(@weak self as edm, @weak item => @default-return None, move |_| {
-                edm.finish(&item);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=edm)]
+                self,
+                #[weak]
+                item,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    edm.finish(&item);
+                    None
+                }
+            ),
         );
 
-        let (sender, receiver) = glib::MainContext::channel(Priority::default());
+        let (sender, receiver) = async_channel::unbounded();
 
-        receiver.attach(
-            None,
-            clone!(@weak self as download_manager => @default-panic, move |(id, manifest)| {
+        glib::MainContext::default().spawn_local(clone!(
+            #[weak(rename_to=download_manager)]
+            self,
+            #[strong]
+            receiver,
+            #[upgrade_or_panic]
+            async move |(id, manifest)| {
                 let self_ = download_manager.imp();
                 let sender = self_.sender.clone();
-                sender.send(super::Msg::StartAssetDownload(id, manifest)).unwrap();
-                glib::ControlFlow::Continue
-            }),
-        );
+                while let Ok((id, manifest)) = receiver.recv().await {
+                    sender
+                        .send_blocking(super::Msg::StartAssetDownload(id, manifest))
+                        .unwrap();
+                }
+            }
+        ));
 
         self.download_asset_manifest(release_id, asset, sender);
     }
@@ -225,7 +240,7 @@ impl Asset for super::EpicDownloadManager {
         &self,
         release_id: String,
         asset: egs_api::api::types::asset_info::AssetInfo,
-        sender: Sender<(
+        sender: async_channel::Sender<(
             String,
             Vec<egs_api::api::types::download_manifest::DownloadManifest>,
         )>,
@@ -748,7 +763,13 @@ impl Asset for super::EpicDownloadManager {
     }
 }
 
-fn process_thread_message(link: &Url, p: &Path, g: &str, sender: &Sender<Msg>, m: &ThreadMessages) {
+fn process_thread_message(
+    link: &Url,
+    p: &Path,
+    g: &str,
+    sender: &async_channel::Sender<Msg>,
+    m: &ThreadMessages,
+) {
     match m {
         ThreadMessages::Cancel => {
             sender
@@ -822,7 +843,7 @@ fn initiate_file_download(
     r_id: &str,
     r_name: &str,
     f_name: &str,
-    sender: &Sender<Msg>,
+    sender: &async_channel::Sender<Msg>,
     m: egs_api::api::types::download_manifest::FileManifestList,
     full_path: &Path,
 ) {
