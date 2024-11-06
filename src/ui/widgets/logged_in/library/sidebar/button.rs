@@ -160,9 +160,13 @@ impl EpicSidebarButton {
         action!(
             self_.actions,
             "clicked",
-            clone!(@weak self as button => move |_, _| {
-                button.clicked();
-            })
+            clone!(
+                #[weak(rename_to=button)]
+                self,
+                move |_, _| {
+                    button.clicked();
+                }
+            )
         );
     }
 

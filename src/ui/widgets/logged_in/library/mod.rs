@@ -291,18 +291,27 @@ impl EpicLibraryBox {
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
 
-        selection_model.connect_selected_notify(clone!(@weak self as library => move |model| {
-            library.asset_selected(model);
-        }));
+        selection_model.connect_selected_notify(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |model| {
+                library.asset_selected(model);
+            }
+        ));
 
         self.fetch_assets();
         glib::timeout_add_seconds_local(
             15 * 60 + (rand::random::<u32>() % 15 * 60),
-            clone!(@weak self as obj => @default-panic, move || {
-                debug!("Library timed refresh starting");
-                obj.run_refresh();
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    debug!("Library timed refresh starting");
+                    obj.run_refresh();
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
@@ -485,17 +494,21 @@ impl EpicLibraryBox {
 
         self_.sidebar.set_logged_in(self);
 
-        self_
-            .select_order_by
-            .connect_changed(clone!(@weak self as library => move |_| {
+        self_.select_order_by.connect_changed(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
                 library.order_changed();
-            }));
+            }
+        ));
 
-        self_
-            .asset_search
-            .connect_search_changed(clone!(@weak self as library => move |_| {
-                let self_ = library.imp();
-            }));
+        self_.asset_search.connect_search_changed(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                let _ = library.imp();
+            }
+        ));
     }
 
     pub fn order_changed(&self) {
@@ -514,18 +527,25 @@ impl EpicLibraryBox {
         action!(
             self_.actions,
             "show_download_details",
-            clone!(@weak self as library => move |_, _| {
-                library.show_download_details();
-
-            })
+            clone!(
+                #[weak(rename_to=library)]
+                self,
+                move |_, _| {
+                    library.show_download_details();
+                }
+            )
         );
 
         action!(
             self_.actions,
             "order",
-            clone!(@weak self as library => move |_, _| {
-                library.order();
-            })
+            clone!(
+                #[weak(rename_to=library)]
+                self,
+                move |_, _| {
+                    library.order();
+                }
+            )
         );
 
         self.insert_action_group("library", Some(&self_.actions));
@@ -829,13 +849,18 @@ impl EpicLibraryBox {
                 }
             });
             self.refresh_state_changed();
-            glib::idle_add_local(clone!(@weak self as library => @default-panic, move || {
-                if library.flush_loop() {
-                    glib::ControlFlow::Continue
-                } else {
-                    glib::ControlFlow::Break
+            glib::idle_add_local(clone!(
+                #[weak(rename_to=library)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    if library.flush_loop() {
+                        glib::ControlFlow::Continue
+                    } else {
+                        glib::ControlFlow::Break
+                    }
                 }
-            }));
+            ));
         }
     }
 

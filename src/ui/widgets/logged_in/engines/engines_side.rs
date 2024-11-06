@@ -174,9 +174,13 @@ impl EpicEnginesSide {
         action!(
             actions,
             "close",
-            clone!(@weak self as side => move |_, _| {
-                side.collapse();
-            })
+            clone!(
+                #[weak(rename_to=side)]
+                self,
+                move |_, _| {
+                    side.collapse();
+                }
+            )
         );
     }
 

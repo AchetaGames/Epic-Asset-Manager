@@ -184,16 +184,22 @@ impl EpicCreateAssetProject {
         action!(
             actions,
             "create",
-            clone!(@weak self as cap => move |_, _| {
-                cap.create();
-            })
+            clone!(
+                #[weak(rename_to=cap)]
+                self,
+                move |_, _| {
+                    cap.create();
+                }
+            )
         );
 
-        self_
-            .select_target_directory
-            .connect_changed(clone!(@weak self as cap => move |_| {
+        self_.select_target_directory.connect_changed(clone!(
+            #[weak(rename_to=cap)]
+            self,
+            move |_| {
                 cap.directory_changed();
-            }));
+            }
+        ));
     }
 
     fn directory_changed(&self) {

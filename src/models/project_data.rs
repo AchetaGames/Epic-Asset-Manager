@@ -1,6 +1,6 @@
-use glib::ObjectExt;
 use gtk4::gdk::Texture;
 use gtk4::glib::clone;
+use gtk4::prelude::ObjectExt;
 use gtk4::{self, glib, subclass::prelude::*};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -40,9 +40,9 @@ pub enum Msg {
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
-    use glib::ToValue;
     use gtk4::gdk::Texture;
-    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString, Priority};
+    use gtk4::glib::{ParamSpec, ParamSpecObject, ParamSpecString};
+    use gtk4::prelude::ToValue;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
@@ -54,8 +54,8 @@ mod imp {
         name: RefCell<Option<String>>,
         pub uproject: RefCell<Option<super::Uproject>>,
         thumbnail: RefCell<Option<Texture>>,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<super::Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<super::Msg>>>,
     }
 
     // Basic declaration of our type for the GObject type system
@@ -66,7 +66,7 @@ mod imp {
         type ParentType = glib::Object;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 guid: RefCell::new(None),
                 path: RefCell::new(None),
@@ -219,15 +219,17 @@ impl ProjectData {
     }
 
     pub fn setup_messaging(&self) {
-        let self_ = self.imp();
-        let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as project => @default-panic, move |msg| {
-                project.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        glib::MainContext::default().spawn_local(clone!(
+            #[weak(rename_to=project_data)]
+            self,
+            async move {
+                let self_ = project_data.imp();
+                let receiver = self_.receiver.borrow_mut().take().unwrap();
+                while let Ok(msg) = receiver.recv().await {
+                    project_data.update(msg);
+                }
+            }
+        ));
     }
 
     pub fn update(&self, msg: Msg) {
@@ -239,7 +241,7 @@ impl ProjectData {
         self.emit_by_name::<()>("finished", &[]);
     }
 
-    pub fn load_thumbnail(path: &str, sender: &gtk4::glib::Sender<Msg>) {
+    pub fn load_thumbnail(path: &str, sender: &async_channel::Sender<Msg>) {
         let mut pathbuf = match PathBuf::from(&path).parent() {
             None => return,
             Some(p) => p.to_path_buf(),
@@ -248,7 +250,7 @@ impl ProjectData {
         pathbuf.push("AutoScreenshot.png");
         if pathbuf.exists() {
             match gtk4::gdk::Texture::from_file(&gtk4::gio::File::for_path(pathbuf.as_path())) {
-                Ok(t) => sender.send(Msg::Thumbnail(t)).unwrap(),
+                Ok(t) => sender.send_blocking(Msg::Thumbnail(t)).unwrap(),
                 Err(e) => {
                     error!("Unable to load file to texture: {}", e);
                 }

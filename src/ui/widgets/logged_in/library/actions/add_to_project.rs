@@ -171,16 +171,22 @@ impl EpicAddToProject {
         action!(
             actions,
             "download_all",
-            clone!(@weak self as download_details => move |_, _| {
-                download_details.add_to_project();
-            })
+            clone!(
+                #[weak(rename_to=download_details)]
+                self,
+                move |_, _| {
+                    download_details.add_to_project();
+                }
+            )
         );
 
-        self_
-            .select_target_directory
-            .connect_changed(clone!(@weak self as atp => move |_| {
+        self_.select_target_directory.connect_changed(clone!(
+            #[weak(rename_to=atp)]
+            self,
+            move |_| {
                 atp.directory_changed();
-            }));
+            }
+        ));
     }
 
     fn add_to_project(&self) {

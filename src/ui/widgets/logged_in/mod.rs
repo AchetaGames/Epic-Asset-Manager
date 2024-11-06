@@ -152,11 +152,13 @@ impl EpicLoggedInBox {
             _ => self_.adwstack.set_visible_child_name("library"),
         }
 
-        self_
-            .adwstack
-            .connect_visible_child_notify(clone!(@weak self as li => move |_| {
+        self_.adwstack.connect_visible_child_notify(clone!(
+            #[weak(rename_to=li)]
+            self,
+            move |_| {
                 li.tab_switched();
-            }));
+            }
+        ));
     }
 
     pub fn set_download_manager(

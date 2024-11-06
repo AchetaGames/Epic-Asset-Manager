@@ -197,10 +197,18 @@ impl EpicEngine {
         self_.handler.replace(Some(data.connect_local(
             "finished",
             false,
-            clone!(@weak self as engine, @weak data => @default-return None, move |_| {
-                engine.finished(&data);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=engine)]
+                self,
+                #[weak]
+                data,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    engine.finished(&data);
+                    None
+                }
+            ),
         )));
     }
 

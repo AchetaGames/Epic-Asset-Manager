@@ -192,10 +192,15 @@ impl EpicEnginesBox {
         let receiver = self_.receiver.borrow_mut().take().unwrap();
         receiver.attach(
             None,
-            clone!(@weak self as engines => @default-panic, move |msg| {
-                engines.update(msg);
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=engines)]
+                self,
+                #[upgrade_or_panic]
+                move |msg| {
+                    engines.update(msg);
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
@@ -278,9 +283,13 @@ impl EpicEnginesBox {
         self_.engine_grid.set_model(Some(&selection_model));
         self_.engine_grid.set_factory(Some(&factory));
 
-        selection_model.connect_selected_notify(clone!(@weak self as engines => move |model| {
-            engines.engine_selected(model);
-        }));
+        selection_model.connect_selected_notify(clone!(
+            #[weak(rename_to=engines)]
+            self,
+            move |model| {
+                engines.engine_selected(model);
+            }
+        ));
 
         let data = crate::models::engine_data::EngineData::new(
             "",
@@ -303,10 +312,15 @@ impl EpicEnginesBox {
         self.load_engines();
         glib::timeout_add_seconds_local(
             15 * 60 + (rand::random::<u32>() % 5) * 60,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.run_refresh();
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    obj.run_refresh();
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 

@@ -1,5 +1,5 @@
 use adw::gdk::Texture;
-use gtk4::glib::{clone, MainContext, Receiver, Sender};
+use gtk4::glib::{clone, MainContext};
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -155,10 +155,15 @@ impl EpicImageOverlay {
         let self_ = self.imp();
         self_.receiver.borrow_mut().take().unwrap().attach(
             None,
-            clone!(@weak self as img => @default-panic, move |msg| {
-                img.update(msg);
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=img)]
+                self,
+                #[upgrade_or_panic]
+                move |msg| {
+                    img.update(msg);
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
@@ -195,23 +200,33 @@ impl EpicImageOverlay {
         let actions = &self_.actions;
         self.insert_action_group("image_stack", Some(actions));
 
-        self_.stack.connect_page_changed(
-            clone!(@weak self as image_stack => move |_, _| image_stack.check_actions();),
-        );
+        self_.stack.connect_page_changed(clone!(
+            #[weak(rename_to=image_stack)]
+            self,
+            move |_, _| image_stack.check_actions()
+        ));
         action!(
             actions,
             "next",
-            clone!(@weak self as image_stack => move |_, _| {
-                image_stack.next();
-            })
+            clone!(
+                #[weak(rename_to=image_stack)]
+                self,
+                move |_, _| {
+                    image_stack.next();
+                }
+            )
         );
 
         action!(
             actions,
             "prev",
-            clone!(@weak self as image_stack => move |_, _| {
-                image_stack.prev();
-            })
+            clone!(
+                #[weak(rename_to=image_stack)]
+                self,
+                move |_, _| {
+                    image_stack.prev();
+                }
+            )
         );
     }
 

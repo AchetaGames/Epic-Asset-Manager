@@ -4,7 +4,6 @@ use adw::subclass::prelude::*;
 use gio::ApplicationFlags;
 use glib::clone;
 use gtk4::prelude::*;
-use gtk4::subclass::prelude::*;
 use gtk4::{gdk, gio, glib};
 use gtk_macros::action;
 use log::{debug, error, info};
@@ -136,9 +135,13 @@ pub mod imp {
             action!(
                 app_d,
                 "preferences",
-                clone!(@weak app as app => move |_,_| {
-                    app.main_window().show_preferences();
-                })
+                clone!(
+                    #[weak]
+                    app,
+                    move |_, _| {
+                        app.main_window().show_preferences();
+                    }
+                )
             );
 
             app.setup_gactions();
@@ -190,26 +193,38 @@ impl EpicAssetManager {
         action!(
             self,
             "quit",
-            clone!(@weak self as app => move |_, _| {
-                app.exit();
-            })
+            clone!(
+                #[weak(rename_to=app)]
+                self,
+                move |_, _| {
+                    app.exit();
+                }
+            )
         );
 
         let is_dark_mode = self_.settings.boolean("dark-mode");
         let simple_action =
             gio::SimpleAction::new_stateful("dark-mode", None, &is_dark_mode.to_variant());
-        simple_action.connect_activate(clone!(@weak self as app =>  move |action, _| {
-            app.toggle_dark_mode(action);
-        }));
+        simple_action.connect_activate(clone!(
+            #[weak(rename_to=app)]
+            self,
+            move |action, _| {
+                app.toggle_dark_mode(action);
+            }
+        ));
         self.add_action(&simple_action);
 
         // About
         action!(
             self,
             "about",
-            clone!(@weak self as app => move |_, _| {
-                app.show_about_dialog();
-            })
+            clone!(
+                #[weak(rename_to=app)]
+                self,
+                move |_, _| {
+                    app.show_about_dialog();
+                }
+            )
         );
 
         let level = self_.settings.int("log-level");

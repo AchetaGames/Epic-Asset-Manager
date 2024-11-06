@@ -1,4 +1,4 @@
-use glib::ObjectExt;
+use gtk4::prelude::ObjectExt;
 use gtk4::{glib, prelude::*, subclass::prelude::*};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -80,8 +80,8 @@ pub enum Msg {
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
-    use glib::ToValue;
     use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
+    use gtk4::prelude::ToValue;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
 

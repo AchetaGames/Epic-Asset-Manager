@@ -173,16 +173,24 @@ impl EpicSidebar {
         action!(
             self_.actions,
             "expand",
-            clone!(@weak self as sidebar => move |_, _| {
-                sidebar.expand();
-            })
+            clone!(
+                #[weak(rename_to=sidebar)]
+                self,
+                move |_, _| {
+                    sidebar.expand();
+                }
+            )
         );
         action!(
             self_.actions,
             "marketplace",
-            clone!(@weak self as sidebar => move |_, _| {
-                sidebar.open_marketplace();
-            })
+            clone!(
+                #[weak(rename_to=sidebar)]
+                self,
+                move |_, _| {
+                    sidebar.open_marketplace();
+                }
+            )
         );
     }
 
@@ -195,10 +203,15 @@ impl EpicSidebar {
 
             receiver.attach(
                 None,
-                clone!(@weak self as sidebar => @default-panic, move |code:String| {
-                    open_browser(&code);
-                    glib::ControlFlow::Break
-                }),
+                clone!(
+                    #[weak(rename_to=sidebar)]
+                    self,
+                    #[upgrade_or_panic]
+                    move |code: String| {
+                        open_browser(&code);
+                        glib::ControlFlow::Break
+                    }
+                ),
             );
 
             thread::spawn(move || {
@@ -239,16 +252,20 @@ impl EpicSidebar {
         c.set_widget_name("all");
         self_.stack.add_named(&c, Some("all"));
 
-        self_
-            .favorites_filter
-            .connect_toggled(clone!(@weak self as sidebar => move |_| {
+        self_.favorites_filter.connect_toggled(clone!(
+            #[weak(rename_to=sidebar)]
+            self,
+            move |_| {
                 sidebar.filter_changed();
-            }));
-        self_
-            .downloaded_filter
-            .connect_toggled(clone!(@weak self as sidebar => move |_| {
+            }
+        ));
+        self_.downloaded_filter.connect_toggled(clone!(
+            #[weak(rename_to=sidebar)]
+            self,
+            move |_| {
                 sidebar.filter_changed();
-            }));
+            }
+        ));
 
         if self_.settings.boolean("sidebar-expanded") {
             self.expand();

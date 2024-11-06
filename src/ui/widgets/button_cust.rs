@@ -1,4 +1,4 @@
-use gtk4::glib::IsA;
+use gtk4::prelude::IsA;
 use gtk4::{self, prelude::*, Button};
 
 pub trait ButtonEpic: 'static {

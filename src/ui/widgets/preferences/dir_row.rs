@@ -85,25 +85,37 @@ impl DirectoryRow {
         action!(
             self_.actions,
             "remove",
-            clone!(@weak row as row => move |_, _| {
-                row.emit_by_name::<()>("remove", &[]);
-            })
+            clone!(
+                #[weak]
+                row,
+                move |_, _| {
+                    row.emit_by_name::<()>("remove", &[]);
+                }
+            )
         );
 
         action!(
             self_.actions,
             "up",
-            clone!(@weak row as row => move |_, _| {
-                row.emit_by_name::<()>("move-up", &[]);
-            })
+            clone!(
+                #[weak]
+                row,
+                move |_, _| {
+                    row.emit_by_name::<()>("move-up", &[]);
+                }
+            )
         );
 
         action!(
             self_.actions,
             "down",
-            clone!(@weak row as row => move |_, _| {
-                row.emit_by_name::<()>("move-down", &[]);
-            })
+            clone!(
+                #[weak]
+                row,
+                move |_, _| {
+                    row.emit_by_name::<()>("move-down", &[]);
+                }
+            )
         );
         row.set_down_enabled(false);
         row

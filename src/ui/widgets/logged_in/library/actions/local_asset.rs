@@ -124,17 +124,25 @@ impl EpicLocalAsset {
         action!(
             self_.actions,
             "open",
-            clone!(@weak self as local_asset => move |_, _| {
-                local_asset.open_path();
-            })
+            clone!(
+                #[weak(rename_to=local_asset)]
+                self,
+                move |_, _| {
+                    local_asset.open_path();
+                }
+            )
         );
 
         action!(
             self_.actions,
             "delete",
-            clone!(@weak self as local_asset => move |_, _| {
-                local_asset.delete();
-            })
+            clone!(
+                #[weak(rename_to=local_asset)]
+                self,
+                move |_, _| {
+                    local_asset.delete();
+                }
+            )
         );
     }
 
