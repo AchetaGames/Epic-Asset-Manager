@@ -9,7 +9,7 @@ use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
 use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
-use gtk4::glib::{clone, Priority};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*, SizeGroupMode};
 use gtk4::{glib, CompositeTemplate};
@@ -534,23 +534,21 @@ impl EpicAssetActions {
                             self.add_detail("Release Note", &gtk4::Label::new(Some(note)));
                         }
                     }
-                    let (sender, receiver) = glib::MainContext::channel::<(
+                    let (sender, receiver) = async_channel::unbounded::<(
                         String,
                         Vec<egs_api::api::types::download_manifest::DownloadManifest>,
-                    )>(Priority::default());
+                    )>();
 
-                    receiver.attach(
-                        None,
-                        clone!(
-                            #[weak(rename_to=asset_actions)]
-                            self,
-                            #[upgrade_or_panic]
-                            move |(id, manifest)| {
+                    glib::spawn_future_local(clone!(
+                        #[weak(rename_to=asset_actions)]
+                        self,
+                        #[upgrade_or_panic]
+                        async move {
+                            while let Ok((id, manifest)) = receiver.recv().await {
                                 asset_actions.process_download_manifest(&id, manifest);
-                                glib::ControlFlow::Continue
                             }
-                        ),
-                    );
+                        }
+                    ));
 
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_asset_manifest(id.to_string(), asset_info.clone(), sender);

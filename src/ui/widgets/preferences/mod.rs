@@ -354,16 +354,12 @@ impl PreferencesWindow {
                                             continue;
                                         };
                                         debug!("Loading: {label}");
-                                        match label.as_str() {
-                                            "eam_github_token" => {
-                                                if let Ok(d) = item.get_secret() {
-                                                    if let Ok(s) = std::str::from_utf8(d.as_slice())
-                                                    {
-                                                        self_.github_token.set_text(s);
-                                                    }
-                                                };
-                                            }
-                                            &_ => {}
+                                        if label.as_str() == "eam_github_token" {
+                                            if let Ok(d) = item.get_secret() {
+                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                                    self_.github_token.set_text(s);
+                                                }
+                                            };
                                         }
                                     }
                                 };

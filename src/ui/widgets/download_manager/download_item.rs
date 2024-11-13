@@ -238,7 +238,7 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
 
                     if let Some(tex) = &thumbnail {
-                        self.image.set_from_paintable(Some(tex));
+                        self.image.set_paintable(Some(tex));
                     }
 
                     self.thumbnail.replace(thumbnail);

@@ -3,8 +3,6 @@ use crate::ui::widgets::logged_in::engines::epic_download::Blob;
 use crate::ui::widgets::logged_in::refresh::Refresh;
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::MainContext;
-use gtk4::glib::Priority;
 use gtk4::prelude::WidgetExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use gtk4::{self, prelude::*};
@@ -97,7 +95,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn engine_target_directory(&self) -> Option<PathBuf> {
         let self_ = self.imp();
 
-        let target = match self_.settings.strv("unreal-engine-directories").get(0) {
+        let target = match self_.settings.strv("unreal-engine-directories").first() {
             None => {
                 if let Some(w) = self_.window.get() {
                     w.add_notification(
@@ -181,26 +179,24 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     fn start_version_file_download(&self, version: &str) {
         let self_ = self.imp();
-        let (sender, receiver) = MainContext::channel(Priority::default());
+        let (sender, receiver) = async_channel::unbounded();
 
         let vers = version.to_string();
-        receiver.attach(
-            None,
-            clone!(
-                #[weak(rename_to=dm)]
-                self,
-                #[upgrade_or_panic]
-                move |v| {
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=dm)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                while let Ok(response) = receiver.recv().await {
                     let self_ = dm.imp();
                     let s = self_.sender.clone();
-                    if let Some(ver) = filter_versions(v, &vers) {
-                        s.send(Msg::EpicDownloadStart(ver.name, ver.url, ver.size))
+                    if let Some(ver) = filter_versions(response, &vers) {
+                        s.send_blocking(Msg::EpicDownloadStart(ver.name, ver.url, ver.size))
                             .unwrap();
                     }
-                    glib::ControlFlow::Break
                 }
-            ),
-        );
+            }
+        ));
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let logged_in = win_.logged_in_stack.imp();

@@ -23,11 +23,11 @@ impl EpicAssetManagerWindow {
                 .block_on(eg.auth_code(None, Some(s)))
             {
                 sender
-                    .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
+                    .send_blocking(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
             } else {
                 sender
-                    .send(crate::ui::messages::Msg::LoginFailed(
+                    .send_blocking(crate::ui::messages::Msg::LoginFailed(
                         "Unable to authenticate with auth code".to_string(),
                     ))
                     .unwrap();
@@ -97,11 +97,11 @@ impl EpicAssetManagerWindow {
                 .block_on(eg.login())
             {
                 sender
-                    .send(crate::ui::messages::Msg::LoginOk(eg.user_details()))
+                    .send_blocking(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
             } else {
                 sender
-                    .send(crate::ui::messages::Msg::LoginFailed(
+                    .send_blocking(crate::ui::messages::Msg::LoginFailed(
                         "Relogin request failed".to_string(),
                     ))
                     .unwrap();
@@ -125,7 +125,9 @@ impl EpicAssetManagerWindow {
                 .build()
                 .unwrap()
                 .block_on(eg.logout());
-            sender.send(crate::ui::messages::Msg::Logout).unwrap();
+            sender
+                .send_blocking(crate::ui::messages::Msg::Logout)
+                .unwrap();
         });
     }
 }

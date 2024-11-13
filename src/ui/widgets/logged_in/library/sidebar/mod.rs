@@ -1,5 +1,5 @@
 use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
-use gtk4::glib::{clone, Priority};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -199,20 +199,13 @@ impl EpicSidebar {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded::<String>();
 
-            receiver.attach(
-                None,
-                clone!(
-                    #[weak(rename_to=sidebar)]
-                    self,
-                    #[upgrade_or_panic]
-                    move |code: String| {
-                        open_browser(&code);
-                        glib::ControlFlow::Break
-                    }
-                ),
-            );
+            glib::spawn_future_local(async move {
+                while let Ok(response) = receiver.recv().await {
+                    open_browser(&response);
+                }
+            });
 
             thread::spawn(move || {
                 match Builder::new_current_thread()
@@ -223,7 +216,7 @@ impl EpicSidebar {
                 {
                     None => {}
                     Some(token) => {
-                        sender.send(token.code).unwrap();
+                        sender.send_blocking(token.code).unwrap();
                     }
                 }
             });

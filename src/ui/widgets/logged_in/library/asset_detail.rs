@@ -196,10 +196,16 @@ impl EpicAssetDetails {
         self_.asset_actions.connect_local(
             "start-download",
             false,
-            clone!(@weak self as ead => @default-return None, move |_| {
-                ead.start_download();
-                None
-            }),
+            clone!(
+                #[weak(rename_to=ead)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    ead.start_download();
+                    None
+                }
+            ),
         );
     }
 

@@ -63,7 +63,7 @@ impl UnrealEngine {
 pub mod imp {
     use std::cell::RefCell;
 
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Priority};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use threadpool::ThreadPool;
 
@@ -77,17 +77,16 @@ pub mod imp {
         #[template_child]
         pub engine_grid: TemplateChild<gtk4::GridView>,
         #[template_child]
-        pub side:
-            TemplateChild<crate::ui::widgets::logged_in::engines::engines_side::EpicEnginesSide>,
-        pub grid_model: gtk4::gio::ListStore,
+        pub side: TemplateChild<engines_side::EpicEnginesSide>,
+        pub grid_model: gio::ListStore,
         pub expanded: RefCell<bool>,
         pub file_pool: ThreadPool,
         selected: RefCell<Option<String>>,
-        pub actions: gtk4::gio::SimpleActionGroup,
-        pub engines: RefCell<HashMap<String, super::UnrealEngine>>,
+        pub actions: gio::SimpleActionGroup,
+        pub engines: RefCell<HashMap<String, UnrealEngine>>,
         pub settings: gio::Settings,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
     }
 
     #[glib::object_subclass]
@@ -97,7 +96,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
@@ -190,18 +189,16 @@ impl EpicEnginesBox {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(
-                #[weak(rename_to=engines)]
-                self,
-                #[upgrade_or_panic]
-                move |msg| {
-                    engines.update(msg);
-                    glib::ControlFlow::Continue
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=engines)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                while let Ok(response) = receiver.recv().await {
+                    engines.update(response);
                 }
-            ),
-        );
+            }
+        ));
     }
 
     fn update(&self, msg: Msg) {
@@ -463,7 +460,7 @@ impl EpicEnginesBox {
                 if let Some(version) =
                     crate::models::engine_data::EngineData::read_engine_version(&path)
                 {
-                    s.send(Msg::AddEngine {
+                    s.send_blocking(Msg::AddEngine {
                         guid,
                         path,
                         version,
@@ -497,7 +494,7 @@ impl EpicEnginesBox {
                                             p.to_str().unwrap(),
                                         )
                                     {
-                                        s.send(Msg::AddEngine {
+                                        s.send_blocking(Msg::AddEngine {
                                             guid: p.to_str().unwrap().to_string(),
                                             path: p.to_str().unwrap().to_string(),
                                             version,
@@ -509,7 +506,7 @@ impl EpicEnginesBox {
                         }
                     }
                     Some(version) => {
-                        s.send(Msg::AddEngine {
+                        s.send_blocking(Msg::AddEngine {
                             guid: dir.to_string(),
                             path: dir.to_string(),
                             version,

@@ -9,7 +9,7 @@ pub mod project_data;
 use crate::config::APP_ID;
 use egs_api::EpicGames;
 use gtk4::gio;
-use gtk4::glib::{MainContext, Priority, UserDirectory};
+use gtk4::glib::UserDirectory;
 use gtk4::prelude::*;
 use log::{debug, error, info, warn};
 use std::cell::RefCell;
@@ -145,7 +145,9 @@ impl Model {
                         Ok(auth) => {
                             if auth {
                                 sender
-                                    .send(crate::ui::messages::Msg::DockerClient(docker_client))
+                                    .send_blocking(crate::ui::messages::Msg::DockerClient(
+                                        docker_client,
+                                    ))
                                     .unwrap();
                                 info!("Docker Authenticated");
                             }
@@ -157,7 +159,7 @@ impl Model {
                     Err(e) => {
                         error!("Failed authentication {:?}", e);
                         sender
-                            .send(crate::ui::messages::Msg::GithubAuthFailed)
+                            .send_blocking(crate::ui::messages::Msg::GithubAuthFailed)
                             .unwrap();
                     }
                 };

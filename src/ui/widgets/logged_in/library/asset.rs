@@ -109,7 +109,7 @@ pub mod imp {
                             self.image.set_icon_name(Some("ue-logo-symbolic"));
                         },
                         |t| {
-                            self.image.set_from_paintable(Some(&t));
+                            self.image.set_paintable(Some(&t));
                         },
                     );
                 }

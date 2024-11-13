@@ -178,16 +178,12 @@ impl EpicLogLine {
             {
                 if let Ok(dir) = std::fs::File::open(&p) {
                     let ctx = glib::MainContext::default();
-                    ctx.spawn_local(clone!(
-                        #[weak(rename_to=asset_details)]
-                        self,
-                        async move {
-                            ashpd::desktop::open_uri::OpenFileRequest::default()
-                                .send_file(&dir)
-                                .await
-                                .unwrap();
-                        }
-                    ));
+                    ctx.spawn_local(async move {
+                        ashpd::desktop::open_uri::OpenFileRequest::default()
+                            .send_file(&dir)
+                            .await
+                            .unwrap();
+                    });
                 };
             };
         }

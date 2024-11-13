@@ -638,7 +638,7 @@ impl EpicLibraryBox {
             let win_ = window.imp();
             let sender = win_.model.borrow().sender.clone();
             sender
-                .send(crate::ui::messages::Msg::EndAssetProcessing)
+                .send_blocking(crate::ui::messages::Msg::EndAssetProcessing)
                 .unwrap();
             let mut assets = self_.loaded_assets.borrow_mut();
             let mut asset_products = self_.asset_product_names.borrow_mut();
@@ -713,7 +713,7 @@ impl EpicLibraryBox {
             match asset.thumbnail() {
                 None => {
                     sender
-                        .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                        .send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
                             asset.clone(),
                             None,
                         ))
@@ -737,7 +737,7 @@ impl EpicLibraryBox {
                                 cache_path.as_path(),
                             )) {
                                 Ok(t) => sender
-                                    .send(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                                    .send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
                                         asset.clone(),
                                         Some(t),
                                     ))
@@ -751,7 +751,10 @@ impl EpicLibraryBox {
                             };
                         } else {
                             sender
-                                .send(crate::ui::messages::Msg::DownloadImage(t, asset.clone()))
+                                .send_blocking(crate::ui::messages::Msg::DownloadImage(
+                                    t,
+                                    asset.clone(),
+                                ))
                                 .unwrap();
                         }
                     });
@@ -798,12 +801,14 @@ impl EpicLibraryBox {
 
                             if asset_file.exists() {
                                 sender
-                                    .send(crate::ui::messages::Msg::StartAssetProcessing)
+                                    .send_blocking(crate::ui::messages::Msg::StartAssetProcessing)
                                     .unwrap();
                                 if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
                                     if let Ok(asset) = serde_json::from_reader(f) {
                                         sender
-                                            .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                                            .send_blocking(
+                                                crate::ui::messages::Msg::ProcessAssetInfo(asset),
+                                            )
                                             .unwrap();
                                     }
                                 };
@@ -841,10 +846,10 @@ impl EpicLibraryBox {
                 });
                 for asset in assets {
                     sender
-                        .send(crate::ui::messages::Msg::StartAssetProcessing)
+                        .send_blocking(crate::ui::messages::Msg::StartAssetProcessing)
                         .unwrap();
                     sender
-                        .send(crate::ui::messages::Msg::ProcessEpicAsset(asset))
+                        .send_blocking(crate::ui::messages::Msg::ProcessEpicAsset(asset))
                         .unwrap();
                 }
             });
@@ -916,7 +921,7 @@ impl EpicLibraryBox {
                             .unwrap();
                     }
                     sender
-                        .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                        .send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset))
                         .unwrap();
                 }
             });
