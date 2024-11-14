@@ -466,7 +466,6 @@ impl EpicAssetManagerWindow {
         b.set_margin_top(8);
         b.set_margin_bottom(8);
         let label = gtk4::Label::new(Some(&text));
-        label.set_css_classes(&["heading"]);
         label.set_use_markup(true);
         label.set_selectable(true);
         label.set_wrap(true);
@@ -485,7 +484,6 @@ impl EpicAssetManagerWindow {
         label.set_hexpand(true);
         label.set_halign(gtk4::Align::Start);
         label.set_valign(gtk4::Align::Center);
-        label.set_css_classes(&["heading"]);
         label.set_selectable(true);
         label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
         b.append(&label);
