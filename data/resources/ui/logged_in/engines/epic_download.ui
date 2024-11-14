@@ -39,6 +39,7 @@
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                        <property name="css-classes">background</property>
                                         <child>
                                             <object class="GtkListBoxRow">
                                                 <child>

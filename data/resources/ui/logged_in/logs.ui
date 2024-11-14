@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicLogs" parent="GtkBox">
-        <property name="hexpand">1</property>
-        <property name="vexpand">1</property>
         <property name="orientation">vertical</property>
         <child>
-            <object class="GtkScrolledWindow">
-                <property name="height-request">300</property>
+            <object class="AdwPreferencesPage">
                 <child>
-                    <object class="GtkListView" id="logs">
-                    </object>
+                    <object class="GtkListView" id="logs"/>
                 </child>
             </object>
         </child>

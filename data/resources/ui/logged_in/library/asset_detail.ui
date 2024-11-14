@@ -15,6 +15,7 @@
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <child>
+                            <!-- TODO: GtkInfoBar is deprecated, switch to AdwBanner -->
                             <object class="GtkInfoBar" id="warning">
                                 <property name="css-classes">warning</property>
                                 <property name="message-type">GTK_MESSAGE_ERROR</property>
@@ -45,10 +46,11 @@ pill</property>
                                 </child>
                                 <child>
                                     <object class="GtkLabel" id="title">
-                                        <property name="css-classes">title-1</property>
-                                        <property name="ellipsize">middle</property>
-                                        <property name="halign">center</property>
                                         <property name="hexpand">true</property>
+                                        <property name="halign">center</property>
+                                        <property name="ellipsize">middle</property>
+                                        <!-- <property name="selectable">true</property> --> <!-- setting this messes up titles for some reason -->
+                                        <property name="css-classes">title-1</property>
                                     </object>
                                 </child>
                                 <child>
@@ -86,6 +88,7 @@ circular</property>
                                     </object>
                                 </child>
                                 <child>
+                                    <!-- TODO: switch to GtkDropDown? -->
                                     <object class="GtkMenuButton" id="actions_menu">
                                         <property name="direction">down</property>
                                         <property name="hexpand">true</property>
@@ -118,26 +121,24 @@ circular</property>
                             <object class="GtkRevealer" id="details_revealer">
                                 <property name="reveal-child">true</property>
                                 <child>
-                                    <object class="GtkScrolledWindow">
+                                    <object class="AdwPreferencesPage">
                                         <child>
-                                            <object class="GtkBox" id="details">
-                                                <property name="orientation">vertical</property>
-                                                <property name="vexpand">true</property>
-                                                    <child>
-                                                        <object class="EpicImageOverlay" id="images">
-                                                            <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
-                                                            <property name="vexpand">false</property>
-                                                        </object>
-                                                    </child>
+                                            <object class="AdwPreferencesGroup">
                                                 <child>
-                                                    <object class="GtkSeparator">
-                                                        <property name="orientation">horizontal</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkListBox" id="details_box">
-                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
-                                                        <property name="vexpand">true</property>
+                                                    <object class="GtkBox" id="details">
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="spacing">12</property>
+                                                        <child>
+                                                            <object class="EpicImageOverlay" id="images">
+                                                                <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
+                                                            </object>
+                                                        </child>
+                                                        <child>
+                                                            <object class="GtkListBox" id="details_box">
+                                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                                                <property name="css-classes">boxed-list</property>
+                                                            </object>
+                                                        </child>
                                                     </object>
                                                 </child>
                                             </object>
