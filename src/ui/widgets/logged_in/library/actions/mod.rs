@@ -50,23 +50,15 @@ pub mod imp {
         #[template_child]
         pub select_download_version: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
-        pub asset_details_revealer: TemplateChild<gtk4::Revealer>,
+        pub project_group: TemplateChild<adw::PreferencesGroup>,
         #[template_child]
-        pub download_row: TemplateChild<adw::ExpanderRow>,
+        pub new_project_group: TemplateChild<adw::PreferencesGroup>,
         #[template_child]
-        pub project_row: TemplateChild<adw::ExpanderRow>,
+        pub engine_group: TemplateChild<adw::PreferencesGroup>,
         #[template_child]
-        pub new_project_row: TemplateChild<adw::ExpanderRow>,
+        pub install_group: TemplateChild<adw::PreferencesGroup>,
         #[template_child]
-        pub engine_row: TemplateChild<adw::ExpanderRow>,
-        #[template_child]
-        pub install_row: TemplateChild<adw::ExpanderRow>,
-        #[template_child]
-        pub local_row: TemplateChild<adw::ExpanderRow>,
-        #[template_child]
-        pub asset_actions_button: TemplateChild<gtk4::Button>,
-        #[template_child]
-        pub version_label: TemplateChild<gtk4::Label>,
+        pub local_group: TemplateChild<adw::PreferencesGroup>,
         #[template_child]
         pub download_details: TemplateChild<download_detail::EpicDownloadDetails>,
         #[template_child]
@@ -100,15 +92,11 @@ pub mod imp {
                 actions: gio::SimpleActionGroup::new(),
                 download_manager: OnceCell::new(),
                 select_download_version: TemplateChild::default(),
-                asset_details_revealer: TemplateChild::default(),
-                download_row: TemplateChild::default(),
-                project_row: TemplateChild::default(),
-                new_project_row: TemplateChild::default(),
-                engine_row: TemplateChild::default(),
-                install_row: TemplateChild::default(),
-                local_row: TemplateChild::default(),
-                asset_actions_button: TemplateChild::default(),
-                version_label: TemplateChild::default(),
+                project_group: TemplateChild::default(),
+                new_project_group: TemplateChild::default(),
+                engine_group: TemplateChild::default(),
+                install_group: TemplateChild::default(),
+                local_group: TemplateChild::default(),
                 download_details: TemplateChild::default(),
                 additional_details: TemplateChild::default(),
                 add_to_project: TemplateChild::default(),
@@ -132,7 +120,6 @@ pub mod imp {
     impl ObjectImpl for EpicAssetActions {
         fn constructed(&self) {
             self.parent_constructed();
-            self.details_group.add_widget(&*self.version_label);
             let obj = self.obj();
             obj.setup_actions();
             obj.setup_events();
@@ -282,7 +269,7 @@ impl EpicAssetActions {
             clone!(@weak self as aa => @default-return None, move |_| {
                 let self_ = aa.imp();
                 if self_.local_assets.empty() {
-                    self_.local_row.set_visible(false);
+                    self_.local_group.set_visible(false);
                     aa.refresh_asset();
                 }
                 None
@@ -306,55 +293,18 @@ impl EpicAssetActions {
         let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("asset_actions", Some(actions));
-
-        action!(
-            actions,
-            "show",
-            clone!(@weak self as download_details => move |_, _| {
-                download_details.show();
-            })
-        );
-    }
-
-    fn show(&self) {
-        let self_ = self.imp();
-        if self_.asset_details_revealer.reveals_child() {
-            self_.asset_details_revealer.set_reveal_child(false);
-            self_.asset_actions_button.set_icon_name("go-down-symbolic");
-            self_
-                .asset_actions_button
-                .set_tooltip_text(Some("Show details"));
-        } else {
-            self_.asset_details_revealer.set_reveal_child(true);
-            self_.asset_actions_button.set_icon_name("go-up-symbolic");
-            self_
-                .asset_actions_button
-                .set_tooltip_text(Some("Hide details"));
-        }
     }
 
     pub fn set_action(&self, action: &Action) {
         let self_ = self.imp();
         match action {
-            Action::Download => {
-                self_.download_row.set_expanded(true);
-            }
-            Action::AddToProject => {
-                self_.project_row.set_expanded(true);
-            }
-            Action::AddToEngine => {
-                self_.engine_row.set_expanded(true);
-            }
-            Action::CreateProject => {
-                self_.new_project_row.set_expanded(true);
-            }
-            Action::Install => {
-                self_.install_row.set_expanded(true);
-            }
+            Action::Download => {}
+            Action::AddToProject => {}
+            Action::AddToEngine => {}
+            Action::CreateProject => {}
+            Action::Install => {}
             Action::Play => {}
-            Action::Local => {
-                self_.local_row.set_expanded(true);
-            }
+            Action::Local => {}
         }
     }
 
@@ -375,8 +325,7 @@ impl EpicAssetActions {
         self_.create_asset_project.set_asset(&asset.clone());
         self_.local_assets.set_asset(&asset.clone());
         self_.select_download_version.remove_all();
-        self_.local_row.set_visible(false);
-        self_.local_row.set_expanded(false);
+        self_.local_group.set_visible(false);
         let vaults = self_.settings.strv("unreal-vault-directories");
         if let Some(releases) = asset.sorted_releases() {
             for (id, release) in releases.iter().enumerate() {
@@ -384,7 +333,7 @@ impl EpicAssetActions {
                     if !crate::models::asset_data::AssetData::downloaded_locations(&vaults, app)
                         .is_empty()
                     {
-                        self_.local_row.set_visible(true);
+                        self_.local_group.set_visible(true);
                     }
                 }
                 self_.select_download_version.append(
@@ -404,33 +353,29 @@ impl EpicAssetActions {
         }
 
         if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(asset) {
-            self_.project_row.set_visible(false);
-            self_.new_project_row.set_visible(false);
-            self_.engine_row.set_visible(false);
-            self_.install_row.set_visible(false);
-            self_.download_row.set_expanded(false);
-            self_.project_row.set_expanded(false);
-            self_.new_project_row.set_expanded(false);
-            self_.engine_row.set_expanded(false);
-            self_.install_row.set_expanded(false);
+            self_.project_group.set_visible(false);
+            self_.new_project_group.set_visible(false);
+            self_.engine_group.set_visible(false);
+            self_.install_group.set_visible(false);
             match kind {
                 AssetType::Asset => {
-                    self_.project_row.set_visible(true);
+                    self_.project_group.set_visible(true);
                 }
                 AssetType::Project => {
-                    self_.project_row.set_visible(true);
-                    self_.new_project_row.set_visible(true);
+                    self_.project_group.set_visible(true);
+                    self_.new_project_group.set_visible(true);
                 }
                 AssetType::Game | AssetType::Engine | AssetType::Plugin => {}
             };
         }
 
-        let size_label = gtk4::Label::new(Some("loading..."));
-        self.add_detail("Download Size", &size_label);
+        // TODO: Switch to self.add_detail_exp()
+        let size_label = gtk4::Label::new(Some("Loading..."));
+        self.add_detail("Download Size:", &size_label);
         self_.size_label.replace(size_label);
 
-        let size_label = gtk4::Label::new(Some("loading..."));
-        self.add_detail("Size", &size_label);
+        let size_label = gtk4::Label::new(Some("Loading..."));
+        self.add_detail("Size:", &size_label);
         self_.disk_size_label.replace(size_label);
     }
 
@@ -473,6 +418,15 @@ impl EpicAssetActions {
             ));
     }
 
+    fn add_detail_exp(&self, text: &str) {
+        let self_ = self.imp();
+        self_
+            .additional_details
+            .append(&crate::window::EpicAssetManagerWindow::create_info_row(
+                text,
+            ));
+    }
+
     pub fn version_selected(&self) {
         let self_ = self.imp();
         while let Some(el) = self_.additional_details.first_child() {
@@ -492,26 +446,25 @@ impl EpicAssetActions {
             if let Some(asset_info) = &*self_.asset.borrow() {
                 if let Some(release) = asset_info.release_info(&id) {
                     if let Some(ref compatible) = release.compatible_apps {
-                        self.add_detail(
-                            "Supported versions",
-                            &gtk4::Label::new(Some(&compatible.join(", ").replace("UE_", ""))),
-                        );
+                        let text = &compatible.join(", ").replace("UE_", "");
+                        let text = format!("Supported versions: {text}");
+                        self.add_detail_exp(&text);
                     }
                     if let Some(ref platforms) = release.platform {
-                        self.add_detail(
-                            "Platforms",
-                            &gtk4::Label::new(Some(&platforms.join(", "))),
-                        );
+                        let text = &platforms.join(", ");
+                        let text = format!("Platforms: {text}");
+                        self.add_detail_exp(&text);
                     }
                     if let Some(ref date) = release.date_added {
-                        self.add_detail(
-                            "Release Date",
-                            &gtk4::Label::new(Some(&date.naive_local().format("%F").to_string())),
-                        );
+                        let text = &date.naive_local().format("%F").to_string();
+                        let text = format!("Release Date: {text}");
+                        self.add_detail_exp(&text);
                     }
                     if let Some(ref note) = release.release_note {
                         if !note.is_empty() {
-                            self.add_detail("Release Note", &gtk4::Label::new(Some(note)));
+                            let text = &note;
+                            let text = format!("Release Note: {text}");
+                            self.add_detail_exp(&text);
                         }
                     }
                     let (sender, receiver) = glib::MainContext::channel::<(

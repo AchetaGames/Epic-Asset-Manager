@@ -88,7 +88,7 @@ circular</property>
                                     </object>
                                 </child>
                                 <child>
-                                    <!-- TODO: switch to GtkDropDown? -->
+                                    <!-- TODO: switch to GtkButton -->
                                     <object class="GtkMenuButton" id="actions_menu">
                                         <property name="direction">down</property>
                                         <property name="hexpand">true</property>
@@ -104,6 +104,7 @@ circular</property>
                                                 <child>
                                                     <object class="GtkBox" id="actions_box">
                                                         <property name="orientation">vertical</property>
+                                                        <property name="spacing">2</property>
                                                     </object>
                                                 </child>
                                             </object>

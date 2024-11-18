@@ -3,6 +3,7 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicProject" parent="GtkBox">
         <property name="valign">center</property>
+        <property name="width-request">320</property>
         <child>
             <object class="AdwAvatar" id="thumbnail">
                 <property name="icon-name">ue-logo-symbolic</property>
@@ -19,6 +20,7 @@
                         <property name="label" translatable="yes" bind-source="EpicProject" bind-property="name" bind-flags="sync-create"/>
                         <property name="use-markup">true</property>
                         <property name="halign">start</property>
+                        <property name="ellipsize">end</property>
                     </object>
                 </child>
                 <child>
