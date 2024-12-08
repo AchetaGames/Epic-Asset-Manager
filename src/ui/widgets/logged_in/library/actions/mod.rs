@@ -484,13 +484,11 @@ impl EpicAssetActions {
 
     fn add_detail(&self, label: &str, widget: &impl IsA<gtk4::Widget>) {
         let self_ = self.imp();
-        self_.additional_details.append(
-            &crate::window::EpicAssetManagerWindow::create_details_row(
-                label,
-                widget,
-                &self_.details_group,
-            ),
-        );
+        self_
+            .additional_details
+            .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
+                label, widget,
+            ));
     }
 
     pub fn version_selected(&self) {

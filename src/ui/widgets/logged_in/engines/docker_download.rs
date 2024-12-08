@@ -351,10 +351,9 @@ impl DockerEngineDownload {
                 combo.set_hexpand(true);
                 self_
                     .details
-                    .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                        "Available Versions",
+                    .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
+                        "Available Versions:",
                         &combo,
-                        &self_.details_group,
                     ));
 
                 let row = gtk4::ListBoxRow::new();
@@ -414,10 +413,9 @@ impl DockerEngineDownload {
 
                 self_
                     .details
-                    .append(&crate::window::EpicAssetManagerWindow::create_details_row(
+                    .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
                         "Download Size",
                         &size_label,
-                        &self_.details_group,
                     ));
             });
         }

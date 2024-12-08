@@ -18,8 +18,9 @@
         </section>
     </menu>
     <template class="EpicAssetManagerWindow" parent="GtkApplicationWindow">
-        <property name="default-width">700</property>
-        <property name="default-height">450</property>
+        <property name="default-width">650</property>
+        <property name="default-height">580</property>
+        <property name="height-request">480</property>
         <property name="title" translatable="yes">Epic Asset Manager</property>
         <child type="titlebar">
             <object class="AdwHeaderBar" id="headerbar">

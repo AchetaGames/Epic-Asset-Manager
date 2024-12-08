@@ -161,13 +161,9 @@ impl EpicEngineDetails {
         action!(
             self_.actions,
             "launch",
-            clone!(
-                #[weak(rename_to=engines)]
-                self,
-                move |_, _| {
-                    engines.launch_engine();
-                }
-            )
+            clone!(@weak self as engines => move |_, _| {
+                engines.launch_engine();
+            })
         );
     }
 
@@ -242,45 +238,35 @@ impl EpicEngineDetails {
         // Path
         if let Some(path) = &data.path() {
             self_.logs.add_path(&format!("{}/Engine", &path));
-            let path_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
-            let label = gtk4::Label::new(Some(path));
-            label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-            path_box.append(&label);
-            let button = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
-            button.connect_clicked(clone!(
+            let text = format!("Path: {path}");
+            let widget = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
+            widget.connect_clicked(clone!(
                 #[weak(rename_to=engine)]
                 self,
                 move |_| {
                     engine.open_dir();
                 }
             ));
-            path_box.append(&button);
             self_
                 .details
-                .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                    "Path",
-                    &path_box,
-                    &self_.details_group,
+                .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
+                    &text, &widget,
                 ));
         }
 
         if let Some(branch) = &data.branch() {
             self_
                 .details
-                .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                    "Branch",
-                    &gtk4::Label::new(Some(branch)),
-                    &self_.details_group,
+                .append(&crate::window::EpicAssetManagerWindow::create_info_row(
+                    "Branch: {&branch}",
                 ));
         }
 
         if data.needs_update() {
             self_
                 .details
-                .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                    "Needs update",
-                    &gtk4::Label::new(None),
-                    &self_.details_group,
+                .append(&crate::window::EpicAssetManagerWindow::create_info_row(
+                    "Needs update: {&None}",
                 ));
         }
     }

@@ -3,7 +3,6 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicProject" parent="GtkBox">
         <property name="valign">center</property>
-        <property name="width-request">300</property>
         <child>
             <object class="AdwAvatar" id="thumbnail">
                 <property name="icon-name">ue-logo-symbolic</property>
