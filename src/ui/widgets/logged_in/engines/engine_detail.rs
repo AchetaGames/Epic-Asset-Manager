@@ -161,9 +161,13 @@ impl EpicEngineDetails {
         action!(
             self_.actions,
             "launch",
-            clone!(@weak self as engines => move |_, _| {
-                engines.launch_engine();
-            })
+            clone!(
+                #[weak(rename_to=engines)]
+                self,
+                move |_, _| {
+                    engines.launch_engine();
+                }
+            )
         );
     }
 

@@ -620,12 +620,12 @@ impl EpicAssetDetails {
 
         if let Some(desc) = &asset.long_description {
             let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
-            self.add_info_row(&text);
+            self.add_info_row(text);
         }
 
         if let Some(desc) = &asset.technical_details {
             let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
-            self.add_info_row(&text);
+            self.add_info_row(text);
         }
         self.check_favorite();
     }

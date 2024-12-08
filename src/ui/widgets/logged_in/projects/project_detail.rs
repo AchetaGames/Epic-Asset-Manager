@@ -161,9 +161,13 @@ impl UnrealProjectDetails {
         action!(
             actions,
             "close",
-            clone!(@weak self as details => move |_, _| {
-                details.collapse();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.collapse();
+                }
+            )
         );
 
         action!(
@@ -347,7 +351,13 @@ impl UnrealProjectDetails {
         let text = parent.to_str().unwrap();
         let text = format!("Path: {text}");
         let button = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
-        button.connect_clicked(clone!(@weak self as project => move |_| {project.open_dir();}));
+        button.connect_clicked(clone!(
+            #[weak(rename_to=project)]
+            self,
+            move |_| {
+                project.open_dir();
+            }
+        ));
         self_
             .details
             .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
