@@ -15,12 +15,13 @@
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
+                        <property name="css-classes">background</property>
                         <child>
                             <object class="GtkBox">
                                 <property name="margin-top">12</property>
                                 <property name="margin-bottom">12</property>
                                 <property name="margin-start">12</property>
-                                <property name="margin-end">12</property>
+                                <property name="margin-end">96</property>
                                 <property name="spacing">12</property>
                                 <child>
                                     <object class="GtkButton">
@@ -34,11 +35,12 @@ pill</property>
                                 </child>
                                 <child>
                                     <object class="GtkLabel" id="title">
+                                        <property name="hexpand">true</property>
+                                        <property name="halign">center</property>
                                         <property name="label" bind-source="EpicEnginesSide"
                                                   bind-property="title"
                                                   bind-flags="sync-create"/>
                                         <property name="ellipsize">middle</property>
-                                        <property name="halign">center</property>
                                         <property name="use-markup">true</property>
                                         <property name="css-classes">title-1</property>
                                     </object>

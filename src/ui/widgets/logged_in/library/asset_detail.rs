@@ -230,6 +230,8 @@ impl EpicAssetDetails {
             "close",
             clone!(@weak self as details => move |_, _| {
                 details.collapse();
+                println!("FRRR")
+
             })
         );
         action!(
@@ -380,7 +382,7 @@ impl EpicAssetDetails {
                         self_.warning.set_revealed(false);
                         self.create_actions_button(
                             "Add to Project",
-                            "edit-select-all-symbolic",
+                            "folder-new-symbolic",
                             "details.add_to_project",
                         );
                     }
@@ -388,12 +390,12 @@ impl EpicAssetDetails {
                         self_.warning.set_revealed(false);
                         self.create_actions_button(
                             "Add to Project",
-                            "edit-select-all-symbolic",
+                            "folder-new-symbolic",
                             "details.add_to_project",
                         );
                         self.create_actions_button(
                             "Create Project",
-                            "folder-new-symbolic",
+                            "list-add-symbolic",
                             "details.create_project",
                         );
                     }
@@ -517,9 +519,9 @@ impl EpicAssetDetails {
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el);
         }
-
         if let Some(dev_name) = &asset.developer {
-            self.add_info_row("Developer", &gtk4::Label::new(Some(dev_name)));
+            let text = format!("Developer: {dev_name}");
+            self.add_info_row(&text);
         }
 
         if let Some(categories) = &asset.categories {
@@ -538,48 +540,52 @@ impl EpicAssetDetails {
                     cats.push(category.path.clone());
                 }
             }
-            self.add_info_row("Categories", &gtk4::Label::new(Some(&cats.join(", "))));
+            let cats = &cats.join(", ");
+            let text = format!("Categories: {cats}");
+            self.add_info_row(&text);
         }
 
         if let Some(platforms) = &asset.platforms() {
-            self.add_info_row("Platforms", &gtk4::Label::new(Some(&platforms.join(", "))));
+            let platforms = &platforms.join(", ");
+            let text = format!("Platforms: {platforms}");
+            self.add_info_row(&text);
         }
 
         if let Some(updated) = &asset.last_modified_date {
-            self.add_info_row("Updated", &gtk4::Label::new(Some(&updated.to_rfc3339())));
+            let updated = updated.to_rfc3339();
+            let text = format!("Updated: {updated}");
+            self.add_info_row(&text);
         }
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
-            self.add_info_row(
-                "Compatible with",
-                &gtk4::Label::new(Some(&compatible_apps.join(", ").replace("UE_", ""))),
-            );
+            if !compatible_apps.is_empty() {
+                let compat = &compatible_apps.join(", ").replace("UE_", "");
+                let text = format!("Compatible with: {compat}");
+                self.add_info_row(&text);
+            }
         }
 
         if let Some(desc) = &asset.long_description {
-            let label = gtk4::Label::builder().wrap(true).xalign(0.0).build();
-            label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
-            self.add_info_row("", &label);
+            let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
+            self.add_info_row(&text);
         }
 
         if let Some(desc) = &asset.technical_details {
-            let label = gtk4::Label::builder().wrap(true).xalign(0.0).build();
-            label.set_markup(&html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n"));
-            self.add_info_row("", &label);
+            let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
+            self.add_info_row(&text);
         }
-
         self.check_favorite();
     }
 
-    fn add_info_row(&self, title: &str, widget: &impl IsA<gtk4::Widget>) {
-        let self_ = self.imp();
-        self_
-            .details_box
-            .append(&crate::window::EpicAssetManagerWindow::create_details_row(
-                title,
-                widget,
-                &self_.details_group,
-            ));
+    fn add_info_row(&self, text: &str) {
+        if !&text.is_empty() {
+            let self_ = self.imp();
+            self_
+                .details_box
+                .append(&crate::window::EpicAssetManagerWindow::create_info_row(
+                    text,
+                ));
+        }
     }
 
     pub fn is_expanded(&self) -> bool {

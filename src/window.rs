@@ -459,23 +459,37 @@ impl EpicAssetManagerWindow {
             .set_download_manager(&self_.download_manager);
     }
 
-    pub fn create_details_row(
-        label: &str,
-        widget: &impl IsA<gtk4::Widget>,
-        size_group: &gtk4::SizeGroup,
-    ) -> ListBoxRow {
+    pub fn create_info_row(text: &str) -> ListBoxRow {
         let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
-        b.set_margin_start(6);
-        b.set_margin_end(6);
-        b.set_margin_bottom(3);
-        b.set_margin_top(3);
-        let label = gtk4::Label::new(Some(label));
-        label.set_xalign(1.0);
-        label.set_valign(gtk4::Align::Center);
-        size_group.add_widget(&label);
+        b.set_margin_start(12);
+        b.set_margin_end(12);
+        b.set_margin_top(8);
+        b.set_margin_bottom(8);
+        let label = gtk4::Label::new(Some(&text));
+        label.set_use_markup(true);
+        label.set_selectable(true);
+        label.set_wrap(true);
         b.append(&label);
+        let row = gtk4::ListBoxRow::builder().activatable(false).child(&b);
+        row.build()
+    }
+
+    pub fn create_widget_row(label: &str, widget: &impl IsA<gtk4::Widget>) -> ListBoxRow {
+        let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 12);
+        b.set_margin_start(12);
+        b.set_margin_end(12);
+        b.set_margin_top(8);
+        b.set_margin_bottom(8);
+        let label = gtk4::Label::new(Some(label));
+        label.set_hexpand(true);
+        label.set_halign(gtk4::Align::Start);
+        label.set_valign(gtk4::Align::Center);
+        label.set_selectable(true);
+        label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+        b.append(&label);
+        widget.set_halign(gtk4::Align::End);
         b.append(widget);
-        let row = gtk4::ListBoxRow::builder().child(&b);
+        let row = gtk4::ListBoxRow::builder().activatable(false).child(&b);
         row.build()
     }
 
