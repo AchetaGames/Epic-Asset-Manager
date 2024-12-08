@@ -22,9 +22,10 @@
                                 <property name="orientation">vertical</property>
                                 <child>
                                     <object class="GtkScrolledWindow">
+                                        <property name="margin-top">48</property>
+                                        <property name="margin-bottom">8</property>
                                         <property name="margin-start">8</property>
                                         <property name="margin-end">8</property>
-                                        <property name="margin-top">48</property>
                                         <property name="vexpand">1</property>
                                         <property name="child">
                                             <object class="GtkGridView" id="asset_grid">

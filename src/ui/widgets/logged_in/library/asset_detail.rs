@@ -230,8 +230,6 @@ impl EpicAssetDetails {
             "close",
             clone!(@weak self as details => move |_, _| {
                 details.collapse();
-                println!("FRRR")
-
             })
         );
         action!(

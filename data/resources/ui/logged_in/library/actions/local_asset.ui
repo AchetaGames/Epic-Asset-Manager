@@ -1,61 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicLocalAsset" parent="GtkBox">
-        <property name="orientation">vertical</property>
+        <property name="spacing">8</property>
         <child>
             <object class="GtkLabel">
-                <property name="can-focus">0</property>
                 <property name="label" translatable="yes" bind-source="EpicLocalAsset" bind-property="label" bind-flags="sync-create"/>
                 <property name="use-markup">true</property>
-                <property name="hexpand">True</property>
                 <property name="ellipsize">middle</property>
-                <property name="halign">start</property>
             </object>
         </child>
         <child>
-            <object class="GtkBox">
-                <property name="spacing">5</property>
-                <property name="halign">end</property>
+            <object class="GtkButton">
+                <property name="valign">center</property>
+                <property name="action-name">local_asset.open</property>
                 <child>
-                    <object class="GtkButton">
-                        <property name="margin-start">5</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="action-name">local_asset.open</property>
-                        <child>
-                            <object class="AdwButtonContent">
-                                <property name="icon-name">folder-open-symbolic</property>
-                                <property name="label" translatable="yes">Open Directory</property>
-                            </object>
-                        </child>
+                    <object class="AdwButtonContent">
+                        <property name="icon-name">folder-open-symbolic</property>
+                        <property name="label" translatable="yes">Open</property>
                     </object>
                 </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkButton">
+                <property name="css-classes">destructive-action</property>
+                <property name="valign">center</property>
+                <property name="action-name">local_asset.delete</property>
                 <child>
-                    <object class="GtkButton">
-                        <property name="margin-start">5</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="action-name">local_asset.delete</property>
-                        <child>
-                            <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <property name="valign">center</property>
-                                <property name="halign">center</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="icon-name">user-trash-symbolic</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">Remove</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <style>
-                            <class name="destructive-action"/>
-                        </style>
+                    <object class="AdwButtonContent">
+                        <property name="icon-name">user-trash-symbolic</property>
+                        <property name="label" translatable="yes">Delete</property>
                     </object>
                 </child>
             </object>
