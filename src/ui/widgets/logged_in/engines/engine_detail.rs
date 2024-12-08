@@ -161,9 +161,13 @@ impl EpicEngineDetails {
         action!(
             self_.actions,
             "launch",
-            clone!(@weak self as engines => move |_, _| {
-                engines.launch_engine();
-            })
+            clone!(
+                #[weak(rename_to=engines)]
+                self,
+                move |_, _| {
+                    engines.launch_engine();
+                }
+            )
         );
     }
 
@@ -202,10 +206,15 @@ impl EpicEngineDetails {
         self_.confirmation_revealer.set_vexpand_set(true);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.show_details();
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    obj.show_details();
+                    glib::ControlFlow::Break
+                }
+            ),
         );
     }
 
@@ -235,7 +244,13 @@ impl EpicEngineDetails {
             self_.logs.add_path(&format!("{}/Engine", &path));
             let text = format!("Path: {path}");
             let widget = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
-            widget.connect_clicked(clone!(@weak self as engine => move |_| {engine.open_dir();}));
+            widget.connect_clicked(clone!(
+                #[weak(rename_to=engine)]
+                self,
+                move |_| {
+                    engine.open_dir();
+                }
+            ));
             self_
                 .details
                 .append(&crate::window::EpicAssetManagerWindow::create_widget_row(

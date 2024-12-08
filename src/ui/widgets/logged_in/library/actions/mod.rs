@@ -9,7 +9,7 @@ use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
 use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
-use gtk4::glib::{clone, Priority};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*, SizeGroupMode};
 use gtk4::{glib, CompositeTemplate};
@@ -261,32 +261,46 @@ impl EpicAssetActions {
     pub fn setup_events(&self) {
         let self_ = self.imp();
 
-        self_.select_download_version.connect_changed(
-            clone!(@weak self as download_details => move |_| {
+        self_.select_download_version.connect_changed(clone!(
+            #[weak(rename_to=download_details)]
+            self,
+            move |_| {
                 download_details.version_selected();
-            }),
-        );
+            }
+        ));
 
         self_.download_details.connect_local(
             "start-download",
             false,
-            clone!(@weak self as ead => @default-return None, move |_| {
-                ead.emit_by_name::<()>("start-download", &[]);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=ead)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    ead.emit_by_name::<()>("start-download", &[]);
+                    None
+                }
+            ),
         );
 
         self_.local_assets.connect_local(
             "removed",
             false,
-            clone!(@weak self as aa => @default-return None, move |_| {
-                let self_ = aa.imp();
-                if self_.local_assets.empty() {
-                    self_.local_row.set_visible(false);
-                    aa.refresh_asset();
+            clone!(
+                #[weak(rename_to=aa)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    let self_ = aa.imp();
+                    if self_.local_assets.empty() {
+                        self_.local_row.set_visible(false);
+                        aa.refresh_asset();
+                    }
+                    None
                 }
-                None
-            }),
+            ),
         );
     }
 
@@ -310,9 +324,13 @@ impl EpicAssetActions {
         action!(
             actions,
             "show",
-            clone!(@weak self as download_details => move |_, _| {
-                download_details.show();
-            })
+            clone!(
+                #[weak(rename_to=download_details)]
+                self,
+                move |_, _| {
+                    download_details.show();
+                }
+            )
         );
     }
 
@@ -514,18 +532,21 @@ impl EpicAssetActions {
                             self.add_detail("Release Note", &gtk4::Label::new(Some(note)));
                         }
                     }
-                    let (sender, receiver) = glib::MainContext::channel::<(
+                    let (sender, receiver) = async_channel::unbounded::<(
                         String,
                         Vec<egs_api::api::types::download_manifest::DownloadManifest>,
-                    )>(Priority::default());
+                    )>();
 
-                    receiver.attach(
-                        None,
-                        clone!(@weak self as asset_actions => @default-panic, move |(id, manifest)| {
-                            asset_actions.process_download_manifest(&id, manifest);
-                            glib::ControlFlow::Continue
-                        }),
-                    );
+                    glib::spawn_future_local(clone!(
+                        #[weak(rename_to=asset_actions)]
+                        self,
+                        #[upgrade_or_panic]
+                        async move {
+                            while let Ok((id, manifest)) = receiver.recv().await {
+                                asset_actions.process_download_manifest(&id, manifest);
+                            }
+                        }
+                    ));
 
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_asset_manifest(id.to_string(), asset_info.clone(), sender);

@@ -193,29 +193,37 @@ impl PreferencesWindow {
             .flags(SettingsBindFlags::DEFAULT)
             .build();
 
-        self_
-            .github_user
-            .connect_changed(clone!(@weak self as preferences => move |_| {
+        self_.github_user.connect_changed(clone!(
+            #[weak(rename_to=preferences)]
+            self,
+            move |_| {
                 preferences.github_user_changed();
-            }));
+            }
+        ));
 
-        self_.default_view_selection.connect_changed(
-            clone!(@weak self as preferences => move |_| {
+        self_.default_view_selection.connect_changed(clone!(
+            #[weak(rename_to=preferences)]
+            self,
+            move |_| {
                 preferences.default_view_changed();
-            }),
-        );
+            }
+        ));
 
-        self_
-            .log_level_selection
-            .connect_changed(clone!(@weak self as preferences => move |_| {
+        self_.log_level_selection.connect_changed(clone!(
+            #[weak(rename_to=preferences)]
+            self,
+            move |_| {
                 preferences.log_level_changed();
-            }));
+            }
+        ));
 
-        self_.default_category_selection.connect_changed(
-            clone!(@weak self as preferences => move |_| {
+        self_.default_category_selection.connect_changed(clone!(
+            #[weak(rename_to=preferences)]
+            self,
+            move |_| {
                 preferences.default_category_changed();
-            }),
-        );
+            }
+        ));
     }
 
     fn log_level_changed(&self) {
@@ -346,16 +354,12 @@ impl PreferencesWindow {
                                             continue;
                                         };
                                         debug!("Loading: {label}");
-                                        match label.as_str() {
-                                            "eam_github_token" => {
-                                                if let Ok(d) = item.get_secret() {
-                                                    if let Ok(s) = std::str::from_utf8(d.as_slice())
-                                                    {
-                                                        self_.github_token.set_text(s);
-                                                    }
-                                                };
-                                            }
-                                            &_ => {}
+                                        if label.as_str() == "eam_github_token" {
+                                            if let Ok(d) = item.get_secret() {
+                                                if let Ok(s) = std::str::from_utf8(d.as_slice()) {
+                                                    self_.github_token.set_text(s);
+                                                }
+                                            };
                                         }
                                     }
                                 };
@@ -368,11 +372,13 @@ impl PreferencesWindow {
                     self.load_secrets_insecure();
                 }
             };
-            self_
-                .github_token
-                .connect_changed(clone!(@weak self as preferences => move |_| {
+            self_.github_token.connect_changed(clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_| {
                     preferences.github_token_changed();
-                }));
+                }
+            ));
         }
     }
 
@@ -455,9 +461,13 @@ impl PreferencesWindow {
 
     fn select_directory(&self, title: &'static str, kind: DirectoryConfigType) {
         let dialog: gtk4::FileChooserDialog = self.select_file(&[], title);
-        dialog.connect_response(clone!(@weak self as preferences => move |d, response| {
-            preferences.handle_file_dialogue_response(d, response, kind);
-        }));
+        dialog.connect_response(clone!(
+            #[weak(rename_to=preferences)]
+            self,
+            move |d, response| {
+                preferences.handle_file_dialogue_response(d, response, kind);
+            }
+        ));
     }
 
     pub fn setup_actions(&self) {
@@ -468,39 +478,59 @@ impl PreferencesWindow {
         action!(
             actions,
             "cache",
-            clone!(@weak self as preferences => move |_, _| {
-                preferences.select_directory("Cache Directory", DirectoryConfigType::Cache);
-            })
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_, _| {
+                    preferences.select_directory("Cache Directory", DirectoryConfigType::Cache);
+                }
+            )
         );
 
         action!(
             actions,
             "temp",
-            clone!(@weak self as preferences => move |_, _| {
-                preferences.select_directory("Temporary Directory", DirectoryConfigType::Temp);
-
-            })
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_, _| {
+                    preferences.select_directory("Temporary Directory", DirectoryConfigType::Temp);
+                }
+            )
         );
         action!(
             actions,
             "add_vault",
-            clone!(@weak self as preferences => move |_, _| {
-                preferences.select_directory("Vault Directory", DirectoryConfigType::Vault);
-            })
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_, _| {
+                    preferences.select_directory("Vault Directory", DirectoryConfigType::Vault);
+                }
+            )
         );
         action!(
             actions,
             "add_engine",
-            clone!(@weak self as preferences => move |_, _| {
-                preferences.select_directory("Engine Directory", DirectoryConfigType::Engine);
-            })
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_, _| {
+                    preferences.select_directory("Engine Directory", DirectoryConfigType::Engine);
+                }
+            )
         );
         action!(
             actions,
             "add_project",
-            clone!(@weak self as preferences => move |_, _| {
-                preferences.select_directory("Projects Directory", DirectoryConfigType::Projects);
-            })
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_, _| {
+                    preferences
+                        .select_directory("Projects Directory", DirectoryConfigType::Projects);
+                }
+            )
         );
     }
 
@@ -631,10 +661,20 @@ impl PreferencesWindow {
         row.connect_local(
             "remove",
             false,
-            clone!(@weak self as preferences, @weak target_box, @weak row => @default-return None, move |_| {
-                preferences.remove(&target_box, &dir_c, &row, k);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                #[weak]
+                target_box,
+                #[weak]
+                row,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    preferences.remove(&target_box, &dir_c, &row, k);
+                    None
+                }
+            ),
         );
 
         let k = kind;
@@ -642,10 +682,20 @@ impl PreferencesWindow {
         row.connect_local(
             "move-up",
             false,
-            clone!(@weak self as preferences, @weak target_box, @weak row => @default-return None, move |_| {
-                preferences.move_up(&target_box, &dir_c, &row, k);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                #[weak]
+                target_box,
+                #[weak]
+                row,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    preferences.move_up(&target_box, &dir_c, &row, k);
+                    None
+                }
+            ),
         );
 
         let k = kind;
@@ -653,10 +703,20 @@ impl PreferencesWindow {
         row.connect_local(
             "move-down",
             false,
-            clone!(@weak self as preferences, @weak target_box, @weak row => @default-return None, move |_| {
-                preferences.move_down(&target_box, &dir_c, &row, k);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                #[weak]
+                target_box,
+                #[weak]
+                row,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    preferences.move_down(&target_box, &dir_c, &row, k);
+                    None
+                }
+            ),
         );
 
         target_box.append(&row);

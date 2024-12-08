@@ -161,17 +161,25 @@ impl UnrealProjectDetails {
         action!(
             actions,
             "close",
-            clone!(@weak self as details => move |_, _| {
-                details.collapse();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.collapse();
+                }
+            )
         );
 
         action!(
             actions,
             "launch_project",
-            clone!(@weak self as details => move |_, _| {
-                details.launch_engine();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.launch_engine();
+                }
+            )
         );
     }
 
@@ -228,10 +236,15 @@ impl UnrealProjectDetails {
         self_.confirmation_revealer.set_vexpand_set(true);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.show_details();
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    obj.show_details();
+                    glib::ControlFlow::Break
+                }
+            ),
         );
     }
 
@@ -305,9 +318,13 @@ impl UnrealProjectDetails {
 
         self.populate_engines(&combo, &associated, &mut last_engine);
 
-        combo.connect_changed(clone!(@weak self as detail => move |c| {
-            detail.engine_selected(c);
-        }));
+        combo.connect_changed(clone!(
+            #[weak(rename_to=detail)]
+            self,
+            move |c| {
+                detail.engine_selected(c);
+            }
+        ));
         if let Some(engine) = associated {
             combo.set_active_id(Some(&engine.path));
         } else if let Some(last) = last_engine {
@@ -334,7 +351,13 @@ impl UnrealProjectDetails {
         let text = parent.to_str().unwrap();
         let text = format!("Path: {text}");
         let button = gtk4::Button::with_icon_and_label("folder-open-symbolic", "Open");
-        button.connect_clicked(clone!(@weak self as project => move |_| {project.open_dir();}));
+        button.connect_clicked(clone!(
+            #[weak(rename_to=project)]
+            self,
+            move |_| {
+                project.open_dir();
+            }
+        ));
         self_
             .details
             .append(&crate::window::EpicAssetManagerWindow::create_widget_row(

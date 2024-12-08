@@ -3,8 +3,6 @@ use crate::ui::widgets::logged_in::engines::epic_download::Blob;
 use crate::ui::widgets::logged_in::refresh::Refresh;
 use glib::clone;
 use gtk4::glib;
-use gtk4::glib::{MainContext, ObjectExt};
-use gtk4::glib::{Priority, Sender};
 use gtk4::prelude::WidgetExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use gtk4::{self, prelude::*};
@@ -97,7 +95,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn engine_target_directory(&self) -> Option<PathBuf> {
         let self_ = self.imp();
 
-        let target = match self_.settings.strv("unreal-engine-directories").get(0) {
+        let target = match self_.settings.strv("unreal-engine-directories").first() {
             None => {
                 if let Some(w) = self_.window.get() {
                     w.add_notification(
@@ -155,10 +153,18 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         item.connect_local(
             "finished",
             false,
-            clone!(@weak self as edm, @weak item => @default-return None, move |_| {
-                edm.epic_finished(&item);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=edm)]
+                self,
+                #[weak]
+                item,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    edm.epic_finished(&item);
+                    None
+                }
+            ),
         );
 
         item.set_property("thumbnail", Some(gtk4::gdk::Texture::from_resource(
@@ -173,20 +179,24 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
 
     fn start_version_file_download(&self, version: &str) {
         let self_ = self.imp();
-        let (sender, receiver) = MainContext::channel(Priority::default());
+        let (sender, receiver) = async_channel::unbounded();
 
         let vers = version.to_string();
-        receiver.attach(
-            None,
-            clone!(@weak self as dm => @default-panic, move |v| {
-                let self_ = dm.imp();
-                let s = self_.sender.clone();
-                if let Some(ver) = filter_versions(v, &vers) {
-                    s.send(Msg::EpicDownloadStart(ver.name, ver.url, ver.size)).unwrap();
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=dm)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                while let Ok(response) = receiver.recv().await {
+                    let self_ = dm.imp();
+                    let s = self_.sender.clone();
+                    if let Some(ver) = filter_versions(response, &vers) {
+                        s.send_blocking(Msg::EpicDownloadStart(ver.name, ver.url, ver.size))
+                            .unwrap();
+                    }
                 }
-                glib::ControlFlow::Break
-            }),
-        );
+            }
+        ));
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let logged_in = win_.logged_in_stack.imp();
@@ -322,7 +332,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
 fn extract(
     target: &std::path::Path,
     mut archive: ZipArchive<File>,
-    sender: &Sender<Msg>,
+    sender: &async_channel::Sender<Msg>,
     ver: String,
     recv: &Receiver<ThreadMessages>,
 ) {
@@ -337,14 +347,18 @@ fn extract(
         let outpath = if let Some(path) = file.enclosed_name() {
             path.to_owned()
         } else {
-            sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
+            sender
+                .send_blocking(Msg::EpicFileExtracted(ver.clone()))
+                .unwrap();
             continue;
         };
         file_target.push(&outpath);
         if file_target.exists() {
             let metadata = fs::metadata(file_target.as_path()).expect("unable to read metadata");
             if metadata.size() == file.size() {
-                sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
+                sender
+                    .send_blocking(Msg::EpicFileExtracted(ver.clone()))
+                    .unwrap();
                 continue;
             }
         }
@@ -374,7 +388,10 @@ fn extract(
                         if size > 0 {
                             outfile.write_all(&buffer[0..size]).unwrap();
                             sender
-                                .send(Msg::EpicFileExtractionProgress(ver.clone(), size as u64))
+                                .send_blocking(Msg::EpicFileExtractionProgress(
+                                    ver.clone(),
+                                    size as u64,
+                                ))
                                 .unwrap();
                         } else {
                             break;
@@ -401,15 +418,17 @@ fn extract(
                 }
             }
         }
-        sender.send(Msg::EpicFileExtracted(ver.clone())).unwrap();
+        sender
+            .send_blocking(Msg::EpicFileExtracted(ver.clone()))
+            .unwrap();
     }
-    sender.send(Msg::EpicFileFinished(ver)).unwrap();
+    sender.send_blocking(Msg::EpicFileFinished(ver)).unwrap();
 }
 
 fn run(
     size: u64,
     recv: &Receiver<ThreadMessages>,
-    sender: &Sender<Msg>,
+    sender: &async_channel::Sender<Msg>,
     link: &Url,
     ver: String,
     p: &mut PathBuf,
@@ -435,9 +454,9 @@ fn run(
         if metadata.size() == size {
             debug!("Already downloaded {}", p.to_str().unwrap_or_default());
             sender
-                .send(Msg::EpicDownloadProgress(ver.clone(), size))
+                .send_blocking(Msg::EpicDownloadProgress(ver.clone(), size))
                 .unwrap();
-            sender.send(Msg::EpicFileFinished(ver)).unwrap();
+            sender.send_blocking(Msg::EpicFileFinished(ver)).unwrap();
             return;
         };
 
@@ -487,7 +506,7 @@ fn run(
                 if size > 0 {
                     file.write_all(&buffer[0..size]).unwrap();
                     sender
-                        .send(Msg::EpicDownloadProgress(ver.clone(), size as u64))
+                        .send_blocking(Msg::EpicDownloadProgress(ver.clone(), size as u64))
                         .unwrap();
                 } else {
                     break;
@@ -499,20 +518,24 @@ fn run(
             }
         }
     }
-    sender.send(Msg::EpicFileFinished(ver)).unwrap();
+    sender.send_blocking(Msg::EpicFileFinished(ver)).unwrap();
 }
 
 fn filter_versions(versions: Vec<Blob>, version: &str) -> Option<Blob> {
     versions.into_iter().find(|ver| ver.name.eq(version))
 }
 
-fn process_epic_thread_message(version: String, sender: &Sender<Msg>, m: &ThreadMessages) {
+fn process_epic_thread_message(
+    version: String,
+    sender: &async_channel::Sender<Msg>,
+    m: &ThreadMessages,
+) {
     match m {
         ThreadMessages::Cancel => {
-            sender.send(Msg::EpicCanceled(version)).unwrap();
+            sender.send_blocking(Msg::EpicCanceled(version)).unwrap();
         }
         ThreadMessages::Pause => {
-            sender.send(Msg::EpicPaused(version)).unwrap();
+            sender.send_blocking(Msg::EpicPaused(version)).unwrap();
         }
     }
 }

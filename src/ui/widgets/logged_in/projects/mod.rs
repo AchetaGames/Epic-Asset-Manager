@@ -15,7 +15,7 @@ pub enum Msg {
 
 pub mod imp {
     use super::*;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Priority};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean, ParamSpecString};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::BTreeMap;
@@ -39,8 +39,8 @@ pub mod imp {
         selected: RefCell<Option<String>>,
         pub selected_uproject: RefCell<Option<crate::models::project_data::Uproject>>,
         pub actions: gtk4::gio::SimpleActionGroup,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub file_pool: ThreadPool,
     }
 
@@ -51,7 +51,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
@@ -145,13 +145,16 @@ impl EpicProjectsBox {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as projects => @default-panic, move |msg| {
-                projects.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=projects)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                while let Ok(msg) = receiver.recv().await {
+                    projects.update(msg);
+                }
+            }
+        ));
     }
 
     fn update(&self, msg: Msg) {
@@ -223,19 +226,28 @@ impl EpicProjectsBox {
             .can_unselect(true)
             .build();
 
-        selection_model.connect_selected_notify(clone!(@weak self as projects => move |model| {
-            projects.project_selected(model);
-        }));
+        selection_model.connect_selected_notify(clone!(
+            #[weak(rename_to=projects)]
+            self,
+            move |model| {
+                projects.project_selected(model);
+            }
+        ));
         self_.projects_grid.set_model(Some(&selection_model));
         self_.projects_grid.set_factory(Some(&factory));
         self.load_projects();
         glib::timeout_add_seconds_local(
             15 * 60 + (rand::random::<u32>() % 5) * 60,
-            clone!(@weak self as obj => @default-panic, move || {
-                debug!("Starting timed projects refresh");
-                obj.run_refresh();
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    debug!("Starting timed projects refresh");
+                    obj.run_refresh();
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
@@ -342,7 +354,7 @@ impl EpicProjectsBox {
         self.refresh_state_changed();
     }
 
-    fn check_path_for_uproject(path: &Path, sender: &gtk4::glib::Sender<Msg>) {
+    fn check_path_for_uproject(path: &Path, sender: &async_channel::Sender<Msg>) {
         if let Ok(rd) = path.read_dir() {
             for d in rd {
                 match d {
@@ -354,7 +366,9 @@ impl EpicProjectsBox {
                                     Self::check_path_for_uproject(&p, &sender.clone());
                                 },
                                 |uproject_file| {
-                                    sender.send(Msg::AddProject { uproject_file }).unwrap();
+                                    sender
+                                        .send_blocking(Msg::AddProject { uproject_file })
+                                        .unwrap();
                                 },
                             );
                         } else {

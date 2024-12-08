@@ -9,7 +9,7 @@ pub mod project_data;
 use crate::config::APP_ID;
 use egs_api::EpicGames;
 use gtk4::gio;
-use gtk4::glib::{MainContext, Priority, Receiver, Sender, UserDirectory};
+use gtk4::glib::UserDirectory;
 use gtk4::prelude::*;
 use log::{debug, error, info, warn};
 use std::cell::RefCell;
@@ -23,8 +23,8 @@ pub struct Model {
     pub epic_games: RefCell<EpicGames>,
     #[cfg(target_os = "linux")]
     pub secret_service: Option<SecretService<'static>>,
-    pub sender: Sender<crate::ui::messages::Msg>,
-    pub receiver: RefCell<Option<Receiver<crate::ui::messages::Msg>>>,
+    pub sender: async_channel::Sender<crate::ui::messages::Msg>,
+    pub receiver: RefCell<Option<async_channel::Receiver<crate::ui::messages::Msg>>>,
     pub settings: gio::Settings,
     #[cfg(target_os = "linux")]
     pub dclient: RefCell<Option<ghregistry::Client>>,
@@ -38,7 +38,7 @@ impl Default for Model {
 
 impl Model {
     pub fn new() -> Self {
-        let (sender, receiver) = MainContext::channel(Priority::default());
+        let (sender, receiver) = async_channel::unbounded();
         let mut obj = Self {
             epic_games: RefCell::new(EpicGames::new()),
             #[cfg(target_os = "linux")]
@@ -145,7 +145,9 @@ impl Model {
                         Ok(auth) => {
                             if auth {
                                 sender
-                                    .send(crate::ui::messages::Msg::DockerClient(docker_client))
+                                    .send_blocking(crate::ui::messages::Msg::DockerClient(
+                                        docker_client,
+                                    ))
                                     .unwrap();
                                 info!("Docker Authenticated");
                             }
@@ -157,7 +159,7 @@ impl Model {
                     Err(e) => {
                         error!("Failed authentication {:?}", e);
                         sender
-                            .send(crate::ui::messages::Msg::GithubAuthFailed)
+                            .send_blocking(crate::ui::messages::Msg::GithubAuthFailed)
                             .unwrap();
                     }
                 };

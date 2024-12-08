@@ -214,10 +214,18 @@ impl EpicProject {
         self_.handler.replace(Some(data.connect_local(
             "finished",
             false,
-            clone!(@weak self as project, @weak data => @default-return None, move |_| {
-                project.finished(&data);
-                None
-            }),
+            clone!(
+                #[weak(rename_to=project)]
+                self,
+                #[weak]
+                data,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    project.finished(&data);
+                    None
+                }
+            ),
         )));
     }
 

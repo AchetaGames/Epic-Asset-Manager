@@ -161,9 +161,13 @@ impl EpicDownloadDetails {
         action!(
             actions,
             "download_all",
-            clone!(@weak self as download_details => move |_, _| {
-                download_details.download_all();
-            })
+            clone!(
+                #[weak(rename_to=download_details)]
+                self,
+                move |_, _| {
+                    download_details.download_all();
+                }
+            )
         );
     }
 

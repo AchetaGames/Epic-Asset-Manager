@@ -1,5 +1,5 @@
 use adw::gdk::Texture;
-use gtk4::glib::{clone, MainContext, Receiver, Sender};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -14,7 +14,6 @@ pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use gtk4::gio;
-    use gtk4::glib::Priority;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -30,8 +29,8 @@ pub mod imp {
         pub settings: gio::Settings,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
-        pub sender: Sender<super::Msg>,
-        pub receiver: RefCell<Option<Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         asset: RefCell<Option<String>>,
     }
 
@@ -42,7 +41,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
                 stack: TemplateChild::default(),
@@ -153,13 +152,17 @@ impl EpicImageOverlay {
 
     pub fn setup_receiver(&self) {
         let self_ = self.imp();
-        self_.receiver.borrow_mut().take().unwrap().attach(
-            None,
-            clone!(@weak self as img => @default-panic, move |msg| {
-                img.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        let receiver = self_.receiver.borrow_mut().take().unwrap();
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=img)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                while let Ok(msg) = receiver.recv().await {
+                    img.update(msg);
+                }
+            }
+        ));
     }
 
     pub fn update(&self, msg: Msg) {
@@ -195,23 +198,33 @@ impl EpicImageOverlay {
         let actions = &self_.actions;
         self.insert_action_group("image_stack", Some(actions));
 
-        self_.stack.connect_page_changed(
-            clone!(@weak self as image_stack => move |_, _| image_stack.check_actions();),
-        );
+        self_.stack.connect_page_changed(clone!(
+            #[weak(rename_to=image_stack)]
+            self,
+            move |_, _| image_stack.check_actions()
+        ));
         action!(
             actions,
             "next",
-            clone!(@weak self as image_stack => move |_, _| {
-                image_stack.next();
-            })
+            clone!(
+                #[weak(rename_to=image_stack)]
+                self,
+                move |_, _| {
+                    image_stack.next();
+                }
+            )
         );
 
         action!(
             actions,
             "prev",
-            clone!(@weak self as image_stack => move |_, _| {
-                image_stack.prev();
-            })
+            clone!(
+                #[weak(rename_to=image_stack)]
+                self,
+                move |_, _| {
+                    image_stack.prev();
+                }
+            )
         );
     }
 
@@ -281,14 +294,16 @@ impl EpicImageOverlay {
         self_.image_load_pool.execute(move || {
             if cache_path.as_path().exists() {
                 match Texture::from_file(&gio::File::for_path(cache_path.as_path())) {
-                    Ok(t) => sender.send(Msg::ImageLoaded(t)).unwrap(),
+                    Ok(t) => sender.send_blocking(Msg::ImageLoaded(t)).unwrap(),
                     Err(e) => {
                         error!("Unable to load file to texture: {}", e);
                     }
                 };
             } else {
                 debug!("Need to download image");
-                sender.send(Msg::DownloadImage(asset, img.clone())).unwrap();
+                sender
+                    .send_blocking(Msg::DownloadImage(asset, img.clone()))
+                    .unwrap();
             };
         });
     }

@@ -82,7 +82,7 @@ pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
-    use gtk4::glib::{ParamSpec, ParamSpecBoolean, Priority};
+    use gtk4::glib::{ParamSpec, ParamSpecBoolean};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -98,12 +98,10 @@ pub mod imp {
         pub thumbnail_pool: ThreadPool,
         pub image_pool: ThreadPool,
         pub file_pool: ThreadPool,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
-        pub download_items: RefCell<
-            HashMap<String, crate::ui::widgets::download_manager::download_item::EpicDownloadItem>,
-        >,
-        pub downloaded_files: RefCell<HashMap<String, super::asset::DownloadedFile>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
+        pub download_items: RefCell<HashMap<String, EpicDownloadItem>>,
+        pub downloaded_files: RefCell<HashMap<String, asset::DownloadedFile>>,
         pub downloaded_chunks: RefCell<HashMap<String, Vec<String>>>,
         pub asset_guids: RefCell<HashMap<String, Vec<String>>>,
         pub paused_asset_chunks: RefCell<HashMap<String, Vec<(Url, PathBuf)>>>,
@@ -123,7 +121,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 actions: gio::SimpleActionGroup::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),
@@ -237,12 +235,17 @@ impl EpicDownloadManager {
         action!(
             self_.actions,
             "close",
-            clone!(@weak self as details => move |_, _| {
-                let self_: &imp::EpicDownloadManager = imp::EpicDownloadManager::from_obj(&details);
-                if let Some(w) = self_.window.get() {
-                   w.show_logged_in();
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    let self_: &imp::EpicDownloadManager =
+                        imp::EpicDownloadManager::from_obj(&details);
+                    if let Some(w) = self_.window.get() {
+                        w.show_logged_in();
+                    }
                 }
-            })
+            )
         );
 
         self.insert_action_group("download_manager", Some(&self_.actions));
@@ -251,13 +254,16 @@ impl EpicDownloadManager {
     pub fn setup_messaging(&self) {
         let self_ = self.imp();
         let receiver = self_.receiver.borrow_mut().take().unwrap();
-        receiver.attach(
-            None,
-            clone!(@weak self as download_manager => @default-panic, move |msg| {
-                download_manager.update(msg);
-                glib::ControlFlow::Continue
-            }),
-        );
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=download_manager)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                while let Ok(response) = receiver.recv().await {
+                    download_manager.update(response);
+                }
+            }
+        ));
     }
 
     pub fn update(&self, msg: Msg) {
@@ -389,7 +395,7 @@ impl EpicDownloadManager {
         self_
             .settings
             .strv("unreal-vault-directories")
-            .get(0)
+            .first()
             .map(std::string::ToString::to_string)
     }
 
@@ -431,7 +437,7 @@ impl EpicDownloadManager {
         }
         self_
             .sender
-            .send(Msg::FileExtracted(file_details.asset))
+            .send_blocking(Msg::FileExtracted(file_details.asset))
             .unwrap();
     }
 
@@ -453,7 +459,7 @@ impl EpicDownloadManager {
         &self,
         image: egs_api::api::types::asset_info::KeyImage,
         asset: egs_api::api::types::asset_info::AssetInfo,
-        sender: gtk4::glib::Sender<crate::ui::messages::Msg>,
+        sender: async_channel::Sender<crate::ui::messages::Msg>,
     ) {
         let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -482,7 +488,7 @@ impl EpicDownloadManager {
                         }
                     }
                     sender
-                        .send(crate::ui::messages::Msg::ProcessAssetInfo(asset))
+                        .send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset))
                         .unwrap();
                 }
             };
@@ -514,7 +520,7 @@ impl EpicDownloadManager {
         &self,
         image: egs_api::api::types::asset_info::KeyImage,
         asset: String,
-        sender: gtk4::glib::Sender<crate::ui::widgets::logged_in::library::image_stack::Msg>,
+        sender: async_channel::Sender<crate::ui::widgets::logged_in::library::image_stack::Msg>,
     ) {
         let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -545,7 +551,7 @@ impl EpicDownloadManager {
                         }
                     }
                     sender
-                        .send(
+                        .send_blocking(
                             crate::ui::widgets::logged_in::library::image_stack::Msg::LoadImage(
                                 asset, img,
                             ),

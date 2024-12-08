@@ -165,10 +165,14 @@ pub mod imp {
                         action!(
                             self.actions,
                             "open",
-                            clone!(@weak self as imp =>  move |_, _| {
-                                let obj = imp.obj();
-                                obj.open_path();
-                            })
+                            clone!(
+                                #[weak(rename_to=imp)]
+                                self,
+                                move |_, _| {
+                                    let obj = imp.obj();
+                                    obj.open_path();
+                                }
+                            )
                         );
                     }
                 }
@@ -234,7 +238,7 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
 
                     if let Some(tex) = &thumbnail {
-                        self.image.set_from_paintable(Some(tex));
+                        self.image.set_paintable(Some(tex));
                     }
 
                     self.thumbnail.replace(thumbnail);
@@ -316,10 +320,16 @@ impl EpicDownloadItem {
     pub fn setup_timer(&self) {
         glib::timeout_add_seconds_local(
             1,
-            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
-                obj.speed_update();
-                glib::ControlFlow::Continue
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    obj.speed_update();
+                    glib::ControlFlow::Continue
+                }
+            ),
         );
     }
 
@@ -369,9 +379,13 @@ impl EpicDownloadItem {
         action!(
             self_.actions,
             "cancel",
-            clone!(@weak self as item =>  move |_, _| {
-                item.cancel();
-            })
+            clone!(
+                #[weak(rename_to=item)]
+                self,
+                move |_, _| {
+                    item.cancel();
+                }
+            )
         );
 
         get_action!(self_.actions, @cancel).set_enabled(false);
@@ -379,9 +393,13 @@ impl EpicDownloadItem {
         action!(
             self_.actions,
             "pause",
-            clone!(@weak self as item =>  move |_, _| {
-                item.pause();
-            })
+            clone!(
+                #[weak(rename_to=item)]
+                self,
+                move |_, _| {
+                    item.pause();
+                }
+            )
         );
         get_action!(self_.actions, @pause).set_enabled(false);
     }
@@ -420,11 +438,17 @@ impl EpicDownloadItem {
         get_action!(self_.actions, @pause).set_enabled(false);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
-                let self_ = obj.imp();
-                get_action!(self_.actions, @pause).set_enabled(true);
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    let self_ = obj.imp();
+                    get_action!(self_.actions, @pause).set_enabled(true);
+                    glib::ControlFlow::Break
+                }
+            ),
         );
         if let Some(dm) = self_.download_manager.get() {
             match self.item_type() {
@@ -573,10 +597,16 @@ impl EpicDownloadItem {
     fn remove_from_parent_with_timer(&self, timer: u32) {
         glib::timeout_add_seconds_local(
             timer,
-            clone!(@weak self as obj => @default-return glib::ControlFlow::Break, move || {
-                obj.emit_by_name::<()>("finished", &[]);
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or]
+                glib::ControlFlow::Break,
+                move || {
+                    obj.emit_by_name::<()>("finished", &[]);
+                    glib::ControlFlow::Break
+                }
+            ),
         );
     }
 
