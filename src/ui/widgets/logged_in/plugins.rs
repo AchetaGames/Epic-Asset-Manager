@@ -8,7 +8,7 @@ pub enum Msg {
 pub mod imp {
     use super::*;
     use gtk4::gio::ListStore;
-    use gtk4::glib::{Object, Priority};
+    use gtk4::glib::Object;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
     use threadpool::ThreadPool;
@@ -18,8 +18,8 @@ pub mod imp {
     pub struct EpicPlugins {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub model: ListStore,
-        pub sender: gtk4::glib::Sender<super::Msg>,
-        pub receiver: RefCell<Option<gtk4::glib::Receiver<super::Msg>>>,
+        pub sender: async_channel::Sender<Msg>,
+        pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
         pub pending: std::sync::RwLock<Vec<Object>>,
         pub load_pool: ThreadPool,
     }
@@ -31,7 +31,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 window: OnceCell::new(),
                 model: gtk4::gio::ListStore::new::<crate::models::log_data::LogData>(),

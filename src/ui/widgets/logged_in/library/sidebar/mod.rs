@@ -1,5 +1,5 @@
 use crate::ui::widgets::logged_in::library::sidebar::categories::EpicSidebarCategories;
-use gtk4::glib::{clone, Priority};
+use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
@@ -173,16 +173,24 @@ impl EpicSidebar {
         action!(
             self_.actions,
             "expand",
-            clone!(@weak self as sidebar => move |_, _| {
-                sidebar.expand();
-            })
+            clone!(
+                #[weak(rename_to=sidebar)]
+                self,
+                move |_, _| {
+                    sidebar.expand();
+                }
+            )
         );
         action!(
             self_.actions,
             "marketplace",
-            clone!(@weak self as sidebar => move |_, _| {
-                sidebar.open_marketplace();
-            })
+            clone!(
+                #[weak(rename_to=sidebar)]
+                self,
+                move |_, _| {
+                    sidebar.open_marketplace();
+                }
+            )
         );
     }
 
@@ -191,15 +199,13 @@ impl EpicSidebar {
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
-            let (sender, receiver) = gtk4::glib::MainContext::channel(Priority::default());
+            let (sender, receiver) = async_channel::unbounded::<String>();
 
-            receiver.attach(
-                None,
-                clone!(@weak self as sidebar => @default-panic, move |code:String| {
-                    open_browser(&code);
-                    glib::ControlFlow::Break
-                }),
-            );
+            glib::spawn_future_local(async move {
+                while let Ok(response) = receiver.recv().await {
+                    open_browser(&response);
+                }
+            });
 
             thread::spawn(move || {
                 match Builder::new_current_thread()
@@ -210,7 +216,7 @@ impl EpicSidebar {
                 {
                     None => {}
                     Some(token) => {
-                        sender.send(token.code).unwrap();
+                        sender.send_blocking(token.code).unwrap();
                     }
                 }
             });
@@ -239,16 +245,20 @@ impl EpicSidebar {
         c.set_widget_name("all");
         self_.stack.add_named(&c, Some("all"));
 
-        self_
-            .favorites_filter
-            .connect_toggled(clone!(@weak self as sidebar => move |_| {
+        self_.favorites_filter.connect_toggled(clone!(
+            #[weak(rename_to=sidebar)]
+            self,
+            move |_| {
                 sidebar.filter_changed();
-            }));
-        self_
-            .downloaded_filter
-            .connect_toggled(clone!(@weak self as sidebar => move |_| {
+            }
+        ));
+        self_.downloaded_filter.connect_toggled(clone!(
+            #[weak(rename_to=sidebar)]
+            self,
+            move |_| {
                 sidebar.filter_changed();
-            }));
+            }
+        ));
 
         if self_.settings.boolean("sidebar-expanded") {
             self.expand();

@@ -196,10 +196,16 @@ impl EpicAssetDetails {
         self_.asset_actions.connect_local(
             "start-download",
             false,
-            clone!(@weak self as ead => @default-return None, move |_| {
-                ead.start_download();
-                None
-            }),
+            clone!(
+                #[weak(rename_to=ead)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    ead.start_download();
+                    None
+                }
+            ),
         );
     }
 
@@ -208,10 +214,15 @@ impl EpicAssetDetails {
         get_action!(self_.actions, @show_download_confirmation).activate(None);
         glib::timeout_add_seconds_local(
             2,
-            clone!(@weak self as obj => @default-panic, move || {
-                obj.hide_confirmation();
-                glib::ControlFlow::Break
-            }),
+            clone!(
+                #[weak(rename_to=obj)]
+                self,
+                #[upgrade_or_panic]
+                move || {
+                    obj.hide_confirmation();
+                    glib::ControlFlow::Break
+                }
+            ),
         );
     }
 
@@ -228,72 +239,116 @@ impl EpicAssetDetails {
         action!(
             actions,
             "close",
-            clone!(@weak self as details => move |_, _| {
-                details.collapse();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.collapse();
+                }
+            )
         );
         action!(
             actions,
             "show_download_details",
-            clone!(@weak self as details => move |_, _| {
-                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::Download);
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.show_download_details(
+                        &crate::ui::widgets::logged_in::library::actions::Action::Download,
+                    );
+                }
+            )
         );
 
         action!(
             actions,
             "create_project",
-            clone!(@weak self as details => move |_, _| {
-                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::CreateProject);
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.show_download_details(
+                        &crate::ui::widgets::logged_in::library::actions::Action::CreateProject,
+                    );
+                }
+            )
         );
 
         action!(
             actions,
             "local_assets",
-            clone!(@weak self as details => move |_, _| {
-                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::Local);
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.show_download_details(
+                        &crate::ui::widgets::logged_in::library::actions::Action::Local,
+                    );
+                }
+            )
         );
 
         action!(
             actions,
             "add_to_project",
-            clone!(@weak self as details => move |_, _| {
-                details.show_download_details(&crate::ui::widgets::logged_in::library::actions::Action::AddToProject);
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.show_download_details(
+                        &crate::ui::widgets::logged_in::library::actions::Action::AddToProject,
+                    );
+                }
+            )
         );
 
         action!(
             actions,
             "show_download_confirmation",
-            clone!(@weak self as details => move |_, _| {
-                details.show_download_confirmation();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.show_download_confirmation();
+                }
+            )
         );
 
         action!(
             actions,
             "show_asset_details",
-            clone!(@weak self as details => move |_, _| {
-                details.show_asset_details();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.show_asset_details();
+                }
+            )
         );
 
         action!(
             actions,
             "toggle_favorite",
-            clone!(@weak self as details => move |_, _| {
-                details.toggle_favorites();
-            })
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_, _| {
+                    details.toggle_favorites();
+                }
+            )
         );
 
-        self_.warning_message.connect_activate_link(
-            clone!(@weak self as details => @default-return glib::Propagation::Stop, move |_, uri| {
+        self_.warning_message.connect_activate_link(clone!(
+            #[weak(rename_to=details)]
+            self,
+            #[upgrade_or]
+            glib::Propagation::Stop,
+            move |_, uri| {
                 details.process_uri(uri);
                 glib::Propagation::Stop
-            }),
-        );
+            }
+        ));
     }
 
     fn process_uri(&self, uri: &str) {
@@ -565,12 +620,12 @@ impl EpicAssetDetails {
 
         if let Some(desc) = &asset.long_description {
             let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
-            self.add_info_row(&text);
+            self.add_info_row(text);
         }
 
         if let Some(desc) = &asset.technical_details {
             let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
-            self.add_info_row(&text);
+            self.add_info_row(text);
         }
         self.check_favorite();
     }

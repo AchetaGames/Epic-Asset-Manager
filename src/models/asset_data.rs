@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
-use glib::ObjectExt;
 use gtk4::gdk::Texture;
+use gtk4::prelude::ObjectExt;
 use gtk4::prelude::SettingsExtManual;
 use gtk4::{glib, subclass::prelude::*};
 use log::error;
@@ -20,9 +20,9 @@ pub enum AssetType {
 // Implementation sub-module of the GObject
 mod imp {
     use super::*;
-    use glib::ToValue;
     use gtk4::gdk::Texture;
     use gtk4::glib::ParamSpecObject;
+    use gtk4::prelude::ToValue;
     use std::cell::RefCell;
 
     // The actual data structure that stores our values. This is not accessible
