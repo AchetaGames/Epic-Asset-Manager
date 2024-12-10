@@ -129,6 +129,7 @@ circular</property>
                                                 <child>
                                                     <object class="GtkBox" id="details">
                                                         <property name="orientation">vertical</property>
+                                                        <property name="valign">start</property>
                                                         <property name="spacing">12</property>
                                                         <child>
                                                             <object class="EpicImageOverlay" id="images">
