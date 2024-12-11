@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicAsset" parent="GtkBox">
-        <property name="width-request">128</property>
+        <property name="width-request">256</property>
         <child>
             <object class="GtkOverlay">
                 <property name="child">
@@ -14,6 +14,7 @@
                                 <property name="width-request">128</property>
                                 <property name="height-request">128</property>
                                 <property name="pixel-size">128</property>
+                                <property name="hexpand">True</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
                             </object>
                         </child>

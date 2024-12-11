@@ -496,11 +496,11 @@ impl EpicAssetDetails {
         get_action!(self_.actions, @show_download_details).set_enabled(true);
         get_action!(self_.actions, @show_asset_details).set_enabled(false);
         info!("Showing details for {:?}", asset.title);
-        if let Some(title) = &asset.title {
-            self_
-                .title
-                .set_markup(&format!("<b><big>{title}</big></b>"));
-        }
+        // if let Some(title) = &asset.title {
+        //     self_
+        //         .title
+        //         .set_markup(&format!("<b><big>{title}</big></b>"));
+        // }
 
         self_.images.clear();
 
