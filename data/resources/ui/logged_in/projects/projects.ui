@@ -19,7 +19,6 @@
                         <property name="halign">fill</property>
                         <property name="valign">fill</property>
                         <property name="max-columns">255</property>
-                        <!-- <property name="css-classes">background</property> -->
                     </object>
                 </property>
             </object>

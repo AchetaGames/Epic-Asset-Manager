@@ -1,70 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicAddToProject" parent="GtkBox">
-        <property name="orientation">vertical</property>
+        <property name="css-classes">linked</property>
+        <child> <!-- TODO: Switch to GtkDropDown -->
+            <object class="GtkComboBoxText" id="select_target_directory">
+                <property name="valign">center</property>
+            </object>
+        </child>
         <child>
-            <object class="GtkBox" id="setup">
-                <property name="spacing">5</property>
-                <property name="orientation">vertical</property>
+            <object class="GtkButton">
+                <property name="valign">center</property>
+                <property name="action-name">download_details.download_all</property>
                 <child>
-                    <object class="GtkBox">
-                        <property name="spacing">5</property>
-                        <child>
-                            <object class="GtkLabel">
-                                <property name="can-focus">0</property>
-                                <property name="label" translatable="yes">Select target</property>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkComboBoxText" id="select_target_directory">
-                                <property name="hexpand">true</property>
-                            </object>
-                        </child>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkInfoBar" id="warning_row">
-                        <property name="visible">false</property>
-                        <property name="message-type">GTK_MESSAGE_WARNING</property>
-                        <child>
-                            <object class="GtkLabel">
-                                <property name="can-focus">0</property>
-                                <property name="xalign">0</property>
-                                <property name="hexpand">true</property>
-                                <property name="label" translatable="yes">Asset already exists in the target project</property>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkCheckButton" id="overwrite">
-                                <property name="label">Overwrite?</property>
-                            </object>
-                        </child>
+                    <object class="AdwButtonContent">
+                        <property name="icon-name">document-new-symbolic</property>
+                        <property name="label" translatable="yes">Add</property>
                     </object>
                 </child>
             </object>
         </child>
         <child>
-            <object class="GtkBox">
-                <property name="halign">end</property>
+            <object class="GtkInfoBar" id="warning_row">
+                <property name="visible">false</property>
+                <property name="message-type">GTK_MESSAGE_WARNING</property>
                 <child>
-                    <object class="GtkButton">
-                        <property name="action-name">download_details.download_all</property>
-                        <child>
-                            <object class="GtkBox">
-                                <property name="valign">center</property>
-                                <property name="halign">center</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="icon-name">document-new-symbolic</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">Add</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
+                    <object class="GtkLabel">
+                        <property name="hexpand">true</property>
+                        <property name="label" translatable="yes">Asset already exists in the target project</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkCheckButton" id="overwrite">
+                        <property name="label">Overwrite?</property>
                     </object>
                 </child>
             </object>
