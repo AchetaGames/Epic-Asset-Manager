@@ -23,7 +23,6 @@
                                 <child>
                                     <object class="GtkScrolledWindow">
                                         <property name="margin-top">48</property>
-                                        <property name="margin-bottom">8</property>
                                         <property name="margin-start">8</property>
                                         <property name="margin-end">8</property>
                                         <property name="vexpand">1</property>
@@ -40,11 +39,10 @@
                         <child type="overlay">
                             <object class="GtkProgressBar" id="refresh_progress">
                                 <property name="valign">end</property>
-                                <property name="can-focus">0</property>
-                                <property name="margin-start">6</property>
-                                <property name="margin-end">72</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">80</property>
                                 <property name="margin-top">6</property>
-                                <property name="margin-bottom">6</property>
+                                <property name="margin-bottom">10</property>
                                 <property name="show-text">true</property>
                             </object>
                         </child>
@@ -68,6 +66,7 @@
                                 <child>
                                     <object class="GtkSearchEntry" id="asset_search">
                                       <property name="hexpand">true</property>
+                                      <property name="placeholder-text">Search</property>
                                     </object>
                                 </child>
                                 <child>
@@ -99,7 +98,9 @@
             </object>
         </child>
         <child>
-            <object class="EpicAssetDetails" id="details"/>
+            <object class="EpicAssetDetails" id="details">
+                <property name="visible">false</property>
+            </object>
         </child>
     </template>
 </interface>

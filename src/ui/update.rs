@@ -57,8 +57,8 @@ impl Update for EpicAssetManagerWindow {
                 {
                     self.add_notification(
                         "GithubAuth",
-                        "Github Token Authentication failed",
-                        gtk4::MessageType::Error,
+                        "Github token authentication failed",
+                        gtk4::MessageType::Warning,
                     );
                 }
 
@@ -66,7 +66,7 @@ impl Update for EpicAssetManagerWindow {
             }
             Msg::LoginFailed(reason) => {
                 error!("{}", reason);
-                self.add_notification("login", &reason, gtk4::MessageType::Error);
+                self.add_notification("login", &reason, gtk4::MessageType::Warning);
                 self.show_login();
             }
             Msg::Logout => self.do_logout(),

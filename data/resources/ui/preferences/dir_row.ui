@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="DirectoryRow" parent="AdwActionRow">
-        <property name="title">NOT SET</property>
         <property name="valign">start</property>
         <property name="hexpand">true</property>
         <child>
@@ -14,6 +13,7 @@
                         <property name="action-name">dir_row.up</property>
                         <property name="icon-name">go-up-symbolic</property>
                         <property name="valign">center</property>
+                        <property name="tooltip-text">Moves the entry up the list</property>
                     </object>
                 </child>
                 <child>
@@ -21,6 +21,7 @@
                         <property name="action-name">dir_row.down</property>
                         <property name="icon-name">go-down-symbolic</property>
                         <property name="valign">center</property>
+                        <property name="tooltip-text">Moves the entry down the list</property>
                     </object>
                 </child>
             </object>
@@ -28,8 +29,10 @@
         <child>
             <object class="GtkButton">
                 <property name="action-name">dir_row.remove</property>
-                <property name="icon-name">list-remove</property>
+                <property name="icon-name">user-trash-symbolic</property>
                 <property name="valign">center</property>
+                <property name="css-classes">destructive-action</property>
+                <property name="tooltip-text">Removes entry from list</property>
             </object>
         </child>
     </template>

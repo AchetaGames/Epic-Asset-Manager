@@ -18,7 +18,7 @@
             <object class="GtkLabel">
                 <property name="label" translatable="yes" bind-source="EpicLogLine" bind-property="label" bind-flags="sync-create"/>
                 <property name="tooltip-text" translatable="yes" bind-source="EpicLogLine" bind-property="path" bind-flags="sync-create"/>
-                <property name="use-markup">true</property>
+                <property name="css-classes">heading</property>
                 <property name="hexpand">true</property>
                 <property name="halign">start</property>
                 <property name="css-classes">heading</property>

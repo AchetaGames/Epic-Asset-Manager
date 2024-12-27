@@ -50,8 +50,8 @@ pill</property>
                                         <property name="hexpand">true</property>
                                         <property name="halign">center</property>
                                         <property name="ellipsize">middle</property>
-                                        <!-- <property name="selectable">true</property> --> <!-- setting this messes up titles for some reason -->
-                                        <property name="css-classes">title-1</property>
+                                        <property name="selectable">true</property>
+                                        <property name="css-classes">asset-title</property>
                                     </object>
                                 </child>
                                 <child>
@@ -124,24 +124,31 @@ circular</property>
                                 <property name="reveal-child">true</property>
                                 <child>
                                     <object class="AdwPreferencesPage">
+                                        <property name="valign">start</property>
                                         <child>
                                             <object class="AdwPreferencesGroup">
+                                                <property name="valign">start</property>
                                                 <child>
                                                     <object class="GtkBox" id="details">
-                                                        <property name="orientation">vertical</property>
-                                                        <property name="valign">start</property>
-                                                        <property name="spacing">12</property>
                                                         <child>
                                                             <object class="EpicImageOverlay" id="images">
                                                                 <property name="hexpand" bind-source="EpicAssetDetails" bind-property="expanded" bind-flags="sync-create"/>
+                                                                <property name="valign">start</property>
                                                             </object>
                                                         </child>
-                                                        <child>
-                                                            <object class="GtkListBox" id="details_box">
-                                                                <property name="selection-mode">GTK_SELECTION_NONE</property>
-                                                                <property name="css-classes">boxed-list</property>
-                                                            </object>
-                                                        </child>
+                                                    </object>
+                                                </child>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="AdwPreferencesGroup">
+                                                <property name="title">Information</property>
+                                                <property name="valign">start</property>
+                                                <child>
+                                                    <object class="GtkListBox" id="details_box">
+                                                        <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                                        <property name="css-classes">boxed-list</property>
+                                                        <property name="valign">start</property>
                                                     </object>
                                                 </child>
                                             </object>
@@ -168,7 +175,6 @@ circular</property>
                                 <property name="transition-type">slide-up</property>
                                 <child>
                                     <object class="GtkLabel">
-                                        <property name="can-focus">0</property>
                                         <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Download initialized&lt;/big&gt;&lt;/b&gt;</property>
                                         <property name="use-markup">1</property>
                                         <property name="hexpand">True</property>

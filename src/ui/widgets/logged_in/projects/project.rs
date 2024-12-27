@@ -78,14 +78,14 @@ pub mod imp {
                     let name = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<span size=\"xx-large\"><b><u>{l}</u></b></span>"));
+                        .map(|l| format!("{l}"));
                     self.name.replace(name);
                 }
                 "engine" => {
                     let engine = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i>{l}</i>"));
+                        .map(|l| format!("{l}"));
                     self.engine.replace(engine);
                 }
                 _ => unimplemented!(),

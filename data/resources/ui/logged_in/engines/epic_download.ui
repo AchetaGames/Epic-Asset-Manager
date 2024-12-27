@@ -14,28 +14,14 @@
             <object class="GtkRevealer" id="details_revealer">
                 <property name="reveal-child">true</property>
                 <property name="vexpand">true</property>
-                <property name="can-target">false</property>
                 <child>
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <property name="spacing">12</property>
-                        <child>
-                            <object class="GtkButton" id="install_button">
-                                <property name="halign">center</property>
-                                <property name="name">engine_install_button</property>
-                                <property name="action-name">epic_download.install</property>
-                                <property name="css-classes">pill</property>
-                                <child>
-                                    <object class="AdwButtonContent">
-                                        <property name="icon-name">folder-download-symbolic</property>
-                                        <property name="label" translatable="yes">Install</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
+                        <property name="margin-top">8</property>
                         <child>
                             <object class="GtkScrolledWindow">
-                                <property name="vexpand">True</property>
+                                <property name="vexpand">true</property>
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
@@ -54,10 +40,10 @@
                                                                         <property name="name">unknown</property>
                                                                         <property name="title" translatable="yes">unknown</property>
                                                                         <property name="child">
-                                                                            <object class="GtkImage">
-                                                                                <property name="halign">start</property>
-                                                                                <property name="icon_name">emblem-synchronizing-symbolic</property>
-                                                                                <property name="tooltip-text">Valid</property>
+                                                                            <object class="AdwStatusPage">
+                                                                                <property name="height-request">280</property>
+                                                                                <property name="icon-name">emblem-synchronizing-symbolic</property>
+                                                                                <property name="title">Loading</property>
                                                                             </object>
                                                                         </property>
                                                                     </object>
@@ -82,54 +68,62 @@
                                                                         <property name="child">
                                                                             <object class="GtkBox">
                                                                                 <property name="orientation">vertical</property>
+                                                                                <property name="valign">center</property>
+                                                                                <child>
+                                                                                    <object class="GtkImage">
+                                                                                        <property name="icon-name">emblem-important-symbolic</property>
+                                                                                        <property name="pixel-size">36</property>
+                                                                                        <property name="margin-bottom">20</property>
+                                                                                    </object>
+                                                                                </child>
                                                                                 <child>
                                                                                     <object class="GtkBox">
-                                                                                        <property name="spacing">5</property>
-                                                                                        <child>
-                                                                                            <object class="GtkImage">
-                                                                                                <property name="icon_name">emblem-important-symbolic</property>
-                                                                                                <property name="tooltip-text">Valid</property>
-                                                                                            </object>
-                                                                                        </child>
+                                                                                        <property name="spacing">8</property>
+                                                                                        <property name="hexpand">true</property>
+                                                                                        <property name="halign">fill</property>
                                                                                         <child>
                                                                                             <object class="GtkLabel">
-                                                                                                <property name="can-focus">0</property>
                                                                                                 <property name="label" translatable="yes">Please sign the EULA to continue</property>
+                                                                                                <property name="wrap">true</property>
+                                                                                                <property name="css-classes">title-3</property>
                                                                                             </object>
                                                                                         </child>
                                                                                         <child>
                                                                                             <object class="GtkButton">
                                                                                                 <property name="action-name">epic_download.browser</property>
                                                                                                 <property name="tooltip-text">https://www.unrealengine.com/en-US/eulacheck/unreal</property>
-                                                                                                <property name="receives-default">1</property>
                                                                                                 <property name="icon-name">help-browser-symbolic</property>
+                                                                                                <property name="valign">center</property>
+                                                                                                <property name="css-classes">circular</property>
                                                                                             </object>
                                                                                         </child>
                                                                                         <child>
                                                                                             <object class="GtkButton">
                                                                                                 <property name="action-name">epic_download.revalidate_eula</property>
                                                                                                 <property name="tooltip-text">Revalidate</property>
-                                                                                                <property name="receives-default">1</property>
                                                                                                 <property name="icon-name">view-refresh-symbolic</property>
+                                                                                                <property name="valign">center</property>
+                                                                                                <property name="css-classes">circular</property>
                                                                                             </object>
                                                                                         </child>
                                                                                     </object>
                                                                                 </child>
                                                                                 <child>
                                                                                     <object class="GtkBox">
-                                                                                        <property name="spacing">5</property>
+                                                                                        <property name="spacing">8</property>
+                                                                                        <property name="halign">center</property>
                                                                                         <child>
                                                                                             <object class="GtkLabel">
-                                                                                                <property name="can-focus">0</property>
                                                                                                 <property name="label" translatable="yes">Or download manually</property>
+                                                                                                <property name="css-classes">heading</property>
                                                                                             </object>
                                                                                         </child>
                                                                                         <child>
                                                                                             <object class="GtkButton">
                                                                                                 <property name="action-name">epic_download.download</property>
                                                                                                 <property name="tooltip-text">https://www.unrealengine.com/linux</property>
-                                                                                                <property name="receives-default">1</property>
                                                                                                 <property name="icon-name">help-browser-symbolic</property>
+                                                                                                 <property name="css-classes">circular</property>
                                                                                             </object>
                                                                                         </child>
                                                                                     </object>
@@ -196,6 +190,24 @@
                                                 </child>
                                             </object>
                                         </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="install_button">
+                                <property name="margin-bottom">16</property>
+                                <property name="margin-start">32</property>
+                                <property name="margin-end">32</property>
+                                <property name="hexpand">true</property>
+                                <property name="name">engine_install_button</property>
+                                <property name="action-name">epic_download.install</property>
+                                <property name="css-classes">pill
+suggested-action</property>
+                                <child>
+                                    <object class="AdwButtonContent">
+                                        <property name="icon-name">folder-download-symbolic</property>
+                                        <property name="label" translatable="yes">Install</property>
                                     </object>
                                 </child>
                             </object>

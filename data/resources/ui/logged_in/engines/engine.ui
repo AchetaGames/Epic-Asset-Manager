@@ -3,23 +3,27 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicEngine" parent="GtkBox">
         <property name="valign">center</property>
-        <property name="width-request">300</property>
+        <property name="width-request">335</property>
         <property name="tooltip-text" translatable="yes" bind-source="EpicEngine" bind-property="path" bind-flags="sync-create"/>
+        <property name="spacing">8</property>
         <child>
-            <object class="GtkImage" id="logo">
+            <object class="AdwAvatar" id="logo">
+                <property name="margin-top">4</property>
+                <property name="margin-bottom">4</property>
+                <property name="margin-start">4</property>
+                <property name="margin-end">4</property>
                 <property name="icon-name">ue-logo-symbolic</property>
-                <property name="width-request">128</property>
-                <property name="height-request">128</property>
-                <property name="pixel-size">128</property>
+                <property name="size">110</property>
             </object>
         </child>
         <child>
             <object class="AdwAvatar" id="add">
-                <property name="text">g</property>
+                <property name="margin-top">4</property>
+                <property name="margin-bottom">4</property>
+                <property name="margin-start">4</property>
+                <property name="margin-end">4</property>
                 <property name="icon-name">list-add-symbolic</property>
-                <property name="width-request">128</property>
-                <property name="height-request">128</property>
-                <property name="size">128</property>
+                <property name="size">110</property>
             </object>
         </child>
         <child>
@@ -28,7 +32,7 @@
                 <child>
                     <object class="GtkLabel" id="version">
                         <property name="label" translatable="yes" bind-source="EpicEngine" bind-property="version" bind-flags="sync-create"/>
-                        <property name="use-markup">true</property>
+                        <property name="css-classes">asset-heading</property>
                         <property name="halign">start</property>
                         <property name="ellipsize">end</property>
                     </object>

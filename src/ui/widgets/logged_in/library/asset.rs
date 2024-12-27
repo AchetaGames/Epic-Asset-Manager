@@ -18,7 +18,8 @@ pub mod imp {
         downloaded: RefCell<bool>,
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
-        pub image: TemplateChild<gtk4::Image>,
+        pub image: TemplateChild<adw::Avatar>,
+        // pub image: TemplateChild<gtk4::Image>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
@@ -109,7 +110,8 @@ pub mod imp {
                             self.image.set_icon_name(Some("ue-logo-symbolic"));
                         },
                         |t| {
-                            self.image.set_paintable(Some(&t));
+                            self.image.set_custom_image(Some(&t));
+                            // self.image.set_paintable(Some(&t));
                         },
                     );
                 }

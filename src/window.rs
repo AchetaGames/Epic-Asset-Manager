@@ -386,14 +386,13 @@ impl EpicAssetManagerWindow {
         }
     }
 
+    // TODO: Switch to adw::Toast or adw::Banner
     pub fn add_notification(&self, name: &str, message: &str, message_type: gtk4::MessageType) {
         let self_ = self.imp();
         self.clear_notification(name);
         let notif = gtk4::InfoBar::builder()
             .message_type(message_type)
             .name(name)
-            .margin_start(10)
-            .margin_end(10)
             .show_close_button(true)
             .build();
         let label = gtk4::Label::builder().label(message).build();

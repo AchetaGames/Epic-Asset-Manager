@@ -282,17 +282,6 @@ impl EpicSidebar {
     pub fn expand(&self) {
         let self_ = self.imp();
         let new_value = !self.expanded();
-        if new_value {
-            self_
-                .expand_image
-                .set_icon_name(Some("go-previous-symbolic"));
-            self_
-                .expand_button
-                .set_tooltip_text(Some("Collapse Sidebar"));
-        } else {
-            self_.expand_image.set_icon_name(Some("go-next-symbolic"));
-            self_.expand_button.set_tooltip_text(Some("Expand Sidebar"));
-        };
         if let Err(e) = self_.settings.set_boolean("sidebar-expanded", new_value) {
             warn!("Unable to save sidebar state: {}", e);
         };

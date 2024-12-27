@@ -1,16 +1,22 @@
-.title-header{
+.asset-title {
   font-size: 36px;
-  font-weight: bold;
+  font-weight: 650;
 }
 
-button#category_button {
-  padding: 6px 12px 6px 12px;
-  border-style: none;
-  border-radius: 0;
+.asset-heading {
+  font-size: 30px;
+  font-weight: 650;
 }
 
-button#subcategory {
-  padding: 4px 6px 4px 6px;
-  border-style: none;
-  border-radius: 0;
+.asset-name {
+  font-size: 17.5px;
+  font-weight: 467.5;
+}
+
+.star {
+  color: rgb(250, 190, 80);
+}
+
+.expand-button {
+  border-radius: 0px 0px 0px 12px;
 }

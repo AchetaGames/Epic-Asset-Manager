@@ -7,28 +7,15 @@
         <child>
             <object class="GtkButton" id="category_button">
                 <property name="name">category_button</property>
-                <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarButton" bind-property="tooltip-text" bind-flags="sync-create"/>
-                <property name="hexpand">true</property>
                 <property name="action-name">sidebar_button.clicked</property>
-                <property name="halign">fill</property>
-                <style>
-                    <class name="flat"/>
-                </style>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="tooltip-text" translatable="yes" bind-source="EpicSidebarButton" bind-property="tooltip-text" bind-flags="sync-create"/>
                 <child>
-                    <object class="GtkBox">
-                        <child>
-                            <object class="GtkImage">
-                                <property name="can-focus">0</property>
-                                <property name="icon-name" bind-source="EpicSidebarButton" bind-property="icon-name" bind-flags="sync-create"/>
-                            </object>
-                        </child>
+                    <object class="GtkImage">
+                        <property name="icon-name" bind-source="EpicSidebarButton" bind-property="icon-name" bind-flags="sync-create"/>
                     </object>
                 </child>
-            </object>
-        </child>
-        <child>
-            <object class="GtkSeparator" id="separator">
-                <property name="visible">false</property>
             </object>
         </child>
     </template>

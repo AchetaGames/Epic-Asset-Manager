@@ -187,8 +187,9 @@ impl EpicEnginesSide {
     pub fn set_data(&self, data: &crate::models::engine_data::EngineData) {
         let self_ = self.imp();
         if let Some(title) = &data.version() {
-            self.set_property("title", format!("<b><u><big>{title}</big></u></b>"));
+            self.set_property("title", format!("{title}"));
         }
+        self.set_property("visible", true);
         self_.details.set_data(data);
         self_.stack.set_visible_child_name("details");
     }
@@ -204,6 +205,7 @@ impl EpicEnginesSide {
     pub fn collapse(&self) {
         let self_ = self.imp();
         self.set_property("expanded", false);
+        self.set_property("visible", false);
         if let Some(w) = self_.window.get() {
             let w_ = w.imp();
             let l = w_.logged_in_stack.clone();
@@ -217,7 +219,8 @@ impl EpicEnginesSide {
 
     pub fn add_engine(&self) {
         let self_ = self.imp();
-        self.set_property("title", "<b><u><big>Install Engine</big></u></b>");
+        self.set_property("visible", true);
+        self.set_property("title", "Install Engine");
         self_.stack.set_visible_child_name("install");
         self_.install.add_engine();
     }

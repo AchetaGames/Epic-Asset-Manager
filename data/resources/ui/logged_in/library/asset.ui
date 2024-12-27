@@ -1,38 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <template class="EpicAsset" parent="GtkBox">
-        <property name="width-request">128</property>
         <child>
             <object class="GtkOverlay">
                 <property name="child">
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
+                        <property name="spacing">3</property>
                         <child>
-                            <object class="GtkImage" id="image">
+                            <object class="AdwAvatar" id="image">
                                 <property name="name">thumbnail</property>
                                 <property name="icon-name">ue-logo-symbolic</property>
                                 <property name="hexpand">true</property>
-                                <property name="width-request">128</property>
-                                <property name="height-request">128</property>
-                                <property name="pixel-size">128</property>
+                                <property name="size">115</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+                                <property name="margin-top">3</property>
+                                <property name="margin-start">4</property>
+                                <property name="margin-end">4</property>
                             </object>
                         </child>
                         <child>
                             <object class="GtkLabel" id="name">
                                 <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="wrap">true</property>
-                                <property name="max_width_chars">15</property>
                                 <property name="ellipsize">end</property>
-                                <property name="justify">center</property>
+                                <property name="halign">center</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+                                <property name="css-classes">asset-name</property>
+                                <property name="margin-bottom">5</property>
+                                <property name="margin-start">1</property>
+                                <property name="margin-end">1</property>
                             </object>
                         </child>
                     </object>
                 </property>
                 <child type="overlay">
                     <object class="GtkImage">
-                        <property name="css-classes">warning</property>
+                        <property name="css-classes">star</property> <!-- would use `warning`, but it gets too dark in light mode -->
                         <property name="icon-name">starred</property>
                         <property name="pixel-size">35</property>
                         <property name="halign">end</property>

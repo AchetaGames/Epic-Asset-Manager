@@ -25,8 +25,6 @@ pub mod imp {
         pub actions: gio::SimpleActionGroup,
         #[template_child]
         pub category_button: TemplateChild<gtk4::Button>,
-        #[template_child]
-        pub separator: TemplateChild<gtk4::Separator>,
         pub categories: ListStore,
     }
 
@@ -46,7 +44,6 @@ pub mod imp {
                 expanded: RefCell::new(false),
                 actions: gio::SimpleActionGroup::new(),
                 category_button: TemplateChild::default(),
-                separator: TemplateChild::default(),
                 categories: ListStore::new::<CategoryData>(),
             }
         }
@@ -97,8 +94,6 @@ pub mod imp {
                 "expanded" => {
                     let expanded = value.get().unwrap();
                     self.expanded.replace(expanded);
-                    self.separator
-                        .set_visible(expanded && self.category_button.is_sensitive());
                 }
                 _ => unimplemented!(),
             }
@@ -195,7 +190,6 @@ impl EpicSidebarButton {
         } else {
             self_.category_button.remove_css_class("flat");
         }
-        self_.separator.set_visible(activate && self.expanded());
     }
 
     pub fn expanded(&self) -> bool {

@@ -4,30 +4,34 @@
     <template class="EpicProject" parent="GtkBox">
         <property name="valign">center</property>
         <property name="width-request">320</property>
+        <property name="spacing">12</property>
         <child>
             <object class="AdwAvatar" id="thumbnail">
                 <property name="icon-name">ue-logo-symbolic</property>
-                <property name="width-request">120</property>
-                <property name="height-request">120</property>
-                <property name="size">108</property>
+                <property name="size">110</property>
+                <property name="margin-top">4</property>
+                <property name="margin-bottom">4</property>
+                <property name="margin-start">4</property>
             </object>
         </child>
         <child>
             <object class="GtkBox">
                 <property name="orientation">vertical</property>
+                <property name="spacing">4</property>
                 <child>
-                    <object class="GtkLabel" id="version">
+                    <object class="GtkLabel" id="version"> <!-- aka engine title/name -->
                         <property name="label" translatable="yes" bind-source="EpicProject" bind-property="name" bind-flags="sync-create"/>
-                        <property name="use-markup">true</property>
                         <property name="halign">start</property>
                         <property name="ellipsize">end</property>
+                        <property name="use-markup">true</property>
+                        <property name="css-classes">asset-heading</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkLabel" id="engine">
                         <property name="label" translatable="yes" bind-source="EpicProject" bind-property="engine" bind-flags="sync-create"/>
-                        <property name="use-markup">true</property>
                         <property name="halign">start</property>
+                        <property name="use-markup">true</property>
                     </object>
                 </child>
             </object>

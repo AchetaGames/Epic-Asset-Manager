@@ -531,6 +531,7 @@ impl EpicAssetDetails {
 
         if !self.is_expanded() {
             self.set_property("expanded", true);
+            self.set_property("visible", true);
         }
 
         if let Some(a) = &*self_.asset.borrow() {
@@ -555,7 +556,7 @@ impl EpicAssetDetails {
         if let Some(title) = &asset.title {
             self_
                 .title
-                .set_markup(&format!("<b><u><big>{title}</big></u></b>"));
+                .set_label(title);
         }
 
         self_.images.clear();
@@ -724,6 +725,7 @@ impl EpicAssetDetails {
     pub fn collapse(&self) {
         let self_ = self.imp();
         self.set_property("expanded", false);
+        self.set_property("visible", false);
         if let Some(w) = self_.window.get() {
             let w_ = w.imp();
             let l = w_.logged_in_stack.clone();

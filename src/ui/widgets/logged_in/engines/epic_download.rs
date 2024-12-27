@@ -294,10 +294,7 @@ impl EpicEngineDownload {
                 if let Some(version) = versions.get(selected.as_str()) {
                     if let Some(dm) = self_.download_manager.get() {
                         dm.download_engine_from_epic(&version.name);
-                        self.show_confirmation(
-                            "<b><big>Engine Install Initialized</big></b>
-<i>See Header Bar for details</i>",
-                        );
+                        self.show_confirmation("Install initialized, see headerbar for details");
                     }
                 }
             }
