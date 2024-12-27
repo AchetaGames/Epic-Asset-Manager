@@ -554,9 +554,7 @@ impl EpicAssetDetails {
         get_action!(self_.actions, @show_asset_details).set_enabled(false);
         info!("Showing details for {:?}", asset.title);
         if let Some(title) = &asset.title {
-            self_
-                .title
-                .set_label(title);
+            self_.title.set_label(title);
         }
 
         self_.images.clear();
