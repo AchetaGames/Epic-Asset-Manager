@@ -276,6 +276,7 @@ impl UnrealProjectDetails {
         let self_ = self.imp();
         self.show_details();
         self.set_property("path", &path);
+        self.set_visible(true);
         if !self.is_expanded() {
             self.set_property("expanded", true);
         }
@@ -289,8 +290,8 @@ impl UnrealProjectDetails {
         self_.logs.clear();
 
         let pathbuf = PathBuf::from(path.unwrap());
-        self_.title.set_markup(&format!(
-            "<b><u><big>{}</big></u></b>",
+        self_.title.set_label(&format!(
+            "{}",
             pathbuf.file_stem().unwrap().to_str().unwrap()
         ));
 
@@ -469,6 +470,7 @@ impl UnrealProjectDetails {
     pub fn collapse(&self) {
         let self_ = self.imp();
         self.set_property("expanded", false);
+        self.set_property("visible", false);
         if let Some(w) = self_.window.get() {
             let w_ = w.imp();
             let l = w_.logged_in_stack.clone();

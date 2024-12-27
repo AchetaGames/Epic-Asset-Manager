@@ -18,8 +18,9 @@
         </section>
     </menu>
     <template class="EpicAssetManagerWindow" parent="GtkApplicationWindow">
-        <property name="default-width">650</property>
-        <property name="default-height">580</property>
+        <property name="default-width">700</property>
+        <property name="default-height">550</property>
+        <property name="width-request">780</property>
         <property name="height-request">480</property>
         <property name="title" translatable="yes">Epic Asset Manager</property>
         <child type="titlebar">
@@ -35,16 +36,15 @@
                         </binding>
                     </object>
                 </property>
-                <child type="start"> <!-- TODO: use this button instead of EpicSidebar's -->
-                    <object class="GtkToggleButton" id="expand_button">
-                        <property name="name">category_button</property>
-                        <property name="action-name">sidebar.expand</property>
-                        <property name="tooltip-text" translatable="yes">Expand Sidebar</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="icon-name">sidebar-show-symbolic</property>
-                    </object>
-                </child>
+                <!-- TODO: use this button instead of EpicSidebar's -->
+                <!-- <child type="start"> -->
+                <!--     <object class="GtkToggleButton" id="expand_button"> -->
+                <!--         <property name="name">category_button</property> -->
+                <!--         <property name="action-name">sidebar.expand</property> -->
+                <!--         <property name="tooltip-text" translatable="yes">Toggle Sidebar</property> -->
+                <!--         <property name="icon-name">sidebar-show-symbolic</property> --> --> -->
+                <!--     </object> -->
+                <!-- </child> -->
                 <child type="start">
                     <object class="GtkButton" id="refresh">
                         <property name="halign">center</property>

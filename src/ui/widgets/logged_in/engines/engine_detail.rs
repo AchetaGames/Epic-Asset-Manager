@@ -194,7 +194,7 @@ impl EpicEngineDetails {
                 });
             });
         };
-        self.show_confirmation("<b><big>Engine Launched</big></b>");
+        self.show_confirmation("Engine Launched");
     }
 
     fn show_confirmation(&self, markup: &str) {
@@ -202,6 +202,7 @@ impl EpicEngineDetails {
         self_.details_revealer.set_reveal_child(false);
         self_.details_revealer.set_vexpand(false);
         self_.confirmation_label.set_markup(markup);
+        self_.confirmation_label.add_css_class("title-2");
         self_.confirmation_revealer.set_reveal_child(true);
         self_.confirmation_revealer.set_vexpand_set(true);
         glib::timeout_add_seconds_local(

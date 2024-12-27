@@ -51,11 +51,7 @@ pub mod imp {
         pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
-        pub image: TemplateChild<gtk4::Image>,
-        #[template_child]
         pub pause_button: TemplateChild<gtk4::Button>,
-        #[template_child]
-        pub stack: TemplateChild<gtk4::Stack>,
         #[template_child]
         pub download_progress: TemplateChild<gtk4::ProgressBar>,
         #[template_child]
@@ -91,9 +87,7 @@ pub mod imp {
                 post_actions: RefCell::new(vec![]),
                 speed_queue: RefCell::new(VecDeque::new()),
                 thumbnail: RefCell::new(None),
-                image: TemplateChild::default(),
                 pause_button: TemplateChild::default(),
-                stack: TemplateChild::default(),
                 download_progress: TemplateChild::default(),
                 extraction_progress: TemplateChild::default(),
             }
@@ -150,7 +144,7 @@ pub mod imp {
                     let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<b><u>{l}</u></b>"));
+                        .map(|l| format!("{l}"));
 
                     self.label.replace(label);
                 }
@@ -180,9 +174,7 @@ pub mod imp {
                     let status = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
-                        .map(|l| format!("<i>{l}</i>"));
-                    self.stack.set_visible_child_name("label");
-                    self.status.replace(status);
+                        .map(|l| format!("{l}"));
                 }
                 "target" => {
                     let target = value
@@ -232,17 +224,7 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.release.replace(release);
                 }
-                "thumbnail" => {
-                    let thumbnail: Option<Texture> = value
-                        .get()
-                        .expect("type conformity checked by `Object::set_property`");
-
-                    if let Some(tex) = &thumbnail {
-                        self.image.set_paintable(Some(tex));
-                    }
-
-                    self.thumbnail.replace(thumbnail);
-                }
+                "thumbnail" => {}
                 _ => unimplemented!(),
             }
         }
@@ -260,7 +242,6 @@ pub mod imp {
                 "item-type" => self.item_type.borrow().to_value(),
                 "speed" => self.speed.borrow().to_value(),
                 "path" => self.path.borrow().to_value(),
-                "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -336,12 +317,13 @@ impl EpicDownloadItem {
     fn speed_update(&self) {
         let self_ = self.imp();
         if self.canceled() || self.paused() {
+            self.set_property("speed", "Paused/Cancelled".to_string());
             return;
         }
         if let Some(speed) = {
             let queue = &mut *self_.speed_queue.borrow_mut();
             if queue.len() <= 1 {
-                self.set_property("speed", "0 b/s".to_string());
+                // self.set_property("speed", "Starting download".to_string());
                 return;
             }
             let mut downloaded = 0_u128;
@@ -368,7 +350,7 @@ impl EpicDownloadItem {
             let byte = byte_unit::Byte::from_u128(speed)
                 .unwrap_or_default()
                 .get_appropriate_unit(byte_unit::UnitType::Decimal);
-            self.set_property("speed", format!("{byte:.2}/s"));
+            self.set_property("speed", format!("Downloading - {byte:.1}/s"));
         };
     }
 
@@ -564,7 +546,6 @@ impl EpicDownloadItem {
         if self.canceled() || self.paused() {
             return;
         }
-        self_.stack.set_visible_child_name("progress");
         let new_count = *self_.extracted_files.borrow() + 1;
         let total = *self_.total_files.borrow();
         self_
@@ -590,7 +571,7 @@ impl EpicDownloadItem {
                 }
             }
             self.set_property("status", "Finished".to_string());
-            self.remove_from_parent_with_timer(15);
+            self.remove_from_parent_with_timer(5);
         };
     }
 
@@ -631,7 +612,6 @@ impl EpicDownloadItem {
             queue.push_back((chrono::Utc::now(), size));
         };
 
-        self_.stack.set_visible_child_name("progress");
         let old_size = self.downloaded_size();
         let new_size = old_size + size;
         let total = self.total_size();

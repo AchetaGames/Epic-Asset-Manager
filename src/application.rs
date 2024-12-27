@@ -268,6 +268,7 @@ impl EpicAssetManager {
         }
     }
 
+    // TODO: Switch to adw:AboutDialog
     fn show_about_dialog(&self) {
         let dialog = gtk4::AboutDialog::builder()
             .program_name("Epic Asset Manager")

@@ -3,20 +3,22 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicEngineInstall" parent="GtkBox">
         <property name="orientation">vertical</property>
-        <property name="margin-top">12</property>
-        <property name="margin-bottom">12</property>
-        <property name="margin-start">12</property>
-        <property name="margin-end">12</property>
-        <property name="spacing">12</property>
         <child>
             <object class="GtkStackSwitcher">
                 <property name="stack">stack</property>
-                <property name="halign">center</property>
+                <property name="hexpand">true</property>
+                <property name="margin-start">24</property>
+                <property name="margin-end">24</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkSeparator">
+                <property name="margin-top">12</property>
             </object>
         </child>
         <child>
             <object class="GtkStack" id="stack">
-                <property name="transition-type">crossfade</property>
+                <property name="transition-type">none</property>
                 <child>
                     <object class="GtkStackPage">
                         <property name="name">epic</property>

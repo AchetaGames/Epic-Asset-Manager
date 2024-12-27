@@ -6,32 +6,33 @@
         <child>
             <object class="GtkRevealer" id="details_revealer">
                 <property name="reveal-child">true</property>
-                <property name="vexpand">True</property>
-                <property name="can-target">false</property>
+                <property name="vexpand">true</property>
                 <child>
-                    <object class="GtkBox">
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">12</property>
+                    <object class="AdwPreferencesPage">
                         <child>
-                            <object class="GtkButton" id="install_button">
-                                <property name="halign">center</property>
-                                <property name="name">engine_install_button</property>
-                                <property name="action-name">docker_download.install</property>
-                                <property name="css-classes">pill</property>
-                                <child>
-                                    <object class="AdwButtonContent">
-                                        <property name="icon-name">folder-download-symbolic</property>
-                                        <property name="label" translatable="yes">Install</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkScrolledWindow">
-                                <property name="vexpand">True</property>
+                            <object class="AdwPreferencesGroup">
+                                <property name="title">Download details</property>
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
+                                        <property name="css-classes">boxed-list</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkButton" id="install_button">
+                                        <property name="margin-top">32</property>
+                                        <property name="margin-start">32</property>
+                                        <property name="margin-end">32</property>
+                                        <property name="name">engine_install_button</property>
+                                        <property name="action-name">docker_download.install</property>
+                                        <property name="css-classes">pill
+suggested-action</property>
+                                        <child>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">folder-download-symbolic</property>
+                                                <property name="label" translatable="yes">Install</property>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
@@ -43,15 +44,11 @@
         <child>
             <object class="GtkRevealer" id="confirmation_revealer">
                 <property name="reveal-child">false</property>
-                <property name="vexpand-set">True</property>
-                <property name="vexpand">False</property>
                 <property name="transition-type">slide-up</property>
                 <child>
                     <object class="GtkLabel" id="confirmation_label">
-                        <property name="can-focus">0</property>
-                        <property name="label" translatable="yes">&lt;b&gt;&lt;big&gt;Engine Launched&lt;/big&gt;&lt;/b&gt;</property>
-                        <property name="use-markup">1</property>
-                        <property name="hexpand">true</property>
+                        <property name="label" translatable="yes">Engine launched</property>
+                        <property name="css-classes">title-2</property>
                         <property name="halign">center</property>
                     </object>
                 </child>

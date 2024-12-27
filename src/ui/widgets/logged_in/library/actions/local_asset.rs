@@ -75,7 +75,7 @@ pub mod imp {
                     let label = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`");
-                    let formatted = label.as_ref().map(|l| format!("<b><u>{l}</u></b>"));
+                    let formatted = label.as_ref().map(|l| format!("{l}"));
                     self.label.replace(formatted);
                     self.obj().set_property("path", label);
                 }

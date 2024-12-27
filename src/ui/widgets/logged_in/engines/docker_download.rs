@@ -192,10 +192,7 @@ impl DockerEngineDownload {
         if let Some(ver) = self.selected() {
             if let Some(dm) = self_.download_manager.get() {
                 dm.download_engine_from_docker(&ver);
-                self.show_confirmation(
-                    "<b><big>Engine Install Initialized</big></b>
-<i>See Header Bar for details</i>",
-                );
+                self.show_confirmation("Install initialized, see headerbar for details");
             }
         }
     }
@@ -209,7 +206,7 @@ impl DockerEngineDownload {
         self_.confirmation_revealer.set_vexpand_set(true);
         self_.confirmation_revealer.set_vexpand(true);
         glib::timeout_add_seconds_local(
-            2,
+            5,
             clone!(
                 #[weak(rename_to=obj)]
                 self,
@@ -335,9 +332,13 @@ impl DockerEngineDownload {
             }
             (*self_.docker_versions.borrow()).as_ref().map_or_else(|| {
                 let label = gtk4::Label::builder()
-                    .hexpand(true)
                     .use_markup(true)
-                    .label("<b>Please configure github token in <a href=\"preferences\">Preferences</a></b>")
+                    .css_classes(["heading"])
+                    .margin_start(12)
+                    .margin_end(12)
+                    .margin_top(8)
+                    .margin_bottom(8)
+                    .label("Please configure github token in <a href=\"preferences\">Preferences</a>")
                     .build();
                 label.connect_activate_link(clone!(#[weak(rename_to=details)] self, #[upgrade_or] glib::Propagation::Stop, move |_, uri| {
                     details.open_preferences(uri);
@@ -348,7 +349,6 @@ impl DockerEngineDownload {
                 get_action!(self_.actions, @install).set_enabled(false);
             }, |versions| {
                 let combo = gtk4::ComboBoxText::new();
-                combo.set_hexpand(true);
                 self_
                     .details
                     .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
@@ -356,25 +356,17 @@ impl DockerEngineDownload {
                         &combo,
                     ));
 
-                let row = gtk4::ListBoxRow::new();
-                row.set_tooltip_markup(Some(
-                    "Include <b>Template Projects</b> and <b>Debug symbols</b>?",
-                ));
-                let title = gtk4::Label::builder().label("Additional Content").build();
-                let b = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
-                b.append(&title);
-                let info = gtk4::Image::from_icon_name("dialog-information-symbolic");
-                b.append(&info);
-                self_.details_group.add_widget(&b);
-                let bo = gtk4::Box::new(gtk4::Orientation::Horizontal, 5);
-                bo.append(&b);
-                let check = gtk4::CheckButton::builder()
+                let check = gtk4::CheckButton::builder() // Maybe use GtkSwitch instead?
                     .active(true)
                     .hexpand(true)
                     .build();
-                bo.append(&check);
-                row.set_child(Some(&bo));
-                self_.details.append(&row);
+                let row = gtk4::ComboBoxText::new();
+                self_
+                    .details
+                    .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
+                        "Include Template Projects and Debug symbols",
+                        &check,
+                    ));
 
                 combo.connect_changed(
                     clone!(#[weak(rename_to=detail)] self, #[weak] check, move |c| {
@@ -402,6 +394,7 @@ impl DockerEngineDownload {
                     }
                 }
 
+                // TODO: Switch to create_info_row()
                 let size_label = gtk4::Label::builder()
                     .name("size_label")
                     .label("unknown")
@@ -414,7 +407,7 @@ impl DockerEngineDownload {
                 self_
                     .details
                     .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
-                        "Download Size",
+                        "Download Size:",
                         &size_label,
                     ));
             });
