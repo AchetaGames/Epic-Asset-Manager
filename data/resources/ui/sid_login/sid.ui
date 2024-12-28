@@ -1,95 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <requires lib="gtk" version="4.0"/>
     <template class="SidBox" parent="GtkBox">
         <property name="valign">center</property>
-        <property name="margin-start">20</property>
-        <property name="margin-end">20</property>
         <property name="orientation">vertical</property>
+        <property name="margin-top">10</property>
         <child>
             <object class="GtkLabel">
-                <property name="can-focus">0</property>
-                <property name="label" translatable="yes">&lt;span size=&quot;26000&quot;&gt;Epic Games Login&lt;/span&gt;</property>
-                <property name="use-markup">1</property>
+                <property name="margin-bottom">12</property>
+                <property name="label" translatable="yes">Epic Games Login</property>
+                <property name="css-classes">title-1</property>
             </object>
         </child>
         <child>
             <object class="GtkBox">
                 <property name="halign">center</property>
-                <property name="spacing">5</property>
+                <property name="spacing">8</property>
                 <child>
                     <object class="GtkLabel">
-                        <property name="can-focus">0</property>
                         <property name="label" translatable="yes">Click</property>
-                        <property name="use-markup">1</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="sid_browser_button">
                         <property name="action-name">sid.browser</property>
                         <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D34a02cf8f4414e29b15921876da36f9a%26responseType%3Dcode</property>
-                        <property name="receives-default">1</property>
+                        <property name="valign">center</property>
+                        <property name="css-classes">flat
+accent
+circular
+frame</property>
                         <child>
-                            <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="can-focus">0</property>
-                                        <property name="icon-name">help-browser-symbolic</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">Open In Browser</property>
-                                    </object>
-                                </child>
+                            <object class="AdwButtonContent">
+                                <property name="icon-name">web-browser-symbolic</property>
+                                <property name="label" translatable="yes">Open In Browser</property>
+                                <property name="margin-start">8</property>
+                                <property name="margin-end">8</property>
                             </object>
                         </child>
                     </object>
                 </child>
                 <child>
                     <object class="GtkLabel">
-                        <property name="can-focus">0</property>
                         <property name="label" translatable="yes">to continue to login page</property>
-                        <property name="use-markup">1</property>
                     </object>
                 </child>
             </object>
-
         </child>
         <child>
             <object class="GtkBox">
                 <property name="halign">center</property>
-                <property name="spacing">10</property>
                 <property name="margin-bottom">10</property>
                 <property name="margin-top">10</property>
+                <property name="spacing">10</property>
                 <child>
                     <object class="GtkEntry" id="sid_entry">
                         <property name="width-chars">32</property>
                         <property name="max-length">32</property>
+                        <property name="placeholder-text">authorizationCode</property>
+                        <property name="css-classes">frame</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="sid_login">
-                        <property name="halign">center</property>
                         <property name="action-name">sid.login</property>
-                        <property name="receives-default">1</property>
+                        <property name="css-classes">frame
+accent</property>
                         <child>
-                            <object class="GtkBox">
-                                <property name="spacing">5</property>
-                                <child>
-                                    <object class="GtkImage">
-                                        <property name="can-focus">0</property>
-                                        <property name="icon-name">dialog-password</property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="can-focus">0</property>
-                                        <property name="label" translatable="yes">Authenticate</property>
-                                    </object>
-                                </child>
+                            <object class="AdwButtonContent">
+                                <property name="icon-name">dialog-password</property>
+                                <property name="label" translatable="yes">Authenticate</property>
                             </object>
                         </child>
                     </object>
@@ -97,9 +76,25 @@
             </object>
         </child>
         <child>
-          <object class="GtkLabel">
-            <property name="label">Please enter 'authorizationCode' from the response after login</property>
-          </object>
+            <object class="GtkLabel">
+                <property name="label">Please enter 'authorizationCode' from the response after login</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkButton">
+                <property name="halign">center</property>
+                <property name="margin-top">24</property>
+                <property name="action-name">sid.copy</property>
+                <property name="opacity">0.75</property>
+                <property name="css-classes">pill
+flat</property>
+                <child>
+                    <object class="AdwButtonContent">
+                        <property name="icon-name">edit-copy-symbolic</property>
+                        <property name="label" translatable="yes">Or copy the authentication link</property>
+                    </object>
+                </child>
+            </object>
         </child>
     </template>
 </interface>
