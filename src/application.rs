@@ -202,18 +202,6 @@ impl EpicAssetManager {
             )
         );
 
-        let is_dark_mode = self_.settings.boolean("dark-mode");
-        let simple_action =
-            gio::SimpleAction::new_stateful("dark-mode", None, &is_dark_mode.to_variant());
-        simple_action.connect_activate(clone!(
-            #[weak(rename_to=app)]
-            self,
-            move |action, _| {
-                app.toggle_dark_mode(action);
-            }
-        ));
-        self.add_action(&simple_action);
-
         // About
         action!(
             self,
@@ -227,6 +215,19 @@ impl EpicAssetManager {
             )
         );
 
+        // Dark mode
+        let is_dark_mode = self_.settings.boolean("dark-mode");
+        let simple_action =
+            gio::SimpleAction::new_stateful("dark-mode", None, &is_dark_mode.to_variant());
+        simple_action.connect_activate(clone!(
+            #[weak(rename_to=app)]
+            self,
+            move |action, _| {
+                app.toggle_dark_mode(action);
+            }
+        ));
+        self.add_action(&simple_action);
+
         let level = self_.settings.int("log-level");
         crate::ui::widgets::preferences::PreferencesWindow::set_log_level(level);
     }
@@ -234,10 +235,15 @@ impl EpicAssetManager {
     // Sets up keyboard shortcuts
     pub fn setup_accels(&self) {
         self.set_accels_for_action("app.quit", &["<primary>q"]);
-        self.set_accels_for_action("win.show-help-overlay", &["<primary>question"]);
     }
 
     fn toggle_dark_mode(&self, action: &gtk4::gio::SimpleAction) {
+        let style_manager = adw::StyleManager::default();
+        if style_manager.is_dark() {
+            style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
+        } else {
+            style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
+        }
         let self_ = self.imp();
         let state = action.state().unwrap();
         let action_state: bool = state.get().unwrap();
