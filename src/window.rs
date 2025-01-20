@@ -135,17 +135,6 @@ pub mod imp {
             let button = self.color_scheme_btn.get();
             let style_manager = adw::StyleManager::default();
 
-            if !style_manager.system_supports_color_schemes() {
-                style_manager.connect_color_scheme_notify(move |style_manager| {
-                    button.set_visible(true);
-                    if style_manager.is_dark() {
-                        button.set_icon_name("light-mode-symbolic");
-                    } else {
-                        button.set_icon_name("dark-mode-symbolic");
-                    }
-                });
-            }
-
             // load latest window state
             obj.load_window_size();
             obj.setup_actions();
