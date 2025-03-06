@@ -476,7 +476,7 @@ impl EpicLibraryBox {
         self_.count_label.set_label(&format!(
             "{} {}",
             count,
-            if count == 1 { "item" } else { "items" }
+            if count == 1 { "Item" } else { "Items" }
         ));
     }
 
