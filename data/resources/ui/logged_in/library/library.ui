@@ -6,6 +6,7 @@
             <object class="GtkBox">
                 <child> <!-- SIDEBAR -->
                     <object class="EpicSidebar" id="sidebar">
+                        <!-- <property name="visible">false</property> -->
                     </object>
                 </child>
                 <child>
@@ -25,16 +26,15 @@ view</property>
                                 <child> <!-- PROGRESS BAR -->
                                     <object class="GtkProgressBar" id="refresh_progress">
                                         <property name="valign">center</property>
-                                        <property name="margin-start">10</property>
+                                        <property name="margin-start">8</property>
                                     </object>
                                 </child>
                                 <child> <!-- ITEM COUNTER -->
                                     <object class="GtkLabel" id="count_label">
                                         <property name="label" translatable="yes">0 Items</property>
-                                        <property name="margin-top">2</property>
-                                        <property name="margin-bottom">2</property>
                                         <property name="margin-start">10</property>
                                         <property name="margin-end">10</property>
+                                        <property name="css-classes">dim-label</property>
                                     </object>
                                 </child>
                             </object>

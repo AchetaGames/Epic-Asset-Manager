@@ -14,9 +14,8 @@
                                 <property name="hexpand">true</property>
                                 <property name="size">115</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="margin-top">4</property>
-                                <property name="margin-start">4</property>
-                                <property name="margin-end">4</property>
+                                <property name="margin-top">6</property>
+                                <property name="margin-end">6</property>
                             </object>
                         </child>
                         <child>
