@@ -36,7 +36,8 @@ pub struct UnrealEngine {
 
 impl UnrealEngine {
     pub fn get_engine_binary_path(&self) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(&self.path) {
+        let Ok(mut p) = std::path::PathBuf::from_str(&self.path);
+        {
             p.push("Engine");
             p.push("Binaries");
             p.push("Linux");

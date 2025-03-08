@@ -167,10 +167,6 @@ pub trait ProgressIconExt {
 
     /// Sets the fraction display direction of `self`.
     fn set_clockwise(&self, clockwise: bool);
-
-    fn connect_fraction_notify<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId;
-    fn connect_inverted_notify<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId;
-    fn connect_clockwise_notify<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId;
 }
 
 impl<W: IsA<ProgressIcon>> ProgressIconExt for W {
@@ -215,21 +211,5 @@ impl<W: IsA<ProgressIcon>> ProgressIconExt for W {
         this.clockwise.replace(clockwise);
         self.as_ref().queue_draw();
         self.notify("clockwise");
-    }
-
-    fn connect_fraction_notify<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId {
-        self.connect_notify_local(Some("fraction"), move |this, _| {
-            f(this);
-        })
-    }
-    fn connect_inverted_notify<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId {
-        self.connect_notify_local(Some("inverted"), move |this, _| {
-            f(this);
-        })
-    }
-    fn connect_clockwise_notify<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId {
-        self.connect_notify_local(Some("clockwise"), move |this, _| {
-            f(this);
-        })
     }
 }

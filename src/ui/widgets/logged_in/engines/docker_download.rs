@@ -360,7 +360,6 @@ impl DockerEngineDownload {
                     .active(true)
                     .hexpand(true)
                     .build();
-                let row = gtk4::ComboBoxText::new();
                 self_
                     .details
                     .append(&crate::window::EpicAssetManagerWindow::create_widget_row(

@@ -7,13 +7,11 @@ mod manage_local_assets;
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
-use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*, SizeGroupMode};
 use gtk4::{glib, CompositeTemplate};
-use gtk_macros::action;
 
 pub enum Action {
     Local,
@@ -310,7 +308,6 @@ impl EpicAssetActions {
     }
 
     pub fn set_action(&self, action: &Action) {
-        let self_ = self.imp();
         match action {
             Action::Download => {}
             Action::AddToProject => {}

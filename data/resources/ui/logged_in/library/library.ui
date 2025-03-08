@@ -86,7 +86,6 @@ view</property>
                                         <property name="vexpand">true</property>
                                         <property name="child">
                                             <object class="GtkGridView" id="asset_grid">
-                                                <property name="can-focus">1</property>
                                                 <property name="css-classes">card
 frame
 view</property>

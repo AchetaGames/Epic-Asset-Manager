@@ -20,7 +20,6 @@ pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
     use crate::window::EpicAssetManagerWindow;
-    use gtk4::gdk::Texture;
     use gtk4::gio;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
@@ -49,7 +48,6 @@ pub mod imp {
         pub extracted_files: RefCell<u64>,
         pub post_actions: RefCell<Vec<crate::ui::widgets::download_manager::PostDownloadAction>>,
         pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
-        thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub pause_button: TemplateChild<gtk4::Button>,
         #[template_child]
@@ -86,7 +84,6 @@ pub mod imp {
                 extracted_files: RefCell::new(0),
                 post_actions: RefCell::new(vec![]),
                 speed_queue: RefCell::new(VecDeque::new()),
-                thumbnail: RefCell::new(None),
                 pause_button: TemplateChild::default(),
                 download_progress: TemplateChild::default(),
                 extraction_progress: TemplateChild::default(),
@@ -121,7 +118,6 @@ pub mod imp {
                     glib::ParamSpecString::builder("target").build(),
                     glib::ParamSpecString::builder("path").build(),
                     glib::ParamSpecString::builder("status").build(),
-                    glib::ParamSpecObject::builder::<Texture>("thumbnail").build(),
                 ]
             });
 
@@ -224,7 +220,6 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.release.replace(release);
                 }
-                "thumbnail" => {}
                 _ => unimplemented!(),
             }
         }
