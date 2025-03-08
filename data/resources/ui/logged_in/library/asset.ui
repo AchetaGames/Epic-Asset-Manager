@@ -21,7 +21,7 @@
                         <child>
                             <object class="GtkLabel" id="name">
                                 <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="ellipsize">end</property>
+                                <property name="wrap">true</property>
                                 <property name="halign">center</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
                                 <property name="css-classes">asset-name</property>
