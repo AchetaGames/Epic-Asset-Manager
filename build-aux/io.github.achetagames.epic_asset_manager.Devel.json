@@ -1,7 +1,7 @@
 {
   "app-id": "io.github.achetagames.epic_asset_manager.Devel",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "47",
+  "runtime-version": "48",
   "sdk": "org.gnome.Sdk",
   "command": "epic_asset_manager",
   "sdk-extensions": [
