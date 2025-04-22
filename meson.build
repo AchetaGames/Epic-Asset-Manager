@@ -2,7 +2,7 @@ project('epic_asset_manager',
         'rust',
         version: '3.8.6',
         license: 'MIT',
-  meson_version: '>= 0.49')
+  meson_version: '>= 0.59')
 
 i18n = import('i18n')
 gnome = import('gnome')
