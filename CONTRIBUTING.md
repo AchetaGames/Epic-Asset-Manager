@@ -30,6 +30,6 @@ flatpak install  org.freedesktop.Sdk.Extension.rust-stable
 
 Alternatively you can use meson
 
-1. meson _build --prefix=/usr
+1. meson setup _build --prefix=/usr
 2. ninja -C _build
 3. ninja -C _build install

@@ -2,7 +2,7 @@ project('epic_asset_manager',
         'rust',
         version: '3.8.6',
         license: 'MIT',
-  meson_version: '>= 0.49')
+  meson_version: '>= 0.59')
 
 i18n = import('i18n')
 gnome = import('gnome')
@@ -13,7 +13,7 @@ dependency('glib-2.0', version: '>= 2.76')
 dependency('gio-2.0', version: '>= 2.76')
 dependency('gtk4', version: '>= 4.0')
 dependency(
-  'libadwaita-1', version: '>= 1.6',
+  'libadwaita-1', version: '>= 1.5',
   fallback: ['libadwaita', 'libadwaita_dep'],
   default_options: ['tests=false', 'examples=false', 'vapi=false']
 )
