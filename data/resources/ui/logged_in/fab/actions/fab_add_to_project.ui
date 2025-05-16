@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="FabAddToProject" parent="GtkBox">
+        <property name="css-classes">linked</property>
+        <child> <!-- TODO: Switch to GtkDropDown -->
+            <object class="GtkComboBoxText" id="select_target_directory">
+                <property name="valign">center</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkButton">
+                <property name="valign">center</property>
+                <property name="action-name">download_details.download_all</property>
+                <child>
+                    <object class="AdwButtonContent">
+                        <property name="icon-name">document-new-symbolic</property>
+                        <property name="label" translatable="yes">Add</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkInfoBar" id="warning_row">
+                <property name="visible">false</property>
+                <property name="message-type">GTK_MESSAGE_WARNING</property>
+                <child>
+                    <object class="GtkLabel">
+                        <property name="hexpand">true</property>
+                        <property name="label" translatable="yes">Asset already exists in the target project</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkCheckButton" id="overwrite">
+                        <property name="label">Overwrite?</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

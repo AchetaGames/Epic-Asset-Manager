@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="FabAsset" parent="GtkBox">
+        <child>
+            <object class="GtkOverlay">
+                <property name="child">
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">3</property>
+                        <child>
+                            <object class="AdwAvatar" id="image">
+                                <property name="name">thumbnail</property>
+                                <property name="icon-name">ue-logo-symbolic</property>
+                                <property name="hexpand">true</property>
+                                <property name="size">115</property>
+                                <property name="tooltip-text" translatable="yes" bind-source="FabAsset" bind-property="label" bind-flags="sync-create"/>
+                                <property name="margin-top">3</property>
+                                <property name="margin-start">4</property>
+                                <property name="margin-end">4</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkLabel" id="name">
+                                <property name="label" translatable="yes" bind-source="FabAsset" bind-property="label" bind-flags="sync-create"/>
+                                <property name="ellipsize">end</property>
+                                <property name="halign">center</property>
+                                <property name="tooltip-text" translatable="yes" bind-source="FabAsset" bind-property="label" bind-flags="sync-create"/>
+                                <property name="css-classes">asset-name</property>
+                                <property name="margin-bottom">5</property>
+                                <property name="margin-start">1</property>
+                                <property name="margin-end">1</property>
+                            </object>
+                        </child>
+                    </object>
+                </property>
+                <child type="overlay">
+                    <object class="GtkImage">
+                        <property name="css-classes">star</property> <!-- would use `warning`, but it gets too dark in light mode -->
+                        <property name="icon-name">starred</property>
+                        <property name="pixel-size">35</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="visible" bind-source="FabAsset" bind-property="favorite" bind-flags="sync-create"/>
+                    </object>
+                </child>
+                <child type="overlay">
+                    <object class="GtkImage">
+                        <property name="icon-name">emblem-default</property>
+                        <property name="pixel-size">35</property>
+                        <property name="halign">end</property>
+                        <property name="valign">end</property>
+                        <property name="visible" bind-source="FabAsset" bind-property="downloaded" bind-flags="sync-create"/>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

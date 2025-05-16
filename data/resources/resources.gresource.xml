@@ -35,6 +35,19 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="install.ui">ui/logged_in/engines/install.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_manager.ui">ui/download_manager/download_manager.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_item.ui">ui/download_manager/download_item.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/library.ui">ui/logged_in/fab/fab_library.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/asset.ui">ui/logged_in/fab/fab_asset.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/asset_detail.ui">ui/logged_in/fab/fab_asset_detail.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/sidebar.ui">ui/logged_in/fab/sidebar/fab_sidebar.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/sidebar_button.ui">ui/logged_in/fab/sidebar/fab_sidebar_button.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/sidebar_category.ui">ui/logged_in/fab/sidebar/fab_sidebar_category.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/sidebar_categories.ui">ui/logged_in/fab/sidebar/fab_sidebar_categories.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/actions/add_to_project.ui">ui/logged_in/fab/actions/fab_add_to_project.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/asset_actions.ui">ui/logged_in/fab/actions/fab_asset_actions.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/actions/create_asset_project.ui">ui/logged_in/fab/actions/fab_create_asset_project.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/actions/download_detail.ui">ui/logged_in/fab/actions/fab_download_detail.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/actions/local_asset.ui">ui/logged_in/fab/actions/fab_local_asset.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab/actions/manage_local_assets.ui">ui/logged_in/fab/actions/fab_manage_local_assets.ui</file>
         <file compressed="true" alias="style.css">style.css</file>
     </gresource>
     <gresource prefix="/io/github/achetagames/epic_asset_manager/icons/scalable/emblems">

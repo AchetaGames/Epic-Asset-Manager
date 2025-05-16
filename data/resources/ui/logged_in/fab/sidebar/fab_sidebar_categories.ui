@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="FabSidebarCategories" parent="GtkBox">
+        <property name="halign">fill</property>
+        <property name="valign">fill</property>
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkBox">
+                <property name="margin-start">6</property>
+                <property name="margin-end">6</property>
+                <property name="margin-top">12</property>
+                <property name="margin-bottom">12</property>
+                <property name="spacing">12</property>
+                <child>
+                    <object class="GtkButton" id="previous">
+                        <property name="halign">start</property>
+                        <property name="valign">start</property>
+                        <property name="action-name">categories.previous</property>
+                        <property name="icon-name">go-previous-symbolic</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel" id="title">
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes" bind-source="FabSidebarCategories" bind-property="title" bind-flags="sync-create"/>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <object class="GtkScrolledWindow">
+                <property name="vexpand">true</property>
+                <property name="hscrollbar-policy">never</property>
+                <child>
+                    <object class="GtkListView" id="categories">
+                        <property name="vexpand">True</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

@@ -259,7 +259,7 @@ impl PreferencesWindow {
                 &self_
                     .default_view_selection
                     .active_id()
-                    .unwrap_or_else(|| "library".into()),
+                    .unwrap_or_else(|| "fab".into()),
             )
             .unwrap();
     }

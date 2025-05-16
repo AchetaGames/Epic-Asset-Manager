@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="FabLocalAssets" parent="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+            <object class="GtkListBox" id="local_list">
+            </object>
+        </child>
+        <child>
+            <object class="GtkExpander" id="other_expander">
+                <property name="label">Other Versions</property>
+                <child>
+                    <object class="GtkListBox" id="local_list_other">
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$1" = "clean" ]; then
-    rm -rf .~/.cargo/bin/fenv/ .flatpak-builder/ _build/
+    rm -rf .~/.cargo/bin/fenv/ .flatpak-builder/ _build/ .fenv/
     ~/.cargo/bin/fenv gen build-aux/io.github.achetagames.epic_asset_manager.Devel.json
     ~/.cargo/bin/fenv exec -- meson --prefix=/app -Dprofile=development _build
     exit 0
