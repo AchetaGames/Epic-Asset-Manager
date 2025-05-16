@@ -111,7 +111,6 @@ pub mod imp {
                         },
                         |t| {
                             self.image.set_custom_image(Some(&t));
-                            // self.image.set_paintable(Some(&t));
                         },
                     );
                 }

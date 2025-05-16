@@ -163,7 +163,8 @@ impl EpicLocalAssets {
         remove_from_list_box(&self_.local_list, widget);
         remove_from_list_box(&self_.local_list_other, widget);
         if let Some(p) = widget.path() {
-            if let Ok(path) = PathBuf::from_str(&p) {
+            let Ok(path) = PathBuf::from_str(&p);
+            {
                 if path.exists() {
                     if let Some(parent) = path.parent() {
                         if let Err(e) = std::fs::remove_dir_all(parent) {
