@@ -301,7 +301,8 @@ impl EpicEngineDetails {
     }
 
     fn get_engine_binary_path(path: &str) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(path) {
+        let Ok(mut p) = std::path::PathBuf::from_str(path);
+        {
             p.push("Engine");
             p.push("Binaries");
             p.push("Linux");
@@ -320,7 +321,7 @@ impl EpicEngineDetails {
                 return Some(result);
             }
             error!("Unable to launch the engine");
-        };
+        }
         None
     }
 

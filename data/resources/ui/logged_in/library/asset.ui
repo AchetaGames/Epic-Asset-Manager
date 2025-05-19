@@ -6,7 +6,9 @@
                 <property name="child">
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
-                        <property name="spacing">3</property>
+                        <property name="spacing">5</property>
+                        <property name="margin-top">6</property>
+                        <property name="margin-bottom">5</property>
                         <child>
                             <object class="AdwAvatar" id="image">
                                 <property name="name">thumbnail</property>
@@ -14,9 +16,8 @@
                                 <property name="hexpand">true</property>
                                 <property name="size">115</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="margin-top">3</property>
-                                <property name="margin-start">4</property>
-                                <property name="margin-end">4</property>
+                                <property name="margin-start">3</property>
+                                <property name="margin-end">3</property>
                             </object>
                         </child>
                         <child>
@@ -26,7 +27,6 @@
                                 <property name="halign">center</property>
                                 <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
                                 <property name="css-classes">asset-name</property>
-                                <property name="margin-bottom">5</property>
                                 <property name="margin-start">1</property>
                                 <property name="margin-end">1</property>
                             </object>
@@ -38,8 +38,10 @@
                         <property name="css-classes">star</property> <!-- would use `warning`, but it gets too dark in light mode -->
                         <property name="icon-name">starred</property>
                         <property name="pixel-size">35</property>
-                        <property name="halign">end</property>
+                        <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="margin-top">8</property>
+                        <property name="margin-start">8</property>
                         <property name="visible" bind-source="EpicAsset" bind-property="favorite" bind-flags="sync-create"/>
                     </object>
                 </child>
@@ -48,7 +50,9 @@
                         <property name="icon-name">emblem-default</property>
                         <property name="pixel-size">35</property>
                         <property name="halign">end</property>
-                        <property name="valign">end</property>
+                        <property name="valign">start</property>
+                        <property name="margin-top">8</property>
+                        <property name="margin-end">8</property>
                         <property name="visible" bind-source="EpicAsset" bind-property="downloaded" bind-flags="sync-create"/>
                     </object>
                 </child>

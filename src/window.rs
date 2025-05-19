@@ -132,9 +132,6 @@ pub mod imp {
                 obj.style_context().add_class("devel");
             }
 
-            let button = self.color_scheme_btn.get();
-            let style_manager = adw::StyleManager::default();
-
             // load latest window state
             obj.load_window_size();
             obj.setup_actions();

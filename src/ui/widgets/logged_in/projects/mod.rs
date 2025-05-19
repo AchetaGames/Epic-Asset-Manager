@@ -306,7 +306,8 @@ impl EpicProjectsBox {
                     self_.details.collapse();
                 }
             }
-            if let Ok(file) = PathBuf::from_str(&p) {
+            let Ok(file) = PathBuf::from_str(&p);
+            {
                 if let Some(directory) = file.parent() {
                     self_
                         .projects
