@@ -18,6 +18,16 @@
                 </child>
                 <child>
                     <object class="AdwViewStackPage">
+                        <property name="name">fab</property>
+                        <property name="title">FAB</property>
+                        <property name="icon-name">library-symbolic</property>
+                        <property name="child">
+                            <object class="FabLibraryBox" id="fab"/>
+                        </property>
+                    </object>
+                </child>
+                <child>
+                    <object class="AdwViewStackPage">
                         <property name="name">projects</property>
                         <property name="title">Projects</property>
                         <property name="icon-name">applications-engineering-symbolic</property>

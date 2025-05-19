@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="FabSidebarButton" parent="GtkBox">
+        <property name="halign">fill</property>
+        <property name="valign">center</property>
+        <child>
+            <object class="GtkButton" id="category_button">
+                <property name="name">category_button</property>
+                <property name="action-name">sidebar_button.clicked</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="tooltip-text" translatable="yes" bind-source="FabSidebarButton" bind-property="tooltip-text" bind-flags="sync-create"/>
+                <child>
+                    <object class="GtkImage">
+                        <property name="icon-name" bind-source="FabSidebarButton" bind-property="icon-name" bind-flags="sync-create"/>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

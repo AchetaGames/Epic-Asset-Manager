@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="FabDownloadDetails" parent="GtkBox">
+        <property name="css-classes">linked</property>
+        <child> <!-- TODO: Switch to GtkDropDown -->
+            <object class="GtkComboBoxText" id="select_target_directory">
+                <property name="valign">center</property>
+            </object>
+        </child>
+        <child>
+            <object class="GtkButton">
+                <property name="action-name">download_details.download_all</property>
+                <property name="valign">center</property>
+                <child>
+                    <object class="AdwButtonContent">
+                        <property name="icon-name">folder-download-symbolic</property>
+                        <property name="label" translatable="yes">Download</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

@@ -25,6 +25,7 @@
                                         <property name="active-id">library</property>
                                         <items>
                                             <item translatable="yes" id="library">Library</item>
+                                            <item translatable="yes" id="fab">FAB</item>
                                             <item translatable="yes" id="projects">Projects</item>
                                             <item translatable="yes" id="engines">Engines</item>
                                         </items>
@@ -136,10 +137,10 @@
                                         <property name="halign">center</property>
                                         <property name="valign">center</property>
                                         <child>
-                                          <object class="AdwButtonContent">
-                                            <property name="icon-name">folder-templates-symbolic</property>
-                                            <property name="label" translatable="yes">Change</property>
-                                          </object>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">folder-templates-symbolic</property>
+                                                <property name="label" translatable="yes">Change</property>
+                                            </object>
                                         </child>
                                     </object>
                                 </child>
@@ -156,10 +157,10 @@
                                         <property name="halign">center</property>
                                         <property name="valign">center</property>
                                         <child>
-                                          <object class="AdwButtonContent">
-                                            <property name="icon-name">folder-download-symbolic</property>
-                                            <property name="label" translatable="yes">Change</property>
-                                          </object>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">folder-download-symbolic</property>
+                                                <property name="label" translatable="yes">Change</property>
+                                            </object>
                                         </child>
                                     </object>
                                 </child>
@@ -187,10 +188,10 @@
                                         <property name="margin-start">6</property>
                                         <property name="margin-end">6</property>
                                         <child>
-                                          <object class="AdwButtonContent">
-                                            <property name="icon-name">list-add-symbolic</property>
-                                            <property name="label" translatable="yes">Add location</property>
-                                          </object>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">list-add-symbolic</property>
+                                                <property name="label" translatable="yes">Add location</property>
+                                            </object>
                                         </child>
                                     </object>
                                 </child>
@@ -212,10 +213,10 @@
                                         <property name="margin-start">6</property>
                                         <property name="margin-end">6</property>
                                         <child>
-                                          <object class="AdwButtonContent">
-                                            <property name="icon-name">list-add-symbolic</property>
-                                            <property name="label" translatable="yes">Add location</property>
-                                          </object>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">list-add-symbolic</property>
+                                                <property name="label" translatable="yes">Add location</property>
+                                            </object>
                                         </child>
                                     </object>
                                 </child>
@@ -237,10 +238,10 @@
                                         <property name="margin-start">6</property>
                                         <property name="margin-end">6</property>
                                         <child>
-                                          <object class="AdwButtonContent">
-                                            <property name="icon-name">list-add-symbolic</property>
-                                            <property name="label" translatable="yes">Add location</property>
-                                          </object>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">list-add-symbolic</property>
+                                                <property name="label" translatable="yes">Add location</property>
+                                            </object>
                                         </child>
                                     </object>
                                 </child>
@@ -291,15 +292,15 @@
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">How to get the token</property>
                         <property name="description" translatable="yes">1. Make sure you have access to the &lt;a href="https://github.com/EpicGames/UnrealEngine"&gt;Unreal Engine&lt;/a&gt; repository (&lt;a href="https://www.unrealengine.com/en-US/ue4-on-github"&gt;how to get access&lt;/a&gt;).
-2. Go to your Github Settings → Developer settings → &lt;a href="https://github.com/settings/tokens"&gt;Personal access tokens&lt;/a&gt;.
-3. Generate a new Token (classic).
-4. Set a reasonable expiration date.
-5. Check the &lt;u&gt;read:packages&lt;/u&gt; under "Select scopes".
-6. Copy the generated token into the field above.</property>
+                            2. Go to your Github Settings → Developer settings → &lt;a href="https://github.com/settings/tokens"&gt;Personal access tokens&lt;/a&gt;.
+                            3. Generate a new Token (classic).
+                            4. Set a reasonable expiration date.
+                            5. Check the &lt;u&gt;read:packages&lt;/u&gt; under "Select scopes".
+                            6. Copy the generated token into the field above.
+                        </property>
                     </object>
                 </child>
             </object>
         </child>
     </template>
 </interface>
-

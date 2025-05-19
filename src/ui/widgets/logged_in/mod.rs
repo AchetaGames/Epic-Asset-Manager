@@ -7,6 +7,8 @@ use gtk4::{glib, CompositeTemplate};
 
 pub mod engines;
 pub mod library;
+
+pub mod fab;
 mod log_line;
 pub mod logs;
 mod plugins;
@@ -29,6 +31,8 @@ pub mod imp {
         #[template_child]
         pub library: TemplateChild<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         #[template_child]
+        pub fab: TemplateChild<crate::ui::widgets::logged_in::fab::FabLibraryBox>,
+        #[template_child]
         pub engines: TemplateChild<crate::ui::widgets::logged_in::engines::EpicEnginesBox>,
         #[template_child]
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
@@ -49,6 +53,7 @@ pub mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 library: TemplateChild::default(),
+                fab: TemplateChild::default(),
                 engines: TemplateChild::default(),
                 projects: TemplateChild::default(),
                 adwstack: TemplateChild::default(),
@@ -143,13 +148,15 @@ impl EpicLoggedInBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.library.set_window(&window.clone());
+        self_.fab.set_window(&window.clone());
         self_.engines.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
 
         match self_.settings.string("default-view").as_str() {
             "engines" => self_.adwstack.set_visible_child_name("engines"),
             "projects" => self_.adwstack.set_visible_child_name("projects"),
-            _ => self_.adwstack.set_visible_child_name("library"),
+            "library" => self_.adwstack.set_visible_child_name("library"),
+            _ => self_.adwstack.set_visible_child_name("fab"),
         }
 
         self_.adwstack.connect_visible_child_notify(clone!(
@@ -172,6 +179,7 @@ impl EpicLoggedInBox {
         }
         self_.download_manager.set(dm.clone()).unwrap();
         self_.library.set_download_manager(dm);
+        self_.fab.set_download_manager(dm);
         self_.engines.set_download_manager(dm);
     }
 
@@ -235,6 +243,7 @@ impl EpicLoggedInBox {
                 "library" => self_.library.can_be_refreshed(),
                 "projects" => self_.projects.can_be_refreshed(),
                 "engines" => self_.engines.can_be_refreshed(),
+                "fab" => self_.fab.can_be_refreshed(),
                 _ => return,
             }
         } else {
@@ -258,6 +267,7 @@ impl Refresh for EpicLoggedInBox {
         if let Some(page) = self.active_page() {
             match page.as_str() {
                 "library" => self_.library.run_refresh(),
+                "fab" => self_.fab.run_refresh(),
                 "projects" => self_.projects.run_refresh(),
                 "engines" => self_.engines.run_refresh(),
                 _ => {}
