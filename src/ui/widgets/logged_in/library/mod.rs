@@ -279,12 +279,65 @@ impl EpicLibraryBox {
             .asset_search
             .set_key_capture_widget(Some(&window.clone()));
         let factory = gtk4::SignalListItemFactory::new();
-        // Create the children
-        factory.connect_setup(move |_factory, item| {
-            let row = EpicAsset::new();
-            let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
-            item.set_child(Some(&row));
-        });
+        // Create the children and connect signals (only once per widget)
+        factory.connect_setup(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_factory, item| {
+                let row = EpicAsset::new();
+                let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
+                item.set_child(Some(&row));
+
+                // Connect action button signals once during setup
+                row.connect_local(
+                    "download-requested",
+                    false,
+                    clone!(
+                        #[weak]
+                        library,
+                        #[upgrade_or]
+                        None,
+                        move |values| {
+                            let asset = values[0].get::<EpicAsset>().unwrap();
+                            library.handle_asset_action(&asset, "download");
+                            None
+                        }
+                    ),
+                );
+
+                row.connect_local(
+                    "add-to-project-requested",
+                    false,
+                    clone!(
+                        #[weak]
+                        library,
+                        #[upgrade_or]
+                        None,
+                        move |values| {
+                            let asset = values[0].get::<EpicAsset>().unwrap();
+                            library.handle_asset_action(&asset, "add_to_project");
+                            None
+                        }
+                    ),
+                );
+
+                row.connect_local(
+                    "create-project-requested",
+                    false,
+                    clone!(
+                        #[weak]
+                        library,
+                        #[upgrade_or]
+                        None,
+                        move |values| {
+                            let asset = values[0].get::<EpicAsset>().unwrap();
+                            library.handle_asset_action(&asset, "create_project");
+                            None
+                        }
+                    ),
+                );
+            }
+        ));
 
         // Populate children
         factory.connect_bind(move |_, list_item| {
@@ -341,6 +394,28 @@ impl EpicLibraryBox {
                 self_.details.set_asset(a);
             }
             self_.details.set_property("position", model.selected());
+        }
+    }
+
+    fn handle_asset_action(&self, asset_widget: &EpicAsset, action: &str) {
+        let self_ = self.imp();
+
+        // Get the asset data from the widget
+        if let Some(data) = asset_widget.imp().data.borrow().as_ref() {
+            let assets = self_.loaded_assets.borrow();
+            if let Some(asset_info) = assets.get(&data.id()) {
+                // Set the asset on the details panel
+                self_.details.set_asset(asset_info);
+
+                // Activate the appropriate action on the details widget
+                let action_name = match action {
+                    "download" => "details.show_download_details",
+                    "add_to_project" => "details.add_to_project",
+                    "create_project" => "details.create_project",
+                    _ => return,
+                };
+                self_.details.activate_action(action_name, None::<&glib::Variant>).ok();
+            }
         }
     }
 
