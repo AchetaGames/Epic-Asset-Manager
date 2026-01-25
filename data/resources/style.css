@@ -23,17 +23,35 @@ headerbar,
   box-shadow: none;
 }
 
+/* Header bar buttons - flat style, no borders */
+headerbar button,
+.titlebar button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+headerbar button:hover,
+.titlebar button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+headerbar button:active,
+.titlebar button:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
 /* Window control buttons */
 windowcontrols button {
   border-radius: 0;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background: transparent;
+  border: none;
   min-width: 24px;
   min-height: 24px;
 }
 
 windowcontrols button:hover {
-  background-color: #3a3a3a;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ===========================================
@@ -90,7 +108,19 @@ gridview > child:selected {
 picture,
 image {
   border-radius: 0;
+}
+
+/* Only add borders to content images, not UI icons */
+.content-image,
+gridview picture,
+gridview image {
   border: 1px solid #2a2a2a;
+}
+
+/* Header bar icon - no border */
+headerbar image,
+.titlebar image {
+  border: none;
 }
 
 /* ===========================================
@@ -270,6 +300,57 @@ expander.section > title {
 
 expander.section > title > .expander-icon {
   margin-right: 8px;
+}
+
+/* ===========================================
+   FLAT BUTTONS - NO BORDERS
+   =========================================== */
+
+/* Sidebar buttons - flat */
+.navigation-sidebar button,
+.sidebar button,
+stacksidebar button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.navigation-sidebar button:hover,
+.sidebar button:hover,
+stacksidebar button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Close buttons throughout app */
+button.close,
+button.circular,
+row button,
+listbox button,
+list button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+button.close:hover,
+button.circular:hover,
+row button:hover,
+listbox button:hover,
+list button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Favorites/star buttons */
+button.flat,
+button.image-button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+button.flat:hover,
+button.image-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ===========================================
