@@ -7,23 +7,27 @@
         <property name="tooltip-text" translatable="yes" bind-source="EpicEngine" bind-property="path" bind-flags="sync-create"/>
         <property name="spacing">8</property>
         <child>
-            <object class="AdwAvatar" id="logo">
+            <object class="GtkPicture" id="logo">
                 <property name="margin-top">4</property>
                 <property name="margin-bottom">4</property>
                 <property name="margin-start">4</property>
                 <property name="margin-end">4</property>
-                <property name="icon-name">ue-logo-symbolic</property>
-                <property name="size">110</property>
+                <property name="width-request">110</property>
+                <property name="height-request">110</property>
+                <property name="content-fit">cover</property>
+                <property name="can-shrink">true</property>
             </object>
         </child>
         <child>
-            <object class="AdwAvatar" id="add">
+            <object class="GtkPicture" id="add">
                 <property name="margin-top">4</property>
                 <property name="margin-bottom">4</property>
                 <property name="margin-start">4</property>
                 <property name="margin-end">4</property>
-                <property name="icon-name">list-add-symbolic</property>
-                <property name="size">110</property>
+                <property name="width-request">110</property>
+                <property name="height-request">110</property>
+                <property name="content-fit">cover</property>
+                <property name="can-shrink">true</property>
             </object>
         </child>
         <child>

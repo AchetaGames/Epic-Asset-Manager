@@ -6,9 +6,11 @@
         <property name="width-request">320</property>
         <property name="spacing">12</property>
         <child>
-            <object class="AdwAvatar" id="thumbnail">
-                <property name="icon-name">ue-logo-symbolic</property>
-                <property name="size">110</property>
+            <object class="GtkPicture" id="thumbnail">
+                <property name="width-request">110</property>
+                <property name="height-request">110</property>
+                <property name="content-fit">cover</property>
+                <property name="can-shrink">true</property>
                 <property name="margin-top">4</property>
                 <property name="margin-bottom">4</property>
                 <property name="margin-start">4</property>

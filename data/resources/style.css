@@ -1,27 +1,278 @@
 /* ===========================================
    EPIC ASSET MANAGER STYLES
-   Colors follow system/libadwaita theme
+   Epic Games Launcher Dark Theme
+   ALL CORNERS MUST BE SQUARE - NO EXCEPTIONS
    =========================================== */
 
-/* ----- Square Corners ----- */
-button,
-entry,
-.card,
-popover,
-row,
-list,
-listview,
-gridview,
-scrollbar slider,
-progressbar trough,
-progressbar progress {
-  border-radius: 0;
+/* ===========================================
+   MANDATORY SQUARE CORNERS - GLOBAL OVERRIDE
+   =========================================== */
+
+/* Nuclear option - force ALL elements to have zero border-radius */
+*,
+*::before,
+*::after,
+*:not(googlywibblebonkdonotmatch) {
+  border-radius: 0 !important;
+  -gtk-outline-radius: 0 !important;
 }
 
-/* ----- Grid Items ----- */
+/* ----- Dark Theme Base ----- */
+window,
+.view,
+.background {
+  background-color: #121212;
+}
+
+/* ===========================================
+   HEADERBAR - BLACK TO FLOAT WITH BACKGROUND
+   =========================================== */
+
+headerbar,
+.titlebar,
+.header-bar,
+header bar {
+  background-color: #121212;
+  border-radius: 0 !important;
+  border: none;
+  box-shadow: none;
+}
+
+/* Window controls container */
+windowcontrols,
+windowcontrols > box {
+  border-radius: 0 !important;
+  background: transparent;
+}
+
+/* Window control buttons - close, minimize, maximize */
+windowcontrols button,
+windowcontrols > button,
+windowcontrols box button,
+button.titlebutton,
+button.close,
+button.minimize,
+button.maximize {
+  border-radius: 0 !important;
+  -gtk-outline-radius: 0 !important;
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+windowcontrols button:hover,
+button.titlebutton:hover {
+  background-color: #3a3a3a;
+}
+
+windowcontrols button.close:hover {
+  background-color: #c42b1c;
+}
+
+/* ===========================================
+   GRID ITEMS (TILE CARDS)
+   =========================================== */
+
 gridview > child {
-  border-radius: 0;
+  border-radius: 0 !important;
   margin: 4px;
+  background-color: transparent;
+  border: 1px solid #2a2a2a;
+}
+
+gridview > child:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #3a3a3a;
+}
+
+gridview > child:selected {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: @accent_color;
+}
+
+/* ===========================================
+   BUTTONS - ALL SQUARE
+   =========================================== */
+
+button,
+button.flat,
+button.suggested-action,
+button.destructive-action,
+button.circular,
+button.pill,
+button.osd,
+button.image-button,
+button.text-button,
+button.toggle,
+togglebutton,
+menubutton > button,
+splitbutton > button,
+splitbutton > menubutton > button {
+  border-radius: 0 !important;
+  -gtk-outline-radius: 0 !important;
+}
+
+/* ===========================================
+   ENTRY FIELDS - SQUARE
+   =========================================== */
+
+entry,
+searchentry,
+spinbutton,
+.entry {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   PICTURES AND IMAGES - SQUARE WITH BORDER
+   =========================================== */
+
+picture,
+image,
+.thumbnail {
+  border-radius: 0 !important;
+  border: 1px solid #2a2a2a;
+}
+
+/* ===========================================
+   FRAMES AND CONTAINERS
+   =========================================== */
+
+frame,
+.frame,
+.card,
+.boxed-list,
+preferencesgroup,
+preferencespage,
+.preferences-group,
+.preferences-page {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   POPOVERS AND MENUS
+   =========================================== */
+
+popover,
+popover > contents,
+popover > arrow,
+menu,
+menuitem,
+.menu,
+.context-menu,
+.popup {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   LISTS AND ROWS
+   =========================================== */
+
+list,
+listview,
+listbox,
+row,
+list > row,
+listview > row,
+listbox > row,
+.navigation-sidebar row,
+.navigation-sidebar,
+.sidebar-row {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   SCROLLBAR
+   =========================================== */
+
+scrollbar,
+scrollbar slider,
+scrollbar trough {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   PROGRESS BARS
+   =========================================== */
+
+progressbar,
+progressbar trough,
+progressbar progress {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   SWITCHES AND TOGGLES
+   =========================================== */
+
+switch,
+switch slider,
+check,
+checkbutton,
+radio,
+radiobutton {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   SCALE/SLIDER
+   =========================================== */
+
+scale,
+scale slider,
+scale trough,
+scale highlight {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   NOTEBOOK/TABS
+   =========================================== */
+
+notebook,
+notebook > header,
+notebook > header > tabs,
+notebook > header > tabs > tab,
+stack,
+stackswitcher,
+stackswitcher > button {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   DIALOGS AND WINDOWS
+   =========================================== */
+
+dialog,
+messagedialog,
+.dialog-vbox,
+.message-dialog,
+window.dialog,
+window.messagedialog,
+.dialog-action-area button {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   TOOLTIP
+   =========================================== */
+
+tooltip,
+tooltip.background {
+  border-radius: 0 !important;
+}
+
+/* ===========================================
+   INFOBARS
+   =========================================== */
+
+infobar,
+.info,
+.warning,
+.error,
+.question {
+  border-radius: 0 !important;
 }
 
 /* ===========================================
@@ -48,11 +299,11 @@ gridview > child {
 }
 
 .expand-button {
-  border-radius: 0;
+  border-radius: 0 !important;
 }
 
 /* ===========================================
-   SECTION HEADERS (Unified Home View)
+   SECTION HEADERS
    =========================================== */
 
 .section-header {
@@ -69,4 +320,49 @@ gridview > child {
 .section-count {
   font-size: 12px;
   opacity: 0.6;
+}
+
+/* ===========================================
+   ADWAITA OVERRIDES
+   =========================================== */
+
+/* Override any adwaita rounded elements */
+.linked > button,
+.linked > entry,
+.linked > menubutton > button {
+  border-radius: 0 !important;
+}
+
+/* Adwaita avatar override */
+avatar {
+  border-radius: 0 !important;
+}
+
+/* Action bar */
+actionbar,
+.action-bar {
+  border-radius: 0 !important;
+}
+
+/* Search bar */
+searchbar {
+  border-radius: 0 !important;
+}
+
+/* Toolbar */
+toolbar,
+.toolbar {
+  border-radius: 0 !important;
+}
+
+/* Revealer contents */
+revealer > * {
+  border-radius: 0 !important;
+}
+
+/* Expander */
+expander,
+expander title,
+expander-row {
+  border-radius: 0 !important;
 }

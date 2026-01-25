@@ -12,14 +12,15 @@
             <!-- Thumbnail on left -->
             <object class="GtkOverlay">
                 <property name="child">
-                    <object class="AdwAvatar" id="image">
+                    <object class="GtkPicture" id="image">
                         <property name="margin-top">4</property>
                         <property name="margin-bottom">4</property>
                         <property name="margin-start">4</property>
                         <property name="margin-end">4</property>
-                        <property name="name">thumbnail</property>
-                        <property name="icon-name">ue-logo-symbolic</property>
-                        <property name="size">110</property>
+                        <property name="width-request">110</property>
+                        <property name="height-request">110</property>
+                        <property name="content-fit">cover</property>
+                        <property name="can-shrink">true</property>
                     </object>
                 </property>
                 <child type="overlay">

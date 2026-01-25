@@ -269,9 +269,14 @@ impl EpicAssetManager {
             gtk4::style_context_add_provider_for_display(
                 &display,
                 &provider,
-                gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+                gtk4::STYLE_PROVIDER_PRIORITY_USER,
             );
         }
+
+        // Apply accent color from settings
+        let settings = gio::Settings::new(config::APP_ID);
+        let accent = settings.string("accent-color");
+        crate::ui::widgets::preferences::PreferencesWindow::apply_accent_color(&accent);
     }
 
     // TODO: Switch to adw:AboutDialog

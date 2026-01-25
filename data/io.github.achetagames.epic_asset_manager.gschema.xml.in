@@ -72,6 +72,11 @@
             <default>false</default>
             <summary>Enable or disable dark mode</summary>
         </key>
+        <key name="accent-color" type="s">
+            <default>"default"</default>
+            <summary>Accent color for the UI</summary>
+            <description>Choose the accent color: default (system blue), olive, orange, purple, pink, red, teal</description>
+        </key>
         <key name="sidebar-expanded" type="b">
             <default>false</default>
             <summary>Is sidebar expanded</summary>

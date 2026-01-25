@@ -20,7 +20,7 @@ pub mod imp {
         pub action_label: RefCell<String>,
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
-        pub image: TemplateChild<adw::Avatar>,
+        pub image: TemplateChild<gtk4::Picture>,
         #[template_child]
         pub action_button: TemplateChild<gtk4::Button>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
@@ -149,11 +149,20 @@ pub mod imp {
                     self.thumbnail.replace(thumbnail.clone());
                     thumbnail.map_or_else(
                         || {
-                            self.image.set_icon_name(Some("ue-logo-symbolic"));
+                            // Set default icon when no thumbnail
+                            let icon_theme = gtk4::IconTheme::for_display(&self.image.display());
+                            let icon = icon_theme.lookup_icon(
+                                "ue-logo-symbolic",
+                                &[],
+                                110,
+                                1,
+                                gtk4::TextDirection::None,
+                                gtk4::IconLookupFlags::empty(),
+                            );
+                            self.image.set_paintable(Some(&icon));
                         },
                         |t| {
-                            self.image.set_custom_image(Some(&t));
-                            // self.image.set_paintable(Some(&t));
+                            self.image.set_paintable(Some(&t));
                         },
                     );
                 }

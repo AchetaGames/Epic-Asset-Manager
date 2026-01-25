@@ -50,6 +50,29 @@
                                 </child>
                             </object>
                         </child>
+                        <child>
+                            <object class="AdwActionRow">
+                                <property name="title" translatable="yes">_Accent color</property>
+                                <property name="use-underline">true</property>
+                                <property name="activatable-widget">accent_color_selection</property>
+                                <property name="subtitle" translatable="yes">Choose accent color for buttons and highlights</property>
+                                <child>
+                                    <object class="GtkComboBoxText" id="accent_color_selection">
+                                        <property name="valign">center</property>
+                                        <property name="active-id">default</property>
+                                        <items>
+                                            <item translatable="yes" id="default">Default (Blue)</item>
+                                            <item translatable="yes" id="olive">Olive</item>
+                                            <item translatable="yes" id="orange">Orange</item>
+                                            <item translatable="yes" id="purple">Purple</item>
+                                            <item translatable="yes" id="pink">Pink</item>
+                                            <item translatable="yes" id="red">Red</item>
+                                            <item translatable="yes" id="teal">Teal</item>
+                                        </items>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
                 </child>
                 <child>

@@ -58,6 +58,8 @@ pub mod imp {
         pub log_level_selection: TemplateChild<gtk4::ComboBoxText>,
         #[template_child]
         pub default_category_selection: TemplateChild<gtk4::ComboBoxText>,
+        #[template_child]
+        pub accent_color_selection: TemplateChild<gtk4::ComboBoxText>,
     }
 
     #[glib::object_subclass]
@@ -88,6 +90,7 @@ pub mod imp {
                 default_view_selection: TemplateChild::default(),
                 log_level_selection: TemplateChild::default(),
                 default_category_selection: TemplateChild::default(),
+                accent_color_selection: TemplateChild::default(),
             }
         }
 
@@ -224,6 +227,14 @@ impl PreferencesWindow {
                 preferences.default_category_changed();
             }
         ));
+
+        self_.accent_color_selection.connect_changed(clone!(
+            #[weak(rename_to=preferences)]
+            self,
+            move |_| {
+                preferences.accent_color_changed();
+            }
+        ));
     }
 
     fn log_level_changed(&self) {
@@ -278,6 +289,65 @@ impl PreferencesWindow {
             .unwrap();
     }
 
+    fn accent_color_changed(&self) {
+        let self_ = self.imp();
+        let color = self_
+            .accent_color_selection
+            .active_id()
+            .unwrap_or_else(|| "default".into());
+        self_
+            .settings
+            .set_string("accent-color", &color)
+            .unwrap();
+        Self::apply_accent_color(&color);
+    }
+
+    pub fn apply_accent_color(color: &str) {
+        let css = match color {
+            "olive" => "
+                @define-color accent_bg_color #4b8501;
+                @define-color accent_fg_color #ffffff;
+                @define-color accent_color #4b8501;
+            ",
+            "orange" => "
+                @define-color accent_bg_color #e95420;
+                @define-color accent_fg_color #ffffff;
+                @define-color accent_color #e95420;
+            ",
+            "purple" => "
+                @define-color accent_bg_color #924d8b;
+                @define-color accent_fg_color #ffffff;
+                @define-color accent_color #924d8b;
+            ",
+            "pink" => "
+                @define-color accent_bg_color #e91e63;
+                @define-color accent_fg_color #ffffff;
+                @define-color accent_color #e91e63;
+            ",
+            "red" => "
+                @define-color accent_bg_color #c01c28;
+                @define-color accent_fg_color #ffffff;
+                @define-color accent_color #c01c28;
+            ",
+            "teal" => "
+                @define-color accent_bg_color #308280;
+                @define-color accent_fg_color #ffffff;
+                @define-color accent_color #308280;
+            ",
+            _ => "", // default - no override, use system
+        };
+
+        if !css.is_empty() {
+            let provider = gtk4::CssProvider::new();
+            provider.load_from_data(css);
+            gtk4::style_context_add_provider_for_display(
+                &gtk4::gdk::Display::default().expect("Could not get default display"),
+                &provider,
+                gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION + 1,
+            );
+        }
+    }
+
     fn github_user_changed(&self) {
         let self_ = self.imp();
         if let Some(w) = self_.window.get() {
@@ -327,6 +397,10 @@ impl PreferencesWindow {
         self_
             .default_category_selection
             .set_active_id(Some(&category));
+
+        let accent = self_.settings.string("accent-color");
+        self_.accent_color_selection.set_active_id(Some(&accent));
+        Self::apply_accent_color(&accent);
     }
 
     fn load_secrets(&self) {
