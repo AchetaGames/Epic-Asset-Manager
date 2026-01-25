@@ -151,6 +151,16 @@ pub mod imp {
                 warn!("Failed to save window state, {}", &err);
             }
 
+            // Signal background tasks to stop
+            if let Ok(mut w) = crate::RUNNING.write() {
+                *w = false;
+            }
+
+            // Quit the application when window is closed
+            if let Some(app) = self.obj().application() {
+                app.quit();
+            }
+
             // Pass close request on to the parent
             self.parent_close_request()
         }
