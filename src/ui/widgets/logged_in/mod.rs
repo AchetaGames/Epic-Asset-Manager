@@ -35,6 +35,8 @@ pub mod imp {
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
         #[template_child]
         pub games: TemplateChild<crate::ui::widgets::logged_in::games::EpicGamesBox>,
+        #[template_child]
+        pub details: TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
         pub settings: gtk4::gio::Settings,
     }
 
@@ -54,6 +56,7 @@ pub mod imp {
                 engines: TemplateChild::default(),
                 projects: TemplateChild::default(),
                 games: TemplateChild::default(),
+                details: TemplateChild::default(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
         }
@@ -135,6 +138,8 @@ impl EpicLoggedInBox {
         }
 
         self_.window.set(window.clone()).unwrap();
+        self_.details.set_window(&window.clone());
+        self_.library.set_details(&self_.details);
         self_.library.set_window(&window.clone());
         self_.library.set_sidebar(&self_.sidebar);
         self_.sidebar.set_page_stack(&self_.page_stack);
@@ -153,8 +158,14 @@ impl EpicLoggedInBox {
             return;
         }
         self_.download_manager.set(dm.clone()).unwrap();
+        self_.details.set_download_manager(dm);
         self_.library.set_download_manager(dm);
         self_.engines.set_download_manager(dm);
+    }
+
+    pub fn details(&self) -> &library::asset_detail::EpicAssetDetails {
+        let self_ = self.imp();
+        &self_.details
     }
 
     pub fn update_docker(&self) {

@@ -35,9 +35,7 @@ pub mod imp {
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/library.ui")]
     pub struct EpicLibraryBox {
-        #[template_child]
-        pub details:
-            TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
+        pub details: OnceCell<asset_detail::EpicAssetDetails>,
         pub sidebar: OnceCell<sidebar::EpicSidebar>,
         #[template_child]
         pub asset_grid: TemplateChild<gtk4::GridView>,
@@ -82,7 +80,7 @@ pub mod imp {
 
         fn new() -> Self {
             Self {
-                details: TemplateChild::default(),
+                details: OnceCell::new(),
                 sidebar: OnceCell::new(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
@@ -246,7 +244,15 @@ impl EpicLibraryBox {
         }
 
         self_.download_manager.set(dm.clone()).unwrap();
-        self_.details.set_download_manager(dm);
+        // Note: details panel download manager is now set at logged_in level
+    }
+
+    pub fn set_details(&self, details: &asset_detail::EpicAssetDetails) {
+        let self_ = self.imp();
+        if self_.details.get().is_some() {
+            return;
+        }
+        self_.details.set(details.clone()).unwrap();
     }
 
     pub fn set_sidebar(&self, sidebar: &sidebar::EpicSidebar) {
@@ -271,7 +277,7 @@ impl EpicLibraryBox {
         }
 
         self_.window.set(window.clone()).unwrap();
-        self_.details.set_window(&window.clone());
+        // Note: details panel window is now set at logged_in level
         if let Some(sidebar) = self_.sidebar.get() {
             sidebar.set_window(&window.clone());
         }
@@ -391,9 +397,11 @@ impl EpicLibraryBox {
                 .unwrap();
             let assets = self_.loaded_assets.borrow();
             if let Some(a) = assets.get(&asset.id()) {
-                self_.details.set_asset(a);
+                if let Some(details) = self_.details.get() {
+                    details.set_asset(a);
+                    details.set_property("position", model.selected());
+                }
             }
-            self_.details.set_property("position", model.selected());
         }
     }
 
@@ -404,17 +412,19 @@ impl EpicLibraryBox {
         if let Some(data) = asset_widget.imp().data.borrow().as_ref() {
             let assets = self_.loaded_assets.borrow();
             if let Some(asset_info) = assets.get(&data.id()) {
-                // Set the asset on the details panel
-                self_.details.set_asset(asset_info);
+                if let Some(details) = self_.details.get() {
+                    // Set the asset on the details panel
+                    details.set_asset(asset_info);
 
-                // Activate the appropriate action on the details widget
-                let action_name = match action {
-                    "download" => "details.show_download_details",
-                    "add_to_project" => "details.add_to_project",
-                    "create_project" => "details.create_project",
-                    _ => return,
-                };
-                self_.details.activate_action(action_name, None::<&glib::Variant>).ok();
+                    // Activate the appropriate action on the details widget
+                    let action_name = match action {
+                        "download" => "details.show_download_details",
+                        "add_to_project" => "details.add_to_project",
+                        "create_project" => "details.create_project",
+                        _ => return,
+                    };
+                    details.activate_action(action_name, None::<&glib::Variant>).ok();
+                }
             }
         }
     }
@@ -499,6 +509,10 @@ impl EpicLibraryBox {
     /// Open asset based on a name from xdg-open
     fn open_asset(&self) {
         let self_ = self.imp();
+        let details = match self_.details.get() {
+            Some(d) => d,
+            None => return,
+        };
         self.item().map_or_else(
             || {
                 if let Some(product) = self.product() {
@@ -510,7 +524,7 @@ impl EpicLibraryBox {
                                 if product.starts_with(prod) {
                                     if let Some(id) = products.get(prod) {
                                         if let Some(a) = assets.get(id) {
-                                            self_.details.set_asset(a);
+                                            details.set_asset(a);
                                         }
                                     }
                                     break;
@@ -519,7 +533,7 @@ impl EpicLibraryBox {
                         },
                         |id| {
                             if let Some(a) = assets.get(id) {
-                                self_.details.set_asset(a);
+                                details.set_asset(a);
                             }
                         },
                     );
@@ -528,7 +542,7 @@ impl EpicLibraryBox {
             |id| {
                 let assets = self_.loaded_assets.borrow();
                 if let Some(a) = assets.get(&id) {
-                    self_.details.set_asset(a);
+                    details.set_asset(a);
                 }
             },
         );
@@ -545,7 +559,8 @@ impl EpicLibraryBox {
         }
         self.update_count();
         // Scroll to top if nothing is selected
-        if !self_.details.has_asset() {
+        let has_asset = self_.details.get().map_or(false, |d| d.has_asset());
+        if !has_asset {
             if let Some(adj) = self_.asset_grid.vadjustment() {
                 adj.set_value(0.0);
             };
