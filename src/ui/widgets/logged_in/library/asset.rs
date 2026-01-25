@@ -16,6 +16,8 @@ pub mod imp {
         label: RefCell<Option<String>>,
         favorite: RefCell<bool>,
         pub downloaded: RefCell<bool>,
+        pub downloading: RefCell<bool>,
+        pub download_progress: RefCell<f64>,
         pub kind: RefCell<Option<String>>,
         pub action_label: RefCell<String>,
         thumbnail: RefCell<Option<Texture>>,
@@ -39,6 +41,8 @@ pub mod imp {
                 label: RefCell::new(None),
                 favorite: RefCell::new(false),
                 downloaded: RefCell::new(false),
+                downloading: RefCell::new(false),
+                download_progress: RefCell::new(0.0),
                 kind: RefCell::new(None),
                 action_label: RefCell::new("Download".to_string()),
                 thumbnail: RefCell::new(None),
@@ -93,6 +97,12 @@ pub mod imp {
                     ParamSpecObject::builder::<Texture>("thumbnail").build(),
                     glib::ParamSpecBoolean::builder("favorite").build(),
                     glib::ParamSpecBoolean::builder("downloaded").build(),
+                    glib::ParamSpecBoolean::builder("downloading").build(),
+                    glib::ParamSpecDouble::builder("download-progress")
+                        .minimum(0.0)
+                        .maximum(1.0)
+                        .default_value(0.0)
+                        .build(),
                     glib::ParamSpecString::builder("kind").build(),
                     glib::ParamSpecString::builder("action-label").build(),
                 ]
@@ -127,6 +137,18 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.downloaded.replace(downloaded);
                     self.obj().update_action_label();
+                }
+                "downloading" => {
+                    let downloading: bool = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.downloading.replace(downloading);
+                }
+                "download-progress" => {
+                    let progress: f64 = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.download_progress.replace(progress);
                 }
                 "kind" => {
                     let kind = value
@@ -176,6 +198,8 @@ pub mod imp {
                 "id" => self.id.borrow().to_value(),
                 "favorite" => self.favorite.borrow().to_value(),
                 "downloaded" => self.downloaded.borrow().to_value(),
+                "downloading" => self.downloading.borrow().to_value(),
+                "download-progress" => self.download_progress.borrow().to_value(),
                 "kind" => self.kind.borrow().to_value(),
                 "action-label" => self.action_label.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),

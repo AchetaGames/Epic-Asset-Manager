@@ -504,12 +504,14 @@ impl EpicCreateProjectDialog {
                             let source = source_path.clone();
                             let target = target_path.clone();
 
-                            // Perform copy in background thread
+                            // Perform copy in background thread and launch project when done
                             std::thread::spawn(move || {
                                 if let Err(e) = Self::copy_directory(&source, &target, overwrite) {
                                     log::error!("Failed to copy project: {:?}", e);
                                 } else {
                                     log::info!("Project created successfully at {:?}", target);
+                                    // Find and launch the .uproject file
+                                    Self::launch_project(&target);
                                 }
                             });
 
@@ -573,5 +575,36 @@ impl EpicCreateProjectDialog {
         }
 
         Ok(())
+    }
+
+    fn launch_project(project_dir: &PathBuf) {
+        // Find .uproject file in the directory
+        if let Ok(entries) = std::fs::read_dir(project_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    if ext == "uproject" {
+                        log::info!("Launching project: {:?}", path);
+                        // Use gio to open with default application
+                        if let Err(e) = std::process::Command::new("gio")
+                            .arg("open")
+                            .arg(&path)
+                            .spawn()
+                        {
+                            log::error!("Failed to launch project with gio: {:?}", e);
+                            // Fallback to xdg-open
+                            if let Err(e2) = std::process::Command::new("xdg-open")
+                                .arg(&path)
+                                .spawn()
+                            {
+                                log::error!("Failed to launch project with xdg-open: {:?}", e2);
+                            }
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+        log::warn!("No .uproject file found in {:?}", project_dir);
     }
 }

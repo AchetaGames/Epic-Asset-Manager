@@ -42,6 +42,23 @@
                         <property name="visible" bind-source="EpicAsset" bind-property="downloaded" bind-flags="sync-create"/>
                     </object>
                 </child>
+                <child type="overlay">
+                    <!-- Download progress bar -->
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="valign">end</property>
+                        <property name="visible" bind-source="EpicAsset" bind-property="downloading" bind-flags="sync-create"/>
+                        <child>
+                            <object class="GtkProgressBar" id="download_progress">
+                                <property name="css-classes">osd</property>
+                                <property name="margin-start">4</property>
+                                <property name="margin-end">4</property>
+                                <property name="margin-bottom">4</property>
+                                <property name="fraction" bind-source="EpicAsset" bind-property="download-progress" bind-flags="sync-create"/>
+                            </object>
+                        </child>
+                    </object>
+                </child>
             </object>
         </child>
         <child>
