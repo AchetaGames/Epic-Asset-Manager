@@ -1,3 +1,33 @@
+/* ===========================================
+   EPIC ASSET MANAGER STYLES
+   Colors follow system/libadwaita theme
+   =========================================== */
+
+/* ----- Square Corners ----- */
+button,
+entry,
+.card,
+popover,
+row,
+list,
+listview,
+gridview,
+scrollbar slider,
+progressbar trough,
+progressbar progress {
+  border-radius: 0;
+}
+
+/* ----- Grid Items ----- */
+gridview > child {
+  border-radius: 0;
+  margin: 4px;
+}
+
+/* ===========================================
+   APP-SPECIFIC STYLES
+   =========================================== */
+
 .asset-title {
   font-size: 36px;
   font-weight: 650;
@@ -18,5 +48,25 @@
 }
 
 .expand-button {
-  border-radius: 0px 0px 0px 12px;
+  border-radius: 0;
+}
+
+/* ===========================================
+   SECTION HEADERS (Unified Home View)
+   =========================================== */
+
+.section-header {
+  padding: 4px 0;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+.section-count {
+  font-size: 12px;
+  opacity: 0.6;
 }

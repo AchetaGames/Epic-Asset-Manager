@@ -354,12 +354,8 @@ impl EpicAssetDetails {
     fn process_uri(&self, uri: &str) {
         match uri {
             "engines" => {
-                let self_ = self.imp();
-                if let Some(w) = self_.window.get() {
-                    let w_ = w.imp();
-                    let l = w_.logged_in_stack.clone();
-                    l.switch_tab("engines");
-                }
+                // In unified view, engines section is always visible on the same page
+                // No action needed - user can scroll to see it
             }
             _ => {
                 error!("Unhandled uri clicked: {}", uri);

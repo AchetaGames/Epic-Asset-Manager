@@ -966,10 +966,6 @@ impl Refresh for EpicLibraryBox {
             == 0
     }
     fn refresh_state_changed(&self) {
-        let self_ = self.imp();
-        if let Some(w) = self_.window.get() {
-            let w_ = w.imp();
-            w_.logged_in_stack.tab_switched();
-        }
+        // No-op in unified view - refresh button always available
     }
 }

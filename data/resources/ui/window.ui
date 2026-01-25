@@ -27,13 +27,8 @@
             <object class="AdwHeaderBar" id="headerbar">
                 <property name="centering-policy">strict</property>
                 <property name="title-widget">
-                    <object class="AdwViewSwitcherTitle" id="switcher_title">
-                        <binding name="stack">
-                            <lookup name="stack">logged_in_stack</lookup>
-                        </binding>
-                        <binding name="title">
-                            <lookup name="title">EpicAssetManagerWindow</lookup>
-                        </binding>
+                    <object class="AdwWindowTitle" id="window_title">
+                        <property name="title">Epic Asset Manager</property>
                     </object>
                 </property>
                 <!-- TODO: use this button instead of EpicSidebar's -->
@@ -93,72 +88,57 @@
             </object>
         </child>
         <child>
-            <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <child>
-                    <object class="GtkOverlay">
-                        <property name="child">
-                            <object class="GtkStack" id="main_stack">
-                                <property name="transition-type">crossfade</property>
-                                <child>
-                                    <object class="GtkStackPage">
-                                        <property name="name">progress</property>
-                                        <property name="title" translatable="yes">progress</property>
-                                        <property name="child">
-                                            <object class="GtkBox" id="progress">
-                                                <property name="can-focus">0</property>
-                                                <property name="halign">center</property>
-                                                <property name="spacing">10</property>
-                                                <property name="valign">center</property>
-                                                <child>
-                                                    <object class="GtkSpinner">
-                                                        <property name="spinning">True</property>
-                                                    </object>
-                                                </child>
-                                                <child>
-                                                    <object class="GtkLabel" id="progress_message">
-                                                        <property name="label" translatable="yes">Loading</property>
-                                                    </object>
-                                                </child>
+            <object class="GtkOverlay">
+                <property name="child">
+                    <object class="GtkStack" id="main_stack">
+                        <property name="transition-type">crossfade</property>
+                        <child>
+                            <object class="GtkStackPage">
+                                <property name="name">progress</property>
+                                <property name="title" translatable="yes">progress</property>
+                                <property name="child">
+                                    <object class="GtkBox" id="progress">
+                                        <property name="can-focus">0</property>
+                                        <property name="halign">center</property>
+                                        <property name="spacing">10</property>
+                                        <property name="valign">center</property>
+                                        <child>
+                                            <object class="GtkSpinner">
+                                                <property name="spinning">True</property>
                                             </object>
-                                        </property>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel" id="progress_message">
+                                                <property name="label" translatable="yes">Loading</property>
+                                            </object>
+                                        </child>
                                     </object>
-                                </child>
-                                <child>
-                                    <object class="GtkStackPage">
-                                        <property name="name">logged_in_stack</property>
-                                        <property name="child">
-                                            <object class="EpicLoggedInBox" id="logged_in_stack"/>
-                                        </property>
-                                    </object>
-                                </child>
-                                <child>
-                                    <object class="GtkStackPage">
-                                        <property name="name">sid_box</property>
-                                        <property name="child">
-                                            <object class="SidBox" id="sid_box"/>
-                                        </property>
-                                    </object>
-                                </child>
+                                </property>
                             </object>
-                        </property>
-                        <child type="overlay">
-                            <object class="GtkBox" id="notifications">
-                                <property name="spacing">5</property>
-                                <property name="valign">end</property>
-                                <property name="orientation">vertical</property>
+                        </child>
+                        <child>
+                            <object class="GtkStackPage">
+                                <property name="name">logged_in_stack</property>
+                                <property name="child">
+                                    <object class="EpicLoggedInBox" id="logged_in_stack"/>
+                                </property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkStackPage">
+                                <property name="name">sid_box</property>
+                                <property name="child">
+                                    <object class="SidBox" id="sid_box"/>
+                                </property>
                             </object>
                         </child>
                     </object>
-                </child>
-                <child>
-                    <object class="AdwViewSwitcherBar">
-                        <binding name="stack">
-                            <lookup name="stack">logged_in_stack</lookup>
-                        </binding>
-                        <binding name="reveal">
-                            <lookup name="title-visible">switcher_title</lookup>
-                        </binding>
+                </property>
+                <child type="overlay">
+                    <object class="GtkBox" id="notifications">
+                        <property name="spacing">5</property>
+                        <property name="valign">end</property>
+                        <property name="orientation">vertical</property>
                     </object>
                 </child>
             </object>

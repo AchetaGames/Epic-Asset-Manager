@@ -5,37 +5,137 @@
         <property name="vexpand">1</property>
         <property name="orientation">vertical</property>
         <child>
-            <object class="AdwViewStack" id="adwstack">
-                <child>
-                    <object class="AdwViewStackPage">
-                        <property name="name">library</property>
-                        <property name="title">Library</property>
-                        <property name="icon-name">document-open-symbolic</property>
-                        <property name="child">
-                            <object class="EpicLibraryBox" id="library"/>
-                        </property>
+            <object class="GtkScrolledWindow" id="main_scroll">
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="child">
+                    <object class="GtkBox" id="sections_box">
+                        <property name="orientation">vertical</property>
+                        <property name="hexpand">true</property>
+                        <property name="spacing">0</property>
+
+                        <!-- ENGINES SECTION -->
+                        <child>
+                            <object class="GtkBox" id="engines_section">
+                                <property name="orientation">vertical</property>
+                                <property name="hexpand">true</property>
+                                <property name="css-classes">section</property>
+                                <!-- Section Header -->
+                                <child>
+                                    <object class="GtkBox" id="engines_header">
+                                        <property name="css-classes">section-header</property>
+                                        <property name="spacing">8</property>
+                                        <property name="margin-start">16</property>
+                                        <property name="margin-end">16</property>
+                                        <property name="margin-top">12</property>
+                                        <property name="margin-bottom">8</property>
+                                        <child>
+                                            <object class="GtkLabel" id="engines_title">
+                                                <property name="label">ENGINE VERSIONS</property>
+                                                <property name="css-classes">section-title</property>
+                                                <property name="halign">start</property>
+                                                <property name="hexpand">true</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <!-- Engines Content -->
+                                <child>
+                                    <object class="EpicEnginesBox" id="engines"/>
+                                </child>
+                            </object>
+                        </child>
+
+                        <!-- Separator -->
+                        <child>
+                            <object class="GtkSeparator">
+                                <property name="margin-top">8</property>
+                                <property name="margin-bottom">8</property>
+                                <property name="margin-start">16</property>
+                                <property name="margin-end">16</property>
+                            </object>
+                        </child>
+
+                        <!-- PROJECTS SECTION -->
+                        <child>
+                            <object class="GtkBox" id="projects_section">
+                                <property name="orientation">vertical</property>
+                                <property name="hexpand">true</property>
+                                <property name="css-classes">section</property>
+                                <!-- Section Header -->
+                                <child>
+                                    <object class="GtkBox" id="projects_header">
+                                        <property name="css-classes">section-header</property>
+                                        <property name="spacing">8</property>
+                                        <property name="margin-start">16</property>
+                                        <property name="margin-end">16</property>
+                                        <property name="margin-top">12</property>
+                                        <property name="margin-bottom">8</property>
+                                        <child>
+                                            <object class="GtkLabel" id="projects_title">
+                                                <property name="label">MY PROJECTS</property>
+                                                <property name="css-classes">section-title</property>
+                                                <property name="halign">start</property>
+                                                <property name="hexpand">true</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <!-- Projects Content -->
+                                <child>
+                                    <object class="EpicProjectsBox" id="projects"/>
+                                </child>
+                            </object>
+                        </child>
+
+                        <!-- Separator -->
+                        <child>
+                            <object class="GtkSeparator">
+                                <property name="margin-top">8</property>
+                                <property name="margin-bottom">8</property>
+                                <property name="margin-start">16</property>
+                                <property name="margin-end">16</property>
+                            </object>
+                        </child>
+
+                        <!-- LIBRARY SECTION -->
+                        <child>
+                            <object class="GtkBox" id="library_section">
+                                <property name="orientation">vertical</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">true</property>
+                                <property name="css-classes">section</property>
+                                <!-- Section Header -->
+                                <child>
+                                    <object class="GtkBox" id="library_header">
+                                        <property name="css-classes">section-header</property>
+                                        <property name="spacing">8</property>
+                                        <property name="margin-start">16</property>
+                                        <property name="margin-end">16</property>
+                                        <property name="margin-top">12</property>
+                                        <property name="margin-bottom">8</property>
+                                        <child>
+                                            <object class="GtkLabel" id="library_title">
+                                                <property name="label">ASSET LIBRARY</property>
+                                                <property name="css-classes">section-title</property>
+                                                <property name="halign">start</property>
+                                                <property name="hexpand">true</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                                <!-- Library Content -->
+                                <child>
+                                    <object class="EpicLibraryBox" id="library">
+                                        <property name="vexpand">true</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+
                     </object>
-                </child>
-                <child>
-                    <object class="AdwViewStackPage">
-                        <property name="name">projects</property>
-                        <property name="title">Projects</property>
-                        <property name="icon-name">applications-engineering-symbolic</property>
-                        <property name="child">
-                            <object class="EpicProjectsBox" id="projects"/>
-                        </property>
-                    </object>
-                </child>
-                <child>
-                    <object class="AdwViewStackPage">
-                        <property name="name">engines</property>
-                        <property name="title">Engines</property>
-                        <property name="icon-name">system-run-symbolic</property>
-                        <property name="child">
-                            <object class="EpicEnginesBox" id="engines"/>
-                        </property>
-                    </object>
-                </child>
+                </property>
             </object>
         </child>
     </template>
