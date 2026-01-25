@@ -6,10 +6,7 @@
         <property name="homogeneous">true</property>
         <child>
             <object class="GtkBox">
-                <child>
-                    <object class="EpicSidebar" id="sidebar">
-                    </object>
-                </child>
+                <!-- Sidebar removed - now at page level in logged_in.ui -->
                 <child>
                     <object class="GtkOverlay" id="MainOverlay">
                         <property name="hexpand">true</property>
@@ -21,17 +18,19 @@
                                 <property name="vexpand">true</property>
                                 <property name="orientation">vertical</property>
                                 <child>
-                                    <object class="GtkScrolledWindow">
+                                    <!-- ScrolledWindow removed - parent handles scrolling -->
+                                    <object class="GtkBox">
                                         <property name="margin-top">48</property>
                                         <property name="margin-start">8</property>
                                         <property name="margin-end">8</property>
                                         <property name="vexpand">1</property>
-                                        <property name="child">
+                                        <property name="orientation">vertical</property>
+                                        <child>
                                             <object class="GtkGridView" id="asset_grid">
                                                 <property name="can-focus">1</property>
                                                 <property name="max-columns">255</property>
                                             </object>
-                                        </property>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
@@ -56,7 +55,7 @@
                                 <property name="halign">end</property>
                             </object>
                         </child>
-                        <child type="overlay"> <!-- SEARCH+SORT CONTROLS START -->
+                        <child type="overlay">
                             <object class="GtkBox">
                                 <property name="margin-start">8</property>
                                 <property name="margin-end">8</property>
@@ -92,7 +91,7 @@
                                     </object>
                                 </child>
                             </object>
-                        </child> <!-- SEARCH+SORT CONTROLS END -->
+                        </child>
                     </object>
                 </child>
             </object>

@@ -23,6 +23,8 @@ pub mod imp {
         pub window: OnceCell<crate::window::EpicAssetManagerWindow>,
         pub download_manager: OnceCell<crate::ui::widgets::download_manager::EpicDownloadManager>,
         #[template_child]
+        pub sidebar: TemplateChild<crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
+        #[template_child]
         pub library: TemplateChild<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         #[template_child]
         pub engines: TemplateChild<crate::ui::widgets::logged_in::engines::EpicEnginesBox>,
@@ -41,6 +43,7 @@ pub mod imp {
             Self {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
+                sidebar: TemplateChild::default(),
                 library: TemplateChild::default(),
                 engines: TemplateChild::default(),
                 projects: TemplateChild::default(),
@@ -126,6 +129,7 @@ impl EpicLoggedInBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.library.set_window(&window.clone());
+        self_.library.set_sidebar(&self_.sidebar);
         self_.engines.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
     }

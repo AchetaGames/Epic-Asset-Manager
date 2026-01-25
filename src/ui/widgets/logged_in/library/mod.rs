@@ -17,7 +17,7 @@ mod actions;
 mod asset;
 pub mod asset_detail;
 pub mod image_stack;
-mod sidebar;
+pub mod sidebar;
 
 pub mod imp {
     use super::*;
@@ -38,8 +38,7 @@ pub mod imp {
         #[template_child]
         pub details:
             TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
-        #[template_child]
-        pub sidebar: TemplateChild<sidebar::EpicSidebar>,
+        pub sidebar: OnceCell<sidebar::EpicSidebar>,
         #[template_child]
         pub asset_grid: TemplateChild<gtk4::GridView>,
         #[template_child]
@@ -84,7 +83,7 @@ pub mod imp {
         fn new() -> Self {
             Self {
                 details: TemplateChild::default(),
-                sidebar: TemplateChild::default(),
+                sidebar: OnceCell::new(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
                 select_order_by: TemplateChild::default(),
@@ -250,6 +249,14 @@ impl EpicLibraryBox {
         self_.details.set_download_manager(dm);
     }
 
+    pub fn set_sidebar(&self, sidebar: &sidebar::EpicSidebar) {
+        let self_ = self.imp();
+        if self_.sidebar.get().is_some() {
+            return;
+        }
+        self_.sidebar.set(sidebar.clone()).unwrap();
+    }
+
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
         let self_ = self.imp();
         // Do not run this twice
@@ -259,7 +266,9 @@ impl EpicLibraryBox {
 
         self_.window.set(window.clone()).unwrap();
         self_.details.set_window(&window.clone());
-        self_.sidebar.set_window(&window.clone());
+        if let Some(sidebar) = self_.sidebar.get() {
+            sidebar.set_window(&window.clone());
+        }
         self_
             .asset_search
             .set_key_capture_widget(Some(&window.clone()));
@@ -492,7 +501,9 @@ impl EpicLibraryBox {
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
 
-        self_.sidebar.set_logged_in(self);
+        if let Some(sidebar) = self_.sidebar.get() {
+            sidebar.set_logged_in(self);
+        }
 
         self_.select_order_by.connect_changed(clone!(
             #[weak(rename_to=library)]
@@ -630,7 +641,9 @@ impl EpicLibraryBox {
             for category in categories {
                 let mut cats = self_.categories.borrow_mut();
                 if cats.insert(category.path.clone()) {
-                    self_.sidebar.add_category(&category.path);
+                    if let Some(sidebar) = self_.sidebar.get() {
+                        sidebar.add_category(&category.path);
+                    }
                 }
             }
         };

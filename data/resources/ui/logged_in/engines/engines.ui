@@ -3,23 +3,24 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicEnginesBox" parent="GtkBox">
         <property name="hexpand">true</property>
-        <property name="vexpand">true</property>
+        <property name="vexpand">false</property>
         <property name="homogeneous">true</property>
         <property name="css-classes">view</property>
         <child>
-            <object class="GtkScrolledWindow">
+            <!-- ScrolledWindow removed - parent handles scrolling -->
+            <object class="GtkBox">
                 <property name="hexpand">true</property>
-                <property name="vexpand">true</property>
                 <property name="margin-top">12</property>
                 <property name="margin-start">12</property>
                 <property name="margin-end">12</property>
-                <property name="child">
+                <property name="margin-bottom">12</property>
+                <child>
                     <object class="GtkGridView" id="engine_grid">
                         <property name="halign">fill</property>
-                        <property name="valign">fill</property>
+                        <property name="valign">start</property>
                         <property name="max-columns">255</property>
                     </object>
-                </property>
+                </child>
             </object>
         </child>
         <child>
