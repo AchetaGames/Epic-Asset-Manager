@@ -3,7 +3,6 @@
     <requires lib="gtk" version="4.0"/>
     <template class="EpicLibraryBox" parent="GtkBox">
         <property name="hexpand">true</property>
-        <property name="vexpand">true</property>
         <property name="orientation">vertical</property>
         <property name="css-classes">view</property>
 
@@ -46,11 +45,12 @@
             </object>
         </child>
 
-        <!-- Scrollable grid area -->
+        <!-- Grid area with scroll -->
         <child>
             <object class="GtkScrolledWindow" id="library_scroll">
                 <property name="hexpand">true</property>
                 <property name="vexpand">true</property>
+                <property name="hscrollbar-policy">never</property>
                 <property name="child">
                     <object class="GtkGridView" id="asset_grid">
                         <property name="halign">fill</property>

@@ -258,6 +258,20 @@ expander title {
   border-radius: 0;
 }
 
+/* Section expanders */
+expander.section {
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 8px;
+}
+
+expander.section > title {
+  padding: 8px 0;
+}
+
+expander.section > title > .expander-icon {
+  margin-right: 8px;
+}
+
 /* ===========================================
    APP-SPECIFIC STYLES
    =========================================== */
