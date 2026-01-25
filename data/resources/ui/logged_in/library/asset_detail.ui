@@ -42,7 +42,7 @@
                                         <property name="action-name">details.close</property>
                                         <property name="css-classes">flat
 </property>
-                                        <property name="icon-name">process-stop-symbolic</property>
+                                        <property name="icon-name">window-close-symbolic</property>
                                     </object>
                                 </child>
                                 <child>
