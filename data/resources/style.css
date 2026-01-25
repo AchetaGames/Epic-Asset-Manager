@@ -19,7 +19,7 @@ headerbar,
 .titlebar {
   background-color: #121212;
   border-radius: 0;
-  border: none;
+  border-bottom: 1px solid #2a2a2a;
   box-shadow: none;
 }
 
