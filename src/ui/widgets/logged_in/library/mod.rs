@@ -412,6 +412,12 @@ impl EpicLibraryBox {
         if let Some(data) = asset_widget.imp().data.borrow().as_ref() {
             let assets = self_.loaded_assets.borrow();
             if let Some(asset_info) = assets.get(&data.id()) {
+                // For create_project, open dialog directly without changing details panel
+                if action == "create_project" {
+                    self.open_create_project_dialog(asset_info);
+                    return;
+                }
+
                 if let Some(details) = self_.details.get() {
                     // Set the asset on the details panel
                     details.set_asset(asset_info);
@@ -420,13 +426,42 @@ impl EpicLibraryBox {
                     let action_name = match action {
                         "download" => "details.show_download_details",
                         "add_to_project" => "details.add_to_project",
-                        "create_project" => "details.create_project",
                         _ => return,
                     };
                     details.activate_action(action_name, None::<&glib::Variant>).ok();
                 }
             }
         }
+    }
+
+    fn open_create_project_dialog(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
+        let self_ = self.imp();
+
+        let dialog = actions::EpicCreateProjectDialog::new();
+
+        // Set transient parent (find the window)
+        if let Some(window) = self_.window.get() {
+            dialog.set_transient_for(Some(window));
+        }
+
+        // Set download manager
+        if let Some(dm) = self_.download_manager.get() {
+            dialog.set_download_manager(dm);
+        }
+
+        // Set the asset
+        dialog.set_asset(asset_info);
+
+        // Set selected version from the first release info
+        if let Some(release_info) = asset_info.release_info.as_ref() {
+            if let Some(first) = release_info.first() {
+                if let Some(version) = &first.app_id {
+                    dialog.set_selected_version(version);
+                }
+            }
+        }
+
+        dialog.present();
     }
 
     fn populate_model(list_item: &gtk4::ListItem) {

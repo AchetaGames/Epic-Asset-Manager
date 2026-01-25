@@ -6,8 +6,10 @@ use gtk4::glib::clone;
 use gtk4::{self, gio, StringList};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
-use log::debug;
+use log::{debug, info};
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::io::Read;
 use std::path::PathBuf;
 
 pub mod imp {
@@ -28,9 +30,11 @@ pub mod imp {
         #[template_child]
         pub project_name_entry: TemplateChild<gtk4::Entry>,
         #[template_child]
-        pub install_location_combo: TemplateChild<adw::ComboRow>,
+        pub install_location_combo: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub engine_version_combo: TemplateChild<adw::ComboRow>,
+        pub browse_location_button: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub engine_version_combo: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub warning_bar: TemplateChild<gtk4::InfoBar>,
         #[template_child]
@@ -59,6 +63,7 @@ pub mod imp {
                 engines_model: RefCell::new(None),
                 project_name_entry: TemplateChild::default(),
                 install_location_combo: TemplateChild::default(),
+                browse_location_button: TemplateChild::default(),
                 engine_version_combo: TemplateChild::default(),
                 warning_bar: TemplateChild::default(),
                 warning_label: TemplateChild::default(),
@@ -206,6 +211,74 @@ impl EpicCreateProjectDialog {
                 dialog.validate_target_directory();
             }
         ));
+
+        // Browse button click
+        self_.browse_location_button.connect_clicked(clone!(
+            #[weak(rename_to=dialog)]
+            self,
+            move |_| {
+                dialog.browse_for_location();
+            }
+        ));
+    }
+
+    fn browse_for_location(&self) {
+        let file_dialog = gtk4::FileChooserDialog::new(
+            Some("Select Project Directory"),
+            Some(self),
+            gtk4::FileChooserAction::SelectFolder,
+            &[
+                ("Select", gtk4::ResponseType::Accept),
+                ("Cancel", gtk4::ResponseType::Cancel),
+            ],
+        );
+        file_dialog.set_modal(true);
+        file_dialog.set_transient_for(Some(self));
+
+        file_dialog.connect_response(clone!(
+            #[weak(rename_to=dialog)]
+            self,
+            move |d, response| {
+                if response == gtk4::ResponseType::Accept {
+                    if let Some(file) = d.file() {
+                        if let Some(path) = file.path() {
+                            dialog.add_location(path.to_str().unwrap());
+                        }
+                    }
+                }
+                d.destroy();
+            }
+        ));
+
+        file_dialog.show();
+    }
+
+    fn add_location(&self, path: &str) {
+        let self_ = self.imp();
+        if let Some(model) = &*self_.locations_model.borrow() {
+            // Check if already exists
+            for i in 0..model.n_items() {
+                if let Some(existing) = model.string(i) {
+                    if existing.as_str() == path {
+                        // Select existing
+                        self_.install_location_combo.set_selected(i);
+                        return;
+                    }
+                }
+            }
+            // Add new and select it
+            let pos = model.n_items();
+            model.append(path);
+            self_.install_location_combo.set_selected(pos);
+
+            // Persist to settings
+            let mut current = self_.settings.strv("unreal-projects-directories");
+            if !current.contains(&gtk4::glib::GString::from(path)) {
+                current.push(gtk4::glib::GString::from(path.to_string()));
+                let _ = self_.settings.set_strv("unreal-projects-directories", current);
+            }
+        }
+        self.validate_target_directory();
     }
 
     fn setup_locations(&self) {
@@ -228,34 +301,48 @@ impl EpicCreateProjectDialog {
     fn setup_engines(&self) {
         let self_ = self.imp();
         let model = StringList::new(&[]);
+        let mut found_versions: Vec<String> = Vec::new();
 
-        // Get engine directories and find installed versions
-        for dir in self_.settings.strv("unreal-engine-directories") {
-            let path = PathBuf::from(dir.as_str());
-            if path.exists() {
-                if let Ok(entries) = std::fs::read_dir(&path) {
-                    for entry in entries.flatten() {
-                        let entry_path = entry.path();
-                        if entry_path.is_dir() {
-                            // Check if this looks like an engine directory
-                            let version_file = entry_path.join("Engine/Build/Build.version");
-                            if version_file.exists() {
-                                if let Some(name) = entry_path.file_name() {
-                                    model.append(&name.to_string_lossy());
-                                }
-                            }
-                        }
-                    }
+        // 1. Read from Install.ini (Epic Games Launcher installations)
+        for (_guid, path) in Self::read_engines_ini() {
+            if let Some(version) = crate::models::engine_data::EngineData::read_engine_version(&path) {
+                let version_str = version.format();
+                if !version_str.is_empty() && !found_versions.contains(&version_str) {
+                    found_versions.push(version_str);
                 }
             }
         }
 
-        // Add some default versions if none found
-        if model.n_items() == 0 {
-            model.append("5.4");
-            model.append("5.3");
-            model.append("5.2");
+        // 2. Scan configured engine directories
+        for dir in self_.settings.strv("unreal-engine-directories") {
+            self.scan_engine_directory(&dir.to_string(), &mut found_versions);
         }
+
+        // Sort versions descending (newest first)
+        found_versions.sort_by(|a, b| {
+            let parse_version = |s: &str| -> (i32, i32, i32) {
+                let parts: Vec<i32> = s.split('.').filter_map(|p| p.parse().ok()).collect();
+                (
+                    *parts.first().unwrap_or(&0),
+                    *parts.get(1).unwrap_or(&0),
+                    *parts.get(2).unwrap_or(&0),
+                )
+            };
+            parse_version(b).cmp(&parse_version(a))
+        });
+
+        // Add to model
+        for version in &found_versions {
+            model.append(version);
+        }
+
+        // Fallback if no engines found
+        if model.n_items() == 0 {
+            model.append("No engines found");
+            self_.create_button.set_sensitive(false);
+        }
+
+        info!("Found {} engine versions: {:?}", found_versions.len(), found_versions);
 
         self_.engine_version_combo.set_model(Some(&model));
         self_.engines_model.replace(Some(model));
@@ -263,6 +350,71 @@ impl EpicCreateProjectDialog {
         // Select first item
         if self_.engine_version_combo.model().is_some() {
             self_.engine_version_combo.set_selected(0);
+        }
+    }
+
+    fn read_engines_ini() -> HashMap<String, String> {
+        let ini = gtk4::glib::KeyFile::new();
+        let mut dir = gtk4::glib::home_dir();
+        dir.push(".config");
+        dir.push("Epic");
+        dir.push("UnrealEngine");
+        dir.push("Install.ini");
+
+        let mut result: HashMap<String, String> = HashMap::new();
+        if ini.load_from_file(&dir, gtk4::glib::KeyFileFlags::NONE).is_err() {
+            return result;
+        }
+
+        if let Ok(keys) = ini.keys("Installations") {
+            for item in keys {
+                if let Ok(path) = ini.value("Installations", item.as_str()) {
+                    let guid: String = item
+                        .to_string()
+                        .chars()
+                        .filter(|c| c != &'{' && c != &'}')
+                        .collect();
+                    match path.to_string().strip_suffix('/') {
+                        None => {
+                            result.insert(guid, path.to_string());
+                        }
+                        Some(pa) => {
+                            result.insert(guid, pa.to_string());
+                        }
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    fn scan_engine_directory(&self, dir: &str, found_versions: &mut Vec<String>) {
+        let path = PathBuf::from(dir);
+
+        // Check if directory itself is an engine
+        if let Some(version) = crate::models::engine_data::EngineData::read_engine_version(dir) {
+            let version_str = version.format();
+            if !version_str.is_empty() && !found_versions.contains(&version_str) {
+                found_versions.push(version_str);
+            }
+            return;
+        }
+
+        // Otherwise scan subdirectories
+        if let Ok(entries) = std::fs::read_dir(&path) {
+            for entry in entries.flatten() {
+                let entry_path = entry.path();
+                if entry_path.is_dir() {
+                    if let Some(version) = crate::models::engine_data::EngineData::read_engine_version(
+                        entry_path.to_str().unwrap(),
+                    ) {
+                        let version_str = version.format();
+                        if !version_str.is_empty() && !found_versions.contains(&version_str) {
+                            found_versions.push(version_str);
+                        }
+                    }
+                }
+            }
         }
     }
 
