@@ -27,7 +27,7 @@
                         <property name="valign">center</property>
                         <property name="css-classes">flat
 accent
-circular
+
 frame</property>
                         <child>
                             <object class="AdwButtonContent">
@@ -86,7 +86,7 @@ accent</property>
                 <property name="margin-top">24</property>
                 <property name="action-name">sid.copy</property>
                 <property name="opacity">0.75</property>
-                <property name="css-classes">pill
+                <property name="css-classes">
 flat</property>
                 <child>
                     <object class="AdwButtonContent">

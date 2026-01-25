@@ -1,21 +1,8 @@
 /* ===========================================
    EPIC ASSET MANAGER STYLES
    Epic Games Launcher Dark Theme
-   ALL CORNERS MUST BE SQUARE - NO EXCEPTIONS
+   ALL CORNERS MUST BE SQUARE
    =========================================== */
-
-/* ===========================================
-   MANDATORY SQUARE CORNERS - GLOBAL OVERRIDE
-   =========================================== */
-
-/* Nuclear option - force ALL elements to have zero border-radius */
-*,
-*::before,
-*::after,
-*:not(googlywibblebonkdonotmatch) {
-  border-radius: 0 !important;
-  -gtk-outline-radius: 0 !important;
-}
 
 /* ----- Dark Theme Base ----- */
 window,
@@ -29,45 +16,50 @@ window,
    =========================================== */
 
 headerbar,
-.titlebar,
-.header-bar,
-header bar {
+.titlebar {
   background-color: #121212;
-  border-radius: 0 !important;
+  border-radius: 0;
   border: none;
   box-shadow: none;
 }
 
-/* Window controls container */
-windowcontrols,
-windowcontrols > box {
-  border-radius: 0 !important;
-  background: transparent;
-}
-
-/* Window control buttons - close, minimize, maximize */
-windowcontrols button,
-windowcontrols > button,
-windowcontrols box button,
-button.titlebutton,
-button.close,
-button.minimize,
-button.maximize {
-  border-radius: 0 !important;
-  -gtk-outline-radius: 0 !important;
+/* Window control buttons */
+windowcontrols button {
+  border-radius: 0;
   background-color: #2a2a2a;
   border: 1px solid #3a3a3a;
   min-width: 24px;
   min-height: 24px;
 }
 
-windowcontrols button:hover,
-button.titlebutton:hover {
+windowcontrols button:hover {
   background-color: #3a3a3a;
 }
 
-windowcontrols button.close:hover {
-  background-color: #c42b1c;
+/* ===========================================
+   ALL ELEMENTS - SQUARE CORNERS
+   =========================================== */
+
+button,
+button.flat,
+button.suggested-action,
+button.destructive-action,
+button.circular,
+button.pill,
+button.osd,
+button.image-button,
+button.text-button,
+button.toggle,
+togglebutton,
+menubutton > button,
+splitbutton > button {
+  border-radius: 0;
+}
+
+entry,
+searchentry,
+spinbutton {
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -75,7 +67,7 @@ windowcontrols button.close:hover {
    =========================================== */
 
 gridview > child {
-  border-radius: 0 !important;
+  border-radius: 0;
   margin: 4px;
   background-color: transparent;
   border: 1px solid #2a2a2a;
@@ -92,46 +84,12 @@ gridview > child:selected {
 }
 
 /* ===========================================
-   BUTTONS - ALL SQUARE
-   =========================================== */
-
-button,
-button.flat,
-button.suggested-action,
-button.destructive-action,
-button.circular,
-button.pill,
-button.osd,
-button.image-button,
-button.text-button,
-button.toggle,
-togglebutton,
-menubutton > button,
-splitbutton > button,
-splitbutton > menubutton > button {
-  border-radius: 0 !important;
-  -gtk-outline-radius: 0 !important;
-}
-
-/* ===========================================
-   ENTRY FIELDS - SQUARE
-   =========================================== */
-
-entry,
-searchentry,
-spinbutton,
-.entry {
-  border-radius: 0 !important;
-}
-
-/* ===========================================
-   PICTURES AND IMAGES - SQUARE WITH BORDER
+   PICTURES AND IMAGES
    =========================================== */
 
 picture,
-image,
-.thumbnail {
-  border-radius: 0 !important;
+image {
+  border-radius: 0;
   border: 1px solid #2a2a2a;
 }
 
@@ -142,12 +100,8 @@ image,
 frame,
 .frame,
 .card,
-.boxed-list,
-preferencesgroup,
-preferencespage,
-.preferences-group,
-.preferences-page {
-  border-radius: 0 !important;
+.boxed-list {
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -156,13 +110,9 @@ preferencespage,
 
 popover,
 popover > contents,
-popover > arrow,
 menu,
-menuitem,
-.menu,
-.context-menu,
-.popup {
-  border-radius: 0 !important;
+menuitem {
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -176,10 +126,8 @@ row,
 list > row,
 listview > row,
 listbox > row,
-.navigation-sidebar row,
-.navigation-sidebar,
-.sidebar-row {
-  border-radius: 0 !important;
+.navigation-sidebar row {
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -189,7 +137,7 @@ listbox > row,
 scrollbar,
 scrollbar slider,
 scrollbar trough {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -199,7 +147,7 @@ scrollbar trough {
 progressbar,
 progressbar trough,
 progressbar progress {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -212,7 +160,7 @@ check,
 checkbutton,
 radio,
 radiobutton {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -223,7 +171,7 @@ scale,
 scale slider,
 scale trough,
 scale highlight {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -237,21 +185,17 @@ notebook > header > tabs > tab,
 stack,
 stackswitcher,
 stackswitcher > button {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ===========================================
-   DIALOGS AND WINDOWS
+   DIALOGS
    =========================================== */
 
 dialog,
 messagedialog,
-.dialog-vbox,
-.message-dialog,
-window.dialog,
-window.messagedialog,
-.dialog-action-area button {
-  border-radius: 0 !important;
+window.dialog {
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -260,19 +204,58 @@ window.messagedialog,
 
 tooltip,
 tooltip.background {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 /* ===========================================
    INFOBARS
    =========================================== */
 
-infobar,
-.info,
-.warning,
-.error,
-.question {
-  border-radius: 0 !important;
+infobar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   LINKED BUTTONS
+   =========================================== */
+
+.linked > button,
+.linked > entry,
+.linked > menubutton > button {
+  border-radius: 0;
+}
+
+/* ===========================================
+   AVATAR (force square)
+   =========================================== */
+
+avatar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   ACTION BAR
+   =========================================== */
+
+actionbar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   SEARCH BAR
+   =========================================== */
+
+searchbar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   EXPANDER
+   =========================================== */
+
+expander,
+expander title {
+  border-radius: 0;
 }
 
 /* ===========================================
@@ -298,10 +281,6 @@ infobar,
   color: rgb(250, 190, 80);
 }
 
-.expand-button {
-  border-radius: 0 !important;
-}
-
 /* ===========================================
    SECTION HEADERS
    =========================================== */
@@ -320,49 +299,4 @@ infobar,
 .section-count {
   font-size: 12px;
   opacity: 0.6;
-}
-
-/* ===========================================
-   ADWAITA OVERRIDES
-   =========================================== */
-
-/* Override any adwaita rounded elements */
-.linked > button,
-.linked > entry,
-.linked > menubutton > button {
-  border-radius: 0 !important;
-}
-
-/* Adwaita avatar override */
-avatar {
-  border-radius: 0 !important;
-}
-
-/* Action bar */
-actionbar,
-.action-bar {
-  border-radius: 0 !important;
-}
-
-/* Search bar */
-searchbar {
-  border-radius: 0 !important;
-}
-
-/* Toolbar */
-toolbar,
-.toolbar {
-  border-radius: 0 !important;
-}
-
-/* Revealer contents */
-revealer > * {
-  border-radius: 0 !important;
-}
-
-/* Expander */
-expander,
-expander title,
-expander-row {
-  border-radius: 0 !important;
 }

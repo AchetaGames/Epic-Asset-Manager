@@ -77,7 +77,6 @@ pub mod imp {
         fn snapshot(&self, snapshot: &gtk4::Snapshot) {
             let widget = self.obj();
             let size = widget.size() as f32;
-            let radius = size / 2.0;
             let mut color = widget.style_context().color();
             let fraction = if widget.clockwise() {
                 1.0 - widget.fraction()
@@ -86,7 +85,8 @@ pub mod imp {
             };
 
             let rect = graphene::Rect::new(0.0, 0.0, size, size);
-            let circle = gsk::RoundedRect::from_rect(rect, radius);
+            // Use square clip instead of rounded clip - no border-radius
+            let square = gsk::RoundedRect::from_rect(rect, 0.0);
             let center = graphene::Point::new(size / 2.0, size / 2.0);
 
             if widget.inverted() {
@@ -104,7 +104,7 @@ pub mod imp {
             let color_stop_end = gsk::ColorStop::new(fraction, color);
 
             let rotation = 0.0;
-            snapshot.push_rounded_clip(&circle);
+            snapshot.push_rounded_clip(&square);
             snapshot.append_conic_gradient(&rect, &center, rotation, &[color_stop, color_stop_end]);
             snapshot.pop();
         }

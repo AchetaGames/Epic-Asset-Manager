@@ -24,7 +24,7 @@
                                         <property name="valign">center</property>
                                         <property name="margin-start">12</property>
                                         <property name="css-classes">osd
-circular</property>
+</property>
                                         <property name="opacity">0.8</property>
                                         <property name="icon-name">go-previous-symbolic</property>
                                         <property name="action-name">image_stack.prev</property>
@@ -37,7 +37,7 @@ circular</property>
                                         <property name="valign">center</property>
                                         <property name="margin-end">12</property>
                                       <property name="css-classes">osd
-circular</property>
+</property>
                                         <property name="opacity">0.8</property>
                                         <property name="icon-name">go-next-symbolic</property>
                                         <property name="action-name">image_stack.next</property>

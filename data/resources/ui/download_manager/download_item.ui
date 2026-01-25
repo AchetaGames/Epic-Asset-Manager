@@ -57,7 +57,7 @@
                         <property name="valign">center</property>
                         <property name="action-name">download_item.pause</property>
                         <property name="icon-name">media-playback-pause-symbolic</property>
-                        <property name="css-classes">circular</property>
+                        <property name="css-classes"></property>
                     </object>
                 </child>
                 <child>
@@ -65,7 +65,7 @@
                         <property name="valign">center</property>
                         <property name="action-name">download_item.cancel</property>
                         <property name="icon-name">process-stop-symbolic</property>
-                        <property name="css-classes">circular</property>
+                        <property name="css-classes"></property>
                     </object>
                 </child>
                 <child>
@@ -73,7 +73,7 @@
                         <property name="valign">center</property>
                         <property name="action-name">download_item.open</property>
                         <property name="icon-name">folder-open-symbolic</property>
-                        <property name="css-classes">circular</property>
+                        <property name="css-classes"></property>
                     </object>
                 </child>
             </object>
