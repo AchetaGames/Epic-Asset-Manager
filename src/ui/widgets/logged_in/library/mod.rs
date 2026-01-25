@@ -255,6 +255,12 @@ impl EpicLibraryBox {
             return;
         }
         self_.sidebar.set(sidebar.clone()).unwrap();
+        // Connect sidebar to this library
+        sidebar.set_logged_in(self);
+        // Set window on sidebar if we have it
+        if let Some(window) = self_.window.get() {
+            sidebar.set_window(window);
+        }
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
