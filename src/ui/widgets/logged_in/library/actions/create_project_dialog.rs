@@ -487,11 +487,44 @@ impl EpicCreateProjectDialog {
             return;
         }
 
-        debug!("Creating project: {} at {:?}", project_name, target_path);
+        let overwrite = self_.overwrite_check.is_active();
 
-        if let Some(dm) = self_.download_manager.get() {
-            if let Some(asset_info) = &*self_.asset.borrow() {
+        if let Some(asset_info) = &*self_.asset.borrow() {
+            // Check if asset is already downloaded locally by checking each release's app_id
+            let vaults = self_.settings.strv("unreal-vault-directories");
+
+            if let Some(release_infos) = &asset_info.release_info {
+                for ri in release_infos {
+                    if let Some(app_id) = &ri.app_id {
+                        let locations = crate::models::asset_data::AssetData::downloaded_locations(&vaults, app_id);
+                        if let Some(source_path) = locations.first() {
+                            // Asset is already downloaded - copy directly
+                            info!("Asset already downloaded at {:?}, copying to {:?}", source_path, target_path);
+
+                            let source = source_path.clone();
+                            let target = target_path.clone();
+
+                            // Perform copy in background thread
+                            std::thread::spawn(move || {
+                                if let Err(e) = Self::copy_directory(&source, &target, overwrite) {
+                                    log::error!("Failed to copy project: {:?}", e);
+                                } else {
+                                    log::info!("Project created successfully at {:?}", target);
+                                }
+                            });
+
+                            self.emit_by_name::<()>("project-created", &[]);
+                            self.close();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Asset not downloaded - use download manager
+            if let Some(dm) = self_.download_manager.get() {
                 if let Some(version) = &*self_.selected_version.borrow() {
+                    debug!("Asset not downloaded, adding to download queue with version: {}", version);
                     dm.add_asset_download(
                         version.clone(),
                         asset_info.clone(),
@@ -499,7 +532,7 @@ impl EpicCreateProjectDialog {
                         Some(vec![
                             crate::ui::widgets::download_manager::PostDownloadAction::Copy(
                                 target_path.to_str().unwrap().to_string(),
-                                self_.overwrite_check.is_active(),
+                                overwrite,
                             ),
                         ]),
                     );
@@ -509,5 +542,36 @@ impl EpicCreateProjectDialog {
                 }
             }
         }
+    }
+
+    fn copy_directory(source: &PathBuf, target: &PathBuf, overwrite: bool) -> std::io::Result<()> {
+        if target.exists() {
+            if overwrite {
+                std::fs::remove_dir_all(target)?;
+            } else {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    "Target directory already exists",
+                ));
+            }
+        }
+
+        std::fs::create_dir_all(target)?;
+
+        for entry in std::fs::read_dir(source)? {
+            let entry = entry?;
+            let file_type = entry.file_type()?;
+            let source_path = entry.path();
+            let file_name = entry.file_name();
+            let target_path = target.join(&file_name);
+
+            if file_type.is_dir() {
+                Self::copy_directory(&source_path, &target_path, overwrite)?;
+            } else {
+                std::fs::copy(&source_path, &target_path)?;
+            }
+        }
+
+        Ok(())
     }
 }
