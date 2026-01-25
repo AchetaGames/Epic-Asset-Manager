@@ -268,9 +268,7 @@ impl EpicAssetDetails {
                 #[weak(rename_to=details)]
                 self,
                 move |_, _| {
-                    details.show_download_details(
-                        &crate::ui::widgets::logged_in::library::actions::Action::CreateProject,
-                    );
+                    details.open_create_project_dialog();
                 }
             )
         );
@@ -729,5 +727,46 @@ impl EpicAssetDetails {
                 m.unselect_item(self.position());
             }
         }
+    }
+
+    fn open_create_project_dialog(&self) {
+        let self_ = self.imp();
+        log::info!("Opening Create Project dialog from asset detail...");
+
+        let dialog = crate::ui::widgets::logged_in::library::actions::EpicCreateProjectDialog::new();
+
+        // Set the transient parent window
+        if let Some(window) = self_.window.get() {
+            dialog.set_transient_for(Some(window));
+        }
+
+        // Set the download manager
+        if let Some(window) = self_.window.get() {
+            let window_ = window.imp();
+            dialog.set_download_manager(&window_.download_manager);
+        }
+
+        // Set the asset
+        if let Some(asset) = &*self_.asset.borrow() {
+            dialog.set_asset(asset);
+        }
+
+        // Connect to project-created signal
+        dialog.connect_local(
+            "project-created",
+            false,
+            clone!(
+                #[weak(rename_to=details)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    details.show_download_confirmation();
+                    None
+                }
+            ),
+        );
+
+        dialog.present();
     }
 }

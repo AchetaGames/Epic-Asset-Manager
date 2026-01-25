@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicCreateProjectDialog" parent="AdwWindow">
+        <property name="title" translatable="yes">Create Project</property>
+        <property name="default-width">450</property>
+        <property name="default-height">350</property>
+        <property name="modal">true</property>
+        <property name="resizable">false</property>
+        <property name="content">
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="AdwHeaderBar">
+                        <property name="show-end-title-buttons">false</property>
+                        <property name="show-start-title-buttons">false</property>
+                        <child type="start">
+                            <object class="GtkButton" id="cancel_button">
+                                <property name="label" translatable="yes">Cancel</property>
+                                <property name="action-name">window.close</property>
+                            </object>
+                        </child>
+                        <child type="end">
+                            <object class="GtkButton" id="create_button">
+                                <property name="label" translatable="yes">Create</property>
+                                <property name="css-classes">suggested-action</property>
+                                <property name="action-name">create_project.create</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="margin-start">24</property>
+                        <property name="margin-end">24</property>
+                        <property name="margin-top">12</property>
+                        <property name="margin-bottom">24</property>
+                        <property name="spacing">18</property>
+                        <child>
+                            <object class="AdwPreferencesGroup">
+                                <child>
+                                    <object class="AdwActionRow">
+                                        <property name="title" translatable="yes">Project Name</property>
+                                        <child type="suffix">
+                                            <object class="GtkEntry" id="project_name_entry">
+                                                <property name="valign">center</property>
+                                                <property name="hexpand">true</property>
+                                                <property name="placeholder-text" translatable="yes">Enter project name</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwPreferencesGroup">
+                                <child>
+                                    <object class="AdwComboRow" id="install_location_combo">
+                                        <property name="title" translatable="yes">Install Location</property>
+                                        <property name="subtitle" translatable="yes">Unreal Projects directory</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwPreferencesGroup">
+                                <child>
+                                    <object class="AdwComboRow" id="engine_version_combo">
+                                        <property name="title" translatable="yes">Engine Version</property>
+                                        <property name="subtitle" translatable="yes">Unreal Engine version</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkInfoBar" id="warning_bar">
+                                <property name="visible">false</property>
+                                <property name="message-type">warning</property>
+                                <child>
+                                    <object class="GtkLabel" id="warning_label">
+                                        <property name="label" translatable="yes">Project already exists in the target directory</property>
+                                        <property name="wrap">true</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkCheckButton" id="overwrite_check">
+                                        <property name="label" translatable="yes">Overwrite</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </property>
+    </template>
+</interface>

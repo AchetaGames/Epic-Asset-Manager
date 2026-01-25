@@ -1,8 +1,11 @@
 mod add_to_project;
 mod create_asset_project;
+pub mod create_project_dialog;
 mod download_detail;
 mod local_asset;
 mod manage_local_assets;
+
+pub use create_project_dialog::EpicCreateProjectDialog;
 
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
@@ -41,6 +44,7 @@ pub mod imp {
         release_date: RefCell<Option<String>>,
         release_notes: RefCell<Option<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub current_manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub size_label: RefCell<gtk4::Label>,
         pub disk_size_label: RefCell<gtk4::Label>,
@@ -69,6 +73,8 @@ pub mod imp {
         pub create_asset_project: TemplateChild<create_asset_project::EpicCreateAssetProject>,
         #[template_child]
         pub local_assets: TemplateChild<manage_local_assets::EpicLocalAssets>,
+        #[template_child]
+        pub open_create_project_dialog: TemplateChild<gtk4::Button>,
         pub details_group: gtk4::SizeGroup,
     }
 
@@ -86,6 +92,7 @@ pub mod imp {
                 release_date: RefCell::new(None),
                 release_notes: RefCell::new(None),
                 asset: RefCell::new(None),
+                current_manifest: RefCell::new(None),
                 window: OnceCell::new(),
                 size_label: RefCell::new(gtk4::Label::default()),
                 disk_size_label: RefCell::new(gtk4::Label::default()),
@@ -102,6 +109,7 @@ pub mod imp {
                 add_to_project: TemplateChild::default(),
                 create_asset_project: TemplateChild::default(),
                 local_assets: TemplateChild::default(),
+                open_create_project_dialog: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 details_group: gtk4::SizeGroup::new(SizeGroupMode::Both),
             }
@@ -248,6 +256,15 @@ impl EpicAssetActions {
     pub fn setup_events(&self) {
         let self_ = self.imp();
 
+        // Connect the Create Project button
+        self_.open_create_project_dialog.connect_clicked(clone!(
+            #[weak(rename_to=asset_actions)]
+            self,
+            move |_| {
+                asset_actions.open_create_project_dialog();
+            }
+        ));
+
         self_.select_download_version.connect_changed(clone!(
             #[weak(rename_to=download_details)]
             self,
@@ -307,6 +324,69 @@ impl EpicAssetActions {
         let self_ = self.imp();
         let actions = &self_.actions;
         self.insert_action_group("asset_actions", Some(actions));
+
+        action!(
+            actions,
+            "open_create_dialog",
+            clone!(
+                #[weak(rename_to=asset_actions)]
+                self,
+                move |_, _| {
+                    asset_actions.open_create_project_dialog();
+                }
+            )
+        );
+    }
+
+    fn open_create_project_dialog(&self) {
+        let self_ = self.imp();
+        log::info!("Opening Create Project dialog...");
+
+        let dialog = EpicCreateProjectDialog::new();
+        log::info!("Dialog created");
+
+        // Set the transient parent window
+        if let Some(window) = self_.window.get() {
+            dialog.set_transient_for(Some(window));
+        }
+
+        // Set the download manager
+        if let Some(dm) = self_.download_manager.get() {
+            dialog.set_download_manager(dm);
+        }
+
+        // Set the asset
+        if let Some(asset) = &*self_.asset.borrow() {
+            dialog.set_asset(asset);
+        }
+
+        // Set the selected version
+        if let Some(id) = self_.select_download_version.active_id() {
+            dialog.set_selected_version(&id);
+        }
+
+        // Set the manifest if available
+        if let Some(manifest) = &*self_.current_manifest.borrow() {
+            dialog.set_manifest(manifest);
+        }
+
+        // Connect to project-created signal to emit start-download
+        dialog.connect_local(
+            "project-created",
+            false,
+            clone!(
+                #[weak(rename_to=aa)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    aa.emit_by_name::<()>("start-download", &[]);
+                    None
+                }
+            ),
+        );
+
+        dialog.present();
     }
 
     pub fn set_action(&self, action: &Action) {
@@ -402,6 +482,8 @@ impl EpicAssetActions {
         if let Some(id) = self_.select_download_version.active_id() {
             if release_id.eq(&id) {
                 if let Some(manifest) = manifests.into_iter().next() {
+                    // Store the manifest for later use
+                    self_.current_manifest.replace(Some(manifest.clone()));
                     self_.add_to_project.set_manifest(&manifest);
                     self_.download_details.set_manifest(&manifest);
                     self_.create_asset_project.set_manifest(&manifest);
