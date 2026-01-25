@@ -285,6 +285,12 @@ expander title {
    SECTION HEADERS
    =========================================== */
 
+.section {
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+}
+
 .section-header {
   padding: 4px 0;
 }
