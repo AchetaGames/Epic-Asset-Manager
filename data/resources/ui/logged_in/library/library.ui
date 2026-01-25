@@ -6,9 +6,10 @@
         <property name="orientation">vertical</property>
         <property name="css-classes">view</property>
 
-        <!-- Search and sort bar -->
+        <!-- Search and sort bar (aligned right) -->
         <child>
             <object class="GtkBox">
+                <property name="halign">end</property>
                 <property name="margin-start">16</property>
                 <property name="margin-end">16</property>
                 <property name="margin-top">8</property>
@@ -16,14 +17,13 @@
                 <property name="spacing">8</property>
                 <child>
                     <object class="GtkSearchEntry" id="asset_search">
-                        <property name="hexpand">true</property>
+                        <property name="width-request">200</property>
                         <property name="placeholder-text">Search</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkBox">
                         <property name="css-classes">linked</property>
-                        <property name="halign">end</property>
                         <child>
                             <object class="GtkComboBoxText" id="select_order_by">
                                 <items>
