@@ -1,44 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+    <requires lib="gtk" version="4.0"/>
     <template class="EpicAsset" parent="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="valign">center</property>
+        <property name="width-request">335</property>
+        <property name="height-request">120</property>
+        <property name="spacing">8</property>
+        <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
         <child>
+            <!-- Thumbnail on left -->
             <object class="GtkOverlay">
                 <property name="child">
-                    <object class="GtkBox">
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">3</property>
-                        <child>
-                            <object class="AdwAvatar" id="image">
-                                <property name="name">thumbnail</property>
-                                <property name="icon-name">ue-logo-symbolic</property>
-                                <property name="hexpand">true</property>
-                                <property name="size">115</property>
-                                <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="margin-top">3</property>
-                                <property name="margin-start">4</property>
-                                <property name="margin-end">4</property>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkLabel" id="name">
-                                <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="ellipsize">end</property>
-                                <property name="halign">center</property>
-                                <property name="tooltip-text" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
-                                <property name="css-classes">asset-name</property>
-                                <property name="margin-bottom">5</property>
-                                <property name="margin-start">1</property>
-                                <property name="margin-end">1</property>
-                            </object>
-                        </child>
+                    <object class="AdwAvatar" id="image">
+                        <property name="margin-top">4</property>
+                        <property name="margin-bottom">4</property>
+                        <property name="margin-start">4</property>
+                        <property name="margin-end">4</property>
+                        <property name="name">thumbnail</property>
+                        <property name="icon-name">ue-logo-symbolic</property>
+                        <property name="size">110</property>
                     </object>
                 </property>
                 <child type="overlay">
                     <object class="GtkImage">
-                        <property name="css-classes">star</property> <!-- would use `warning`, but it gets too dark in light mode -->
+                        <property name="css-classes">star</property>
                         <property name="icon-name">starred</property>
-                        <property name="pixel-size">35</property>
-                        <property name="halign">end</property>
+                        <property name="pixel-size">25</property>
+                        <property name="halign">start</property>
                         <property name="valign">start</property>
                         <property name="visible" bind-source="EpicAsset" bind-property="favorite" bind-flags="sync-create"/>
                     </object>
@@ -46,10 +35,36 @@
                 <child type="overlay">
                     <object class="GtkImage">
                         <property name="icon-name">emblem-default</property>
-                        <property name="pixel-size">35</property>
+                        <property name="pixel-size">25</property>
                         <property name="halign">end</property>
                         <property name="valign">end</property>
                         <property name="visible" bind-source="EpicAsset" bind-property="downloaded" bind-flags="sync-create"/>
+                    </object>
+                </child>
+            </object>
+        </child>
+        <child>
+            <!-- Text and button on right -->
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="valign">center</property>
+                <property name="hexpand">true</property>
+                <property name="spacing">8</property>
+                <child>
+                    <object class="GtkLabel" id="name">
+                        <property name="label" translatable="yes" bind-source="EpicAsset" bind-property="label" bind-flags="sync-create"/>
+                        <property name="css-classes">asset-name</property>
+                        <property name="halign">start</property>
+                        <property name="ellipsize">end</property>
+                        <property name="lines">2</property>
+                        <property name="wrap">true</property>
+                        <property name="max-width-chars">20</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="action_button">
+                        <property name="halign">start</property>
+                        <property name="label" bind-source="EpicAsset" bind-property="action-label" bind-flags="sync-create"/>
                     </object>
                 </child>
             </object>
