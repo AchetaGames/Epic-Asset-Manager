@@ -4,91 +4,98 @@
     <template class="EpicLibraryBox" parent="GtkBox">
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
-        <property name="orientation">vertical</property>
-        <property name="css-classes">view</property>
-
-        <!-- Search and sort bar -->
+        <property name="homogeneous">true</property>
+        <!-- Main content on left -->
         <child>
             <object class="GtkBox">
-                <property name="margin-start">16</property>
-                <property name="margin-end">16</property>
-                <property name="margin-top">8</property>
-                <property name="margin-bottom">8</property>
-                <property name="spacing">8</property>
-                <child>
-                    <object class="GtkSearchEntry" id="asset_search">
-                        <property name="hexpand">true</property>
-                        <property name="placeholder-text">Search</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkBox">
-                        <property name="css-classes">linked</property>
-                        <property name="halign">end</property>
-                        <child>
-                            <object class="GtkComboBoxText" id="select_order_by">
-                                <items>
-                                    <item translatable="yes" id="name">Name</item>
-                                    <item translatable="yes" id="updated">Updated</item>
-                                    <item translatable="yes" id="released">Released</item>
-                                </items>
-                                <property name="active-id">name</property>
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkButton" id="order">
-                                <property name="action-name">library.order</property>
-                                <property name="icon-name">view-sort-ascending-symbolic</property>
-                            </object>
-                        </child>
-                    </object>
-                </child>
-            </object>
-        </child>
-
-        <!-- Scrollable grid area -->
-        <child>
-            <object class="GtkScrolledWindow" id="library_scroll">
                 <property name="hexpand">true</property>
                 <property name="vexpand">true</property>
-                <property name="child">
-                    <object class="GtkGridView" id="asset_grid">
-                        <property name="halign">fill</property>
-                        <property name="valign">start</property>
-                        <property name="max-columns">255</property>
+                <property name="orientation">vertical</property>
+                <property name="css-classes">view</property>
+
+                <!-- Search and sort bar -->
+                <child>
+                    <object class="GtkBox">
                         <property name="margin-start">16</property>
                         <property name="margin-end">16</property>
                         <property name="margin-top">8</property>
                         <property name="margin-bottom">8</property>
+                        <property name="spacing">8</property>
+                        <child>
+                            <object class="GtkSearchEntry" id="asset_search">
+                                <property name="hexpand">true</property>
+                                <property name="placeholder-text">Search</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="css-classes">linked</property>
+                                <property name="halign">end</property>
+                                <child>
+                                    <object class="GtkComboBoxText" id="select_order_by">
+                                        <items>
+                                            <item translatable="yes" id="name">Name</item>
+                                            <item translatable="yes" id="updated">Updated</item>
+                                            <item translatable="yes" id="released">Released</item>
+                                        </items>
+                                        <property name="active-id">name</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkButton" id="order">
+                                        <property name="action-name">library.order</property>
+                                        <property name="icon-name">view-sort-ascending-symbolic</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                     </object>
-                </property>
-            </object>
-        </child>
+                </child>
 
-        <!-- Progress bar and count -->
-        <child>
-            <object class="GtkBox">
-                <property name="margin-start">16</property>
-                <property name="margin-end">16</property>
-                <property name="margin-bottom">6</property>
-                <property name="spacing">8</property>
+                <!-- Scrollable grid area -->
                 <child>
-                    <object class="GtkProgressBar" id="refresh_progress">
+                    <object class="GtkScrolledWindow" id="library_scroll">
                         <property name="hexpand">true</property>
-                        <property name="show-text">true</property>
+                        <property name="vexpand">true</property>
+                        <property name="child">
+                            <object class="GtkGridView" id="asset_grid">
+                                <property name="halign">fill</property>
+                                <property name="valign">start</property>
+                                <property name="max-columns">5</property>
+                                <property name="margin-start">16</property>
+                                <property name="margin-end">16</property>
+                                <property name="margin-top">8</property>
+                                <property name="margin-bottom">8</property>
+                            </object>
+                        </property>
                     </object>
                 </child>
+
+                <!-- Progress bar and count -->
                 <child>
-                    <object class="GtkLabel" id="count_label">
-                        <property name="css-classes">menu</property>
-                        <property name="label" translatable="yes">0 items</property>
-                        <property name="halign">end</property>
+                    <object class="GtkBox">
+                        <property name="margin-start">16</property>
+                        <property name="margin-end">16</property>
+                        <property name="margin-bottom">6</property>
+                        <property name="spacing">8</property>
+                        <child>
+                            <object class="GtkProgressBar" id="refresh_progress">
+                                <property name="hexpand">true</property>
+                                <property name="show-text">true</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkLabel" id="count_label">
+                                <property name="css-classes">menu</property>
+                                <property name="label" translatable="yes">0 items</property>
+                                <property name="halign">end</property>
+                            </object>
+                        </child>
                     </object>
                 </child>
             </object>
         </child>
-
-        <!-- Asset details panel (hidden by default) -->
+        <!-- Asset details panel on right (hidden by default) -->
         <child>
             <object class="EpicAssetDetails" id="details">
                 <property name="visible">false</property>
