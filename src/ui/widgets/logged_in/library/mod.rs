@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use tokio::runtime::Builder;
 
 mod actions;
-mod asset;
+pub mod asset;
 pub mod asset_detail;
 pub mod image_stack;
 pub mod sidebar;

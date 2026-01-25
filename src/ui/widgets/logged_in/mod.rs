@@ -4,6 +4,7 @@ use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
 pub mod engines;
+pub mod games;
 pub mod library;
 mod log_line;
 pub mod logs;
@@ -25,11 +26,15 @@ pub mod imp {
         #[template_child]
         pub sidebar: TemplateChild<crate::ui::widgets::logged_in::library::sidebar::EpicSidebar>,
         #[template_child]
+        pub page_stack: TemplateChild<gtk4::Stack>,
+        #[template_child]
         pub library: TemplateChild<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
         #[template_child]
         pub engines: TemplateChild<crate::ui::widgets::logged_in::engines::EpicEnginesBox>,
         #[template_child]
         pub projects: TemplateChild<crate::ui::widgets::logged_in::projects::EpicProjectsBox>,
+        #[template_child]
+        pub games: TemplateChild<crate::ui::widgets::logged_in::games::EpicGamesBox>,
         pub settings: gtk4::gio::Settings,
     }
 
@@ -44,9 +49,11 @@ pub mod imp {
                 window: OnceCell::new(),
                 download_manager: OnceCell::new(),
                 sidebar: TemplateChild::default(),
+                page_stack: TemplateChild::default(),
                 library: TemplateChild::default(),
                 engines: TemplateChild::default(),
                 projects: TemplateChild::default(),
+                games: TemplateChild::default(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
         }
@@ -130,8 +137,10 @@ impl EpicLoggedInBox {
         self_.window.set(window.clone()).unwrap();
         self_.library.set_window(&window.clone());
         self_.library.set_sidebar(&self_.sidebar);
+        self_.sidebar.set_page_stack(&self_.page_stack);
         self_.engines.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
+        self_.games.set_window(&window.clone());
     }
 
     pub fn set_download_manager(
@@ -179,7 +188,17 @@ impl EpicLoggedInBox {
         image: Option<gtk4::gdk::Texture>,
     ) {
         let self_ = self.imp();
-        self_.library.add_asset(asset, image);
+        self_.library.add_asset(asset, image.clone());
+
+        // Also add games to the games page
+        if let Some(categories) = &asset.categories {
+            for category in categories {
+                if category.path.starts_with("games") || category.path.starts_with("dlc") {
+                    self_.games.add_asset_info(asset, image);
+                    break;
+                }
+            }
+        }
     }
 
     pub fn flush_assets(&self) {
@@ -189,6 +208,16 @@ impl EpicLoggedInBox {
 
     pub fn activate(&self, _active: bool) {
         // No-op in unified view - all sections always visible
+    }
+
+    pub fn switch_page(&self, page: &str) {
+        let self_ = self.imp();
+        self_.page_stack.set_visible_child_name(page);
+    }
+
+    pub fn current_page(&self) -> Option<glib::GString> {
+        let self_ = self.imp();
+        self_.page_stack.visible_child_name()
     }
 }
 
