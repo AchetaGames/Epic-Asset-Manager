@@ -1,10 +1,12 @@
 mod add_to_project;
+pub mod add_to_project_dialog;
 mod create_asset_project;
 pub mod create_project_dialog;
 mod download_detail;
 mod local_asset;
 mod manage_local_assets;
 
+pub use add_to_project_dialog::EpicAddToProjectDialog;
 pub use create_project_dialog::EpicCreateProjectDialog;
 
 use crate::models::asset_data::AssetType;

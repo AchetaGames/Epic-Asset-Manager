@@ -508,14 +508,42 @@ impl EpicLibraryBox {
     fn open_add_to_project_dialog(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
         let self_ = self.imp();
 
-        // For now, show the details panel with add_to_project action
-        // TODO: Create a dedicated Add to Project dialog
-        if let Some(details) = self_.details.get() {
-            details.set_asset(asset_info);
-            if let Err(e) = details.activate_action("details.add_to_project", None::<&glib::Variant>) {
-                log::error!("Failed to activate add_to_project action: {:?}", e);
-            }
+        let dialog = actions::EpicAddToProjectDialog::new();
+
+        // Set transient parent
+        if let Some(window) = self_.window.get() {
+            dialog.set_transient_for(Some(window));
+            dialog.set_window(window);
         }
+
+        // Set download manager
+        if let Some(dm) = self_.download_manager.get() {
+            dialog.set_download_manager(dm);
+        }
+
+        // Set the asset
+        dialog.set_asset(asset_info);
+
+        // Connect to asset-added signal to show download manager
+        dialog.connect_local(
+            "asset-added",
+            false,
+            clone!(
+                #[weak(rename_to=library)]
+                self,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    let self_ = library.imp();
+                    if let Some(window) = self_.window.get() {
+                        window.show_download_manager();
+                    }
+                    None
+                }
+            ),
+        );
+
+        dialog.present();
     }
 
     fn open_create_project_dialog(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
