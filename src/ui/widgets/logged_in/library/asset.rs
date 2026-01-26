@@ -89,6 +89,9 @@ pub mod imp {
                         glib::subclass::Signal::builder("create-project-requested")
                             .flags(glib::SignalFlags::ACTION)
                             .build(),
+                        glib::subclass::Signal::builder("tile-clicked")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
                     ]
                 });
             SIGNALS.as_ref()
@@ -254,6 +257,38 @@ impl EpicAsset {
                 asset.on_action_clicked();
             }
         ));
+
+        // Add click gesture to the entire tile for opening details
+        // The button has its own click handler that will take precedence
+        let gesture = gtk4::GestureClick::new();
+        gesture.connect_released(clone!(
+            #[weak(rename_to=asset)]
+            self,
+            #[weak]
+            self_,
+            move |gesture, _, x, y| {
+                // Check if click was on the button - if so, don't emit tile-clicked
+                // The button's own handler will take care of it
+                let button_allocation = self_.action_button.allocation();
+                let btn_x = button_allocation.x() as f64;
+                let btn_y = button_allocation.y() as f64;
+                let btn_w = button_allocation.width() as f64;
+                let btn_h = button_allocation.height() as f64;
+
+                // Get the click position relative to the tile
+                if x >= btn_x && x <= btn_x + btn_w && y >= btn_y && y <= btn_y + btn_h {
+                    // Click was on button area, let button handle it
+                    return;
+                }
+
+                use std::io::Write;
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    let _ = writeln!(f, "Tile clicked at ({}, {}) - emitting tile-clicked signal", x, y);
+                }
+                asset.emit_by_name::<()>("tile-clicked", &[]);
+            }
+        ));
+        self.add_controller(gesture);
     }
 
     fn update_action_label(&self) {

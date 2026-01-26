@@ -353,6 +353,22 @@ impl EpicLibraryBox {
                         }
                     ),
                 );
+
+                row.connect_local(
+                    "tile-clicked",
+                    false,
+                    clone!(
+                        #[weak]
+                        library,
+                        #[upgrade_or]
+                        None,
+                        move |values| {
+                            let asset = values[0].get::<EpicAsset>().unwrap();
+                            library.handle_asset_action(&asset, "show_details");
+                            None
+                        }
+                    ),
+                );
             }
         ));
 
@@ -432,6 +448,10 @@ impl EpicLibraryBox {
                     "add_to_project" => {
                         // Open add to project dialog
                         self.open_add_to_project_dialog(asset_info);
+                    }
+                    "show_details" => {
+                        // Open asset details panel
+                        self.show_asset_details(asset_info);
                     }
                     _ => {}
                 }
@@ -544,6 +564,16 @@ impl EpicLibraryBox {
         );
 
         dialog.present();
+    }
+
+    fn show_asset_details(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
+        let self_ = self.imp();
+
+        if let Some(details) = self_.details.get() {
+            details.set_asset(asset_info);
+            details.set_property("expanded", true);
+            details.set_property("visible", true);
+        }
     }
 
     fn open_create_project_dialog(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
