@@ -79,6 +79,15 @@
                         <property name="margin-end">8</property>
                     </object>
                 </child>
+                <child>
+                    <!-- Download info label (speed, percentage) -->
+                    <object class="GtkLabel" id="download_info">
+                        <property name="visible">false</property>
+                        <property name="halign">start</property>
+                        <property name="css-classes">dim-label</property>
+                        <property name="css-classes">caption</property>
+                    </object>
+                </child>
             </object>
         </child>
     </template>

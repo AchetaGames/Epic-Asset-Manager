@@ -693,7 +693,10 @@ impl Asset for super::EpicDownloadManager {
                                         let w_ = w.imp();
                                         let l = w_.logged_in_stack.clone();
                                         let l_ = l.imp();
-                                        l_.library.set_asset_download_progress(&asset_id, progress_fraction);
+                                        // Get speed from item
+                                        let speed: Option<String> = item.property("speed");
+                                        let speed_str = speed.unwrap_or_default();
+                                        l_.library.set_asset_download_progress(&asset_id, progress_fraction, &speed_str);
                                     }
                                 }
                             }

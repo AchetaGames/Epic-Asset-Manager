@@ -1183,14 +1183,14 @@ impl EpicLibraryBox {
         }
     }
 
-    pub fn set_asset_download_progress(&self, id: &str, progress: f64) {
+    pub fn set_asset_download_progress(&self, id: &str, progress: f64, speed: &str) {
         let self_ = self.imp();
         // Search in grid_model (not loaded_data) because that's what the widgets are bound to
         for i in 0..self_.grid_model.n_items() {
             if let Some(obj) = self_.grid_model.item(i) {
                 let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
                 if data.id() == id {
-                    data.set_download_progress(progress);
+                    data.set_download_info(progress, speed);
                     return;
                 }
             }

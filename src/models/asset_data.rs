@@ -35,6 +35,7 @@ mod imp {
         downloaded: RefCell<bool>,
         downloading: RefCell<bool>,
         download_progress: RefCell<f64>,
+        download_speed: RefCell<String>,
         pub kind: RefCell<Option<String>>,
         pub asset: RefCell<Option<AssetInfo>>,
         thumbnail: RefCell<Option<Texture>>,
@@ -56,6 +57,7 @@ mod imp {
                 downloaded: RefCell::new(false),
                 downloading: RefCell::new(false),
                 download_progress: RefCell::new(0.0),
+                download_speed: RefCell::new(String::new()),
                 kind: RefCell::new(None),
                 asset: RefCell::new(None),
                 thumbnail: RefCell::new(None),
@@ -96,6 +98,7 @@ mod imp {
                         .maximum(1.0)
                         .default_value(0.0)
                         .build(),
+                    glib::ParamSpecString::builder("download-speed").build(),
                 ]
             });
 
@@ -140,6 +143,12 @@ mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.download_progress.replace(progress);
                 }
+                "download-speed" => {
+                    let speed: Option<String> = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.download_speed.replace(speed.unwrap_or_default());
+                }
                 "thumbnail" => {
                     let thumbnail = value
                         .get()
@@ -158,6 +167,7 @@ mod imp {
                 "downloaded" => self.downloaded.borrow().to_value(),
                 "downloading" => self.downloading.borrow().to_value(),
                 "download-progress" => self.download_progress.borrow().to_value(),
+                "download-speed" => self.download_speed.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -425,6 +435,21 @@ impl AssetData {
 
     pub fn set_download_progress(&self, progress: f64) {
         self.set_property("download-progress", progress);
+        self.emit_by_name::<()>("refreshed", &[]);
+    }
+
+    pub fn download_speed(&self) -> String {
+        self.property("download-speed")
+    }
+
+    pub fn set_download_speed(&self, speed: &str) {
+        self.set_property("download-speed", speed);
+    }
+
+    /// Set both progress and speed together, emitting only one refresh signal
+    pub fn set_download_info(&self, progress: f64, speed: &str) {
+        self.set_property("download-progress", progress);
+        self.set_property("download-speed", speed);
         self.emit_by_name::<()>("refreshed", &[]);
     }
 }

@@ -27,6 +27,8 @@ pub mod imp {
         pub action_button: TemplateChild<gtk4::Button>,
         #[template_child]
         pub progress_bar: TemplateChild<gtk4::ProgressBar>,
+        #[template_child]
+        pub download_info: TemplateChild<gtk4::Label>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
@@ -51,6 +53,7 @@ pub mod imp {
                 image: TemplateChild::default(),
                 action_button: TemplateChild::default(),
                 progress_bar: TemplateChild::default(),
+                download_info: TemplateChild::default(),
                 data: RefCell::new(None),
                 handler: RefCell::new(None),
             }
@@ -356,16 +359,30 @@ impl EpicAsset {
                     asset.set_property("downloading", data.downloading());
                     asset.set_property("download-progress", data.download_progress());
 
-                    // Directly update progress bar widgets
+                    // Directly update progress bar and info widgets
                     let self_ = asset.imp();
                     let downloading = data.downloading();
                     let progress = data.download_progress();
+                    let speed = data.download_speed();
+
                     self_.progress_bar.set_visible(downloading);
                     self_.progress_bar.set_fraction(progress);
+                    self_.download_info.set_visible(downloading);
+
+                    // Format info: "45% - Downloading - 12.5 MB/s"
+                    if downloading {
+                        let pct = (progress * 100.0) as u32;
+                        let info_text = if speed.is_empty() {
+                            format!("{}%", pct)
+                        } else {
+                            format!("{}% - {}", pct, speed)
+                        };
+                        self_.download_info.set_label(&info_text);
+                    }
 
                     if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[SIGNAL] After update: visible={}, fraction={}",
-                            self_.progress_bar.is_visible(), self_.progress_bar.fraction());
+                        let _ = writeln!(f, "[SIGNAL] After update: visible={}, fraction={}, info={}",
+                            self_.progress_bar.is_visible(), self_.progress_bar.fraction(), speed);
                     }
                     None
                 }
@@ -389,6 +406,19 @@ impl EpicAsset {
 
         self_.progress_bar.set_visible(downloading);
         self_.progress_bar.set_fraction(progress);
+        self_.download_info.set_visible(downloading);
+
+        // Set initial info text if downloading
+        if downloading {
+            let speed = data.download_speed();
+            let pct = (progress * 100.0) as u32;
+            let info_text = if speed.is_empty() {
+                format!("{}%", pct)
+            } else {
+                format!("{}% - {}", pct, speed)
+            };
+            self_.download_info.set_label(&info_text);
+        }
 
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
             let _ = writeln!(f, "[set_data] After set: progress_bar.visible={}, progress_bar.fraction={}",
