@@ -193,7 +193,6 @@
                 <child>
                     <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Unreal Directories</property>
-                        <property name="separate-rows">true</property>
                         <child>
                             <object class="AdwExpanderRow">
                                 <property name="title" translatable="yes">Unreal Vault Directories</property>

@@ -221,12 +221,33 @@ stackswitcher > button {
 }
 
 /* ===========================================
-   DIALOGS
+   DIALOGS AND WINDOWS
    =========================================== */
 
 dialog,
 messagedialog,
-window.dialog {
+window.dialog,
+window.preferences,
+window.csd {
+  border-radius: 0;
+}
+
+/* Force square corners on window decorations */
+window decoration,
+decoration,
+.csd decoration {
+  border-radius: 0;
+}
+
+/* AdwWindow and subclasses */
+window.background.csd,
+window.solid-csd {
+  border-radius: 0;
+}
+
+/* AdwPreferencesWindow specific */
+preferenceswindow,
+window.preferenceswindow {
   border-radius: 0;
 }
 
