@@ -392,6 +392,16 @@ impl EpicDownloadItem {
         get_action!(self_.actions, @pause).set_enabled(false);
         self.set_property("canceled", true);
 
+        // Mark asset as no longer downloading
+        if let Some(w) = self_.window.get() {
+            if let Some(id) = self.asset() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.library.set_asset_downloading(&id, false);
+            }
+        }
+
         if let Some(dm) = self_.download_manager.get() {
             match self.item_type() {
                 ItemType::Unknown => {}
@@ -567,6 +577,8 @@ impl EpicDownloadItem {
                 let l = w_.logged_in_stack.clone();
                 let l_ = l.imp();
                 if let Some(id) = self.asset() {
+                    // Mark asset as no longer downloading and refresh it
+                    l_.library.set_asset_downloading(&id, false);
                     l_.library.refresh_asset(&id);
                 }
             }

@@ -180,6 +180,21 @@ progressbar progress {
   border-radius: 0;
 }
 
+/* Asset tile download progress bar */
+.asset-download-progress {
+  min-height: 10px;
+}
+
+.asset-download-progress trough {
+  min-height: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.asset-download-progress progress {
+  min-height: 10px;
+  background-color: #3584e4;
+}
+
 /* ===========================================
    SWITCHES AND TOGGLES
    =========================================== */

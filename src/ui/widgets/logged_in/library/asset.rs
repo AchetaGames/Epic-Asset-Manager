@@ -25,6 +25,10 @@ pub mod imp {
         pub image: TemplateChild<gtk4::Picture>,
         #[template_child]
         pub action_button: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub progress_box: TemplateChild<gtk4::Box>,
+        #[template_child]
+        pub progress_bar: TemplateChild<gtk4::ProgressBar>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
@@ -48,6 +52,8 @@ pub mod imp {
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
                 action_button: TemplateChild::default(),
+                progress_box: TemplateChild::default(),
+                progress_bar: TemplateChild::default(),
                 data: RefCell::new(None),
                 handler: RefCell::new(None),
             }
@@ -230,10 +236,21 @@ impl EpicAsset {
 
     fn setup_button(&self) {
         let self_ = self.imp();
+
+        // Debug: write to file to verify this is being called
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "setup_button called - connecting click handler");
+        }
+
         self_.action_button.connect_clicked(clone!(
             #[weak(rename_to=asset)]
             self,
             move |_| {
+                // Debug: write to file
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    let _ = writeln!(f, "Button clicked!");
+                }
                 asset.on_action_clicked();
             }
         ));
@@ -261,16 +278,32 @@ impl EpicAsset {
         let self_ = self.imp();
         let downloaded = *self_.downloaded.borrow();
         let kind = self_.kind.borrow().clone();
+        let label: Option<String> = self.property("label");
+
+        // Debug: write to file to verify this is being called
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "on_action_clicked: downloaded={}, kind={:?}, label={:?}", downloaded, kind, label);
+        }
 
         // Emit signal for parent to handle the action
         if !downloaded {
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                let _ = writeln!(f, "Emitting download-requested signal");
+            }
             self.emit_by_name::<()>("download-requested", &[]);
         } else {
             match kind.as_deref() {
                 Some("projects") => {
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "Emitting create-project-requested signal");
+                    }
                     self.emit_by_name::<()>("create-project-requested", &[]);
                 }
                 _ => {
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "Emitting add-to-project-requested signal");
+                    }
                     self.emit_by_name::<()>("add-to-project-requested", &[]);
                 }
             }
@@ -314,11 +347,62 @@ impl EpicAsset {
                 #[upgrade_or]
                 None,
                 move |_| {
+                    // Debug: log signal received
+                    use std::io::Write;
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "[SIGNAL] refreshed received: id={}, downloading={}, progress={}",
+                            data.id(), data.downloading(), data.download_progress());
+                    }
+
                     asset.set_property("favorite", data.favorite());
                     asset.set_property("downloaded", data.downloaded());
+                    asset.set_property("downloading", data.downloading());
+                    asset.set_property("download-progress", data.download_progress());
+
+                    // Directly update progress bar widgets
+                    let self_ = asset.imp();
+                    let downloading = data.downloading();
+                    let progress = data.download_progress();
+                    self_.progress_box.set_visible(downloading);
+                    self_.progress_bar.set_fraction(progress);
+
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "[SIGNAL] After update: visible={}, fraction={}",
+                            self_.progress_box.is_visible(), self_.progress_bar.fraction());
+                    }
                     None
                 }
             ),
         )));
+
+        // CRITICAL: Immediately sync UI to current state when widget is bound
+        // This handles GridView recycling - widget must reflect asset's current state
+        let downloading = data.downloading();
+        let progress = data.download_progress();
+
+        // Debug: verify template children exist
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "[set_data] Setting progress: downloading={}, progress={}, progress_box valid={}, progress_bar valid={}",
+                downloading, progress,
+                self_.progress_box.is_visible() || !self_.progress_box.is_visible(), // will be true if widget exists
+                self_.progress_bar.fraction() >= 0.0 // will be true if widget exists
+            );
+        }
+
+        self_.progress_box.set_visible(downloading);
+        self_.progress_bar.set_fraction(progress);
+
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "[set_data] After set: progress_box.visible={}, progress_bar.fraction={}",
+                self_.progress_box.is_visible(), self_.progress_bar.fraction());
+        }
+    }
+
+    /// Direct method to update download progress - bypasses signals
+    pub fn update_download_progress(&self, downloading: bool, progress: f64) {
+        let self_ = self.imp();
+        self_.progress_box.set_visible(downloading);
+        self_.progress_bar.set_fraction(progress);
     }
 }

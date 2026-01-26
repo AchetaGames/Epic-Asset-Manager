@@ -290,6 +290,12 @@ impl EpicLibraryBox {
             #[weak(rename_to=library)]
             self,
             move |_factory, item| {
+                // Debug: write to file
+                use std::io::Write;
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/factory_setup.log") {
+                    let _ = writeln!(f, "Factory setup called - creating EpicAsset");
+                }
+
                 let row = EpicAsset::new();
                 let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
                 item.set_child(Some(&row));
@@ -304,6 +310,11 @@ impl EpicLibraryBox {
                         #[upgrade_or]
                         None,
                         move |values| {
+                            // Debug - this should print if the signal handler is called
+                            use std::io::Write;
+                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                                let _ = writeln!(f, ">>> SIGNAL HANDLER CALLED for download-requested <<<");
+                            }
                             let asset = values[0].get::<EpicAsset>().unwrap();
                             library.handle_asset_action(&asset, "download");
                             None
@@ -357,21 +368,10 @@ impl EpicLibraryBox {
         self_
             .sorter_model
             .set_sorter(Some(&Self::sorter("name", true)));
-        let selection_model = gtk4::SingleSelection::builder()
-            .model(&self_.sorter_model)
-            .autoselect(false)
-            .can_unselect(true)
-            .build();
+        // Use NoSelection to allow button clicks to work inside grid items
+        let selection_model = gtk4::NoSelection::new(Some(self_.sorter_model.clone()));
         self_.asset_grid.set_model(Some(&selection_model));
         self_.asset_grid.set_factory(Some(&factory));
-
-        selection_model.connect_selected_notify(clone!(
-            #[weak(rename_to=library)]
-            self,
-            move |model| {
-                library.asset_selected(model);
-            }
-        ));
 
         self.fetch_assets();
         glib::timeout_add_seconds_local(
@@ -408,28 +408,112 @@ impl EpicLibraryBox {
     fn handle_asset_action(&self, asset_widget: &EpicAsset, action: &str) {
         let self_ = self.imp();
 
+        // Debug
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "handle_asset_action called with action: {}", action);
+        }
+
         // Get the asset data from the widget
         if let Some(data) = asset_widget.imp().data.borrow().as_ref() {
+            log::info!("Got asset data with id: {}", data.id());
             let assets = self_.loaded_assets.borrow();
             if let Some(asset_info) = assets.get(&data.id()) {
-                // For create_project, open dialog directly without changing details panel
-                if action == "create_project" {
-                    self.open_create_project_dialog(asset_info);
-                    return;
-                }
+                log::info!("Found asset_info for: {:?}", asset_info.title);
 
-                if let Some(details) = self_.details.get() {
-                    // Set the asset on the details panel
-                    details.set_asset(asset_info);
-
-                    // Activate the appropriate action on the details widget
-                    let action_name = match action {
-                        "download" => "details.show_download_details",
-                        "add_to_project" => "details.add_to_project",
-                        _ => return,
-                    };
-                    details.activate_action(action_name, None::<&glib::Variant>).ok();
+                match action {
+                    "create_project" => {
+                        self.open_create_project_dialog(asset_info);
+                    }
+                    "download" => {
+                        // Start download directly using the first release
+                        self.start_asset_download(asset_info);
+                    }
+                    "add_to_project" => {
+                        // Open add to project dialog
+                        self.open_add_to_project_dialog(asset_info);
+                    }
+                    _ => {}
                 }
+            } else {
+                log::error!("Asset info not found for id: {}", data.id());
+            }
+        } else {
+            log::error!("No asset data in widget!");
+        }
+    }
+
+    fn start_asset_download(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
+        let self_ = self.imp();
+
+        // Debug
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "start_asset_download called for: {:?}", asset_info.title);
+        }
+
+        // Get the first release to download
+        if let Some(release_info) = asset_info.release_info.as_ref() {
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                let _ = writeln!(f, "Found release_info with {} releases", release_info.len());
+            }
+            if let Some(first) = release_info.first() {
+                if let Some(release_id) = &first.app_id {
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "Starting download for release_id: {}", release_id);
+                    }
+
+                    // Start the download via download manager
+                    if let Some(dm) = self_.download_manager.get() {
+                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                            let _ = writeln!(f, "Got download manager, calling add_asset_download");
+                        }
+                        use crate::ui::widgets::download_manager::asset::Asset;
+                        dm.add_asset_download(
+                            release_id.clone(),
+                            asset_info.clone(),
+                            &None,  // Use default vault directory
+                            None,   // No special post-download actions
+                        );
+
+                        // Show the download manager
+                        if let Some(window) = self_.window.get() {
+                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                                let _ = writeln!(f, "Showing download manager");
+                            }
+                            window.show_download_manager();
+                        }
+                    } else {
+                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                            let _ = writeln!(f, "ERROR: Download manager not available!");
+                        }
+                    }
+                } else {
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "ERROR: No app_id in first release");
+                    }
+                }
+            } else {
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    let _ = writeln!(f, "ERROR: No releases found");
+                }
+            }
+        } else {
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                let _ = writeln!(f, "ERROR: No release_info in asset");
+            }
+        }
+    }
+
+    fn open_add_to_project_dialog(&self, asset_info: &egs_api::api::types::asset_info::AssetInfo) {
+        let self_ = self.imp();
+
+        // For now, show the details panel with add_to_project action
+        // TODO: Create a dedicated Add to Project dialog
+        if let Some(details) = self_.details.get() {
+            details.set_asset(asset_info);
+            if let Err(e) = details.activate_action("details.add_to_project", None::<&glib::Variant>) {
+                log::error!("Failed to activate add_to_project action: {:?}", e);
             }
         }
     }
@@ -821,9 +905,11 @@ impl EpicLibraryBox {
             } {
                 let data = crate::models::asset_data::AssetData::new(asset, image);
                 let mut data_hash = self_.loaded_data.borrow_mut();
+                // IMPORTANT: Insert the SAME object into both loaded_data and grid_model
+                // so that updates to loaded_data are reflected in the GridView
                 data_hash.insert(data.id(), data.clone());
                 if let Ok(mut vec) = self_.assets_pending.write() {
-                    vec.push(data.upcast());
+                    vec.push(data.clone().upcast());
                 }
             }
         }
@@ -1078,6 +1164,37 @@ impl EpicLibraryBox {
             data.refresh();
         }
         self.apply_filter();
+    }
+
+    pub fn set_asset_downloading(&self, id: &str, downloading: bool) {
+        let self_ = self.imp();
+        // Search in grid_model (not loaded_data) because that's what the widgets are bound to
+        for i in 0..self_.grid_model.n_items() {
+            if let Some(obj) = self_.grid_model.item(i) {
+                let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
+                if data.id() == id {
+                    data.set_downloading(downloading);
+                    if !downloading {
+                        data.set_download_progress(0.0);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    pub fn set_asset_download_progress(&self, id: &str, progress: f64) {
+        let self_ = self.imp();
+        // Search in grid_model (not loaded_data) because that's what the widgets are bound to
+        for i in 0..self_.grid_model.n_items() {
+            if let Some(obj) = self_.grid_model.item(i) {
+                let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
+                if data.id() == id {
+                    data.set_download_progress(progress);
+                    return;
+                }
+            }
+        }
     }
 }
 
