@@ -679,17 +679,22 @@ impl Asset for super::EpicDownloadManager {
                         item.add_downloaded_size(progress);
                         self.emit_by_name::<()>("tick", &[]);
 
-                        // Update library asset progress
+                        // Update library asset progress (throttled to avoid UI flooding)
                         if let Some(asset_id) = item.asset() {
                             let total = item.total_size();
                             let downloaded = item.downloaded_size();
                             if total > 0 {
                                 let progress_fraction = downloaded as f64 / total as f64;
-                                if let Some(w) = self_.window.get() {
-                                    let w_ = w.imp();
-                                    let l = w_.logged_in_stack.clone();
-                                    let l_ = l.imp();
-                                    l_.library.set_asset_download_progress(&asset_id, progress_fraction);
+                                // Only update every ~1% to avoid flooding UI
+                                let progress_pct = (progress_fraction * 100.0) as u32;
+                                let old_pct = ((downloaded - progress) as f64 / total as f64 * 100.0) as u32;
+                                if progress_pct != old_pct {
+                                    if let Some(w) = self_.window.get() {
+                                        let w_ = w.imp();
+                                        let l = w_.logged_in_stack.clone();
+                                        let l_ = l.imp();
+                                        l_.library.set_asset_download_progress(&asset_id, progress_fraction);
+                                    }
                                 }
                             }
                         }
