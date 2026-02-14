@@ -21,9 +21,12 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="asset_actions.ui">ui/logged_in/library/actions/asset_actions.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_detail.ui">ui/logged_in/library/actions/download_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="create_asset_project.ui">ui/logged_in/library/actions/create_asset_project.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="create_project_dialog.ui">ui/logged_in/library/actions/create_project_dialog.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="add_to_project_dialog.ui">ui/logged_in/library/actions/add_to_project_dialog.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="local_asset.ui">ui/logged_in/library/actions/local_asset.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="manage_local_assets.ui">ui/logged_in/library/actions/manage_local_assets.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="projects.ui">ui/logged_in/projects/projects.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="games.ui">ui/logged_in/games/games.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="project.ui">ui/logged_in/projects/project.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="project_detail.ui">ui/logged_in/projects/project_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="docker_download.ui">ui/logged_in/engines/docker_download.ui</file>
@@ -36,6 +39,9 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="download_manager.ui">ui/download_manager/download_manager.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="download_item.ui">ui/download_manager/download_item.ui</file>
         <file compressed="true" alias="style.css">style.css</file>
+    </gresource>
+    <gresource prefix="/io/github/achetagames/epic_asset_manager/icons/scalable/apps">
+        <file compressed="true" preprocess="xml-stripblanks" alias="io.github.achetagames.epic_asset_manager.svg">../icons/io.github.achetagames.epic_asset_manager.svg</file>
     </gresource>
     <gresource prefix="/io/github/achetagames/epic_asset_manager/icons/scalable/emblems">
         <file compressed="true" preprocess="xml-stripblanks" alias="ue-logo-symbolic.svg">../icons/ue-logo-symbolic.svg</file>

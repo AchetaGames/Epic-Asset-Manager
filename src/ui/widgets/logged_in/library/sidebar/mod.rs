@@ -28,6 +28,7 @@ pub mod imp {
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub settings: gtk4::gio::Settings,
         pub loggedin: OnceCell<crate::ui::widgets::logged_in::library::EpicLibraryBox>,
+        pub page_stack: OnceCell<gtk4::Stack>,
         pub expanded: RefCell<bool>,
         #[template_child]
         pub expand_button: TemplateChild<gtk4::ToggleButton>, // TODO: Somehow use the EpicAssetManagerWindow's expand_button instead
@@ -59,6 +60,7 @@ pub mod imp {
                 download_manager: OnceCell::new(),
                 window: OnceCell::new(),
                 loggedin: OnceCell::new(),
+                page_stack: OnceCell::new(),
                 expanded: RefCell::new(false),
                 expand_button: TemplateChild::default(),
                 expand_image: TemplateChild::default(),
@@ -163,6 +165,21 @@ impl EpicSidebar {
             _ => &self_.unreal_category,
         }
         .clicked();
+    }
+
+    pub fn set_page_stack(&self, stack: &gtk4::Stack) {
+        let self_ = self.imp();
+        if self_.page_stack.get().is_some() {
+            return;
+        }
+        self_.page_stack.set(stack.clone()).unwrap();
+    }
+
+    pub fn switch_main_page(&self, page: &str) {
+        let self_ = self.imp();
+        if let Some(stack) = self_.page_stack.get() {
+            stack.set_visible_child_name(page);
+        }
     }
 
     pub fn setup_actions(&self) {
@@ -300,7 +317,14 @@ impl EpicSidebar {
 
     pub fn set_filter(&self, filter: Option<String>, path: Option<String>) {
         let self_ = self.imp();
-        if let Some(p) = path {
+        if let Some(p) = path.clone() {
+            // Switch main page based on category
+            if p == "games" {
+                self.switch_main_page("games");
+            } else {
+                self.switch_main_page("unreal");
+            }
+
             if self_.stack.child_by_name(&p).is_some() {
                 self_.stack.set_visible_child_name(&p);
             }

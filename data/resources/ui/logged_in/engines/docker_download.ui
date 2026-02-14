@@ -25,7 +25,7 @@
                                         <property name="margin-end">32</property>
                                         <property name="name">engine_install_button</property>
                                         <property name="action-name">docker_download.install</property>
-                                        <property name="css-classes">pill
+                                        <property name="css-classes">
 suggested-action</property>
                                         <child>
                                             <object class="AdwButtonContent">

@@ -19,7 +19,7 @@
                                     <property name="name">engine_launch_button</property>
                                     <property name="action-name">engine_details.launch</property>
                                     <property name="css-classes">suggested-action
-pill</property>
+</property>
                                     <child>
                                         <object class="AdwButtonContent">
                                             <property name="icon-name">media-playback-start-symbolic</property>

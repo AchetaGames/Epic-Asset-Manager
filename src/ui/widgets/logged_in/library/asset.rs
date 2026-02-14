@@ -15,11 +15,20 @@ pub mod imp {
         id: RefCell<Option<String>>,
         label: RefCell<Option<String>>,
         favorite: RefCell<bool>,
-        downloaded: RefCell<bool>,
+        pub downloaded: RefCell<bool>,
+        pub downloading: RefCell<bool>,
+        pub download_progress: RefCell<f64>,
+        pub kind: RefCell<Option<String>>,
+        pub action_label: RefCell<String>,
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
-        pub image: TemplateChild<adw::Avatar>,
-        // pub image: TemplateChild<gtk4::Image>,
+        pub image: TemplateChild<gtk4::Picture>,
+        #[template_child]
+        pub action_button: TemplateChild<gtk4::Button>,
+        #[template_child]
+        pub progress_bar: TemplateChild<gtk4::ProgressBar>,
+        #[template_child]
+        pub download_info: TemplateChild<gtk4::Label>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
@@ -36,8 +45,15 @@ pub mod imp {
                 label: RefCell::new(None),
                 favorite: RefCell::new(false),
                 downloaded: RefCell::new(false),
+                downloading: RefCell::new(false),
+                download_progress: RefCell::new(0.0),
+                kind: RefCell::new(None),
+                action_label: RefCell::new("Download".to_string()),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
+                action_button: TemplateChild::default(),
+                progress_bar: TemplateChild::default(),
+                download_info: TemplateChild::default(),
                 data: RefCell::new(None),
                 handler: RefCell::new(None),
             }
@@ -56,6 +72,29 @@ pub mod imp {
     impl ObjectImpl for EpicAsset {
         fn constructed(&self) {
             self.parent_constructed();
+            let obj = self.obj();
+            obj.setup_button();
+        }
+
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
+                once_cell::sync::Lazy::new(|| {
+                    vec![
+                        glib::subclass::Signal::builder("download-requested")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
+                        glib::subclass::Signal::builder("add-to-project-requested")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
+                        glib::subclass::Signal::builder("create-project-requested")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
+                        glib::subclass::Signal::builder("tile-clicked")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
+                    ]
+                });
+            SIGNALS.as_ref()
         }
 
         fn properties() -> &'static [glib::ParamSpec] {
@@ -67,6 +106,14 @@ pub mod imp {
                     ParamSpecObject::builder::<Texture>("thumbnail").build(),
                     glib::ParamSpecBoolean::builder("favorite").build(),
                     glib::ParamSpecBoolean::builder("downloaded").build(),
+                    glib::ParamSpecBoolean::builder("downloading").build(),
+                    glib::ParamSpecDouble::builder("download-progress")
+                        .minimum(0.0)
+                        .maximum(1.0)
+                        .default_value(0.0)
+                        .build(),
+                    glib::ParamSpecString::builder("kind").build(),
+                    glib::ParamSpecString::builder("action-label").build(),
                 ]
             });
 
@@ -94,10 +141,36 @@ pub mod imp {
                     self.favorite.replace(favorite);
                 }
                 "downloaded" => {
-                    let downloaded = value
+                    let downloaded: bool = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
                     self.downloaded.replace(downloaded);
+                    self.obj().update_action_label();
+                }
+                "downloading" => {
+                    let downloading: bool = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.downloading.replace(downloading);
+                }
+                "download-progress" => {
+                    let progress: f64 = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.download_progress.replace(progress);
+                }
+                "kind" => {
+                    let kind = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.kind.replace(kind);
+                    self.obj().update_action_label();
+                }
+                "action-label" => {
+                    let action_label: String = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.action_label.replace(action_label);
                 }
                 "thumbnail" => {
                     let thumbnail: Option<Texture> = value
@@ -107,11 +180,20 @@ pub mod imp {
                     self.thumbnail.replace(thumbnail.clone());
                     thumbnail.map_or_else(
                         || {
-                            self.image.set_icon_name(Some("ue-logo-symbolic"));
+                            // Set default icon when no thumbnail
+                            let icon_theme = gtk4::IconTheme::for_display(&self.image.display());
+                            let icon = icon_theme.lookup_icon(
+                                "ue-logo-symbolic",
+                                &[],
+                                110,
+                                1,
+                                gtk4::TextDirection::None,
+                                gtk4::IconLookupFlags::empty(),
+                            );
+                            self.image.set_paintable(Some(&icon));
                         },
                         |t| {
-                            self.image.set_custom_image(Some(&t));
-                            // self.image.set_paintable(Some(&t));
+                            self.image.set_paintable(Some(&t));
                         },
                     );
                 }
@@ -125,6 +207,10 @@ pub mod imp {
                 "id" => self.id.borrow().to_value(),
                 "favorite" => self.favorite.borrow().to_value(),
                 "downloaded" => self.downloaded.borrow().to_value(),
+                "downloading" => self.downloading.borrow().to_value(),
+                "download-progress" => self.download_progress.borrow().to_value(),
+                "kind" => self.kind.borrow().to_value(),
+                "action-label" => self.action_label.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -151,7 +237,117 @@ impl EpicAsset {
         glib::Object::new()
     }
 
+    fn setup_button(&self) {
+        let self_ = self.imp();
+
+        // Debug: write to file to verify this is being called
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "setup_button called - connecting click handler");
+        }
+
+        self_.action_button.connect_clicked(clone!(
+            #[weak(rename_to=asset)]
+            self,
+            move |_| {
+                // Debug: write to file
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    let _ = writeln!(f, "Button clicked!");
+                }
+                asset.on_action_clicked();
+            }
+        ));
+
+        // Add click gesture to the entire tile for opening details
+        // The button has its own click handler that will take precedence
+        let gesture = gtk4::GestureClick::new();
+        gesture.connect_released(clone!(
+            #[weak(rename_to=asset)]
+            self,
+            #[weak]
+            self_,
+            move |gesture, _, x, y| {
+                // Check if click was on the button - if so, don't emit tile-clicked
+                // The button's own handler will take care of it
+                let button_allocation = self_.action_button.allocation();
+                let btn_x = button_allocation.x() as f64;
+                let btn_y = button_allocation.y() as f64;
+                let btn_w = button_allocation.width() as f64;
+                let btn_h = button_allocation.height() as f64;
+
+                // Get the click position relative to the tile
+                if x >= btn_x && x <= btn_x + btn_w && y >= btn_y && y <= btn_y + btn_h {
+                    // Click was on button area, let button handle it
+                    return;
+                }
+
+                use std::io::Write;
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    let _ = writeln!(f, "Tile clicked at ({}, {}) - emitting tile-clicked signal", x, y);
+                }
+                asset.emit_by_name::<()>("tile-clicked", &[]);
+            }
+        ));
+        self.add_controller(gesture);
+    }
+
+    fn update_action_label(&self) {
+        let self_ = self.imp();
+        let downloaded = *self_.downloaded.borrow();
+        let kind = self_.kind.borrow().clone();
+
+        let label = if !downloaded {
+            "Download".to_string()
+        } else {
+            match kind.as_deref() {
+                Some("projects") => "Create Project".to_string(),
+                _ => "Add to Project".to_string(),
+            }
+        };
+
+        self_.action_label.replace(label.clone());
+        self.notify("action-label");
+    }
+
+    fn on_action_clicked(&self) {
+        let self_ = self.imp();
+        let downloaded = *self_.downloaded.borrow();
+        let kind = self_.kind.borrow().clone();
+        let label: Option<String> = self.property("label");
+
+        // Debug: write to file to verify this is being called
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "on_action_clicked: downloaded={}, kind={:?}, label={:?}", downloaded, kind, label);
+        }
+
+        // Emit signal for parent to handle the action
+        if !downloaded {
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                let _ = writeln!(f, "Emitting download-requested signal");
+            }
+            self.emit_by_name::<()>("download-requested", &[]);
+        } else {
+            match kind.as_deref() {
+                Some("projects") => {
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "Emitting create-project-requested signal");
+                    }
+                    self.emit_by_name::<()>("create-project-requested", &[]);
+                }
+                _ => {
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "Emitting add-to-project-requested signal");
+                    }
+                    self.emit_by_name::<()>("add-to-project-requested", &[]);
+                }
+            }
+        }
+    }
+
     pub fn set_data(&self, data: &crate::models::asset_data::AssetData) {
+        use crate::models::asset_data::AssetType;
+
         let self_ = self.imp();
         if let Some(d) = self_.data.take() {
             if let Some(id) = self_.handler.take() {
@@ -162,7 +358,19 @@ impl EpicAsset {
         self.set_property("label", data.name());
         self.set_property("thumbnail", data.image());
         self.set_property("favorite", data.favorite());
+
+        // Set kind before downloaded so action_label updates correctly
+        let kind_str = match data.kind() {
+            Some(AssetType::Asset) => Some("asset".to_string()),
+            Some(AssetType::Project) => Some("projects".to_string()),
+            Some(AssetType::Game) => Some("games".to_string()),
+            Some(AssetType::Engine) => Some("engines".to_string()),
+            Some(AssetType::Plugin) => Some("plugins".to_string()),
+            None => None,
+        };
+        self.set_property("kind", kind_str);
         self.set_property("downloaded", data.downloaded());
+
         self_.handler.replace(Some(data.connect_local(
             "refreshed",
             false,
@@ -174,11 +382,89 @@ impl EpicAsset {
                 #[upgrade_or]
                 None,
                 move |_| {
+                    // Debug: log signal received
+                    use std::io::Write;
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "[SIGNAL] refreshed received: id={}, downloading={}, progress={}",
+                            data.id(), data.downloading(), data.download_progress());
+                    }
+
                     asset.set_property("favorite", data.favorite());
                     asset.set_property("downloaded", data.downloaded());
+                    asset.set_property("downloading", data.downloading());
+                    asset.set_property("download-progress", data.download_progress());
+
+                    // Directly update progress bar and info widgets
+                    let self_ = asset.imp();
+                    let downloading = data.downloading();
+                    let progress = data.download_progress();
+                    let speed = data.download_speed();
+
+                    self_.progress_bar.set_visible(downloading);
+                    self_.progress_bar.set_fraction(progress);
+                    self_.download_info.set_visible(downloading);
+
+                    // Format info: "45% - Downloading - 12.5 MB/s"
+                    if downloading {
+                        let pct = (progress * 100.0) as u32;
+                        let info_text = if speed.is_empty() {
+                            format!("{}%", pct)
+                        } else {
+                            format!("{}% - {}", pct, speed)
+                        };
+                        self_.download_info.set_label(&info_text);
+                    }
+
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        let _ = writeln!(f, "[SIGNAL] After update: visible={}, fraction={}, info={}",
+                            self_.progress_bar.is_visible(), self_.progress_bar.fraction(), speed);
+                    }
                     None
                 }
             ),
         )));
+
+        // CRITICAL: Immediately sync UI to current state when widget is bound
+        // This handles GridView recycling - widget must reflect asset's current state
+        let downloading = data.downloading();
+        let progress = data.download_progress();
+
+        // Debug: verify template children exist
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "[set_data] Setting progress: downloading={}, progress={}, progress_bar valid={}, progress_bar valid={}",
+                downloading, progress,
+                self_.progress_bar.is_visible() || !self_.progress_bar.is_visible(), // will be true if widget exists
+                self_.progress_bar.fraction() >= 0.0 // will be true if widget exists
+            );
+        }
+
+        self_.progress_bar.set_visible(downloading);
+        self_.progress_bar.set_fraction(progress);
+        self_.download_info.set_visible(downloading);
+
+        // Set initial info text if downloading
+        if downloading {
+            let speed = data.download_speed();
+            let pct = (progress * 100.0) as u32;
+            let info_text = if speed.is_empty() {
+                format!("{}%", pct)
+            } else {
+                format!("{}% - {}", pct, speed)
+            };
+            self_.download_info.set_label(&info_text);
+        }
+
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            let _ = writeln!(f, "[set_data] After set: progress_bar.visible={}, progress_bar.fraction={}",
+                self_.progress_bar.is_visible(), self_.progress_bar.fraction());
+        }
+    }
+
+    /// Direct method to update download progress - bypasses signals
+    pub fn update_download_progress(&self, downloading: bool, progress: f64) {
+        let self_ = self.imp();
+        self_.progress_bar.set_visible(downloading);
+        self_.progress_bar.set_fraction(progress);
     }
 }

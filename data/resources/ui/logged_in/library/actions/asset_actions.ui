@@ -75,12 +75,28 @@
                         <property name="title">Create Project</property>
                         <child>
                             <object class="AdwActionRow">
-                                <property name="title" translatable="yes">Target:</property>
-                                <child>
-                                    <object class="EpicCreateAssetProject" id="create_asset_project"/>
+                                <property name="title" translatable="yes">Create a new Unreal project from this asset</property>
+                                <property name="subtitle" translatable="yes">Configure project name, location, and engine version</property>
+                                <property name="activatable">false</property>
+                                <child type="suffix">
+                                    <object class="GtkButton" id="open_create_project_dialog">
+                                        <property name="valign">center</property>
+                                        <child>
+                                            <object class="AdwButtonContent">
+                                                <property name="icon-name">document-new-symbolic</property>
+                                                <property name="label" translatable="yes">Create Project...</property>
+                                            </object>
+                                        </child>
+                                    </object>
                                 </child>
                             </object>
                         </child>
+                    </object>
+                </child>
+                <!-- Keep old widget for backwards compatibility but hidden -->
+                <child>
+                    <object class="EpicCreateAssetProject" id="create_asset_project">
+                        <property name="visible">false</property>
                     </object>
                 </child>
                 <child>

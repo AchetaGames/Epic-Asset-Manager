@@ -13,8 +13,33 @@
 # Epic Asset Manager
 An unofficial client to install Unreal Engine, download and manage purchased assets, projects, plugins and games from the Epic Games Store.
 
-## Current Screenshot
-![Main view](https://github.com/AchetaGames/Epic-Asset-Manager/blob/main/data/resources/screenshots/default.png?raw=true)
+## Features
+
+- **Asset Library Management** - Browse, search, and filter your Epic Games Store assets
+- **Download Progress Indicators** - Real-time progress bars on asset tiles showing download percentage and speed
+- **Create Project** - Create new Unreal Engine projects directly from downloaded asset templates
+- **Add to Project** - Add assets to existing Unreal Engine projects with one click
+- **Engine Management** - Install and manage multiple Unreal Engine versions
+- **Project Browser** - View and launch your Unreal Engine projects
+- **Dark Theme** - Epic Games Launcher-inspired dark theme with square corners
+- **Marketplace Integration** - Quick access to the Unreal Engine Marketplace
+
+## Screenshots
+
+### Main View
+![Main View](ScreenShots/main-view.png)
+
+### Asset Library with Details Panel
+![Asset Details](ScreenShots/assets.png)
+
+### Download Progress on Asset Tiles
+![Download Progress](ScreenShots/download.png)
+
+### Create Project Dialog
+![Create Project](ScreenShots/create-project.png)
+
+### Add to Project Dialog
+![Add to Project](ScreenShots/add-to-project.png)
 
 ## Install
 ### Flatpak (recommended)

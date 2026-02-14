@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="EpicCreateProjectDialog" parent="AdwWindow">
+        <property name="title" translatable="yes">Create Project</property>
+        <property name="default-width">450</property>
+        <property name="default-height">450</property>
+        <property name="modal">true</property>
+        <property name="resizable">false</property>
+        <property name="content">
+            <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="AdwHeaderBar">
+                        <property name="show-end-title-buttons">false</property>
+                        <property name="show-start-title-buttons">false</property>
+                        <child type="start">
+                            <object class="GtkButton" id="cancel_button">
+                                <property name="label" translatable="yes">Cancel</property>
+                                <property name="action-name">window.close</property>
+                            </object>
+                        </child>
+                        <child type="end">
+                            <object class="GtkButton" id="create_button">
+                                <property name="label" translatable="yes">Create</property>
+                                <property name="css-classes">suggested-action</property>
+                                <property name="action-name">create_project.create</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="margin-start">24</property>
+                        <property name="margin-end">24</property>
+                        <property name="margin-top">12</property>
+                        <property name="margin-bottom">24</property>
+                        <property name="spacing">18</property>
+                        <child>
+                            <object class="AdwPreferencesGroup">
+                                <child>
+                                    <object class="AdwActionRow">
+                                        <property name="title" translatable="yes">Project Name</property>
+                                        <child type="suffix">
+                                            <object class="GtkEntry" id="project_name_entry">
+                                                <property name="valign">center</property>
+                                                <property name="hexpand">true</property>
+                                                <property name="placeholder-text" translatable="yes">Enter project name</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwPreferencesGroup">
+                                <property name="title" translatable="yes">Project Location</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="orientation">horizontal</property>
+                                        <property name="spacing">6</property>
+                                        <property name="margin-top">6</property>
+                                        <child>
+                                            <object class="GtkDropDown" id="install_location_combo">
+                                                <property name="valign">center</property>
+                                                <property name="hexpand">true</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkButton" id="browse_location_button">
+                                                <property name="icon-name">folder-open-symbolic</property>
+                                                <property name="valign">center</property>
+                                                <property name="tooltip-text" translatable="yes">Browse for directory</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="AdwPreferencesGroup">
+                                <property name="title" translatable="yes">Engine Version</property>
+                                <child>
+                                    <object class="GtkBox">
+                                        <property name="orientation">horizontal</property>
+                                        <property name="margin-top">6</property>
+                                        <child>
+                                            <object class="GtkDropDown" id="engine_version_combo">
+                                                <property name="valign">center</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkInfoBar" id="warning_bar">
+                                <property name="visible">false</property>
+                                <property name="message-type">warning</property>
+                                <child>
+                                    <object class="GtkLabel" id="warning_label">
+                                        <property name="label" translatable="yes">Project already exists in the target directory</property>
+                                        <property name="wrap">true</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkCheckButton" id="overwrite_check">
+                                        <property name="label" translatable="yes">Overwrite</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </property>
+    </template>
+</interface>

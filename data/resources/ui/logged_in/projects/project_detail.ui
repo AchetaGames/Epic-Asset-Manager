@@ -24,8 +24,8 @@
                                     <object class="GtkButton">
                                         <property name="halign">start</property>
                                         <property name="action-name">project_details.close</property>
-                                        <property name="icon-name">process-stop-symbolic</property>
-                                        <property name="css-classes">pill
+                                        <property name="icon-name">window-close-symbolic</property>
+                                        <property name="css-classes">
 flat</property>
                                     </object>
                                 </child>
@@ -56,7 +56,7 @@ flat</property>
                                                         <property name="halign">start</property>
                                                         <property name="name">project_launch_button</property>
                                                         <property name="action-name">project_details.launch_project</property>
-                                                        <property name="css-classes">pill
+                                                        <property name="css-classes">
 suggested-action</property>
                                                         <child>
                                                             <object class="AdwButtonContent">

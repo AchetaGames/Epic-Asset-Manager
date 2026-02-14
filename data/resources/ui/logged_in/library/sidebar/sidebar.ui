@@ -117,7 +117,7 @@
                                                       <property name="valign">center</property>
                                                       <property name="hexpand">true</property>
                                                       <property name="tooltip-text" translatable="yes">Open Marketplace</property>
-                                                      <property name="css-classes">pill
+                                                      <property name="css-classes">
 flat</property>
                                                       <property name="margin-top">8</property>
                                                       <property name="margin-bottom">8</property>

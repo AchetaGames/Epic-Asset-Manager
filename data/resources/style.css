@@ -1,3 +1,385 @@
+/* ===========================================
+   EPIC ASSET MANAGER STYLES
+   Epic Games Launcher Dark Theme
+   ALL CORNERS MUST BE SQUARE
+   =========================================== */
+
+/* ----- Dark Theme Base ----- */
+window,
+.view,
+.background {
+  background-color: #121212;
+}
+
+/* ===========================================
+   HEADERBAR - BLACK TO FLOAT WITH BACKGROUND
+   =========================================== */
+
+headerbar,
+.titlebar {
+  background-color: #121212;
+  border-radius: 0;
+  border-bottom: 1px solid #2a2a2a;
+  box-shadow: none;
+}
+
+/* Header bar buttons - flat style, no borders */
+headerbar button,
+.titlebar button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+headerbar button:hover,
+.titlebar button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+headerbar button:active,
+.titlebar button:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Window control buttons */
+windowcontrols button {
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+windowcontrols button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===========================================
+   ALL ELEMENTS - SQUARE CORNERS
+   =========================================== */
+
+button,
+button.flat,
+button.suggested-action,
+button.destructive-action,
+button.circular,
+button.pill,
+button.osd,
+button.image-button,
+button.text-button,
+button.toggle,
+togglebutton,
+menubutton > button,
+splitbutton > button {
+  border-radius: 0;
+}
+
+entry,
+searchentry,
+spinbutton {
+  border-radius: 0;
+}
+
+/* ===========================================
+   GRID ITEMS (TILE CARDS)
+   =========================================== */
+
+gridview > child {
+  border-radius: 0;
+  margin: 4px;
+  background-color: transparent;
+  border: 1px solid #2a2a2a;
+}
+
+gridview > child:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #3a3a3a;
+}
+
+gridview > child:selected {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: @accent_color;
+}
+
+/* ===========================================
+   PICTURES AND IMAGES
+   =========================================== */
+
+picture,
+image {
+  border-radius: 0;
+}
+
+/* Only add borders to content images, not UI icons */
+.content-image,
+gridview picture,
+gridview image {
+  border: 1px solid #2a2a2a;
+}
+
+/* Header bar icon - no border */
+headerbar image,
+.titlebar image {
+  border: none;
+}
+
+/* ===========================================
+   FRAMES AND CONTAINERS
+   =========================================== */
+
+frame,
+.frame,
+.card,
+.boxed-list {
+  border-radius: 0;
+}
+
+/* ===========================================
+   POPOVERS AND MENUS
+   =========================================== */
+
+popover,
+popover > contents,
+menu,
+menuitem {
+  border-radius: 0;
+}
+
+/* ===========================================
+   LISTS AND ROWS
+   =========================================== */
+
+list,
+listview,
+listbox,
+row,
+list > row,
+listview > row,
+listbox > row,
+.navigation-sidebar row {
+  border-radius: 0;
+}
+
+/* ===========================================
+   SCROLLBAR
+   =========================================== */
+
+scrollbar,
+scrollbar slider,
+scrollbar trough {
+  border-radius: 0;
+}
+
+/* ===========================================
+   PROGRESS BARS
+   =========================================== */
+
+progressbar,
+progressbar trough,
+progressbar progress {
+  border-radius: 0;
+}
+
+/* Asset tile download progress bar - uses system theme colors */
+
+/* ===========================================
+   SWITCHES AND TOGGLES
+   =========================================== */
+
+switch,
+switch slider,
+check,
+checkbutton,
+radio,
+radiobutton {
+  border-radius: 0;
+}
+
+/* ===========================================
+   SCALE/SLIDER
+   =========================================== */
+
+scale,
+scale slider,
+scale trough,
+scale highlight {
+  border-radius: 0;
+}
+
+/* ===========================================
+   NOTEBOOK/TABS
+   =========================================== */
+
+notebook,
+notebook > header,
+notebook > header > tabs,
+notebook > header > tabs > tab,
+stack,
+stackswitcher,
+stackswitcher > button {
+  border-radius: 0;
+}
+
+/* ===========================================
+   DIALOGS AND WINDOWS
+   =========================================== */
+
+dialog,
+messagedialog,
+window.dialog,
+window.preferences,
+window.csd {
+  border-radius: 0;
+}
+
+/* Force square corners on window decorations */
+window decoration,
+decoration,
+.csd decoration {
+  border-radius: 0;
+}
+
+/* AdwWindow and subclasses */
+window.background.csd,
+window.solid-csd {
+  border-radius: 0;
+}
+
+/* AdwPreferencesWindow specific */
+preferenceswindow,
+window.preferenceswindow {
+  border-radius: 0;
+}
+
+/* ===========================================
+   TOOLTIP
+   =========================================== */
+
+tooltip,
+tooltip.background {
+  border-radius: 0;
+}
+
+/* ===========================================
+   INFOBARS
+   =========================================== */
+
+infobar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   LINKED BUTTONS
+   =========================================== */
+
+.linked > button,
+.linked > entry,
+.linked > menubutton > button {
+  border-radius: 0;
+}
+
+/* ===========================================
+   AVATAR (force square)
+   =========================================== */
+
+avatar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   ACTION BAR
+   =========================================== */
+
+actionbar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   SEARCH BAR
+   =========================================== */
+
+searchbar {
+  border-radius: 0;
+}
+
+/* ===========================================
+   EXPANDER
+   =========================================== */
+
+expander,
+expander title {
+  border-radius: 0;
+}
+
+/* Section expanders */
+expander.section {
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 8px;
+}
+
+expander.section > title {
+  padding: 8px 0;
+}
+
+expander.section > title > .expander-icon {
+  margin-right: 8px;
+}
+
+/* ===========================================
+   FLAT BUTTONS - NO BORDERS
+   =========================================== */
+
+/* Sidebar buttons - flat */
+.navigation-sidebar button,
+.sidebar button,
+stacksidebar button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.navigation-sidebar button:hover,
+.sidebar button:hover,
+stacksidebar button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Close buttons throughout app */
+button.close,
+button.circular,
+row button,
+listbox button,
+list button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+button.close:hover,
+button.circular:hover,
+row button:hover,
+listbox button:hover,
+list button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Favorites/star buttons */
+button.flat,
+button.image-button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+button.flat:hover,
+button.image-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===========================================
+   APP-SPECIFIC STYLES
+   =========================================== */
+
 .asset-title {
   font-size: 36px;
   font-weight: 650;
@@ -17,6 +399,28 @@
   color: rgb(250, 190, 80);
 }
 
-.expand-button {
-  border-radius: 0px 0px 0px 12px;
+/* ===========================================
+   SECTION HEADERS
+   =========================================== */
+
+.section {
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+}
+
+.section-header {
+  padding: 4px 0;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+.section-count {
+  font-size: 12px;
+  opacity: 0.6;
 }

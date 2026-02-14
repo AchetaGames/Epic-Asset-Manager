@@ -23,7 +23,7 @@ pub mod imp {
         pub data: RefCell<Option<crate::models::project_data::ProjectData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
         #[template_child]
-        pub thumbnail: TemplateChild<adw::Avatar>,
+        pub thumbnail: TemplateChild<gtk4::Picture>,
         pub settings: gtk4::gio::Settings,
     }
 
@@ -199,17 +199,20 @@ impl EpicProject {
         );
 
         if let Some(pix) = data.image() {
-            self_.thumbnail.set_custom_image(Some(&pix));
+            self_.thumbnail.set_paintable(Some(&pix));
+        } else {
+            // Set default icon when no thumbnail
+            let icon_theme = gtk4::IconTheme::for_display(&self_.thumbnail.display());
+            let icon = icon_theme.lookup_icon(
+                "ue-logo-symbolic",
+                &[],
+                110,
+                1,
+                gtk4::TextDirection::None,
+                gtk4::IconLookupFlags::empty(),
+            );
+            self_.thumbnail.set_paintable(Some(&icon));
         }
-
-        data.path().map_or_else(
-            || {
-                self_.thumbnail.set_text(None);
-            },
-            |path| {
-                self_.thumbnail.set_text(Some(&path));
-            },
-        );
 
         self_.handler.replace(Some(data.connect_local(
             "finished",
@@ -232,7 +235,7 @@ impl EpicProject {
     fn finished(&self, data: &crate::models::project_data::ProjectData) {
         let self_ = self.imp();
         if let Some(pix) = data.image() {
-            self_.thumbnail.set_custom_image(Some(&pix));
+            self_.thumbnail.set_paintable(Some(&pix));
         }
     }
 

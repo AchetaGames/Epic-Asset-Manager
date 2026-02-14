@@ -21,9 +21,9 @@ pub mod imp {
         pub data: RefCell<Option<crate::models::engine_data::EngineData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
         #[template_child]
-        pub logo: TemplateChild<adw::Avatar>,
+        pub logo: TemplateChild<gtk4::Picture>,
         #[template_child]
-        pub add: TemplateChild<adw::Avatar>,
+        pub add: TemplateChild<gtk4::Picture>,
     }
 
     #[glib::object_subclass]
@@ -181,6 +181,28 @@ impl EpicEngine {
                 d.disconnect(id);
             }
         }
+        // Set icons for the pictures
+        let icon_theme = gtk4::IconTheme::for_display(&self_.logo.display());
+        let logo_icon = icon_theme.lookup_icon(
+            "ue-logo-symbolic",
+            &[],
+            110,
+            1,
+            gtk4::TextDirection::None,
+            gtk4::IconLookupFlags::empty(),
+        );
+        self_.logo.set_paintable(Some(&logo_icon));
+
+        let add_icon = icon_theme.lookup_icon(
+            "list-add-symbolic",
+            &[],
+            110,
+            1,
+            gtk4::TextDirection::None,
+            gtk4::IconLookupFlags::empty(),
+        );
+        self_.add.set_paintable(Some(&add_icon));
+
         if data.valid() {
             self_.logo.set_visible(true);
             self_.add.set_visible(false);

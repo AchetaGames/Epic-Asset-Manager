@@ -28,9 +28,9 @@
                                         <property name="halign">start</property>
                                         <property name="valign">center</property>
                                         <property name="action-name">engines_side.close</property>
-                                        <property name="icon-name">process-stop-symbolic</property>
+                                        <property name="icon-name">window-close-symbolic</property>
                                         <property name="css-classes">flat
-pill</property>
+</property>
                                     </object>
                                 </child>
                                 <child>
