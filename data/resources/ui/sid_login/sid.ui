@@ -25,10 +25,7 @@
                         <property name="action-name">sid.browser</property>
                         <property name="tooltip-text">https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D34a02cf8f4414e29b15921876da36f9a%26responseType%3Dcode</property>
                         <property name="valign">center</property>
-                        <property name="css-classes">flat
-accent
-
-frame</property>
+                        <property name="css-classes">flat accent frame</property>
                         <child>
                             <object class="AdwButtonContent">
                                 <property name="icon-name">web-browser-symbolic</property>
@@ -63,11 +60,10 @@ frame</property>
                 <child>
                     <object class="GtkButton" id="sid_login">
                         <property name="action-name">sid.login</property>
-                        <property name="css-classes">frame
-accent</property>
+                        <property name="css-classes">frame accent</property>
                         <child>
                             <object class="AdwButtonContent">
-                                <property name="icon-name">dialog-password</property>
+                                <property name="icon-name">dialog-password-symbolic</property>
                                 <property name="label" translatable="yes">Authenticate</property>
                             </object>
                         </child>
@@ -86,8 +82,7 @@ accent</property>
                 <property name="margin-top">24</property>
                 <property name="action-name">sid.copy</property>
                 <property name="opacity">0.75</property>
-                <property name="css-classes">
-flat</property>
+                <property name="css-classes">flat</property>
                 <child>
                     <object class="AdwButtonContent">
                         <property name="icon-name">edit-copy-symbolic</property>

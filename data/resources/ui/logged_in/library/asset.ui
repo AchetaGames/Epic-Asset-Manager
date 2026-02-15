@@ -27,7 +27,7 @@
                 <child type="overlay">
                     <object class="GtkImage">
                         <property name="css-classes">star</property>
-                        <property name="icon-name">starred</property>
+                        <property name="icon-name">starred-symbolic</property>
                         <property name="pixel-size">25</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
@@ -36,7 +36,7 @@
                 </child>
                 <child type="overlay">
                     <object class="GtkImage">
-                        <property name="icon-name">emblem-default</property>
+                        <property name="icon-name">folder-download-symbolic</property>
                         <property name="pixel-size">25</property>
                         <property name="halign">end</property>
                         <property name="valign">end</property>

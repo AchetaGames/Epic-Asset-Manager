@@ -55,7 +55,7 @@
                                                                         <property name="child">
                                                                             <object class="GtkImage">
                                                                                 <property name="halign">start</property>
-                                                                                <property name="icon_name">emblem-default-symbolic</property>
+                                                                                <property name="icon-name">emblem-default-symbolic</property>
                                                                                 <property name="tooltip-text">Valid</property>
                                                                             </object>
                                                                         </property>
@@ -94,7 +94,6 @@
                                                                                                 <property name="tooltip-text">https://www.unrealengine.com/en-US/eulacheck/unreal</property>
                                                                                                 <property name="icon-name">help-browser-symbolic</property>
                                                                                                 <property name="valign">center</property>
-                                                                                                <property name="css-classes"></property>
                                                                                             </object>
                                                                                         </child>
                                                                                         <child>
@@ -103,7 +102,6 @@
                                                                                                 <property name="tooltip-text">Revalidate</property>
                                                                                                 <property name="icon-name">view-refresh-symbolic</property>
                                                                                                 <property name="valign">center</property>
-                                                                                                <property name="css-classes"></property>
                                                                                             </object>
                                                                                         </child>
                                                                                     </object>
@@ -123,7 +121,6 @@
                                                                                                 <property name="action-name">epic_download.download</property>
                                                                                                 <property name="tooltip-text">https://www.unrealengine.com/linux</property>
                                                                                                 <property name="icon-name">help-browser-symbolic</property>
-                                                                                                 <property name="css-classes"></property>
                                                                                             </object>
                                                                                         </child>
                                                                                     </object>
@@ -202,8 +199,7 @@
                                 <property name="hexpand">true</property>
                                 <property name="name">engine_install_button</property>
                                 <property name="action-name">epic_download.install</property>
-                                <property name="css-classes">
-suggested-action</property>
+                                <property name="css-classes">suggested-action</property>
                                 <child>
                                     <object class="AdwButtonContent">
                                         <property name="icon-name">folder-download-symbolic</property>

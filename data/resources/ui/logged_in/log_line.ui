@@ -8,7 +8,7 @@
         <property name="spacing">12</property>
         <child>
             <object class="GtkImage">
-                <property name="icon_name">dialog-warning-symbolic</property>
+                <property name="icon-name">dialog-warning-symbolic</property>
                 <property name="visible" bind-source="EpicLogLine" bind-property="crash" bind-flags="sync-create"/>
                 <property name="tooltip-text">Crash log</property>
                 <property name="css-classes">warning</property>
@@ -21,7 +21,6 @@
                 <property name="css-classes">heading</property>
                 <property name="hexpand">true</property>
                 <property name="halign">start</property>
-                <property name="css-classes">heading</property>
             </object>
         </child>
         <child>

@@ -32,8 +32,7 @@
                                         <property name="halign">start</property>
                                         <property name="valign">center</property>
                                         <property name="action-name">details.close</property>
-                                        <property name="css-classes">flat
-</property>
+                                        <property name="css-classes">flat</property>
                                         <property name="icon-name">window-close-symbolic</property>
                                     </object>
                                 </child>
@@ -50,8 +49,7 @@
                                     <object class="GtkButton" id="favorite">
                                         <property name="halign">end</property>
                                         <property name="valign">center</property>
-                                        <property name="css-classes">flat
-</property>
+                                        <property name="css-classes">flat</property>
                                         <property name="action-name">details.toggle_favorite</property>
                                         <property name="icon-name">non-starred-symbolic</property>
                                     </object>
