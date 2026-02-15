@@ -27,6 +27,10 @@ pub enum Msg {
         String,
         Vec<egs_api::api::types::download_manifest::DownloadManifest>,
     ),
+    StartFabAssetDownload(
+        String,
+        Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+    ),
     PerformAssetDownload(
         String,
         String,
@@ -276,6 +280,9 @@ impl EpicDownloadManager {
                 item.set_property("thumbnail", Some(image));
             }
             Msg::StartAssetDownload(id, manifest) => {
+                self.start_download_asset(&id, &manifest);
+            }
+            Msg::StartFabAssetDownload(id, manifest) => {
                 self.start_download_asset(&id, &manifest);
             }
             Msg::PerformAssetDownload(id, release, name, manifest) => {

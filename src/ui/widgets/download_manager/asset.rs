@@ -127,6 +127,34 @@ pub trait Asset {
     fn cancel_asset_download(&self, _asset: String) {
         unimplemented!()
     }
+
+    /// Add a FAB asset for download
+    /// Entry point for FAB marketplace asset downloads
+    fn add_fab_asset_download(
+        &self,
+        _fab_asset: egs_api::api::types::fab_library::FabAsset,
+        _artifact_id: String,
+        _platform: String,
+        _target: &Option<String>,
+    ) {
+        unimplemented!()
+    }
+
+    /// Fetch FAB download manifest from the Fab API
+    /// Calls fab_asset_manifest() then fab_download_manifest() to obtain a DownloadManifest
+    fn download_fab_asset_manifest(
+        &self,
+        _asset_id: String,
+        _namespace: String,
+        _artifact_id: String,
+        _platform: String,
+        _sender: async_channel::Sender<(
+            String,
+            Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+        )>,
+    ) {
+        unimplemented!()
+    }
 }
 
 trait AssetPriv {
@@ -905,6 +933,155 @@ impl Asset for super::EpicDownloadManager {
                     }
                 }
             }
+        }
+    }
+
+    fn add_fab_asset_download(
+        &self,
+        fab_asset: egs_api::api::types::fab_library::FabAsset,
+        artifact_id: String,
+        platform: String,
+        target: &Option<String>,
+    ) {
+        debug!("Adding FAB download: {}", fab_asset.title);
+        let self_ = self.imp();
+        let asset_id = fab_asset.asset_id.clone();
+
+        let mut items = self_.download_items.borrow_mut();
+        let item = match items.get_mut(&asset_id) {
+            None => {
+                let item = super::download_item::EpicDownloadItem::new();
+                debug!("Adding FAB item to the list under: {}", asset_id);
+                items.insert(asset_id.clone(), item.clone());
+                item
+            }
+            Some(_) => {
+                return;
+            }
+        };
+        if let Some(w) = self_.window.get() {
+            item.set_window(w);
+        }
+        item.set_download_manager(self);
+        item.set_property(
+            "item-type",
+            crate::ui::widgets::download_manager::download_item::ItemType::Asset,
+        );
+        item.set_property("asset", asset_id.clone());
+        item.set_property("release", artifact_id.clone());
+        item.set_property("label", fab_asset.title.clone());
+        item.set_property("target", target.clone());
+        item.set_property("status", "initializing...".to_string());
+
+        self_.downloads.append(&item);
+        self.set_property("has-items", self_.downloads.first_child().is_some());
+
+        item.connect_local(
+            "finished",
+            false,
+            clone!(
+                #[weak(rename_to=edm)]
+                self,
+                #[weak]
+                item,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    edm.finish(&item);
+                    None
+                }
+            ),
+        );
+
+        let (sender, receiver) = async_channel::unbounded();
+
+        glib::spawn_future_local(clone!(
+            #[weak(rename_to=download_manager)]
+            self,
+            #[upgrade_or_panic]
+            async move {
+                let self_ = download_manager.imp();
+                let sender = self_.sender.clone();
+                while let Ok((id, manifest)) = receiver.recv().await {
+                    sender
+                        .send_blocking(super::Msg::StartFabAssetDownload(id, manifest))
+                        .unwrap();
+                }
+            }
+        ));
+
+        let namespace = fab_asset.asset_namespace.clone();
+        self.download_fab_asset_manifest(asset_id, namespace, artifact_id, platform, sender);
+    }
+
+    fn download_fab_asset_manifest(
+        &self,
+        asset_id: String,
+        namespace: String,
+        artifact_id: String,
+        platform: String,
+        sender: async_channel::Sender<(
+            String,
+            Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+        )>,
+    ) {
+        let self_ = self.imp();
+
+        if let Some(window) = self_.window.get() {
+            let win_ = window.imp();
+            let eg = win_.model.borrow().epic_games.borrow().clone();
+            let id = asset_id.clone();
+            self_.download_pool.execute(move || {
+                if let Ok(w) = crate::RUNNING.read() {
+                    if !*w {
+                        return;
+                    }
+                }
+                let start = std::time::Instant::now();
+                let rt = Builder::new_current_thread().enable_all().build().unwrap();
+
+                match rt.block_on(eg.fab_asset_manifest(
+                    &artifact_id,
+                    &namespace,
+                    &asset_id,
+                    Some(&platform),
+                )) {
+                    Ok(download_infos) => {
+                        if let Some(download_info) = download_infos.into_iter().next() {
+                            if let Some(base_url) =
+                                download_info.distribution_point_base_urls.first()
+                            {
+                                match rt.block_on(
+                                    eg.fab_download_manifest(download_info.clone(), base_url),
+                                ) {
+                                    Ok(manifest) => {
+                                        debug!(
+                                            "Got FAB download manifest for {} in {:?}",
+                                            id,
+                                            start.elapsed()
+                                        );
+                                        sender.send_blocking((id, vec![manifest])).unwrap();
+                                    }
+                                    Err(e) => {
+                                        error!(
+                                            "Failed to get FAB download manifest for {}: {:?}",
+                                            id, e
+                                        );
+                                    }
+                                }
+                            } else {
+                                error!("No distribution point base URLs for FAB asset {}", id);
+                            }
+                        } else {
+                            error!("No download info returned for FAB asset {}", id);
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to get FAB asset manifest for {}: {:?}", id, e);
+                    }
+                }
+                debug!("FAB manifest requests took {:?}", start.elapsed());
+            });
         }
     }
 }

@@ -6,6 +6,8 @@ use log::{debug, error};
 use std::path::PathBuf;
 use tokio::runtime::Builder;
 
+pub mod version_dialog;
+
 pub mod imp {
     use super::*;
     use crate::ui::widgets::download_manager::EpicDownloadManager;
