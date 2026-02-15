@@ -1,4 +1,6 @@
 use crate::models::asset_data::AssetType;
+use crate::ui::widgets::download_manager::asset::Asset;
+use crate::ui::widgets::logged_in::fab::version_dialog::EpicFabVersionDialog;
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
@@ -8,7 +10,7 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use log::{error, info};
+use log::{debug, error, info};
 
 pub mod imp {
     use super::*;
@@ -570,7 +572,7 @@ impl EpicAssetDetails {
             self_.details_box.remove(&el);
         }
         if let Some(dev_name) = &asset.developer {
-            let text = format!("Developer: {dev_name}");
+            let text = format!("Developer: {}", glib::markup_escape_text(dev_name));
             self.add_info_row(&text);
         }
 
@@ -590,13 +592,13 @@ impl EpicAssetDetails {
                     cats.push(category.path.clone());
                 }
             }
-            let cats = &cats.join(", ");
+            let cats = glib::markup_escape_text(&cats.join(", "));
             let text = format!("Categories: {cats}");
             self.add_info_row(&text);
         }
 
         if let Some(platforms) = &asset.platforms() {
-            let platforms = &platforms.join(", ");
+            let platforms = glib::markup_escape_text(&platforms.join(", "));
             let text = format!("Platforms: {platforms}");
             self.add_info_row(&text);
         }
@@ -609,7 +611,8 @@ impl EpicAssetDetails {
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
             if !compatible_apps.is_empty() {
-                let compat = &compatible_apps.join(", ").replace("UE_", "");
+                let compat =
+                    glib::markup_escape_text(&compatible_apps.join(", ").replace("UE_", ""));
                 let text = format!("Compatible with: {compat}");
                 self.add_info_row(&text);
             }
@@ -680,17 +683,23 @@ impl EpicAssetDetails {
             .filter_map(|c| c.name.clone())
             .collect();
         if !cat_names.is_empty() {
-            let text = format!("Categories: {}", cat_names.join(", "));
+            let text = format!(
+                "Categories: {}",
+                glib::markup_escape_text(&cat_names.join(", "))
+            );
             self.add_info_row(&text);
         }
 
         if !fab_asset.source.is_empty() {
-            let text = format!("Source: {}", fab_asset.source);
+            let text = format!("Source: {}", glib::markup_escape_text(&fab_asset.source));
             self.add_info_row(&text);
         }
 
         if !fab_asset.distribution_method.is_empty() {
-            let text = format!("Distribution: {}", fab_asset.distribution_method);
+            let text = format!(
+                "Distribution: {}",
+                glib::markup_escape_text(&fab_asset.distribution_method)
+            );
             self.add_info_row(&text);
         }
 
@@ -700,7 +709,7 @@ impl EpicAssetDetails {
             .flat_map(|pv| pv.engine_versions.iter().cloned())
             .collect();
         if !engine_versions.is_empty() {
-            let compat = engine_versions.join(", ").replace("UE_", "");
+            let compat = glib::markup_escape_text(&engine_versions.join(", ").replace("UE_", ""));
             let text = format!("Compatible with: {}", compat);
             self.add_info_row(&text);
         }
@@ -711,7 +720,10 @@ impl EpicAssetDetails {
             .flat_map(|pv| pv.target_platforms.iter().cloned())
             .collect();
         if !platforms.is_empty() {
-            let text = format!("Platforms: {}", platforms.join(", "));
+            let text = format!(
+                "Platforms: {}",
+                glib::markup_escape_text(&platforms.join(", "))
+            );
             self.add_info_row(&text);
         }
 
@@ -724,7 +736,68 @@ impl EpicAssetDetails {
             self_.actions_box.remove(&el);
         }
 
+        if !fab_asset.project_versions.is_empty() {
+            let download_button = gtk4::Button::builder()
+                .child(&Self::build_box_with_icon_label(
+                    Some("Download"),
+                    "folder-download-symbolic",
+                ))
+                .build();
+            download_button.set_css_classes(&["flat"]);
+
+            let fab_asset_clone = fab_asset.clone();
+            download_button.connect_clicked(clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_| {
+                    details.open_fab_version_dialog(&fab_asset_clone);
+                }
+            ));
+
+            self_.actions_box.append(&download_button);
+        }
+
         self.check_fab_favorite(&fab_asset.asset_id);
+    }
+
+    fn open_fab_version_dialog(&self, fab_asset: &FabAsset) {
+        let self_ = self.imp();
+        debug!("Opening FAB version dialog for {}", fab_asset.title);
+
+        let dialog = EpicFabVersionDialog::new();
+
+        if let Some(window) = self_.window.get() {
+            dialog.set_transient_for(Some(window));
+        }
+
+        dialog.set_fab_asset(fab_asset);
+
+        let fab_asset_for_signal = fab_asset.clone();
+        dialog.connect_closure(
+            "version-selected",
+            false,
+            glib::closure_local!(
+                #[weak(rename_to=details)]
+                self,
+                move |_dialog: EpicFabVersionDialog, artifact_id: String, platform: String| {
+                    debug!(
+                        "FAB version selected: artifact_id={}, platform={}",
+                        artifact_id, platform
+                    );
+                    let self_ = details.imp();
+                    if let Some(dm) = self_.download_manager.get() {
+                        dm.add_fab_asset_download(
+                            fab_asset_for_signal.clone(),
+                            artifact_id,
+                            platform,
+                            &None,
+                        );
+                    }
+                }
+            ),
+        );
+
+        dialog.present();
     }
 
     fn add_info_row(&self, text: &str) {
