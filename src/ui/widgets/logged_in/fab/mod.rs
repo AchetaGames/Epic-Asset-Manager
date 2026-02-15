@@ -2,7 +2,8 @@ use glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use log::{debug, error};
+use log::{debug, error, warn};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use tokio::runtime::Builder;
 
@@ -35,6 +36,8 @@ pub mod imp {
         pub grid_model: ListStore,
         pub filter_model: gtk4::FilterListModel,
         pub search: RefCell<Option<String>>,
+        /// Tracks asset IDs already in the grid to avoid duplicates on refresh
+        pub known_asset_ids: RefCell<HashSet<String>>,
         pub image_load_pool: ThreadPool,
         pub settings: gio::Settings,
     }
@@ -60,6 +63,7 @@ pub mod imp {
                     None::<gtk4::CustomFilter>,
                 ),
                 search: RefCell::new(None),
+                known_asset_ids: RefCell::new(HashSet::new()),
                 image_load_pool: ThreadPool::with_name("fab_image_pool".to_string(), 10),
                 settings: gio::Settings::new(crate::config::APP_ID),
             }
@@ -111,6 +115,7 @@ impl FabLibraryBox {
 
         self_.window.set(window.clone()).unwrap();
         self.setup_grid();
+        self.load_cached_fab_assets();
         self.fetch_fab_assets();
     }
 
@@ -260,6 +265,109 @@ impl FabLibraryBox {
         self_.count_label.set_label(&format!("{} assets", count));
     }
 
+    fn fab_cache_dir(cache_dir: &str) -> PathBuf {
+        let mut path = PathBuf::from(cache_dir);
+        path.push("fab");
+        path
+    }
+
+    fn cache_fab_asset(asset: &egs_api::api::types::fab_library::FabAsset, cache_dir: &str) {
+        let mut cache_path = Self::fab_cache_dir(cache_dir);
+        cache_path.push(&asset.asset_id);
+        if std::fs::create_dir_all(&cache_path).is_err() {
+            warn!("Failed to create FAB cache directory: {:?}", cache_path);
+            return;
+        }
+        cache_path.push("fab_asset.json");
+        match std::fs::File::create(&cache_path) {
+            Ok(file) => {
+                if let Err(e) = serde_json::to_writer(file, asset) {
+                    warn!("Failed to write FAB cache for {}: {}", asset.asset_id, e);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to create FAB cache file {:?}: {}", cache_path, e);
+            }
+        }
+    }
+
+    fn load_cached_fab_assets(&self) {
+        let self_ = self.imp();
+        let cache_dir = self_.settings.string("cache-directory").to_string();
+        let fab_cache = Self::fab_cache_dir(&cache_dir);
+
+        if !fab_cache.is_dir() {
+            debug!(
+                "No FAB cache directory at {:?}, skipping cache load",
+                fab_cache
+            );
+            return;
+        }
+
+        if let Some(window) = self.main_window() {
+            let win_ = window.imp();
+            let sender = win_.model.borrow().sender.clone();
+
+            self_.refresh_progress.set_visible(true);
+            self_
+                .refresh_progress
+                .set_tooltip_text(Some("Loading from cache"));
+
+            self_.image_load_pool.execute(move || {
+                let entries = match std::fs::read_dir(&fab_cache) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        warn!("Failed to read FAB cache directory: {}", e);
+                        return;
+                    }
+                };
+
+                for entry in entries.flatten() {
+                    if let Ok(w) = crate::RUNNING.read() {
+                        if !*w {
+                            return;
+                        }
+                    }
+
+                    let mut asset_file = entry.path();
+                    if !asset_file.is_dir() {
+                        continue;
+                    }
+                    asset_file.push("fab_asset.json");
+                    if !asset_file.exists() {
+                        continue;
+                    }
+
+                    let file = match std::fs::File::open(&asset_file) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            warn!("Failed to open cached FAB asset {:?}: {}", asset_file, e);
+                            continue;
+                        }
+                    };
+
+                    let asset: egs_api::api::types::fab_library::FabAsset =
+                        match serde_json::from_reader(file) {
+                            Ok(a) => a,
+                            Err(e) => {
+                                warn!("Failed to parse cached FAB asset {:?}: {}", asset_file, e);
+                                continue;
+                            }
+                        };
+
+                    let texture = Self::load_fab_thumbnail(&asset, &cache_dir);
+                    sender
+                        .send_blocking(crate::ui::messages::Msg::ProcessFabAsset(asset, texture))
+                        .unwrap();
+                }
+
+                sender
+                    .send_blocking(crate::ui::messages::Msg::FlushFabAssets)
+                    .unwrap();
+            });
+        }
+    }
+
     pub fn fetch_fab_assets(&self) {
         let self_ = self.imp();
         self_.refresh_progress.set_visible(true);
@@ -279,7 +387,7 @@ impl FabLibraryBox {
             }
             let account_id = account_id.unwrap();
 
-            debug!("Fetching FAB library for account {}", account_id);
+            debug!("Fetching FAB library from API for account {}", account_id);
 
             self_.image_load_pool.execute(move || {
                 if let Ok(w) = crate::RUNNING.read() {
@@ -295,7 +403,7 @@ impl FabLibraryBox {
                     .block_on(eg.fab_library_items(account_id));
 
                 if let Some(library) = fab_library {
-                    debug!("Got {} FAB assets", library.results.len());
+                    debug!("Got {} FAB assets from API", library.results.len());
                     for asset in &library.results {
                         if let Ok(w) = crate::RUNNING.read() {
                             if !*w {
@@ -303,6 +411,7 @@ impl FabLibraryBox {
                             }
                         }
 
+                        Self::cache_fab_asset(asset, &cache_dir);
                         let texture = Self::load_fab_thumbnail(asset, &cache_dir);
                         sender
                             .send_blocking(crate::ui::messages::Msg::ProcessFabAsset(
@@ -312,7 +421,7 @@ impl FabLibraryBox {
                             .unwrap();
                     }
                 } else {
-                    error!("Failed to fetch FAB library");
+                    error!("Failed to fetch FAB library from API");
                 }
 
                 sender
@@ -364,6 +473,13 @@ impl FabLibraryBox {
         image: Option<gtk4::gdk::Texture>,
     ) {
         let self_ = self.imp();
+        if !self_
+            .known_asset_ids
+            .borrow_mut()
+            .insert(asset.asset_id.clone())
+        {
+            return;
+        }
         let data = crate::models::fab_data::FabData::new(asset, image);
         self_.grid_model.append(&data);
         self.update_count();
@@ -378,6 +494,7 @@ impl FabLibraryBox {
     pub fn clear(&self) {
         let self_ = self.imp();
         self_.grid_model.remove_all();
+        self_.known_asset_ids.borrow_mut().clear();
         self.update_count();
     }
 
