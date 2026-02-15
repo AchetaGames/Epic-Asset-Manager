@@ -31,7 +31,7 @@ pub mod imp {
                 )>,
             >,
         >,
-        pub file_chooser: RefCell<Option<gtk4::FileChooserDialog>>,
+        pub file_chooser: RefCell<Option<gtk4::FileDialog>>,
         #[template_child]
         pub cache_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
@@ -529,29 +529,23 @@ impl PreferencesWindow {
         self.set_visible_page_name(name);
     }
 
-    fn handle_file_dialogue_response(
-        &self,
-        dialog: &gtk4::FileChooserDialog,
-        response: gtk4::ResponseType,
-        kind: DirectoryConfigType,
-    ) {
-        if response == gtk4::ResponseType::Accept {
-            if let Some(file) = dialog.file() {
-                self.set_directory(&file, kind);
-            }
-        }
-        dialog.destroy();
-    }
-
     fn select_directory(&self, title: &'static str, kind: DirectoryConfigType) {
-        let dialog: gtk4::FileChooserDialog = self.select_file(&[], title);
-        dialog.connect_response(clone!(
-            #[weak(rename_to=preferences)]
-            self,
-            move |d, response| {
-                preferences.handle_file_dialogue_response(d, response, kind);
-            }
-        ));
+        let dialog = gtk4::FileDialog::builder().title(title).modal(true).build();
+        let self_ = self.imp();
+        self_.file_chooser.replace(Some(dialog.clone()));
+        dialog.select_folder(
+            Some(self),
+            None::<&gio::Cancellable>,
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        preferences.set_directory(&file, kind);
+                    }
+                }
+            ),
+        );
     }
 
     pub fn setup_actions(&self) {
@@ -893,37 +887,5 @@ impl PreferencesWindow {
             }
         }
         self.update_directories(kind);
-    }
-
-    fn select_file(
-        &self,
-        filters: &'static [&str],
-        title: &'static str,
-    ) -> gtk4::FileChooserDialog {
-        let self_ = self.imp();
-
-        let native = gtk4::FileChooserDialog::new(
-            Some(title),
-            Some(self),
-            gtk4::FileChooserAction::SelectFolder,
-            &[
-                ("Select", gtk4::ResponseType::Accept),
-                ("Cancel", gtk4::ResponseType::Cancel),
-            ],
-        );
-
-        native.set_modal(true);
-        native.set_transient_for(Some(self));
-
-        for f in filters {
-            let filter = gtk4::FileFilter::new();
-            filter.add_mime_type(f);
-            filter.set_name(Some(f));
-            native.add_filter(&filter);
-        }
-
-        self_.file_chooser.replace(Some(native.clone()));
-        native.show();
-        native
     }
 }

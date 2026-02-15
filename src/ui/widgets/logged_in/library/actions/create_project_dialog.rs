@@ -220,34 +220,25 @@ impl EpicCreateProjectDialog {
     }
 
     fn browse_for_location(&self) {
-        let file_dialog = gtk4::FileChooserDialog::new(
-            Some("Select Project Directory"),
+        let dialog = gtk4::FileDialog::builder()
+            .title("Select Project Directory")
+            .modal(true)
+            .build();
+        dialog.select_folder(
             Some(self),
-            gtk4::FileChooserAction::SelectFolder,
-            &[
-                ("Select", gtk4::ResponseType::Accept),
-                ("Cancel", gtk4::ResponseType::Cancel),
-            ],
-        );
-        file_dialog.set_modal(true);
-        file_dialog.set_transient_for(Some(self));
-
-        file_dialog.connect_response(clone!(
-            #[weak(rename_to=dialog)]
-            self,
-            move |d, response| {
-                if response == gtk4::ResponseType::Accept {
-                    if let Some(file) = d.file() {
+            None::<&gio::Cancellable>,
+            clone!(
+                #[weak(rename_to=dlg)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
                         if let Some(path) = file.path() {
-                            dialog.add_location(path.to_str().unwrap());
+                            dlg.add_location(path.to_str().unwrap());
                         }
                     }
                 }
-                d.destroy();
-            }
-        ));
-
-        file_dialog.show();
+            ),
+        );
     }
 
     fn add_location(&self, path: &str) {
