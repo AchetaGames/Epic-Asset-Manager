@@ -162,8 +162,16 @@ impl Asset for super::EpicDownloadManager {
 
         // Debug logging to file
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "[add_asset_download] called for: {:?}, release_id: {}", asset.title, release_id);
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
+            let _ = writeln!(
+                f,
+                "[add_asset_download] called for: {:?}, release_id: {}",
+                asset.title, release_id
+            );
         }
 
         let self_ = self.imp();
@@ -173,16 +181,31 @@ impl Asset for super::EpicDownloadManager {
             None => {
                 let item = super::download_item::EpicDownloadItem::new();
                 debug!("Adding item to the list under: {}", release_id);
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "[add_asset_download] Creating new download item for: {}", release_id);
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
+                    let _ = writeln!(
+                        f,
+                        "[add_asset_download] Creating new download item for: {}",
+                        release_id
+                    );
                 }
                 items.insert(release_id.clone(), item.clone());
                 item
             }
             Some(_) => {
                 // Item is already downloading do nothing
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "[add_asset_download] Item already exists, returning early");
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
+                    let _ = writeln!(
+                        f,
+                        "[add_asset_download] Item already exists, returning early"
+                    );
                 }
                 return;
             }
@@ -267,17 +290,32 @@ impl Asset for super::EpicDownloadManager {
         // Debug: check if window is set
         {
             use std::io::Write;
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
                 let has_window = self_.window.get().is_some();
-                let _ = writeln!(f, "[download_asset_manifest] called for: {:?}, has_window: {}", asset.title, has_window);
+                let _ = writeln!(
+                    f,
+                    "[download_asset_manifest] called for: {:?}, has_window: {}",
+                    asset.title, has_window
+                );
             }
         }
 
         if let Some(window) = self_.window.get() {
             {
                 use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "[download_asset_manifest] Window found, queuing manifest download");
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
+                    let _ = writeln!(
+                        f,
+                        "[download_asset_manifest] Window found, queuing manifest download"
+                    );
                 }
             }
             let win_ = window.imp();
@@ -342,8 +380,15 @@ impl Asset for super::EpicDownloadManager {
             });
         } else {
             use std::io::Write;
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                let _ = writeln!(f, "[download_asset_manifest] ERROR: No window set on download manager!");
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
+                let _ = writeln!(
+                    f,
+                    "[download_asset_manifest] ERROR: No window set on download manager!"
+                );
             }
         }
     }
@@ -687,7 +732,8 @@ impl Asset for super::EpicDownloadManager {
                                 let progress_fraction = downloaded as f64 / total as f64;
                                 // Only update every ~1% to avoid flooding UI
                                 let progress_pct = (progress_fraction * 100.0) as u32;
-                                let old_pct = ((downloaded - progress) as f64 / total as f64 * 100.0) as u32;
+                                let old_pct =
+                                    ((downloaded - progress) as f64 / total as f64 * 100.0) as u32;
                                 if progress_pct != old_pct {
                                     if let Some(w) = self_.window.get() {
                                         let w_ = w.imp();
@@ -696,7 +742,11 @@ impl Asset for super::EpicDownloadManager {
                                         // Get speed from item
                                         let speed: Option<String> = item.property("speed");
                                         let speed_str = speed.unwrap_or_default();
-                                        l_.library.set_asset_download_progress(&asset_id, progress_fraction, &speed_str);
+                                        l_.library.set_asset_download_progress(
+                                            &asset_id,
+                                            progress_fraction,
+                                            &speed_str,
+                                        );
                                     }
                                 }
                             }

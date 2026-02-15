@@ -295,45 +295,54 @@ impl PreferencesWindow {
             .accent_color_selection
             .active_id()
             .unwrap_or_else(|| "default".into());
-        self_
-            .settings
-            .set_string("accent-color", &color)
-            .unwrap();
+        self_.settings.set_string("accent-color", &color).unwrap();
         Self::apply_accent_color(&color);
     }
 
     pub fn apply_accent_color(color: &str) {
         let css = match color {
-            "olive" => "
+            "olive" => {
+                "
                 @define-color accent_bg_color #4b8501;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #4b8501;
-            ",
-            "orange" => "
+            "
+            }
+            "orange" => {
+                "
                 @define-color accent_bg_color #e95420;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #e95420;
-            ",
-            "purple" => "
+            "
+            }
+            "purple" => {
+                "
                 @define-color accent_bg_color #924d8b;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #924d8b;
-            ",
-            "pink" => "
+            "
+            }
+            "pink" => {
+                "
                 @define-color accent_bg_color #e91e63;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #e91e63;
-            ",
-            "red" => "
+            "
+            }
+            "red" => {
+                "
                 @define-color accent_bg_color #c01c28;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #c01c28;
-            ",
-            "teal" => "
+            "
+            }
+            "teal" => {
+                "
                 @define-color accent_bg_color #308280;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #308280;
-            ",
+            "
+            }
             _ => "", // default - no override, use system
         };
 
