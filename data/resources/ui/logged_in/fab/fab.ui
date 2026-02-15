@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0"/>
+    <template class="FabLibraryBox" parent="GtkBox">
+        <property name="hexpand">true</property>
+        <property name="vexpand">true</property>
+        <property name="orientation">vertical</property>
+        <property name="css-classes">view</property>
+
+        <!-- Header -->
+        <child>
+            <object class="GtkBox" id="fab_header">
+                <property name="css-classes">section-header</property>
+                <property name="spacing">8</property>
+                <property name="margin-start">16</property>
+                <property name="margin-end">16</property>
+                <property name="margin-top">12</property>
+                <property name="margin-bottom">8</property>
+                <child>
+                    <object class="GtkLabel">
+                        <property name="label">FAB LIBRARY</property>
+                        <property name="css-classes">section-title</property>
+                        <property name="halign">start</property>
+                        <property name="hexpand">true</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel" id="count_label">
+                        <property name="halign">end</property>
+                        <property name="css-classes">dim-label</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkSearchEntry" id="fab_search">
+                        <property name="placeholder-text">Search FAB assets...</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+
+        <!-- Progress bar for loading -->
+        <child>
+            <object class="GtkProgressBar" id="refresh_progress">
+                <property name="visible">false</property>
+            </object>
+        </child>
+
+        <!-- FAB Grid -->
+        <child>
+            <object class="GtkScrolledWindow" id="fab_scroll">
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
+                <property name="child">
+                    <object class="GtkGridView" id="fab_grid">
+                        <property name="halign">fill</property>
+                        <property name="valign">start</property>
+                        <property name="max-columns">255</property>
+                        <property name="margin-start">16</property>
+                        <property name="margin-end">16</property>
+                        <property name="margin-top">8</property>
+                        <property name="margin-bottom">8</property>
+                    </object>
+                </property>
+            </object>
+        </child>
+    </template>
+</interface>
