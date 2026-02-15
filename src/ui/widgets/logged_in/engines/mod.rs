@@ -36,26 +36,25 @@ pub struct UnrealEngine {
 
 impl UnrealEngine {
     pub fn get_engine_binary_path(&self) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(&self.path) {
-            p.push("Engine");
-            p.push("Binaries");
-            p.push("Linux");
-            let mut test = p.clone();
-            test.push("UE4Editor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            let mut test = p.clone();
-            test.push("UnrealEditor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            error!("Unable to launch the engine");
-        };
+        let mut p = std::path::PathBuf::from(&self.path);
+        p.push("Engine");
+        p.push("Binaries");
+        p.push("Linux");
+        let mut test = p.clone();
+        test.push("UE4Editor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        let mut test = p.clone();
+        test.push("UnrealEditor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        error!("Unable to launch the engine");
         None
     }
 }

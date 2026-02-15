@@ -6,7 +6,6 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
 use std::ffi::OsString;
-use std::str::FromStr;
 
 pub mod imp {
     use super::*;
@@ -257,7 +256,7 @@ impl EpicEngineDetails {
                 ));
         }
 
-        if let Some(branch) = &data.branch() {
+        if let Some(_branch) = &data.branch() {
             self_
                 .details
                 .append(&crate::window::EpicAssetManagerWindow::create_info_row(
@@ -293,26 +292,25 @@ impl EpicEngineDetails {
     }
 
     fn get_engine_binary_path(path: &str) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(path) {
-            p.push("Engine");
-            p.push("Binaries");
-            p.push("Linux");
-            let mut test = p.clone();
-            test.push("UE4Editor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            let mut test = p.clone();
-            test.push("UnrealEditor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            error!("Unable to launch the engine");
-        };
+        let mut p = std::path::PathBuf::from(path);
+        p.push("Engine");
+        p.push("Binaries");
+        p.push("Linux");
+        let mut test = p.clone();
+        test.push("UE4Editor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        let mut test = p.clone();
+        test.push("UnrealEditor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        error!("Unable to launch the engine");
         None
     }
 
