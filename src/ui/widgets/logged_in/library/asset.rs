@@ -20,6 +20,7 @@ pub mod imp {
         pub download_progress: RefCell<f64>,
         pub kind: RefCell<Option<String>>,
         pub action_label: RefCell<String>,
+        pub is_fab: RefCell<bool>,
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Picture>,
@@ -50,6 +51,7 @@ pub mod imp {
                 download_progress: RefCell::new(0.0),
                 kind: RefCell::new(None),
                 action_label: RefCell::new("Download".to_string()),
+                is_fab: RefCell::new(false),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
                 action_button: TemplateChild::default(),
@@ -116,6 +118,7 @@ pub mod imp {
                         .build(),
                     glib::ParamSpecString::builder("kind").build(),
                     glib::ParamSpecString::builder("action-label").build(),
+                    glib::ParamSpecBoolean::builder("is-fab").build(),
                 ]
             });
 
@@ -174,6 +177,12 @@ pub mod imp {
                         .expect("type conformity checked by `Object::set_property`");
                     self.action_label.replace(action_label);
                 }
+                "is-fab" => {
+                    let is_fab: bool = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.is_fab.replace(is_fab);
+                }
                 "thumbnail" => {
                     let thumbnail: Option<Texture> = value
                         .get()
@@ -213,6 +222,7 @@ pub mod imp {
                 "download-progress" => self.download_progress.borrow().to_value(),
                 "kind" => self.kind.borrow().to_value(),
                 "action-label" => self.action_label.borrow().to_value(),
+                "is-fab" => self.is_fab.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -396,6 +406,7 @@ impl EpicAsset {
         self.set_property("label", data.name());
         self.set_property("thumbnail", data.image());
         self.set_property("favorite", data.favorite());
+        self.set_property("is-fab", false);
 
         // Set kind before downloaded so action_label updates correctly
         let kind_str = match data.kind() {
@@ -548,6 +559,7 @@ impl EpicAsset {
         self.set_property("thumbnail", data.image());
         self.set_property("favorite", data.favorite());
         self.set_property("downloaded", data.downloaded());
+        self.set_property("is-fab", true);
 
         self_.handler.replace(Some(data.connect_local(
             "refreshed",

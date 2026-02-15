@@ -43,6 +43,17 @@
                         <property name="visible" bind-source="EpicAsset" bind-property="downloaded" bind-flags="sync-create"/>
                     </object>
                 </child>
+                <child type="overlay">
+                    <object class="GtkLabel">
+                        <property name="label">FAB</property>
+                        <property name="css-classes">fab-badge</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="margin-top">4</property>
+                        <property name="margin-end">4</property>
+                        <property name="visible" bind-source="EpicAsset" bind-property="is-fab" bind-flags="sync-create"/>
+                    </object>
+                </child>
             </object>
         </child>
         <child>
