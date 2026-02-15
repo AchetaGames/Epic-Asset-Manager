@@ -606,8 +606,8 @@ impl Asset for super::EpicDownloadManager {
                         ))
                         .unwrap();
                 };
-                let mut rng = rand::thread_rng();
-                let index = rng.gen_range(0..v.len());
+                let mut rng = rand::rng();
+                let index = rng.random_range(0..v.len());
                 let new: Option<&Url> = v.get(index);
                 match new {
                     None => {

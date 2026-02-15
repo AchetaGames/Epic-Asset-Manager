@@ -1031,7 +1031,7 @@ dependencies = [
  "once_cell",
  "open",
  "opener",
- "rand 0.8.5",
+ "rand 0.9.2",
  "regex",
  "reqwest 0.13.2",
  "secret-service",
