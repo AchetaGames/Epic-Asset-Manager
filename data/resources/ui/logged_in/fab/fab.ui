@@ -16,7 +16,7 @@
                 <property name="margin-bottom">8</property>
                 <child>
                     <object class="GtkSearchEntry" id="fab_search">
-                        <property name="placeholder-text">Search FAB assets...</property>
+                        <property name="placeholder-text" translatable="yes">Search FAB assets...</property>
                         <property name="hexpand">true</property>
                     </object>
                 </child>

@@ -43,7 +43,7 @@
                                                                             <object class="AdwStatusPage">
                                                                                 <property name="height-request">280</property>
                                                                                 <property name="icon-name">emblem-synchronizing-symbolic</property>
-                                                                                <property name="title">Loading</property>
+                                                                                <property name="title" translatable="yes">Loading</property>
                                                                             </object>
                                                                         </property>
                                                                     </object>
@@ -56,7 +56,7 @@
                                                                             <object class="GtkImage">
                                                                                 <property name="halign">start</property>
                                                                                 <property name="icon-name">emblem-default-symbolic</property>
-                                                                                <property name="tooltip-text">Valid</property>
+                                                                                <property name="tooltip-text" translatable="yes">Valid</property>
                                                                             </object>
                                                                         </property>
                                                                     </object>
@@ -97,12 +97,12 @@
                                                                                             </object>
                                                                                         </child>
                                                                                         <child>
-                                                                                            <object class="GtkButton">
-                                                                                                <property name="action-name">epic_download.revalidate_eula</property>
-                                                                                                <property name="tooltip-text">Revalidate</property>
-                                                                                                <property name="icon-name">view-refresh-symbolic</property>
-                                                                                                <property name="valign">center</property>
-                                                                                            </object>
+                                                                            <object class="GtkButton">
+                                                                                <property name="action-name">epic_download.revalidate_eula</property>
+                                                                                <property name="tooltip-text" translatable="yes">Revalidate</property>
+                                                                                <property name="icon-name">view-refresh-symbolic</property>
+                                                                                <property name="valign">center</property>
+                                                                            </object>
                                                                                         </child>
                                                                                     </object>
                                                                                 </child>

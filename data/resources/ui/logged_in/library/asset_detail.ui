@@ -132,7 +132,7 @@
                                         </child>
                                         <child>
                                             <object class="AdwPreferencesGroup">
-                                                <property name="title">Information</property>
+                                                <property name="title" translatable="yes">Information</property>
                                                 <property name="valign">start</property>
                                                 <child>
                                                     <object class="GtkListBox" id="details_box">

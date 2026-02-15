@@ -69,7 +69,7 @@
 
                                         <child>
                                             <object class="AdwPreferencesGroup">
-                                                <property name="title">General</property>
+                                                <property name="title" translatable="yes">General</property>
                                                 <child>
                                                     <object class="GtkListBox" id="details">
                                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
@@ -80,7 +80,7 @@
                                         </child>
                                         <child>
                                             <object class="AdwPreferencesGroup">
-                                                <property name="title">Details</property>
+                                                <property name="title" translatable="yes">Details</property>
                                                 <child>
                                                     <object class="AdwExpanderRow" id="logs_row">
                                                         <property name="title" translatable="yes">Logs</property>

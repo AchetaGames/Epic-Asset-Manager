@@ -13,7 +13,7 @@
                         <property name="action-name">dir_row.up</property>
                         <property name="icon-name">go-up-symbolic</property>
                         <property name="valign">center</property>
-                        <property name="tooltip-text">Moves the entry up the list</property>
+                        <property name="tooltip-text" translatable="yes">Moves the entry up the list</property>
                     </object>
                 </child>
                 <child>
@@ -21,7 +21,7 @@
                         <property name="action-name">dir_row.down</property>
                         <property name="icon-name">go-down-symbolic</property>
                         <property name="valign">center</property>
-                        <property name="tooltip-text">Moves the entry down the list</property>
+                        <property name="tooltip-text" translatable="yes">Moves the entry down the list</property>
                     </object>
                 </child>
             </object>
@@ -32,7 +32,7 @@
                 <property name="icon-name">user-trash-symbolic</property>
                 <property name="valign">center</property>
                 <property name="css-classes">destructive-action</property>
-                <property name="tooltip-text">Removes entry from list</property>
+                <property name="tooltip-text" translatable="yes">Removes entry from list</property>
             </object>
         </child>
     </template>

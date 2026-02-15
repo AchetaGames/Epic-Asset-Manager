@@ -11,7 +11,7 @@
                     <object class="AdwPreferencesPage">
                         <child>
                             <object class="AdwPreferencesGroup">
-                                <property name="title">Download details</property>
+                                <property name="title" translatable="yes">Download details</property>
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>

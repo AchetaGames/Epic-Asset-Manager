@@ -2,7 +2,7 @@
 <interface>
     <template class="EpicCreateAssetProject" parent="GtkBox">
         <property name="css-classes">linked</property>
-        <child> <!-- TODO: Switch to GtkDropDown -->
+        <child>
             <object class="GtkDropDown" id="select_target_directory">
                 <property name="valign">center</property>
             </object>
@@ -31,7 +31,7 @@
                 </child>
                 <child>
                     <object class="GtkCheckButton" id="overwrite">
-                        <property name="label">Overwrite?</property>
+                        <property name="label" translatable="yes">Overwrite?</property>
                         <property name="margin-start">12</property>
                         <property name="margin-top">6</property>
                         <property name="margin-bottom">6</property>

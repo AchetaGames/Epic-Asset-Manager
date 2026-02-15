@@ -45,7 +45,7 @@
                 </child>
                 <child type="overlay">
                     <object class="GtkLabel">
-                        <property name="label">FAB</property>
+                        <property name="label" translatable="yes">FAB</property>
                         <property name="css-classes">fab-badge</property>
                         <property name="halign">end</property>
                         <property name="valign">start</property>

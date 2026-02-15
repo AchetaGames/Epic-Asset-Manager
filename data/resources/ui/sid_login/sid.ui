@@ -53,7 +53,7 @@
                     <object class="GtkEntry" id="sid_entry">
                         <property name="width-chars">32</property>
                         <property name="max-length">32</property>
-                        <property name="placeholder-text">authorizationCode</property>
+                        <property name="placeholder-text" translatable="yes">authorizationCode</property>
                         <property name="css-classes">frame</property>
                     </object>
                 </child>
@@ -71,11 +71,11 @@
                 </child>
             </object>
         </child>
-        <child>
+         <child>
             <object class="GtkLabel">
-                <property name="label">Please enter 'authorizationCode' from the response after login</property>
+                <property name="label" translatable="yes">Please enter 'authorizationCode' from the response after login</property>
             </object>
-        </child>
+         </child>
         <child>
             <object class="GtkButton">
                 <property name="halign">center</property>

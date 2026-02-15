@@ -18,7 +18,7 @@
                 <property name="margin-bottom">8</property>
                 <child>
                     <object class="GtkLabel">
-                        <property name="label">MY GAMES</property>
+                        <property name="label" translatable="yes">MY GAMES</property>
                         <property name="css-classes">section-title</property>
                         <property name="halign">start</property>
                         <property name="hexpand">true</property>
@@ -26,7 +26,7 @@
                 </child>
                 <child>
                     <object class="GtkSearchEntry" id="games_search">
-                        <property name="placeholder-text">Search games...</property>
+                        <property name="placeholder-text" translatable="yes">Search games...</property>
                     </object>
                 </child>
             </object>
