@@ -46,8 +46,8 @@ winres = "0.1"
 open = "5.0.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-ashpd = "0.10"
+ashpd = "0.12"
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
 ghregistry = "^0.2"
-secret-service = { version = "4", features = ["crypto-rust"] }
-zbus = { version = "4.4", features = ["tokio"] }
+secret-service = { version = "5", features = ["crypto-rust"] }
+zbus = { version = "5", features = ["tokio"] }
