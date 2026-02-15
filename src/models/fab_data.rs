@@ -1,21 +1,12 @@
-use chrono::{DateTime, Utc};
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
-use egs_api::api::types::asset_info::AssetInfo;
+use egs_api::api::types::fab_library::FabAsset;
 use gtk4::gdk::Texture;
 use gtk4::prelude::ObjectExt;
 use gtk4::prelude::SettingsExtManual;
 use gtk4::{glib, subclass::prelude::*};
 use log::error;
 use std::path::PathBuf;
-
-pub enum AssetType {
-    Asset,
-    Project,
-    Game,
-    Engine,
-    Plugin,
-}
 
 // Implementation sub-module of the GObject
 mod imp {
@@ -28,7 +19,7 @@ mod imp {
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
     #[derive(Debug)]
-    pub struct AssetData {
+    pub struct FabData {
         id: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
         favorite: RefCell<bool>,
@@ -36,17 +27,16 @@ mod imp {
         downloading: RefCell<bool>,
         download_progress: RefCell<f64>,
         download_speed: RefCell<String>,
-        pub kind: RefCell<Option<String>>,
-        pub asset: RefCell<Option<AssetInfo>>,
+        pub asset: RefCell<Option<FabAsset>>,
         thumbnail: RefCell<Option<Texture>>,
         pub settings: gtk4::gio::Settings,
     }
 
     // Basic declaration of our type for the GObject type system
     #[glib::object_subclass]
-    impl ObjectSubclass for AssetData {
-        const NAME: &'static str = "AssetData";
-        type Type = super::AssetData;
+    impl ObjectSubclass for FabData {
+        const NAME: &'static str = "FabData";
+        type Type = super::FabData;
         type ParentType = glib::Object;
 
         fn new() -> Self {
@@ -58,7 +48,6 @@ mod imp {
                 downloading: RefCell::new(false),
                 download_progress: RefCell::new(0.0),
                 download_speed: RefCell::new(String::new()),
-                kind: RefCell::new(None),
                 asset: RefCell::new(None),
                 thumbnail: RefCell::new(None),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
@@ -66,13 +55,7 @@ mod imp {
         }
     }
 
-    // The ObjectImpl trait provides the setters/getters for GObject properties.
-    // Here we need to provide the values that are internally stored back to the
-    // caller, or store whatever new value the caller is providing.
-    //
-    // This maps between the GObject properties and our internal storage of the
-    // corresponding values of the properties.
-    impl ObjectImpl for AssetData {
+    impl ObjectImpl for FabData {
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: once_cell::sync::Lazy<Vec<glib::subclass::Signal>> =
                 once_cell::sync::Lazy::new(|| {
@@ -175,83 +158,25 @@ mod imp {
     }
 }
 
-// Public part of the AssetData type. This behaves like a normal gtk-rs-style GObject
-// binding
 glib::wrapper! {
-    pub struct AssetData(ObjectSubclass<imp::AssetData>);
+    pub struct FabData(ObjectSubclass<imp::FabData>);
 }
 
-// Constructor for new instances. This simply calls glib::Object::new() with
-// initial values for our two properties and then returns the new instance
-impl AssetData {
-    pub fn new(asset: &AssetInfo, image: Option<Texture>) -> AssetData {
+impl FabData {
+    pub fn new(asset: &FabAsset, image: Option<Texture>) -> FabData {
         let data: Self = glib::Object::new::<Self>();
         let self_ = data.imp();
 
-        data.set_property("id", &asset.id);
+        data.set_property("id", &asset.asset_id);
         data.check_favorite();
         data.set_property("name", &asset.title);
         self_.asset.replace(Some(asset.clone()));
         data.check_downloaded();
 
-        data.configure_kind(asset);
-
         if let Some(tex) = image {
             data.set_property("thumbnail", tex);
         };
         data
-    }
-
-    pub fn decide_kind(asset: &AssetInfo) -> Option<AssetType> {
-        if let Some(cat) = &asset.categories {
-            for c in cat {
-                match c.path.as_str() {
-                    "assets" => {
-                        return Some(AssetType::Asset);
-                    }
-                    "games" => {
-                        return Some(AssetType::Game);
-                    }
-                    "plugins" => {
-                        return Some(AssetType::Plugin);
-                    }
-                    "projects" => {
-                        return Some(AssetType::Project);
-                    }
-                    "engines" => {
-                        return Some(AssetType::Engine);
-                    }
-                    _ => {}
-                };
-            }
-        };
-        None
-    }
-
-    fn configure_kind(&self, asset: &AssetInfo) {
-        let self_ = self.imp();
-        Self::decide_kind(asset).map_or_else(
-            || {
-                self_.kind.replace(None);
-            },
-            |kind| match kind {
-                AssetType::Asset => {
-                    self_.kind.replace(Some("asset".to_string()));
-                }
-                AssetType::Project => {
-                    self_.kind.replace(Some("projects".to_string()));
-                }
-                AssetType::Game => {
-                    self_.kind.replace(Some("games".to_string()));
-                }
-                AssetType::Engine => {
-                    self_.kind.replace(Some("engines".to_string()));
-                }
-                AssetType::Plugin => {
-                    self_.kind.replace(Some("plugins".to_string()));
-                }
-            },
-        );
     }
 
     pub fn id(&self) -> String {
@@ -270,37 +195,6 @@ impl AssetData {
         self.property("downloaded")
     }
 
-    pub fn release(&self) -> Option<DateTime<Utc>> {
-        let self_ = self.imp();
-        (*self_.asset.borrow())
-            .as_ref()
-            .and_then(|a| match a.latest_release() {
-                None => a.last_modified_date,
-                Some(ri) => ri.date_added,
-            })
-    }
-
-    pub fn kind(&self) -> Option<AssetType> {
-        let self_ = self.imp();
-        (*self_.kind.borrow())
-            .as_ref()
-            .and_then(|a| match a.as_str() {
-                "asset" => Some(AssetType::Asset),
-                "games" => Some(AssetType::Game),
-                "plugins" => Some(AssetType::Plugin),
-                "projects" => Some(AssetType::Project),
-                "engines" => Some(AssetType::Engine),
-                _ => None,
-            })
-    }
-
-    pub fn last_modified(&self) -> Option<DateTime<Utc>> {
-        let self_ = self.imp();
-        (*self_.asset.borrow())
-            .as_ref()
-            .and_then(|a| a.last_modified_date)
-    }
-
     pub fn image(&self) -> Option<Texture> {
         self.property("thumbnail")
     }
@@ -313,15 +207,22 @@ impl AssetData {
         } else {
             let self_ = self.imp();
             if let Some(b) = self_.asset.borrow().as_ref() {
-                if let Some(categories) = &b.categories {
-                    for category in categories {
-                        if category
-                            .path
+                for category in &b.categories {
+                    if let Some(name) = &category.name {
+                        if name
                             .to_ascii_lowercase()
                             .contains(&cat.to_ascii_lowercase())
                         {
                             return true;
                         }
+                    }
+                    // Also check category id
+                    if category
+                        .id
+                        .to_ascii_lowercase()
+                        .contains(&cat.to_ascii_lowercase())
+                    {
+                        return true;
                     }
                 }
             }
@@ -363,16 +264,10 @@ impl AssetData {
         let self_ = self.imp();
         let asset = &*self_.asset.borrow();
         if let Some(ass) = asset {
-            if let Some(ris) = &ass.release_info {
-                let vaults = self_.settings.strv("unreal-vault-directories");
-                for ri in ris {
-                    if let Some(app) = &ri.app_id {
-                        if !Self::downloaded_locations(&vaults, app).is_empty() {
-                            self.set_property("downloaded", true);
-                            return;
-                        }
-                    }
-                }
+            let vaults = self_.settings.strv("unreal-vault-directories");
+            if !Self::downloaded_locations(&vaults, &ass.asset_id).is_empty() {
+                self.set_property("downloaded", true);
+                return;
             }
         }
         self.set_property("downloaded", false);
@@ -418,27 +313,7 @@ impl AssetData {
     }
 
     pub fn set_downloading(&self, downloading: bool) {
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(
-                f,
-                "[AssetData.set_downloading] id={}, downloading={}",
-                self.id(),
-                downloading
-            );
-        }
         self.set_property("downloading", downloading);
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(f, "[AssetData.set_downloading] Emitting refreshed signal");
-        }
         self.emit_by_name::<()>("refreshed", &[]);
     }
 
