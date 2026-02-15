@@ -53,8 +53,6 @@ pub mod imp {
         #[template_child]
         pub sidebar_switch: TemplateChild<gtk4::Switch>,
         #[template_child]
-        pub default_view_selection: TemplateChild<gtk4::DropDown>,
-        #[template_child]
         pub log_level_selection: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub default_category_selection: TemplateChild<gtk4::DropDown>,
@@ -87,7 +85,6 @@ pub mod imp {
                 github_user: TemplateChild::default(),
                 dark_theme_switch: TemplateChild::default(),
                 sidebar_switch: TemplateChild::default(),
-                default_view_selection: TemplateChild::default(),
                 log_level_selection: TemplateChild::default(),
                 default_category_selection: TemplateChild::default(),
                 accent_color_selection: TemplateChild::default(),
@@ -141,11 +138,6 @@ impl Default for PreferencesWindow {
 }
 
 impl PreferencesWindow {
-    const DEFAULT_VIEW_OPTIONS: [(&'static str, &'static str); 3] = [
-        ("library", "Library"),
-        ("projects", "Projects"),
-        ("engines", "Engines"),
-    ];
     const LOG_LEVEL_OPTIONS: [(&'static str, &'static str); 5] = [
         ("0", "Error"),
         ("1", "Warn"),
@@ -153,9 +145,11 @@ impl PreferencesWindow {
         ("3", "Debug"),
         ("4", "Trace"),
     ];
-    const DEFAULT_CATEGORY_OPTIONS: [(&'static str, &'static str); 3] = [
-        ("all", "All"),
-        ("unreal", "Unreal Engine"),
+    const DEFAULT_CATEGORY_OPTIONS: [(&'static str, &'static str); 5] = [
+        ("engines", "Engines"),
+        ("projects", "Projects"),
+        ("library", "Library"),
+        ("fab", "Fab"),
         ("games", "Games"),
     ];
     const ACCENT_COLOR_OPTIONS: [(&'static str, &'static str); 7] = [
@@ -174,7 +168,6 @@ impl PreferencesWindow {
 
     fn setup_dropdowns(&self) {
         let self_ = self.imp();
-        Self::set_dropdown_items(&self_.default_view_selection, &Self::DEFAULT_VIEW_OPTIONS);
         Self::set_dropdown_items(&self_.log_level_selection, &Self::LOG_LEVEL_OPTIONS);
         Self::set_dropdown_items(
             &self_.default_category_selection,
@@ -275,14 +268,6 @@ impl PreferencesWindow {
             }
         ));
 
-        self_.default_view_selection.connect_selected_notify(clone!(
-            #[weak(rename_to=preferences)]
-            self,
-            move |_| {
-                preferences.default_view_changed();
-            }
-        ));
-
         self_.log_level_selection.connect_selected_notify(clone!(
             #[weak(rename_to=preferences)]
             self,
@@ -332,25 +317,12 @@ impl PreferencesWindow {
         }
     }
 
-    fn default_view_changed(&self) {
-        let self_ = self.imp();
-        let selected = Self::dropdown_selected_id(
-            &self_.default_view_selection,
-            &Self::DEFAULT_VIEW_OPTIONS,
-            "library",
-        );
-        self_
-            .settings
-            .set_string("default-view", &selected)
-            .unwrap();
-    }
-
     fn default_category_changed(&self) {
         let self_ = self.imp();
         let selected = Self::dropdown_selected_id(
             &self_.default_category_selection,
             &Self::DEFAULT_CATEGORY_OPTIONS,
-            "unreal",
+            "library",
         );
         self_
             .settings
@@ -465,13 +437,6 @@ impl PreferencesWindow {
             );
         }
 
-        let view = self_.settings.string("default-view");
-        Self::dropdown_set_selected_id(
-            &self_.default_view_selection,
-            &Self::DEFAULT_VIEW_OPTIONS,
-            view.as_str(),
-            "library",
-        );
         let level = self_.settings.int("log-level");
         let level_id = format!("{level}");
         Self::dropdown_set_selected_id(
@@ -486,7 +451,7 @@ impl PreferencesWindow {
             &self_.default_category_selection,
             &Self::DEFAULT_CATEGORY_OPTIONS,
             category.as_str(),
-            "unreal",
+            "library",
         );
 
         let accent = self_.settings.string("accent-color");

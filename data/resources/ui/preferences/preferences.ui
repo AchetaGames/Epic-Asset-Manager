@@ -15,10 +15,10 @@
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">_Startup tab</property>
                                 <property name="use-underline">true</property>
-                                <property name="activatable-widget">default_view_selection</property>
-                                <property name="subtitle" translatable="yes">What tab the application starts on</property>
+                                <property name="activatable-widget">default_category_selection</property>
+                                <property name="subtitle" translatable="yes">Which tab to show when the application starts</property>
                                 <child>
-                                    <object class="GtkDropDown" id="default_view_selection">
+                                    <object class="GtkDropDown" id="default_category_selection">
                                         <property name="valign">center</property>
                                     </object>
                                 </child>
@@ -59,20 +59,7 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup">
-                        <property name="title" translatable="yes">Library</property>
-                        <child>
-                            <object class="AdwActionRow">
-                                <property name="title" translatable="yes">Sidebar _category</property>
-                                <property name="use-underline">True</property>
-                                <property name="activatable-widget">default_category_selection</property>
-                                <property name="subtitle" translatable="yes">What category to have selected in library</property>
-                                <child>
-                                    <object class="GtkDropDown" id="default_category_selection">
-                                        <property name="valign">center</property>
-                                    </object>
-                                </child>
-                            </object>
-                        </child>
+                        <property name="title" translatable="yes">Sidebar</property>
                         <child>
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">_Expand sidebar</property>
