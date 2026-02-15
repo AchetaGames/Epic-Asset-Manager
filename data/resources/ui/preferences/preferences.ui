@@ -242,7 +242,7 @@
         </child>
         <child>
             <object class="AdwPreferencesPage">
-                <property name="icon-name">applications-system-symbolic</property>
+                <property name="icon-name">network-server-symbolic</property>
                 <property name="title" translatable="yes">GitHub</property>
                 <property name="name">github</property>
                 <child>
