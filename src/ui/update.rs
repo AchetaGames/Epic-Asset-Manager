@@ -36,6 +36,12 @@ impl Update for EpicAssetManagerWindow {
             Msg::FlushAssetThumbnails => {
                 self_.logged_in_stack.flush_assets();
             }
+            Msg::ProcessFabAsset(fab_asset, image) => {
+                self_.logged_in_stack.add_fab_asset(&fab_asset, image);
+            }
+            Msg::FlushFabAssets => {
+                self_.logged_in_stack.flush_fab_assets();
+            }
             Msg::ProcessEpicAsset(epic_asset) => {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }
