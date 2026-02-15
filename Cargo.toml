@@ -23,7 +23,6 @@ fs2 = "0.4.3"
 gtk4 = { version = "0.10", features = ["v4_18"] }
 gtk-macros = "0.3"
 html2pango = "0.6"
-lazy_static = "1.5"
 libsqlite3-sys = { version = "0.25.2", features = ["bundled"] }
 log = "0.4"
 once_cell = "1.8"

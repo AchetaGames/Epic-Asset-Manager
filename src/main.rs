@@ -17,11 +17,14 @@ use gtk4::gio;
 use log::debug;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::Arc;
 
-lazy_static::lazy_static! {
-    static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
-}
+static RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> = once_cell::sync::Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create Tokio runtime")
+});
 
 /// Find the gresource file in standard locations
 fn find_resources_file() -> PathBuf {
@@ -113,7 +116,5 @@ fn main() {
     debug!("{}", PROFILE);
     debug!("{}", VERSION);
     app.run();
-    if let Ok(mut w) = crate::RUNNING.write() {
-        *w = false;
-    };
+    crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
 }

@@ -4,7 +4,6 @@ use gtk4::prelude::SettingsExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
 use log::debug;
 use std::thread;
-use tokio::runtime::Builder;
 
 impl EpicAssetManagerWindow {
     pub fn login(&self, sid: String) {
@@ -16,12 +15,7 @@ impl EpicAssetManagerWindow {
         let mut eg = self_.model.borrow().epic_games.borrow().clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
-            if Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(eg.auth_code(None, Some(s)))
-            {
+            if crate::RUNTIME.block_on(eg.auth_code(None, Some(s))) {
                 sender
                     .send_blocking(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
@@ -90,12 +84,7 @@ impl EpicAssetManagerWindow {
         let mut eg = self_.model.borrow().epic_games.borrow().clone();
         thread::spawn(move || {
             let start = std::time::Instant::now();
-            if Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(eg.login())
-            {
+            if crate::RUNTIME.block_on(eg.login()) {
                 sender
                     .send_blocking(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
@@ -120,11 +109,7 @@ impl EpicAssetManagerWindow {
         let mut eg = self_.model.borrow().epic_games.borrow().clone();
 
         thread::spawn(move || {
-            Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(eg.logout());
+            crate::RUNTIME.block_on(eg.logout());
             sender
                 .send_blocking(crate::ui::messages::Msg::Logout)
                 .unwrap();

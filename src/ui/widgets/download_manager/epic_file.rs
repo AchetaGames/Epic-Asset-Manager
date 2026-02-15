@@ -115,16 +115,20 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         debug!("Initializing epic engine download of {}", version);
         let self_ = self.imp();
         let re = Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
-        let mut items = self_.download_items.borrow_mut();
-        let item = match items.get_mut(version) {
-            None => {
-                let item = download_item::EpicDownloadItem::new();
-                debug!("Adding item to the list under: {}", version);
-                items.insert(version.to_string(), item.clone());
-                item
-            }
-            Some(_) => {
-                return;
+        let item = {
+            let mut state = self_.state.borrow_mut();
+            match state.download_items.get_mut(version) {
+                None => {
+                    let item = download_item::EpicDownloadItem::new();
+                    debug!("Adding item to the list under: {}", version);
+                    state
+                        .download_items
+                        .insert(version.to_string(), item.clone());
+                    item
+                }
+                Some(_) => {
+                    return;
+                }
             }
         };
         if let Some(w) = self_.window.get() {
@@ -191,8 +195,8 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                     let self_ = dm.imp();
                     let s = self_.sender.clone();
                     if let Some(ver) = filter_versions(response, &vers) {
-                        s.send_blocking(Msg::EpicDownloadStart(ver.name, ver.url, ver.size))
-                            .unwrap();
+                        let _ =
+                            s.send_blocking(Msg::EpicDownloadStart(ver.name, ver.url, ver.size));
                     }
                 }
             }
@@ -251,7 +255,7 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             item.set_property("status", "Canceled".to_string());
             item.set_property("speed", String::new());
             if let Some(v) = item.version() {
-                self_.download_items.borrow_mut().remove(&v);
+                self_.state.borrow_mut().download_items.remove(&v);
             }
         }
 
@@ -305,11 +309,23 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
                 let metadata = fs::metadata(p.as_path()).expect("unable to read metadata");
                 item.add_downloaded_size(item.total_size() - item.downloaded_size());
                 if u128::from(metadata.size()) == item.total_size() {
-                    let file = File::open(&p).unwrap();
+                    let file = match File::open(&p) {
+                        Ok(file) => file,
+                        Err(e) => {
+                            error!("Unable to open downloaded file {:?}: {}", p, e);
+                            return;
+                        }
+                    };
                     if target.exists() {
                         warn!("Target already exists.");
                     }
-                    let archive = ZipArchive::new(file).unwrap();
+                    let archive = match ZipArchive::new(file) {
+                        Ok(archive) => archive,
+                        Err(e) => {
+                            error!("Unable to read zip archive {:?}: {}", p, e);
+                            return;
+                        }
+                    };
                     item.set_total_files(archive.len() as u64);
                     let sender = self_.sender.clone();
                     let ver = version.to_string();
@@ -337,47 +353,57 @@ fn extract(
     recv: &Receiver<ThreadMessages>,
 ) {
     for i in 0..archive.len() {
-        if let Ok(w) = crate::RUNNING.read() {
-            if !*w {
-                return;
-            }
+        if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
         }
         let mut file_target = target.to_path_buf();
-        let mut file = archive.by_index(i).unwrap();
+        let mut file = match archive.by_index(i) {
+            Ok(file) => file,
+            Err(e) => {
+                error!("Unable to read zip entry {}: {}", i, e);
+                continue;
+            }
+        };
         let outpath = if let Some(path) = file.enclosed_name() {
             path.to_owned()
         } else {
-            sender
-                .send_blocking(Msg::EpicFileExtracted(ver.clone()))
-                .unwrap();
+            let _ = sender.send_blocking(Msg::EpicFileExtracted(ver.clone()));
             continue;
         };
         file_target.push(&outpath);
         if file_target.exists() {
             let metadata = fs::metadata(file_target.as_path()).expect("unable to read metadata");
             if metadata.size() == file.size() {
-                sender
-                    .send_blocking(Msg::EpicFileExtracted(ver.clone()))
-                    .unwrap();
+                let _ = sender.send_blocking(Msg::EpicFileExtracted(ver.clone()));
                 continue;
             }
         }
         if (*file.name()).ends_with('/') {
-            fs::create_dir_all(&file_target).unwrap();
+            if let Err(e) = fs::create_dir_all(&file_target) {
+                error!("Unable to create directory {:?}: {}", file_target, e);
+                continue;
+            }
         } else {
             if let Some(p) = file_target.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(p).unwrap();
+                    if let Err(e) = fs::create_dir_all(p) {
+                        error!("Unable to create directory {:?}: {}", p, e);
+                        continue;
+                    }
                 }
             }
-            let mut outfile = File::create(&file_target).unwrap();
+            let mut outfile = match File::create(&file_target) {
+                Ok(outfile) => outfile,
+                Err(e) => {
+                    error!("Unable to create output file {:?}: {}", file_target, e);
+                    continue;
+                }
+            };
 
             let mut buffer: [u8; 1024] = [0; 1024];
             loop {
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
                 }
                 match file.read(&mut buffer) {
                     Ok(size) => {
@@ -386,13 +412,14 @@ fn extract(
                             return;
                         }
                         if size > 0 {
-                            outfile.write_all(&buffer[0..size]).unwrap();
-                            sender
-                                .send_blocking(Msg::EpicFileExtractionProgress(
-                                    ver.clone(),
-                                    size as u64,
-                                ))
-                                .unwrap();
+                            if let Err(e) = outfile.write_all(&buffer[0..size]) {
+                                error!("Unable to write extracted file {:?}: {}", file_target, e);
+                                return;
+                            }
+                            let _ = sender.send_blocking(Msg::EpicFileExtractionProgress(
+                                ver.clone(),
+                                size as u64,
+                            ));
                         } else {
                             break;
                         }
@@ -418,11 +445,9 @@ fn extract(
                 }
             }
         }
-        sender
-            .send_blocking(Msg::EpicFileExtracted(ver.clone()))
-            .unwrap();
+        let _ = sender.send_blocking(Msg::EpicFileExtracted(ver.clone()));
     }
-    sender.send_blocking(Msg::EpicFileFinished(ver)).unwrap();
+    let _ = sender.send_blocking(Msg::EpicFileFinished(ver));
 }
 
 fn run(
@@ -433,10 +458,8 @@ fn run(
     ver: String,
     p: &mut PathBuf,
 ) {
-    if let Ok(w) = crate::RUNNING.read() {
-        if !*w {
-            return;
-        }
+    if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+        return;
     };
     if let Ok(m) = recv.try_recv() {
         process_epic_thread_message(ver, sender, &m);
@@ -448,15 +471,20 @@ fn run(
         link.to_string(),
         p
     );
-    fs::create_dir_all(p.parent().unwrap()).unwrap();
+    let Some(parent) = p.parent() else {
+        error!("Download path has no parent: {:?}", p);
+        return;
+    };
+    if let Err(e) = fs::create_dir_all(parent) {
+        error!("Unable to create download directory {:?}: {}", parent, e);
+        return;
+    }
     let mut client = if p.exists() {
         let metadata = fs::metadata(p.as_path()).expect("unable to read metadata");
         if metadata.size() == size {
             debug!("Already downloaded {}", p.to_str().unwrap_or_default());
-            sender
-                .send_blocking(Msg::EpicDownloadProgress(ver.clone(), size))
-                .unwrap();
-            sender.send_blocking(Msg::EpicFileFinished(ver)).unwrap();
+            let _ = sender.send_blocking(Msg::EpicDownloadProgress(ver.clone(), size));
+            let _ = sender.send_blocking(Msg::EpicFileFinished(ver));
             return;
         };
 
@@ -486,16 +514,20 @@ fn run(
         }
     };
     let mut buffer: [u8; 1024] = [0; 1024];
-    let mut file = File::create(&p).unwrap();
+    let mut file = match File::create(&p) {
+        Ok(file) => file,
+        Err(e) => {
+            error!("Unable to create download file {:?}: {}", p, e);
+            return;
+        }
+    };
     loop {
         if let Ok(m) = recv.try_recv() {
             process_epic_thread_message(ver, sender, &m);
             return;
         }
-        if let Ok(w) = crate::RUNNING.read() {
-            if !*w {
-                return;
-            }
+        if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
         }
         match client.read(&mut buffer) {
             Ok(size) => {
@@ -504,10 +536,12 @@ fn run(
                     return;
                 }
                 if size > 0 {
-                    file.write_all(&buffer[0..size]).unwrap();
-                    sender
-                        .send_blocking(Msg::EpicDownloadProgress(ver.clone(), size as u64))
-                        .unwrap();
+                    if let Err(e) = file.write_all(&buffer[0..size]) {
+                        error!("Unable to write download file {:?}: {}", p, e);
+                        return;
+                    }
+                    let _ =
+                        sender.send_blocking(Msg::EpicDownloadProgress(ver.clone(), size as u64));
                 } else {
                     break;
                 }
@@ -518,7 +552,7 @@ fn run(
             }
         }
     }
-    sender.send_blocking(Msg::EpicFileFinished(ver)).unwrap();
+    let _ = sender.send_blocking(Msg::EpicFileFinished(ver));
 }
 
 fn filter_versions(versions: Vec<Blob>, version: &str) -> Option<Blob> {
@@ -532,10 +566,10 @@ fn process_epic_thread_message(
 ) {
     match m {
         ThreadMessages::Cancel => {
-            sender.send_blocking(Msg::EpicCanceled(version)).unwrap();
+            let _ = sender.send_blocking(Msg::EpicCanceled(version));
         }
         ThreadMessages::Pause => {
-            sender.send_blocking(Msg::EpicPaused(version)).unwrap();
+            let _ = sender.send_blocking(Msg::EpicPaused(version));
         }
     }
 }

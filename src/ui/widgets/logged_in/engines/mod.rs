@@ -483,10 +483,8 @@ impl EpicEnginesBox {
                         let path = std::path::PathBuf::from(dir.to_string());
                         if let Ok(rd) = path.read_dir() {
                             for d in rd.flatten() {
-                                if let Ok(w) = crate::RUNNING.read() {
-                                    if !*w {
-                                        return;
-                                    }
+                                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                                    return;
                                 }
                                 let p = d.path();
                                 if p.is_dir() {

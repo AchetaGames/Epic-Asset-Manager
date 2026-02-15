@@ -182,9 +182,7 @@ impl EpicAssetManager {
     pub fn setup_gactions(&self) {
         let self_ = self.imp();
         self.connect_shutdown(|_| {
-            if let Ok(mut w) = crate::RUNNING.write() {
-                *w = false;
-            }
+            crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
         });
 
         // Quit
@@ -253,9 +251,7 @@ impl EpicAssetManager {
     }
 
     fn exit(&self) {
-        if let Ok(mut w) = crate::RUNNING.write() {
-            *w = false;
-        }
+        crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
         self.main_window().close();
         self.quit();
     }

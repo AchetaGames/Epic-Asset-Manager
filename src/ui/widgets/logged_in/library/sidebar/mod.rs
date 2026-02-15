@@ -6,7 +6,6 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{error, warn};
 use std::thread;
-use tokio::runtime::Builder;
 
 pub mod button;
 pub mod categories;
@@ -230,17 +229,10 @@ impl EpicSidebar {
                 }
             });
 
-            thread::spawn(move || {
-                match Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
-                    None => {}
-                    Some(token) => {
-                        sender.send_blocking(token.code).unwrap();
-                    }
+            thread::spawn(move || match crate::RUNTIME.block_on(eg.game_token()) {
+                None => {}
+                Some(token) => {
+                    sender.send_blocking(token.code).unwrap();
                 }
             });
         }

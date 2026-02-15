@@ -10,7 +10,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::thread;
-use tokio::runtime::Builder;
 use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
@@ -319,12 +318,7 @@ impl EpicEngineDownload {
             });
 
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     sender.send_blocking(token.code).unwrap();
                 }
             });
@@ -345,12 +339,7 @@ impl EpicEngineDownload {
             });
 
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     sender.send_blocking(token.code).unwrap();
                 }
             });
@@ -454,12 +443,7 @@ impl EpicEngineDownload {
                 return;
             };
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
                     sender
@@ -476,12 +460,7 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
                     if let Ok(versions) = web.run_query::<VersionResponse>(

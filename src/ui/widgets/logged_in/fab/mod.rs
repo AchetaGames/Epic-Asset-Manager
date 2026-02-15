@@ -5,7 +5,6 @@ use gtk4::{glib, CompositeTemplate};
 use log::{debug, error, warn};
 use std::collections::HashSet;
 use std::path::PathBuf;
-use tokio::runtime::Builder;
 
 pub mod version_dialog;
 
@@ -323,10 +322,8 @@ impl FabLibraryBox {
                 };
 
                 for entry in entries.flatten() {
-                    if let Ok(w) = crate::RUNNING.read() {
-                        if !*w {
-                            return;
-                        }
+                    if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                        return;
                     }
 
                     let mut asset_file = entry.path();
@@ -390,25 +387,17 @@ impl FabLibraryBox {
             debug!("Fetching FAB library from API for account {}", account_id);
 
             self_.image_load_pool.execute(move || {
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
                 }
 
-                let fab_library = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.fab_library_items(account_id));
+                let fab_library = crate::RUNTIME.block_on(eg.fab_library_items(account_id));
 
                 if let Some(library) = fab_library {
                     debug!("Got {} FAB assets from API", library.results.len());
                     for asset in &library.results {
-                        if let Ok(w) = crate::RUNNING.read() {
-                            if !*w {
-                                return;
-                            }
+                        if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                            return;
                         }
 
                         Self::cache_fab_asset(asset, &cache_dir);

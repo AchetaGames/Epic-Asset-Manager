@@ -11,7 +11,6 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use tokio::runtime::Builder;
 
 mod actions;
 pub mod asset;
@@ -1000,9 +999,7 @@ impl EpicLibraryBox {
         if let Some(window) = self.main_window() {
             let win_ = window.imp();
             let sender = win_.model.borrow().sender.clone();
-            sender
-                .send_blocking(crate::ui::messages::Msg::EndAssetProcessing)
-                .unwrap();
+            let _ = sender.send_blocking(crate::ui::messages::Msg::EndAssetProcessing);
             let mut assets = self_.loaded_assets.borrow_mut();
             let mut asset_products = self_.asset_product_names.borrow_mut();
             if match assets.get_mut(&asset.id) {
@@ -1077,12 +1074,10 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             match asset.thumbnail() {
                 None => {
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
-                            asset.clone(),
-                            None,
-                        ))
-                        .unwrap();
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                        asset.clone(),
+                        None,
+                    ));
                 }
                 Some(t) => {
                     let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -1092,21 +1087,21 @@ impl EpicLibraryBox {
                     cache_path.push(format!("{}.{}", t.md5, name.unwrap_or("png")));
                     let asset = asset.clone();
                     self_.image_load_pool.execute(move || {
-                        if let Ok(w) = crate::RUNNING.read() {
-                            if !*w {
-                                return;
-                            }
+                        if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                            return;
                         }
                         if cache_path.as_path().exists() {
                             match gtk4::gdk::Texture::from_file(&gio::File::for_path(
                                 cache_path.as_path(),
                             )) {
-                                Ok(t) => sender
-                                    .send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
-                                        asset.clone(),
-                                        Some(t),
-                                    ))
-                                    .unwrap(),
+                                Ok(t) => {
+                                    let _ = sender.send_blocking(
+                                        crate::ui::messages::Msg::ProcessAssetThumbnail(
+                                            asset.clone(),
+                                            Some(t),
+                                        ),
+                                    );
+                                }
                                 Err(e) => {
                                     error!(
                                         "Unable to load file {}{} to texture: {}",
@@ -1115,12 +1110,10 @@ impl EpicLibraryBox {
                                 }
                             };
                         } else {
-                            sender
-                                .send_blocking(crate::ui::messages::Msg::DownloadImage(
-                                    t,
-                                    asset.clone(),
-                                ))
-                                .unwrap();
+                            let _ = sender.send_blocking(crate::ui::messages::Msg::DownloadImage(
+                                t,
+                                asset.clone(),
+                            ));
                         }
                     });
                 }
@@ -1148,37 +1141,41 @@ impl EpicLibraryBox {
             let mut cached: Vec<String> = vec![];
             if cache_path.is_dir() {
                 debug!("Checking cache");
-                let entries = std::fs::read_dir(cache_path).unwrap();
-                for entry in entries {
-                    let sender = win_.model.borrow().sender.clone();
-                    if let Ok(entr) = entry {
-                        let mut asset_file = entr.path();
-                        cached.push(entr.file_name().into_string().unwrap_or_default());
-                        asset_file.push("asset_info.json");
-                        self_.asset_load_pool.execute(move || {
-                            // Load assets from cache
+                match std::fs::read_dir(cache_path) {
+                    Ok(entries) => {
+                        for entry in entries {
+                            let sender = win_.model.borrow().sender.clone();
+                            if let Ok(entr) = entry {
+                                let mut asset_file = entr.path();
+                                cached.push(entr.file_name().into_string().unwrap_or_default());
+                                asset_file.push("asset_info.json");
+                                self_.asset_load_pool.execute(move || {
+                                    // Load assets from cache
 
-                            if let Ok(w) = crate::RUNNING.read() {
-                                if !*w {
-                                    return;
-                                }
-                            }
-
-                            if asset_file.exists() {
-                                sender
-                                    .send_blocking(crate::ui::messages::Msg::StartAssetProcessing)
-                                    .unwrap();
-                                if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
-                                    if let Ok(asset) = serde_json::from_reader(f) {
-                                        sender
-                                            .send_blocking(
-                                                crate::ui::messages::Msg::ProcessAssetInfo(asset),
-                                            )
-                                            .unwrap();
+                                    if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                                        return;
                                     }
-                                };
+
+                                    if asset_file.exists() {
+                                        let _ = sender.send_blocking(
+                                            crate::ui::messages::Msg::StartAssetProcessing,
+                                        );
+                                        if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
+                                            if let Ok(asset) = serde_json::from_reader(f) {
+                                                let _ = sender.send_blocking(
+                                                    crate::ui::messages::Msg::ProcessAssetInfo(
+                                                        asset,
+                                                    ),
+                                                );
+                                            }
+                                        };
+                                    }
+                                });
                             }
-                        });
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to read cache directory: {}", e);
                     }
                 }
             };
@@ -1191,11 +1188,7 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             // Start loading assets from the API
             self_.asset_load_pool.execute(move || {
-                let mut assets = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.list_assets(None, None));
+                let mut assets = crate::RUNTIME.block_on(eg.list_assets(None, None));
                 assets.sort_by(|a, b| {
                     let contains_a = cached.contains(&a.catalog_item_id);
                     let contains_b = cached.contains(&b.catalog_item_id);
@@ -1210,12 +1203,8 @@ impl EpicLibraryBox {
                     }
                 });
                 for asset in assets {
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::StartAssetProcessing)
-                        .unwrap();
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-                        .unwrap();
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::StartAssetProcessing);
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessEpicAsset(asset));
                 }
             });
             self.refresh_state_changed();
@@ -1253,11 +1242,31 @@ impl EpicLibraryBox {
             // Write the Epic Asset file
             self_.asset_load_pool.execute(move || {
                 cache_dir_c.push("epic_asset.json");
-                fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
-                if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
-                    asset_file
-                        .write_all(serde_json::to_string(&ea).unwrap().as_bytes().as_ref())
-                        .unwrap();
+                let Some(parent) = cache_dir_c.parent() else {
+                    error!("Missing parent directory for epic asset cache");
+                    return;
+                };
+                if let Err(e) = fs::create_dir_all(parent) {
+                    error!("Failed to create epic asset cache directory: {}", e);
+                    return;
+                }
+                let asset_file = File::create(cache_dir_c.as_path());
+                let mut asset_file = match asset_file {
+                    Ok(asset_file) => asset_file,
+                    Err(e) => {
+                        error!("Failed to create epic asset cache file: {}", e);
+                        return;
+                    }
+                };
+                let payload = match serde_json::to_string(&ea) {
+                    Ok(payload) => payload,
+                    Err(e) => {
+                        error!("Failed to serialize epic asset: {}", e);
+                        return;
+                    }
+                };
+                if let Err(e) = asset_file.write_all(payload.as_bytes()) {
+                    error!("Failed to write epic asset cache file: {}", e);
                 }
             });
 
@@ -1266,28 +1275,36 @@ impl EpicLibraryBox {
             let mut cache_dir_c = cache_dir;
             let epic_asset = epic_asset.clone();
             self_.asset_load_pool.execute(move || {
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
                 }
-                if let Some(asset) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.asset_info(&epic_asset))
-                {
+                if let Some(asset) = crate::RUNTIME.block_on(eg.asset_info(&epic_asset)) {
                     // TODO: Check with already added assets to see if it needs updating
                     cache_dir_c.push("asset_info.json");
-                    fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
-                    if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
-                        asset_file
-                            .write_all(serde_json::to_string(&asset).unwrap().as_bytes().as_ref())
-                            .unwrap();
+                    if let Some(parent) = cache_dir_c.parent() {
+                        if let Err(e) = fs::create_dir_all(parent) {
+                            error!("Failed to create asset info cache directory: {}", e);
+                        } else {
+                            match File::create(cache_dir_c.as_path()) {
+                                Ok(mut asset_file) => match serde_json::to_string(&asset) {
+                                    Ok(payload) => {
+                                        if let Err(e) = asset_file.write_all(payload.as_bytes()) {
+                                            error!("Failed to write asset info cache file: {}", e);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("Failed to serialize asset info: {}", e);
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Failed to create asset info cache file: {}", e);
+                                }
+                            }
+                        }
+                    } else {
+                        error!("Missing parent directory for asset info cache");
                     }
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset))
-                        .unwrap();
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset));
                 }
             });
         }

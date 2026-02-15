@@ -1024,7 +1024,6 @@ dependencies = [
  "gtk-macros",
  "gtk4",
  "html2pango",
- "lazy_static",
  "libadwaita",
  "libsqlite3-sys",
  "log",

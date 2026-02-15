@@ -15,29 +15,24 @@ pub fn open_directory(path: &str) {
         #[cfg(target_os = "linux")]
         {
             if let Ok(dir) = std::fs::File::open(&path) {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build();
-                if let Ok(rt) = rt {
-                    // Run the portal call AND drop all ashpd/zbus objects inside the
-                    // async block so their Drop impls execute within the Tokio runtime.
-                    let result: Result<(), String> = rt.block_on(async {
-                        let req = ashpd::desktop::open_uri::OpenDirectoryRequest::default()
-                            .send(&dir)
-                            .await;
-                        match req {
-                            Ok(_request) => {
-                                // _request (ashpd::Request<()>) dropped here, inside the runtime
-                                Ok(())
-                            }
-                            Err(e) => Err(format!("{e}")),
+                // Run the portal call AND drop all ashpd/zbus objects inside the
+                // async block so their Drop impls execute within the Tokio runtime.
+                let result: Result<(), String> = crate::RUNTIME.block_on(async {
+                    let req = ashpd::desktop::open_uri::OpenDirectoryRequest::default()
+                        .send(&dir)
+                        .await;
+                    match req {
+                        Ok(_request) => {
+                            // _request (ashpd::Request<()>) dropped here, inside the runtime
+                            Ok(())
                         }
-                    });
-                    match result {
-                        Ok(()) => return,
-                        Err(e) => {
-                            error!("Unable to open directory using portals: {}", e);
-                        }
+                        Err(e) => Err(format!("{e}")),
+                    }
+                });
+                match result {
+                    Ok(()) => return,
+                    Err(e) => {
+                        error!("Unable to open directory using portals: {}", e);
                     }
                 }
             }
@@ -69,24 +64,19 @@ pub fn open_file(path: &str) {
         #[cfg(target_os = "linux")]
         {
             if let Ok(file) = std::fs::File::open(&path) {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build();
-                if let Ok(rt) = rt {
-                    let result: Result<(), String> = rt.block_on(async {
-                        let req = ashpd::desktop::open_uri::OpenFileRequest::default()
-                            .send_file(&file)
-                            .await;
-                        match req {
-                            Ok(_request) => Ok(()),
-                            Err(e) => Err(format!("{e}")),
-                        }
-                    });
-                    match result {
-                        Ok(()) => return,
-                        Err(e) => {
-                            error!("Unable to open file using portals: {}", e);
-                        }
+                let result: Result<(), String> = crate::RUNTIME.block_on(async {
+                    let req = ashpd::desktop::open_uri::OpenFileRequest::default()
+                        .send_file(&file)
+                        .await;
+                    match req {
+                        Ok(_request) => Ok(()),
+                        Err(e) => Err(format!("{e}")),
+                    }
+                });
+                match result {
+                    Ok(()) => return,
+                    Err(e) => {
+                        error!("Unable to open file using portals: {}", e);
                     }
                 }
             }
@@ -100,12 +90,10 @@ pub fn open_file(path: &str) {
 pub fn is_sandboxed() -> bool {
     #[cfg(target_os = "linux")]
     {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build();
-        if let Ok(rt) = rt {
-            return rt.block_on(ashpd::is_sandboxed());
-        }
+        crate::RUNTIME.block_on(ashpd::is_sandboxed())
     }
-    false
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
 }
