@@ -43,6 +43,8 @@ pub mod imp {
         #[template_child]
         pub games_category: TemplateChild<button::EpicSidebarButton>,
         #[template_child]
+        pub fab_category: TemplateChild<button::EpicSidebarButton>,
+        #[template_child]
         pub downloaded_filter: TemplateChild<gtk4::ToggleButton>,
         #[template_child]
         pub favorites_filter: TemplateChild<gtk4::ToggleButton>,
@@ -68,6 +70,7 @@ pub mod imp {
                 all_category: TemplateChild::default(),
                 unreal_category: TemplateChild::default(),
                 games_category: TemplateChild::default(),
+                fab_category: TemplateChild::default(),
                 downloaded_filter: TemplateChild::default(),
                 favorites_filter: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
@@ -92,6 +95,7 @@ pub mod imp {
             self.all_category.set_sidebar(&obj);
             self.unreal_category.set_sidebar(&obj);
             self.games_category.set_sidebar(&obj);
+            self.fab_category.set_sidebar(&obj);
             obj.setup_widgets();
         }
 
@@ -162,6 +166,7 @@ impl EpicSidebar {
         match self_.settings.string("default-category").as_str() {
             "all" => &self_.all_category,
             "games" => &self_.games_category,
+            "fab" => &self_.fab_category,
             _ => &self_.unreal_category,
         }
         .clicked();
@@ -306,6 +311,7 @@ impl EpicSidebar {
         self_.all_category.set_property("expanded", new_value);
         self_.unreal_category.set_property("expanded", new_value);
         self_.games_category.set_property("expanded", new_value);
+        self_.fab_category.set_property("expanded", new_value);
     }
 
     pub fn filter_changed(&self) {
@@ -321,6 +327,8 @@ impl EpicSidebar {
             // Switch main page based on category
             if p == "games" {
                 self.switch_main_page("games");
+            } else if p == "fab" {
+                self.switch_main_page("fab");
             } else {
                 self.switch_main_page("unreal");
             }
@@ -356,6 +364,7 @@ impl EpicSidebar {
         self_.all_category.activate(true);
         self_.unreal_category.activate(true);
         self_.games_category.activate(true);
+        self_.fab_category.activate(true);
     }
 
     pub fn add_category(&self, path: &str) {

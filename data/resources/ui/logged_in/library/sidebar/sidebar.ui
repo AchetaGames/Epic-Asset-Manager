@@ -43,6 +43,13 @@
                                                 <property name="tooltip-text" translatable="yes">Games</property>
                                             </object>
                                         </child>
+                                        <child>
+                                            <object class="EpicSidebarButton" id="fab_category">
+                                                <property name="icon-name">system-software-install-symbolic</property>
+                                                <property name="path">fab</property>
+                                                <property name="tooltip-text" translatable="yes">Fab</property>
+                                            </object>
+                                        </child>
                                     </object>
                                 </child>
                             </object>
