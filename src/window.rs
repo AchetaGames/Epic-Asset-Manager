@@ -383,28 +383,25 @@ impl EpicAssetManagerWindow {
         }
     }
 
-    // TODO: Switch to adw::Toast or adw::Banner
-    pub fn add_notification(&self, name: &str, message: &str, message_type: gtk4::MessageType) {
+    pub fn add_notification(&self, name: &str, message: &str, _message_type: gtk4::MessageType) {
         let self_ = self.imp();
         self.clear_notification(name);
-        let notif = gtk4::InfoBar::builder()
-            .message_type(message_type)
+        let banner = adw::Banner::builder()
+            .title(message)
+            .revealed(true)
             .name(name)
-            .show_close_button(true)
             .build();
-        let label = gtk4::Label::builder().label(message).build();
-        notif.add_child(&label);
-        notif.connect_response(clone!(
+        banner.connect_button_clicked(clone!(
             #[weak]
-            notif,
+            banner,
             #[weak(rename_to=window)]
             self,
-            move |_, _| {
+            move |_| {
                 let self_ = window.imp();
-                self_.notifications.remove(&notif);
+                self_.notifications.remove(&banner);
             }
         ));
-        self_.notifications.append(&notif);
+        self_.notifications.append(&banner);
     }
 
     pub fn show_preferences(&self) -> PreferencesWindow {

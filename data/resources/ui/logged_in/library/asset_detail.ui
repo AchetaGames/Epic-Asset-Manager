@@ -15,16 +15,8 @@
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <child>
-                            <!-- TODO: GtkInfoBar is deprecated, switch to AdwBanner -->
-                            <object class="GtkInfoBar" id="warning">
-                                <property name="css-classes">warning</property>
-                                <property name="message-type">GTK_MESSAGE_ERROR</property>
+                            <object class="AdwBanner" id="warning">
                                 <property name="revealed">false</property>
-                                <child>
-                                    <object class="GtkLabel" id="warning_message">
-                                        <property name="wrap">true</property>
-                                    </object>
-                                </child>
                             </object>
                         </child>
                         <child>

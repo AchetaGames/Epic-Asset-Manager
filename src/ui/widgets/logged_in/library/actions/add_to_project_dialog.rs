@@ -27,7 +27,7 @@ pub mod imp {
         #[template_child]
         pub overwrite_check: TemplateChild<gtk4::CheckButton>,
         #[template_child]
-        pub no_projects_bar: TemplateChild<gtk4::InfoBar>,
+        pub no_projects_bar: TemplateChild<adw::Banner>,
         #[template_child]
         pub asset_name_label: TemplateChild<gtk4::Label>,
     }
@@ -289,9 +289,9 @@ impl EpicAddToProjectDialog {
             let n_items = projects_grid.n_items();
 
             if n_items == 0 {
-                self_.no_projects_bar.set_visible(true);
+                self_.no_projects_bar.set_revealed(true);
             } else {
-                self_.no_projects_bar.set_visible(false);
+                self_.no_projects_bar.set_revealed(false);
                 for i in 0..n_items {
                     if let Some(item) = projects_grid.item(i) {
                         if let Some(project_data) =

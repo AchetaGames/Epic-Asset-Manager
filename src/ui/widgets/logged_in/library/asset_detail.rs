@@ -49,9 +49,7 @@ pub mod imp {
         #[template_child]
         pub actions_menu: TemplateChild<gtk4::MenuButton>,
         #[template_child]
-        pub warning: TemplateChild<gtk4::InfoBar>,
-        #[template_child]
-        pub warning_message: TemplateChild<gtk4::Label>,
+        pub warning: TemplateChild<adw::Banner>,
         #[template_child]
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
@@ -88,7 +86,6 @@ pub mod imp {
                 favorite: TemplateChild::default(),
                 actions_menu: TemplateChild::default(),
                 warning: TemplateChild::default(),
-                warning_message: TemplateChild::default(),
                 images: TemplateChild::default(),
                 asset_actions: TemplateChild::default(),
                 window: OnceCell::new(),
@@ -342,29 +339,6 @@ impl EpicAssetDetails {
                 }
             )
         );
-
-        self_.warning_message.connect_activate_link(clone!(
-            #[weak(rename_to=details)]
-            self,
-            #[upgrade_or]
-            glib::Propagation::Stop,
-            move |_, uri| {
-                details.process_uri(uri);
-                glib::Propagation::Stop
-            }
-        ));
-    }
-
-    fn process_uri(&self, uri: &str) {
-        match uri {
-            "engines" => {
-                // In unified view, engines section is always visible on the same page
-                // No action needed - user can scroll to see it
-            }
-            _ => {
-                error!("Unhandled uri clicked: {}", uri);
-            }
-        }
     }
 
     fn show_download_details(
@@ -456,7 +430,7 @@ impl EpicAssetDetails {
                         #[cfg(target_os = "linux")]
                         {
                             self_.warning.set_revealed(true);
-                            self_.warning_message.set_markup("Games can currently only be downloaded, installing and running them is out of scope of the project right now.");
+                            self_.warning.set_title("Games can currently only be downloaded, installing and running them is out of scope of the project right now.");
                         }
                         // self.create_actions_button(
                         //     "Play",
@@ -473,8 +447,7 @@ impl EpicAssetDetails {
                         #[cfg(target_os = "linux")]
                         {
                             self_.warning.set_revealed(true);
-                            self_.warning_message.set_wrap(true);
-                            self_.warning_message.set_markup("This is a Windows Build of the Engine. To install Linux version please use the <a href=\"engines\">Engines</a> tab.");
+                            self_.warning.set_title("This is a Windows Build of the Engine. To install Linux version please use the Engines tab.");
                         }
                     }
                     AssetType::Plugin => {

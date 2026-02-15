@@ -20,19 +20,21 @@
             </object>
         </child>
         <child>
-            <object class="GtkInfoBar" id="warning_row">
-                <!-- <property name="visible">false</property> -->
-                <property name="message-type">GTK_MESSAGE_WARNING</property>
+            <object class="GtkBox" id="warning_row">
+                <property name="orientation">vertical</property>
+                <property name="visible">false</property>
                 <child>
-                    <object class="GtkLabel">
-                        <property name="can-focus">0</property>
-                        <property name="hexpand">true</property>
-                        <property name="label" translatable="yes">Project already exists in the target directory</property>
+                    <object class="AdwBanner">
+                        <property name="title" translatable="yes">Project already exists in the target directory</property>
+                        <property name="revealed">true</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkCheckButton" id="overwrite">
                         <property name="label">Overwrite?</property>
+                        <property name="margin-start">12</property>
+                        <property name="margin-top">6</property>
+                        <property name="margin-bottom">6</property>
                     </object>
                 </child>
             </object>

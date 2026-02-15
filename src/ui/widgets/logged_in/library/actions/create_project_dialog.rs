@@ -36,9 +36,7 @@ pub mod imp {
         #[template_child]
         pub engine_version_combo: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub warning_bar: TemplateChild<gtk4::InfoBar>,
-        #[template_child]
-        pub warning_label: TemplateChild<gtk4::Label>,
+        pub warning_bar: TemplateChild<gtk4::Box>,
         #[template_child]
         pub overwrite_check: TemplateChild<gtk4::CheckButton>,
         #[template_child]
@@ -66,7 +64,6 @@ pub mod imp {
                 browse_location_button: TemplateChild::default(),
                 engine_version_combo: TemplateChild::default(),
                 warning_bar: TemplateChild::default(),
-                warning_label: TemplateChild::default(),
                 overwrite_check: TemplateChild::default(),
                 create_button: TemplateChild::default(),
             }
@@ -451,9 +448,6 @@ impl EpicCreateProjectDialog {
 
                 if path.exists() {
                     self_.warning_bar.set_visible(true);
-                    self_
-                        .warning_label
-                        .set_label("Project already exists in the target directory");
                 } else {
                     self_.warning_bar.set_visible(false);
                 }
