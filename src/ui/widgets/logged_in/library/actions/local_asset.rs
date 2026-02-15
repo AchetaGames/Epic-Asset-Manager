@@ -153,13 +153,7 @@ impl EpicLocalAsset {
     pub fn open_path(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
-            {
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    crate::tools::open_directory(&p).await;
-                });
-            };
+            crate::tools::open_directory(&p);
         }
     }
 

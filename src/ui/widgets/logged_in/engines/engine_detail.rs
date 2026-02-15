@@ -179,19 +179,16 @@ impl EpicEngineDetails {
             }, |p| {
                 let context = gtk4::gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    let app = gtk4::gio::AppInfo::create_from_commandline(
-                        if ashpd::is_sandboxed().await {
-                            format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
-                        } else {
-                            format!("\"{}\"", p.to_str().unwrap())
-                        },
-                        Some("Unreal Engine"),
-                        gtk4::gio::AppInfoCreateFlags::NONE,
-                    ).unwrap();
-                    app.launch(&[], Some(&context)).expect("Failed to launch application");
-                });
+                let app = gtk4::gio::AppInfo::create_from_commandline(
+                    if crate::tools::is_sandboxed() {
+                        format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
+                    } else {
+                        format!("\"{}\"", p.to_str().unwrap())
+                    },
+                    Some("Unreal Engine"),
+                    gtk4::gio::AppInfoCreateFlags::NONE,
+                ).unwrap();
+                app.launch(&[], Some(&context)).expect("Failed to launch application");
             });
         };
         self.show_confirmation("Engine Launched");
@@ -279,13 +276,7 @@ impl EpicEngineDetails {
     fn open_dir(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
-            {
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    crate::tools::open_directory(&format!("{p}/Engine")).await;
-                });
-            };
+            crate::tools::open_directory(&format!("{p}/Engine"));
         }
     }
 

@@ -186,10 +186,7 @@ impl UnrealProjectDetails {
     fn open_dir(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            let ctx = glib::MainContext::default();
-            ctx.spawn_local(async move {
-                crate::tools::open_directory(&p).await;
-            });
+            crate::tools::open_directory(&p);
         }
     }
 
@@ -210,23 +207,21 @@ impl UnrealProjectDetails {
                 };
                 let context = gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    let app = gio::AppInfo::create_from_commandline(
-                        if ashpd::is_sandboxed().await {
-                            format!(
-                                "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
-                                p.to_str().unwrap(),
-                                path
-                            )
-                        } else {
-                            format!("\"{p:?}\" \"{path}\"")
-                        },
-                        Some("Unreal Engine"),
-                        gio::AppInfoCreateFlags::NONE,
-                    ).unwrap();
-                    app.launch(&[], Some(&context)).expect("Failed to launch application");
-                });
+                let app = gio::AppInfo::create_from_commandline(
+                    if crate::tools::is_sandboxed() {
+                        format!(
+                            "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
+                            p.to_str().unwrap(),
+                            path
+                        )
+                    } else {
+                        format!("\"{p:?}\" \"{path}\"")
+                    },
+                    Some("Unreal Engine"),
+                    gio::AppInfoCreateFlags::NONE,
+                ).unwrap();
+                app.launch(&[], Some(&context))
+                    .expect("Failed to launch application");
             }
         };
         let self_ = self.imp();

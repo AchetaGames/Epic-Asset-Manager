@@ -692,10 +692,7 @@ impl EpicDownloadItem {
             if let Some(w) = self_.window.get() {
                 w.close_download_manager();
             }
-            let ctx = glib::MainContext::default();
-            ctx.spawn_local(async move {
-                crate::tools::open_directory(&p).await;
-            });
+            crate::tools::open_directory(&p);
         };
     }
 }
