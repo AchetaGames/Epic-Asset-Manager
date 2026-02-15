@@ -841,6 +841,13 @@ impl EpicAssetDetails {
                 let l_ = l.imp();
                 l_.library.refresh_asset(&asset.id);
             }
+        } else if let Some(fab_asset) = self_.fab_asset.borrow().as_ref() {
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.fab.refresh_fab_asset(&fab_asset.asset_id);
+            }
         }
     }
 

@@ -597,6 +597,21 @@ impl FabLibraryBox {
         self.update_count();
     }
 
+    pub fn refresh_fab_asset(&self, id: &str) {
+        let self_ = self.imp();
+        for i in 0..self_.grid_model.n_items() {
+            if let Some(obj) = self_.grid_model.item(i) {
+                if let Some(data) = obj.downcast_ref::<crate::models::fab_data::FabData>() {
+                    if data.id() == id {
+                        data.refresh();
+                        break;
+                    }
+                }
+            }
+        }
+        self.update_filter();
+    }
+
     pub fn flush_fab_assets(&self) {
         let self_ = self.imp();
         self_.refresh_progress.set_visible(false);
