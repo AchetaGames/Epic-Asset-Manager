@@ -475,7 +475,6 @@ impl EpicAssetActions {
             };
         }
 
-        // TODO: Switch to self.add_detail_exp()
         let size_label = gtk4::Label::new(Some("Loading..."));
         self.add_detail("Download Size:", &size_label);
         self_.size_label.replace(size_label);

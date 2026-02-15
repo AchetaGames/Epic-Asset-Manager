@@ -395,7 +395,6 @@ impl DockerEngineDownload {
                 combo.set_selected(0);
             }
 
-                // TODO: Switch to create_info_row()
                 let size_label = gtk4::Label::builder()
                     .name("size_label")
                     .label("unknown")
