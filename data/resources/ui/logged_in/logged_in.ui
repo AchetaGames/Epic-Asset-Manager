@@ -105,6 +105,16 @@
                     </object>
                 </child>
 
+                <!-- FAB PAGE -->
+                <child>
+                    <object class="GtkStackPage">
+                        <property name="name">fab</property>
+                        <property name="child">
+                            <object class="FabLibraryBox" id="fab"/>
+                        </property>
+                    </object>
+                </child>
+
             </object>
         </child>
 

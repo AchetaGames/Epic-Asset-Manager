@@ -27,6 +27,7 @@
         <file compressed="true" preprocess="xml-stripblanks" alias="manage_local_assets.ui">ui/logged_in/library/actions/manage_local_assets.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="projects.ui">ui/logged_in/projects/projects.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="games.ui">ui/logged_in/games/games.ui</file>
+        <file compressed="true" preprocess="xml-stripblanks" alias="fab.ui">ui/logged_in/fab/fab.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="project.ui">ui/logged_in/projects/project.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="project_detail.ui">ui/logged_in/projects/project_detail.ui</file>
         <file compressed="true" preprocess="xml-stripblanks" alias="docker_download.ui">ui/logged_in/engines/docker_download.ui</file>
