@@ -2,6 +2,7 @@ use crate::models::asset_data::AssetType;
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
+use egs_api::api::types::fab_library::FabAsset;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -24,6 +25,7 @@ pub mod imp {
         pub expanded: RefCell<bool>,
         pub downloaded_location: RefCell<Option<std::path::PathBuf>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub fab_asset: RefCell<Option<egs_api::api::types::fab_library::FabAsset>>,
         #[template_child]
         pub detail_slider: TemplateChild<gtk4::Revealer>,
         #[template_child]
@@ -72,6 +74,7 @@ pub mod imp {
                 expanded: RefCell::new(false),
                 downloaded_location: RefCell::new(None),
                 asset: RefCell::new(None),
+                fab_asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
                 actions_revealer: TemplateChild::default(),
@@ -536,6 +539,7 @@ impl EpicAssetDetails {
 
         self_.images.set_property("asset", asset.id.clone());
         self_.asset.replace(Some(asset.clone()));
+        self_.fab_asset.replace(None);
         self.set_actions();
         self_.asset_actions.set_asset(asset);
         self_.details_revealer.set_reveal_child(true);
@@ -623,6 +627,106 @@ impl EpicAssetDetails {
         self.check_favorite();
     }
 
+    pub fn set_fab_asset(&self, fab_asset: &FabAsset) {
+        let self_ = self.imp();
+
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+            self.set_property("visible", true);
+        }
+
+        if let Some(a) = &*self_.fab_asset.borrow() {
+            if fab_asset.asset_id == a.asset_id {
+                return;
+            }
+        }
+
+        self_.asset.replace(None);
+        self_.fab_asset.replace(Some(fab_asset.clone()));
+
+        self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand_set(false);
+        self_.actions_revealer.set_reveal_child(false);
+        self_.actions_revealer.set_vexpand(false);
+        self_.download_confirmation_revealer.set_reveal_child(false);
+        self_.download_confirmation_revealer.set_vexpand(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(false);
+        get_action!(self_.actions, @show_asset_details).set_enabled(false);
+        self_.warning.set_revealed(false);
+
+        info!("Showing FAB details for {}", fab_asset.title);
+        self_.title.set_label(&fab_asset.title);
+
+        // TODO: FAB images use a different type than AssetInfo KeyImage —
+        // the image carousel needs extension to support FabAsset images directly.
+        self_.images.clear();
+        self_
+            .images
+            .set_property("asset", fab_asset.asset_id.clone());
+
+        while let Some(el) = self_.details_box.first_child() {
+            self_.details_box.remove(&el);
+        }
+
+        if !fab_asset.description.is_empty() {
+            let text =
+                &html2pango::matrix_html_to_markup(&fab_asset.description).replace("\n\n", "\n");
+            self.add_info_row(text);
+        }
+
+        let cat_names: Vec<String> = fab_asset
+            .categories
+            .iter()
+            .filter_map(|c| c.name.clone())
+            .collect();
+        if !cat_names.is_empty() {
+            let text = format!("Categories: {}", cat_names.join(", "));
+            self.add_info_row(&text);
+        }
+
+        if !fab_asset.source.is_empty() {
+            let text = format!("Source: {}", fab_asset.source);
+            self.add_info_row(&text);
+        }
+
+        if !fab_asset.distribution_method.is_empty() {
+            let text = format!("Distribution: {}", fab_asset.distribution_method);
+            self.add_info_row(&text);
+        }
+
+        let engine_versions: Vec<String> = fab_asset
+            .project_versions
+            .iter()
+            .flat_map(|pv| pv.engine_versions.iter().cloned())
+            .collect();
+        if !engine_versions.is_empty() {
+            let compat = engine_versions.join(", ").replace("UE_", "");
+            let text = format!("Compatible with: {}", compat);
+            self.add_info_row(&text);
+        }
+
+        let platforms: Vec<String> = fab_asset
+            .project_versions
+            .iter()
+            .flat_map(|pv| pv.target_platforms.iter().cloned())
+            .collect();
+        if !platforms.is_empty() {
+            let text = format!("Platforms: {}", platforms.join(", "));
+            self.add_info_row(&text);
+        }
+
+        if !fab_asset.url.is_empty() {
+            let text = format!("URL: <a href=\"{}\">{}</a>", fab_asset.url, fab_asset.url);
+            self.add_info_row(&text);
+        }
+
+        while let Some(el) = self_.actions_box.first_child() {
+            self_.actions_box.remove(&el);
+        }
+
+        self.check_fab_favorite(&fab_asset.asset_id);
+    }
+
     fn add_info_row(&self, text: &str) {
         if !&text.is_empty() {
             let self_ = self.imp();
@@ -646,20 +750,31 @@ impl EpicAssetDetails {
     pub fn toggle_favorites(&self) {
         let self_ = self.imp();
         let db = crate::models::database::connection();
-        if let Some(asset) = self.asset() {
+
+        let asset_id = if let Some(asset) = self.asset() {
+            Some(asset.id)
+        } else {
+            self_
+                .fab_asset
+                .borrow()
+                .as_ref()
+                .map(|fa| fa.asset_id.clone())
+        };
+
+        if let Some(id) = asset_id {
             if let Ok(mut conn) = db.get() {
                 if let Some(fav) = self_.favorite.icon_name() {
                     if fav.eq("starred") {
                         diesel::delete(
                             crate::schema::favorite_asset::table
-                                .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
+                                .filter(crate::schema::favorite_asset::asset.eq(&id)),
                         )
                         .execute(&mut conn)
                         .expect("Unable to delete favorite from DB");
                         self_.favorite.set_icon_name("non-starred-symbolic");
                     } else {
                         diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
-                            .values(crate::schema::favorite_asset::asset.eq(asset.id))
+                            .values(crate::schema::favorite_asset::asset.eq(&id))
                             .execute(&mut conn)
                             .expect("Unable to insert favorite to the DB");
                         self_.favorite.set_icon_name("starred");
@@ -684,7 +799,7 @@ impl EpicAssetDetails {
 
     pub fn has_asset(&self) -> bool {
         let self_ = self.imp();
-        self_.asset.borrow().is_some()
+        self_.asset.borrow().is_some() || self_.fab_asset.borrow().is_some()
     }
 
     pub fn check_favorite(&self) {
@@ -705,6 +820,27 @@ impl EpicAssetDetails {
                     }
                     return;
                 }
+            }
+        }
+        self_.favorite.set_icon_name("non-starred-symbolic");
+    }
+
+    fn check_fab_favorite(&self, asset_id: &str) {
+        let self_ = self.imp();
+        let db = crate::models::database::connection();
+        if let Ok(mut conn) = db.get() {
+            let ex: Result<bool, diesel::result::Error> = select(exists(
+                crate::schema::favorite_asset::table
+                    .filter(crate::schema::favorite_asset::asset.eq(asset_id)),
+            ))
+            .get_result(&mut conn);
+            if let Ok(fav) = ex {
+                if fav {
+                    self_.favorite.set_icon_name("starred");
+                } else {
+                    self_.favorite.set_icon_name("non-starred-symbolic");
+                }
+                return;
             }
         }
         self_.favorite.set_icon_name("non-starred-symbolic");
@@ -733,7 +869,8 @@ impl EpicAssetDetails {
         let self_ = self.imp();
         log::info!("Opening Create Project dialog from asset detail...");
 
-        let dialog = crate::ui::widgets::logged_in::library::actions::EpicCreateProjectDialog::new();
+        let dialog =
+            crate::ui::widgets::logged_in::library::actions::EpicCreateProjectDialog::new();
 
         // Set the transient parent window
         if let Some(window) = self_.window.get() {

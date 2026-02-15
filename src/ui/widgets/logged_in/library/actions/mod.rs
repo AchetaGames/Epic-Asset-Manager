@@ -46,7 +46,8 @@ pub mod imp {
         release_date: RefCell<Option<String>>,
         release_notes: RefCell<Option<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
-        pub current_manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
+        pub current_manifest:
+            RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub size_label: RefCell<gtk4::Label>,
         pub disk_size_label: RefCell<gtk4::Label>,

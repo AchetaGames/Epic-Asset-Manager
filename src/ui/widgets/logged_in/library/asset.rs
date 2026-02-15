@@ -30,6 +30,7 @@ pub mod imp {
         #[template_child]
         pub download_info: TemplateChild<gtk4::Label>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
+        pub fab_data: RefCell<Option<crate::models::fab_data::FabData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
 
@@ -55,6 +56,7 @@ pub mod imp {
                 progress_bar: TemplateChild::default(),
                 download_info: TemplateChild::default(),
                 data: RefCell::new(None),
+                fab_data: RefCell::new(None),
                 handler: RefCell::new(None),
             }
         }
@@ -242,7 +244,11 @@ impl EpicAsset {
 
         // Debug: write to file to verify this is being called
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
             let _ = writeln!(f, "setup_button called - connecting click handler");
         }
 
@@ -251,7 +257,11 @@ impl EpicAsset {
             self,
             move |_| {
                 // Debug: write to file
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
                     let _ = writeln!(f, "Button clicked!");
                 }
                 asset.on_action_clicked();
@@ -282,8 +292,16 @@ impl EpicAsset {
                 }
 
                 use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "Tile clicked at ({}, {}) - emitting tile-clicked signal", x, y);
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
+                    let _ = writeln!(
+                        f,
+                        "Tile clicked at ({}, {}) - emitting tile-clicked signal",
+                        x, y
+                    );
                 }
                 asset.emit_by_name::<()>("tile-clicked", &[]);
             }
@@ -317,26 +335,46 @@ impl EpicAsset {
 
         // Debug: write to file to verify this is being called
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "on_action_clicked: downloaded={}, kind={:?}, label={:?}", downloaded, kind, label);
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
+            let _ = writeln!(
+                f,
+                "on_action_clicked: downloaded={}, kind={:?}, label={:?}",
+                downloaded, kind, label
+            );
         }
 
         // Emit signal for parent to handle the action
         if !downloaded {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
                 let _ = writeln!(f, "Emitting download-requested signal");
             }
             self.emit_by_name::<()>("download-requested", &[]);
         } else {
             match kind.as_deref() {
                 Some("projects") => {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
                         let _ = writeln!(f, "Emitting create-project-requested signal");
                     }
                     self.emit_by_name::<()>("create-project-requested", &[]);
                 }
                 _ => {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
                         let _ = writeln!(f, "Emitting add-to-project-requested signal");
                     }
                     self.emit_by_name::<()>("add-to-project-requested", &[]);
@@ -384,9 +422,18 @@ impl EpicAsset {
                 move |_| {
                     // Debug: log signal received
                     use std::io::Write;
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[SIGNAL] refreshed received: id={}, downloading={}, progress={}",
-                            data.id(), data.downloading(), data.download_progress());
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
+                        let _ = writeln!(
+                            f,
+                            "[SIGNAL] refreshed received: id={}, downloading={}, progress={}",
+                            data.id(),
+                            data.downloading(),
+                            data.download_progress()
+                        );
                     }
 
                     asset.set_property("favorite", data.favorite());
@@ -415,9 +462,18 @@ impl EpicAsset {
                         self_.download_info.set_label(&info_text);
                     }
 
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[SIGNAL] After update: visible={}, fraction={}, info={}",
-                            self_.progress_bar.is_visible(), self_.progress_bar.fraction(), speed);
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
+                        let _ = writeln!(
+                            f,
+                            "[SIGNAL] After update: visible={}, fraction={}, info={}",
+                            self_.progress_bar.is_visible(),
+                            self_.progress_bar.fraction(),
+                            speed
+                        );
                     }
                     None
                 }
@@ -431,7 +487,11 @@ impl EpicAsset {
 
         // Debug: verify template children exist
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
             let _ = writeln!(f, "[set_data] Setting progress: downloading={}, progress={}, progress_bar valid={}, progress_bar valid={}",
                 downloading, progress,
                 self_.progress_bar.is_visible() || !self_.progress_bar.is_visible(), // will be true if widget exists
@@ -455,9 +515,17 @@ impl EpicAsset {
             self_.download_info.set_label(&info_text);
         }
 
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "[set_data] After set: progress_bar.visible={}, progress_bar.fraction={}",
-                self_.progress_bar.is_visible(), self_.progress_bar.fraction());
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
+            let _ = writeln!(
+                f,
+                "[set_data] After set: progress_bar.visible={}, progress_bar.fraction={}",
+                self_.progress_bar.is_visible(),
+                self_.progress_bar.fraction()
+            );
         }
     }
 
@@ -466,5 +534,75 @@ impl EpicAsset {
         let self_ = self.imp();
         self_.progress_bar.set_visible(downloading);
         self_.progress_bar.set_fraction(progress);
+    }
+
+    pub fn set_fab_data(&self, data: &crate::models::fab_data::FabData) {
+        let self_ = self.imp();
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+        self_.fab_data.replace(Some(data.clone()));
+        self.set_property("label", data.name());
+        self.set_property("thumbnail", data.image());
+        self.set_property("favorite", data.favorite());
+        self.set_property("downloaded", data.downloaded());
+
+        self_.handler.replace(Some(data.connect_local(
+            "refreshed",
+            false,
+            clone!(
+                #[weak(rename_to=asset)]
+                self,
+                #[weak]
+                data,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    asset.set_property("favorite", data.favorite());
+                    asset.set_property("downloaded", data.downloaded());
+                    asset.set_property("downloading", data.downloading());
+                    asset.set_property("download-progress", data.download_progress());
+
+                    let self_ = asset.imp();
+                    let downloading = data.downloading();
+                    let progress = data.download_progress();
+                    let speed = data.download_speed();
+
+                    self_.progress_bar.set_visible(downloading);
+                    self_.progress_bar.set_fraction(progress);
+                    self_.download_info.set_visible(downloading);
+
+                    if downloading {
+                        let pct = (progress * 100.0) as u32;
+                        let info_text = if speed.is_empty() {
+                            format!("{}%", pct)
+                        } else {
+                            format!("{}% - {}", pct, speed)
+                        };
+                        self_.download_info.set_label(&info_text);
+                    }
+                    None
+                }
+            ),
+        )));
+
+        let downloading = data.downloading();
+        let progress = data.download_progress();
+        self_.progress_bar.set_visible(downloading);
+        self_.progress_bar.set_fraction(progress);
+        self_.download_info.set_visible(downloading);
+
+        if downloading {
+            let speed = data.download_speed();
+            let pct = (progress * 100.0) as u32;
+            let info_text = if speed.is_empty() {
+                format!("{}%", pct)
+            } else {
+                format!("{}% - {}", pct, speed)
+            };
+            self_.download_info.set_label(&info_text);
+        }
     }
 }

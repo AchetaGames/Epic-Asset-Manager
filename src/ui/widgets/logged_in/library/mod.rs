@@ -292,7 +292,11 @@ impl EpicLibraryBox {
             move |_factory, item| {
                 // Debug: write to file
                 use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/factory_setup.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/factory_setup.log")
+                {
                     let _ = writeln!(f, "Factory setup called - creating EpicAsset");
                 }
 
@@ -312,8 +316,15 @@ impl EpicLibraryBox {
                         move |values| {
                             // Debug - this should print if the signal handler is called
                             use std::io::Write;
-                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                                let _ = writeln!(f, ">>> SIGNAL HANDLER CALLED for download-requested <<<");
+                            if let Ok(mut f) = std::fs::OpenOptions::new()
+                                .create(true)
+                                .append(true)
+                                .open("/tmp/asset_click.log")
+                            {
+                                let _ = writeln!(
+                                    f,
+                                    ">>> SIGNAL HANDLER CALLED for download-requested <<<"
+                                );
                             }
                             let asset = values[0].get::<EpicAsset>().unwrap();
                             library.handle_asset_action(&asset, "download");
@@ -426,7 +437,11 @@ impl EpicLibraryBox {
 
         // Debug
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
             let _ = writeln!(f, "handle_asset_action called with action: {}", action);
         }
 
@@ -468,58 +483,94 @@ impl EpicLibraryBox {
 
         // Debug
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
             let _ = writeln!(f, "start_asset_download called for: {:?}", asset_info.title);
         }
 
         // Get the first release to download
         if let Some(release_info) = asset_info.release_info.as_ref() {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
                 let _ = writeln!(f, "Found release_info with {} releases", release_info.len());
             }
             if let Some(first) = release_info.first() {
                 if let Some(release_id) = &first.app_id {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
                         let _ = writeln!(f, "Starting download for release_id: {}", release_id);
                     }
 
                     // Start the download via download manager
                     if let Some(dm) = self_.download_manager.get() {
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/asset_click.log")
+                        {
                             let _ = writeln!(f, "Got download manager, calling add_asset_download");
                         }
                         use crate::ui::widgets::download_manager::asset::Asset;
                         dm.add_asset_download(
                             release_id.clone(),
                             asset_info.clone(),
-                            &None,  // Use default vault directory
-                            None,   // No special post-download actions
+                            &None, // Use default vault directory
+                            None,  // No special post-download actions
                         );
 
                         // Show the download manager
                         if let Some(window) = self_.window.get() {
-                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                            if let Ok(mut f) = std::fs::OpenOptions::new()
+                                .create(true)
+                                .append(true)
+                                .open("/tmp/asset_click.log")
+                            {
                                 let _ = writeln!(f, "Showing download manager");
                             }
                             window.show_download_manager();
                         }
                     } else {
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/asset_click.log")
+                        {
                             let _ = writeln!(f, "ERROR: Download manager not available!");
                         }
                     }
                 } else {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
                         let _ = writeln!(f, "ERROR: No app_id in first release");
                     }
                 }
             } else {
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
                     let _ = writeln!(f, "ERROR: No releases found");
                 }
             }
         } else {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
                 let _ = writeln!(f, "ERROR: No release_info in asset");
             }
         }
@@ -1229,7 +1280,9 @@ impl EpicLibraryBox {
         // Search in grid_model (not loaded_data) because that's what the widgets are bound to
         for i in 0..self_.grid_model.n_items() {
             if let Some(obj) = self_.grid_model.item(i) {
-                let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
+                let data = obj
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap();
                 if data.id() == id {
                     data.set_downloading(downloading);
                     if !downloading {
@@ -1246,7 +1299,9 @@ impl EpicLibraryBox {
         // Search in grid_model (not loaded_data) because that's what the widgets are bound to
         for i in 0..self_.grid_model.n_items() {
             if let Some(obj) = self_.grid_model.item(i) {
-                let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
+                let data = obj
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap();
                 if data.id() == id {
                     data.set_download_info(progress, speed);
                     return;
