@@ -124,7 +124,8 @@ glib::wrapper! {
     ///
     /// **Implements**: [`ProgressIconExt`]
     pub struct ProgressIcon(ObjectSubclass<imp::ProgressIcon>)
-        @extends gtk4::Widget;
+        @extends gtk4::Widget,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
 impl Default for ProgressIcon {

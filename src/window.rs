@@ -171,7 +171,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAssetManagerWindow(ObjectSubclass<imp::EpicAssetManagerWindow>)
-        @extends gtk4::Widget, gtk4::Window, gtk4::ApplicationWindow, gio::ActionMap, gio::ActionGroup;
+        @extends gtk4::Widget, gtk4::Window, gtk4::ApplicationWindow,
+        @implements gio::ActionMap, gio::ActionGroup, gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
 }
 
 impl EpicAssetManagerWindow {

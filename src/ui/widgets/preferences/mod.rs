@@ -120,7 +120,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct PreferencesWindow(ObjectSubclass<imp::PreferencesWindow>)
-        @extends gtk4::Widget, gtk4::Window, adw::Window, adw::PreferencesWindow;
+        @extends gtk4::Widget, gtk4::Window, adw::Window, adw::PreferencesWindow,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
 }
 
 #[derive(PartialEq, Debug, Clone, Copy, Hash, Eq)]

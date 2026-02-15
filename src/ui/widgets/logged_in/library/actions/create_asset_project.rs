@@ -126,7 +126,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicCreateAssetProject(ObjectSubclass<imp::EpicCreateAssetProject>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicCreateAssetProject {

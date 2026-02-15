@@ -87,7 +87,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAddToProjectDialog(ObjectSubclass<imp::EpicAddToProjectDialog>)
-        @extends gtk4::Widget, gtk4::Window, adw::Window;
+        @extends gtk4::Widget, gtk4::Window, adw::Window,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
 }
 
 impl Default for EpicAddToProjectDialog {
