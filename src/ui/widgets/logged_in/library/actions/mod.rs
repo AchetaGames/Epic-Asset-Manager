@@ -12,7 +12,6 @@ pub use create_project_dialog::EpicCreateProjectDialog;
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
-use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -398,7 +397,7 @@ impl EpicAssetActions {
     }
 
     pub fn set_action(&self, action: &Action) {
-        let self_ = self.imp();
+        let _self = self.imp();
         match action {
             Action::Download => {}
             Action::AddToProject => {}

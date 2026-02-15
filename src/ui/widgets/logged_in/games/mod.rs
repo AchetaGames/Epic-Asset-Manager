@@ -1,8 +1,7 @@
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*};
+use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use log::debug;
 
 pub mod imp {
     use super::*;

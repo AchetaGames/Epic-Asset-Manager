@@ -9,7 +9,6 @@ use gtk_macros::action;
 use log::{debug, info};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Read;
 use std::path::PathBuf;
 
 pub mod imp {
@@ -456,6 +455,7 @@ impl EpicCreateProjectDialog {
         }
     }
 
+    #[allow(dead_code)]
     fn get_selected_engine(&self) -> Option<String> {
         let self_ = self.imp();
         if let Some(model) = &*self_.engines_model.borrow() {

@@ -307,13 +307,12 @@ impl EpicProjectsBox {
                     self_.details.collapse();
                 }
             }
-            if let Ok(file) = PathBuf::from_str(&p) {
-                if let Some(directory) = file.parent() {
-                    self_
-                        .projects
-                        .borrow_mut()
-                        .remove(directory.to_str().unwrap());
-                }
+            let file = PathBuf::from(&p);
+            if let Some(directory) = file.parent() {
+                self_
+                    .projects
+                    .borrow_mut()
+                    .remove(directory.to_str().unwrap());
             }
         }
     }

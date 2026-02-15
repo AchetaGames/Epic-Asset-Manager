@@ -287,7 +287,7 @@ impl EpicAsset {
             self,
             #[weak]
             self_,
-            move |gesture, _, x, y| {
+            move |_gesture, _, x, y| {
                 // Check if click was on the button - if so, don't emit tile-clicked
                 // The button's own handler will take care of it
                 if let Some(bounds) = self_.action_button.compute_bounds(&asset) {

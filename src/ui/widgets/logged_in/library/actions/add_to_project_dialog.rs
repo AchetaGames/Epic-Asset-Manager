@@ -131,7 +131,7 @@ impl EpicAddToProjectDialog {
         let factory = gtk4::SignalListItemFactory::new();
 
         factory.connect_setup(clone!(
-            #[weak(rename_to=dialog)]
+            #[weak(rename_to=_dialog)]
             self,
             move |_factory, item| {
                 let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
@@ -170,7 +170,7 @@ impl EpicAddToProjectDialog {
         ));
 
         factory.connect_bind(clone!(
-            #[weak(rename_to=dialog)]
+            #[weak(rename_to=_dialog)]
             self,
             move |_factory, item| {
                 let item = item.downcast_ref::<gtk4::ListItem>().unwrap();

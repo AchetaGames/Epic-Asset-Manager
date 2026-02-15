@@ -148,6 +148,7 @@ impl ProgressIcon {
     }
 }
 
+#[allow(dead_code)]
 pub trait ProgressIconExt {
     /// Gets the child widget of `self`.
     ///
