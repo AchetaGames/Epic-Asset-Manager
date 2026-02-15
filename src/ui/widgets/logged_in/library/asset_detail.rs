@@ -740,10 +740,6 @@ impl EpicAssetDetails {
 
         let dialog = EpicFabVersionDialog::new();
 
-        if let Some(window) = self_.window.get() {
-            dialog.set_transient_for(Some(window));
-        }
-
         dialog.set_fab_asset(fab_asset);
 
         let fab_asset_for_signal = fab_asset.clone();
@@ -771,7 +767,11 @@ impl EpicAssetDetails {
             ),
         );
 
-        dialog.present();
+        if let Some(window) = self_.window.get() {
+            adw::prelude::AdwDialogExt::present(&dialog, Some(window));
+        } else {
+            adw::prelude::AdwDialogExt::present(&dialog, gtk4::Widget::NONE);
+        }
     }
 
     fn add_info_row(&self, text: &str) {

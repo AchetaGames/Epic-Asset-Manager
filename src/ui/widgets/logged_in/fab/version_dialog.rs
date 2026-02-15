@@ -7,6 +7,7 @@ use std::cell::RefCell;
 
 pub mod imp {
     use super::*;
+    use adw::subclass::dialog::AdwDialogImpl;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/fab_version_dialog.ui")]
@@ -29,7 +30,7 @@ pub mod imp {
     impl ObjectSubclass for EpicFabVersionDialog {
         const NAME: &'static str = "EpicFabVersionDialog";
         type Type = super::EpicFabVersionDialog;
-        type ParentType = adw::Window;
+        type ParentType = adw::Dialog;
 
         fn new() -> Self {
             Self {
@@ -73,14 +74,13 @@ pub mod imp {
     }
 
     impl WidgetImpl for EpicFabVersionDialog {}
-    impl WindowImpl for EpicFabVersionDialog {}
-    impl AdwWindowImpl for EpicFabVersionDialog {}
+    impl AdwDialogImpl for EpicFabVersionDialog {}
 }
 
 glib::wrapper! {
     pub struct EpicFabVersionDialog(ObjectSubclass<imp::EpicFabVersionDialog>)
-        @extends gtk4::Widget, gtk4::Window, adw::Window,
-        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
+        @extends gtk4::Widget, adw::Dialog,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::ShortcutManager;
 }
 
 impl Default for EpicFabVersionDialog {
@@ -109,7 +109,7 @@ impl EpicFabVersionDialog {
             #[weak(rename_to=dialog)]
             self,
             move |_| {
-                dialog.close();
+                dialog.force_close();
             }
         ));
 
@@ -182,7 +182,7 @@ impl EpicFabVersionDialog {
                     artifact_id, platform
                 );
                 self.emit_by_name::<()>("version-selected", &[&artifact_id, &platform]);
-                self.close();
+                self.force_close();
             }
         }
     }
