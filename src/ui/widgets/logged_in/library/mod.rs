@@ -1249,7 +1249,7 @@ impl EpicLibraryBox {
                     .enable_all()
                     .build()
                     .unwrap()
-                    .block_on(eg.asset_info(epic_asset.clone()))
+                    .block_on(eg.asset_info(&epic_asset))
                 {
                     // TODO: Check with already added assets to see if it needs updating
                     cache_dir_c.push("asset_info.json");

@@ -466,14 +466,14 @@ impl EpicAssetManagerWindow {
                 .unwrap_or(&"login".to_string())
                 .as_str(),
             "eam_epic_games_token",
-            ud.access_token(),
+            ud.access_token().map(String::from),
             "token-expiration",
             ud.expires_at,
         );
         self.save_secret(
             "refresh",
             "eam_epic_games_refresh_token",
-            ud.refresh_token(),
+            ud.refresh_token().map(String::from),
             "refresh-token-expiration",
             ud.refresh_expires_at,
         );
