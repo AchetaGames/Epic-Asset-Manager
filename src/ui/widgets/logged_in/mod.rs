@@ -147,8 +147,10 @@ impl EpicLoggedInBox {
         self_.details.set_window(&window.clone());
         self_.library.set_details(&self_.details);
         self_.library.set_window(&window.clone());
-        self_.library.set_sidebar(&self_.sidebar);
+        // page_stack must be set before set_sidebar, because set_sidebar triggers
+        // set_logged_in → .clicked() → switch_main_page which needs the stack
         self_.sidebar.set_page_stack(&self_.page_stack);
+        self_.library.set_sidebar(&self_.sidebar);
         self_.engines.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
         self_.games.set_window(&window.clone());
