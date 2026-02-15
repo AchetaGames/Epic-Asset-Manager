@@ -406,9 +406,8 @@ impl EpicAssetManagerWindow {
 
     pub fn show_preferences(&self) -> PreferencesWindow {
         let preferences = PreferencesWindow::new();
-        preferences.set_transient_for(Some(self));
         preferences.set_window(self);
-        preferences.present();
+        adw::prelude::AdwDialogExt::present(&preferences, Some(self));
         preferences
     }
 

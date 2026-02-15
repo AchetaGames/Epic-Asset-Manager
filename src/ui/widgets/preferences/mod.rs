@@ -1,6 +1,6 @@
 pub mod dir_row;
 
-use adw::prelude::PreferencesWindowExt;
+use adw::prelude::PreferencesDialogExt;
 use gtk4::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
 use gtk4::glib::clone;
 use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
+    use adw::subclass::{dialog::AdwDialogImpl, preferences_dialog::PreferencesDialogImpl};
     use glib::subclass::{self};
     use std::cell::RefCell;
 
@@ -66,7 +66,7 @@ pub mod imp {
     impl ObjectSubclass for PreferencesWindow {
         const NAME: &'static str = "PreferencesWindow";
         type Type = super::PreferencesWindow;
-        type ParentType = adw::PreferencesWindow;
+        type ParentType = adw::PreferencesDialog;
 
         fn new() -> Self {
             let settings = gio::Settings::new(crate::config::APP_ID);
@@ -113,15 +113,14 @@ pub mod imp {
         }
     }
     impl WidgetImpl for PreferencesWindow {}
-    impl WindowImpl for PreferencesWindow {}
-    impl AdwWindowImpl for PreferencesWindow {}
-    impl PreferencesWindowImpl for PreferencesWindow {}
+    impl AdwDialogImpl for PreferencesWindow {}
+    impl PreferencesDialogImpl for PreferencesWindow {}
 }
 
 glib::wrapper! {
     pub struct PreferencesWindow(ObjectSubclass<imp::PreferencesWindow>)
-        @extends gtk4::Widget, gtk4::Window, adw::Window, adw::PreferencesWindow,
-        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
+        @extends gtk4::Widget, adw::Dialog, adw::PreferencesDialog,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::ShortcutManager;
 }
 
 #[derive(PartialEq, Debug, Clone, Copy, Hash, Eq)]
@@ -533,8 +532,9 @@ impl PreferencesWindow {
         let dialog = gtk4::FileDialog::builder().title(title).modal(true).build();
         let self_ = self.imp();
         self_.file_chooser.replace(Some(dialog.clone()));
+        let parent_window = self_.window.get().cloned();
         dialog.select_folder(
-            Some(self),
+            parent_window.as_ref(),
             None::<&gio::Cancellable>,
             clone!(
                 #[weak(rename_to=preferences)]

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <!-- TODO: Migrate to AdwPreferencesDialog since AdwPreferencesWindow is deprecated-->
-    <template class="PreferencesWindow" parent="AdwPreferencesWindow">
-        <property name="default-width">475</property>
-        <property name="default-height">665</property>
+    <template class="PreferencesWindow" parent="AdwPreferencesDialog">
+        <property name="content-width">475</property>
+        <property name="content-height">665</property>
         <child>
             <object class="AdwPreferencesPage">
                 <property name="icon-name">applications-system-symbolic</property>
