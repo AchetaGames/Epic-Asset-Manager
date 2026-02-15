@@ -9,11 +9,11 @@ gnome = import('gnome')
 
 base_id = 'io.github.achetagames.epic_asset_manager'
 
-dependency('glib-2.0', version: '>= 2.76')
-dependency('gio-2.0', version: '>= 2.76')
-dependency('gtk4', version: '>= 4.0')
+dependency('glib-2.0', version: '>= 2.82')
+dependency('gio-2.0', version: '>= 2.82')
+dependency('gtk4', version: '>= 4.18')
 dependency(
-  'libadwaita-1', version: '>= 1.5',
+  'libadwaita-1', version: '>= 1.7',
   fallback: ['libadwaita', 'libadwaita_dep'],
   default_options: ['tests=false', 'examples=false', 'vapi=false']
 )
