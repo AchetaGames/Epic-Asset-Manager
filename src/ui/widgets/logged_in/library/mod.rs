@@ -42,7 +42,7 @@ pub mod imp {
         #[template_child]
         pub asset_search: TemplateChild<gtk4::SearchEntry>,
         #[template_child]
-        pub select_order_by: TemplateChild<gtk4::ComboBoxText>,
+        pub select_order_by: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub order: TemplateChild<gtk4::Button>,
         #[template_child]
@@ -58,6 +58,7 @@ pub mod imp {
         pub filter_model: gtk4::FilterListModel,
         pub sorter_model: gtk4::SortListModel,
         pub grid_model: ListStore,
+        pub order_by_ids: RefCell<Vec<String>>,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub loaded_data: RefCell<HashMap<String, crate::models::asset_data::AssetData>>,
         pub asset_product_names: RefCell<HashMap<String, String>>,
@@ -103,6 +104,7 @@ pub mod imp {
                     gtk4::Sorter::NONE.cloned(),
                 ),
                 grid_model: gio::ListStore::new::<crate::models::asset_data::AssetData>(),
+                order_by_ids: RefCell::new(Vec::new()),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
@@ -826,11 +828,25 @@ impl EpicLibraryBox {
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
 
+        let order_by = ["name", "updated", "released"];
+        let order_labels = ["Name", "Updated", "Released"];
+        let model = gtk4::StringList::new(&[] as &[&str]);
+        for label in order_labels {
+            model.append(label);
+        }
+        self_.select_order_by.set_model(Some(&model));
+        self_
+            .order_by_ids
+            .replace(order_by.iter().map(|id| id.to_string()).collect());
+        if self_.select_order_by.selected() == gtk4::INVALID_LIST_POSITION {
+            self_.select_order_by.set_selected(0);
+        }
+
         if let Some(sidebar) = self_.sidebar.get() {
             sidebar.set_logged_in(self);
         }
 
-        self_.select_order_by.connect_changed(clone!(
+        self_.select_order_by.connect_selected_notify(clone!(
             #[weak(rename_to=library)]
             self,
             move |_| {
@@ -852,9 +868,18 @@ impl EpicLibraryBox {
         let asc = self_.order.icon_name().map_or(false, |name| {
             matches!(name.as_str(), "view-sort-ascending-symbolic")
         });
-        if let Some(by) = self_.select_order_by.active_id() {
+        if let Some(by) = self.selected_order_by() {
             self_.sorter_model.set_sorter(Some(&Self::sorter(&by, asc)));
-        };
+        }
+    }
+
+    fn selected_order_by(&self) -> Option<String> {
+        let self_ = self.imp();
+        let selected = self_.select_order_by.selected();
+        if selected == gtk4::INVALID_LIST_POSITION {
+            return None;
+        }
+        self_.order_by_ids.borrow().get(selected as usize).cloned()
     }
 
     pub fn setup_actions(&self) {

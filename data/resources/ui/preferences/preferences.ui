@@ -18,15 +18,8 @@
                                 <property name="activatable-widget">default_view_selection</property>
                                 <property name="subtitle" translatable="yes">What tab the application starts on</property>
                                 <child>
-                                    <!-- TODO: Migrate to AdwComboRow since GtkComboBoxText is deprecated -->
-                                    <object class="GtkComboBoxText" id="default_view_selection">
+                                    <object class="GtkDropDown" id="default_view_selection">
                                         <property name="valign">center</property>
-                                        <property name="active-id">library</property>
-                                        <items>
-                                            <item translatable="yes" id="library">Library</item>
-                                            <item translatable="yes" id="projects">Projects</item>
-                                            <item translatable="yes" id="engines">Engines</item>
-                                        </items>
                                     </object>
                                 </child>
                             </object>
@@ -56,18 +49,8 @@
                                 <property name="activatable-widget">accent_color_selection</property>
                                 <property name="subtitle" translatable="yes">Choose accent color for buttons and highlights</property>
                                 <child>
-                                    <object class="GtkComboBoxText" id="accent_color_selection">
+                                    <object class="GtkDropDown" id="accent_color_selection">
                                         <property name="valign">center</property>
-                                        <property name="active-id">default</property>
-                                        <items>
-                                            <item translatable="yes" id="default">Default (Blue)</item>
-                                            <item translatable="yes" id="olive">Olive</item>
-                                            <item translatable="yes" id="orange">Orange</item>
-                                            <item translatable="yes" id="purple">Purple</item>
-                                            <item translatable="yes" id="pink">Pink</item>
-                                            <item translatable="yes" id="red">Red</item>
-                                            <item translatable="yes" id="teal">Teal</item>
-                                        </items>
                                     </object>
                                 </child>
                             </object>
@@ -84,14 +67,8 @@
                                 <property name="activatable-widget">default_category_selection</property>
                                 <property name="subtitle" translatable="yes">What category to have selected in library</property>
                                 <child>
-                                    <object class="GtkComboBoxText" id="default_category_selection">
+                                    <object class="GtkDropDown" id="default_category_selection">
                                         <property name="valign">center</property>
-                                        <property name="active-id">unreal</property>
-                                        <items>
-                                            <item translatable="yes" id="all">All</item>
-                                            <item translatable="yes" id="unreal">Unreal Engine</item>
-                                            <item translatable="yes" id="games">Games</item>
-                                        </items>
                                     </object>
                                 </child>
                             </object>
@@ -121,16 +98,8 @@
                                 <property name="activatable-widget">log_level_selection</property>
                                 <property name="subtitle" translatable="yes">Set log level</property>
                                 <child>
-                                    <object class="GtkComboBoxText" id="log_level_selection">
+                                    <object class="GtkDropDown" id="log_level_selection">
                                         <property name="valign">center</property>
-                                        <property name="active-id">library</property>
-                                        <items>
-                                            <item translatable="yes" id="0">Error</item>
-                                            <item translatable="yes" id="1">Warn</item>
-                                            <item translatable="yes" id="2">Info</item>
-                                            <item translatable="yes" id="3">Debug</item>
-                                            <item translatable="yes" id="4">Trace</item>
-                                        </items>
                                     </object>
                                 </child>
                             </object>
@@ -323,4 +292,3 @@
         </child>
     </template>
 </interface>
-

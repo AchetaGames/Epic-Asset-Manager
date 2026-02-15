@@ -3,7 +3,7 @@
     <template class="EpicAddToProject" parent="GtkBox">
         <property name="css-classes">linked</property>
         <child> <!-- TODO: Switch to GtkDropDown -->
-            <object class="GtkComboBoxText" id="select_target_directory">
+            <object class="GtkDropDown" id="select_target_directory">
                 <property name="valign">center</property>
             </object>
         </child>

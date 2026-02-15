@@ -25,7 +25,7 @@
                     <object class="GtkBox">
                         <property name="css-classes">linked</property>
                         <child>
-                            <object class="GtkComboBoxText" id="select_order_by">
+                            <object class="GtkDropDown" id="select_order_by">
                                 <items>
                                     <item translatable="yes" id="name">Name</item>
                                     <item translatable="yes" id="updated">Updated</item>

@@ -3,7 +3,7 @@ pub mod dir_row;
 use adw::prelude::PreferencesDialogExt;
 use gtk4::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
 use gtk4::glib::clone;
-use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate, StringList};
 use gtk_macros::action;
 use log::{debug, error};
 use once_cell::sync::OnceCell;
@@ -53,13 +53,13 @@ pub mod imp {
         #[template_child]
         pub sidebar_switch: TemplateChild<gtk4::Switch>,
         #[template_child]
-        pub default_view_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub default_view_selection: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub log_level_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub log_level_selection: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub default_category_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub default_category_selection: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub accent_color_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub accent_color_selection: TemplateChild<gtk4::DropDown>,
     }
 
     #[glib::object_subclass]
@@ -107,6 +107,7 @@ pub mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             let obj = self.obj();
+            obj.setup_dropdowns();
             obj.bind_settings();
             obj.load_settings();
             obj.setup_actions();
@@ -140,8 +141,78 @@ impl Default for PreferencesWindow {
 }
 
 impl PreferencesWindow {
+    const DEFAULT_VIEW_OPTIONS: [(&'static str, &'static str); 3] = [
+        ("library", "Library"),
+        ("projects", "Projects"),
+        ("engines", "Engines"),
+    ];
+    const LOG_LEVEL_OPTIONS: [(&'static str, &'static str); 5] = [
+        ("0", "Error"),
+        ("1", "Warn"),
+        ("2", "Info"),
+        ("3", "Debug"),
+        ("4", "Trace"),
+    ];
+    const DEFAULT_CATEGORY_OPTIONS: [(&'static str, &'static str); 3] = [
+        ("all", "All"),
+        ("unreal", "Unreal Engine"),
+        ("games", "Games"),
+    ];
+    const ACCENT_COLOR_OPTIONS: [(&'static str, &'static str); 7] = [
+        ("default", "Default (Blue)"),
+        ("olive", "Olive"),
+        ("orange", "Orange"),
+        ("purple", "Purple"),
+        ("pink", "Pink"),
+        ("red", "Red"),
+        ("teal", "Teal"),
+    ];
+
     pub fn new() -> Self {
         glib::Object::new()
+    }
+
+    fn setup_dropdowns(&self) {
+        let self_ = self.imp();
+        Self::set_dropdown_items(&self_.default_view_selection, &Self::DEFAULT_VIEW_OPTIONS);
+        Self::set_dropdown_items(&self_.log_level_selection, &Self::LOG_LEVEL_OPTIONS);
+        Self::set_dropdown_items(
+            &self_.default_category_selection,
+            &Self::DEFAULT_CATEGORY_OPTIONS,
+        );
+        Self::set_dropdown_items(&self_.accent_color_selection, &Self::ACCENT_COLOR_OPTIONS);
+    }
+
+    fn set_dropdown_items(dropdown: &gtk4::DropDown, items: &[(&str, &str)]) {
+        let labels: Vec<&str> = items.iter().map(|(_, label)| *label).collect();
+        let model = StringList::new(&labels);
+        dropdown.set_model(Some(&model));
+    }
+
+    fn dropdown_selected_id(
+        dropdown: &gtk4::DropDown,
+        items: &[(&str, &str)],
+        fallback: &str,
+    ) -> String {
+        let selected = dropdown.selected() as usize;
+        items
+            .get(selected)
+            .map(|(id, _)| (*id).to_string())
+            .unwrap_or_else(|| fallback.to_string())
+    }
+
+    fn dropdown_set_selected_id(
+        dropdown: &gtk4::DropDown,
+        items: &[(&str, &str)],
+        id: &str,
+        fallback: &str,
+    ) {
+        let index = items
+            .iter()
+            .position(|(item_id, _)| *item_id == id)
+            .or_else(|| items.iter().position(|(item_id, _)| *item_id == fallback))
+            .unwrap_or(0);
+        dropdown.set_selected(index as u32);
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -204,7 +275,7 @@ impl PreferencesWindow {
             }
         ));
 
-        self_.default_view_selection.connect_changed(clone!(
+        self_.default_view_selection.connect_selected_notify(clone!(
             #[weak(rename_to=preferences)]
             self,
             move |_| {
@@ -212,7 +283,7 @@ impl PreferencesWindow {
             }
         ));
 
-        self_.log_level_selection.connect_changed(clone!(
+        self_.log_level_selection.connect_selected_notify(clone!(
             #[weak(rename_to=preferences)]
             self,
             move |_| {
@@ -220,15 +291,17 @@ impl PreferencesWindow {
             }
         ));
 
-        self_.default_category_selection.connect_changed(clone!(
-            #[weak(rename_to=preferences)]
-            self,
-            move |_| {
-                preferences.default_category_changed();
-            }
-        ));
+        self_
+            .default_category_selection
+            .connect_selected_notify(clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_| {
+                    preferences.default_category_changed();
+                }
+            ));
 
-        self_.accent_color_selection.connect_changed(clone!(
+        self_.accent_color_selection.connect_selected_notify(clone!(
             #[weak(rename_to=preferences)]
             self,
             move |_| {
@@ -240,11 +313,9 @@ impl PreferencesWindow {
     fn log_level_changed(&self) {
         let self_ = self.imp();
 
-        if let Ok(level) = self_
-            .log_level_selection
-            .active_id()
-            .unwrap_or_else(|| "0".into())
-            .parse::<i32>()
+        if let Ok(level) =
+            Self::dropdown_selected_id(&self_.log_level_selection, &Self::LOG_LEVEL_OPTIONS, "0")
+                .parse::<i32>()
         {
             self_.settings.set_int("log-level", level).unwrap();
             Self::set_log_level(level);
@@ -263,38 +334,37 @@ impl PreferencesWindow {
 
     fn default_view_changed(&self) {
         let self_ = self.imp();
+        let selected = Self::dropdown_selected_id(
+            &self_.default_view_selection,
+            &Self::DEFAULT_VIEW_OPTIONS,
+            "library",
+        );
         self_
             .settings
-            .set_string(
-                "default-view",
-                &self_
-                    .default_view_selection
-                    .active_id()
-                    .unwrap_or_else(|| "library".into()),
-            )
+            .set_string("default-view", &selected)
             .unwrap();
     }
 
     fn default_category_changed(&self) {
         let self_ = self.imp();
+        let selected = Self::dropdown_selected_id(
+            &self_.default_category_selection,
+            &Self::DEFAULT_CATEGORY_OPTIONS,
+            "unreal",
+        );
         self_
             .settings
-            .set_string(
-                "default-category",
-                &self_
-                    .default_category_selection
-                    .active_id()
-                    .unwrap_or_else(|| "unreal".into()),
-            )
+            .set_string("default-category", &selected)
             .unwrap();
     }
 
     fn accent_color_changed(&self) {
         let self_ = self.imp();
-        let color = self_
-            .accent_color_selection
-            .active_id()
-            .unwrap_or_else(|| "default".into());
+        let color = Self::dropdown_selected_id(
+            &self_.accent_color_selection,
+            &Self::ACCENT_COLOR_OPTIONS,
+            "default",
+        );
         self_.settings.set_string("accent-color", &color).unwrap();
         Self::apply_accent_color(&color);
     }
@@ -396,19 +466,36 @@ impl PreferencesWindow {
         }
 
         let view = self_.settings.string("default-view");
-        self_.default_view_selection.set_active_id(Some(&view));
+        Self::dropdown_set_selected_id(
+            &self_.default_view_selection,
+            &Self::DEFAULT_VIEW_OPTIONS,
+            view.as_str(),
+            "library",
+        );
         let level = self_.settings.int("log-level");
-        self_
-            .log_level_selection
-            .set_active_id(Some(&format!("{level}")));
+        let level_id = format!("{level}");
+        Self::dropdown_set_selected_id(
+            &self_.log_level_selection,
+            &Self::LOG_LEVEL_OPTIONS,
+            level_id.as_str(),
+            "0",
+        );
         self.log_level_changed();
         let category = self_.settings.string("default-category");
-        self_
-            .default_category_selection
-            .set_active_id(Some(&category));
+        Self::dropdown_set_selected_id(
+            &self_.default_category_selection,
+            &Self::DEFAULT_CATEGORY_OPTIONS,
+            category.as_str(),
+            "unreal",
+        );
 
         let accent = self_.settings.string("accent-color");
-        self_.accent_color_selection.set_active_id(Some(&accent));
+        Self::dropdown_set_selected_id(
+            &self_.accent_color_selection,
+            &Self::ACCENT_COLOR_OPTIONS,
+            accent.as_str(),
+            "default",
+        );
         Self::apply_accent_color(&accent);
     }
 

@@ -36,7 +36,7 @@
                             <object class="AdwActionRow">
                                 <property name="title">Version:</property>
                                 <child>
-                                    <object class="GtkComboBoxText" id="select_download_version">
+                                    <object class="GtkDropDown" id="select_download_version">
                                         <property name="halign">center</property>
                                         <property name="valign">center</property>
                                     </object>

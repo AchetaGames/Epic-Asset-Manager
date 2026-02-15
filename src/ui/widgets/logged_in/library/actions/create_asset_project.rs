@@ -19,13 +19,14 @@ pub mod imp {
     pub struct EpicCreateAssetProject {
         selected_version: RefCell<Option<String>>,
         project_name: RefCell<Option<String>>,
+        pub target_directory_ids: RefCell<Vec<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
         pub manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub actions: gio::SimpleActionGroup,
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub settings: gio::Settings,
         #[template_child]
-        pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
+        pub select_target_directory: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub warning_row: TemplateChild<gtk4::Box>,
         #[template_child]
@@ -42,6 +43,7 @@ pub mod imp {
             Self {
                 selected_version: RefCell::new(None),
                 project_name: RefCell::new(None),
+                target_directory_ids: RefCell::new(Vec::new()),
                 asset: RefCell::new(None),
                 manifest: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
@@ -143,23 +145,18 @@ impl EpicCreateAssetProject {
 
     pub fn set_target_directories(&self) {
         let self_ = self.imp();
-        self_.select_target_directory.remove_all();
+        let model = gtk4::StringList::new(&[] as &[&str]);
+        let mut ids = Vec::new();
         for dir in self_.settings.strv("unreal-projects-directories") {
-            self_.select_target_directory.append(
-                Some(&dir),
-                &format!(
-                    "{}{}",
-                    dir,
-                    if self_.select_target_directory.active_text().is_none() {
-                        " (default)"
-                    } else {
-                        ""
-                    }
-                ),
-            );
-            if self_.select_target_directory.active_text().is_none() {
-                self_.select_target_directory.set_active_id(Some(&dir));
-            }
+            let suffix = if ids.is_empty() { " (default)" } else { "" };
+            model.append(&format!("{}{}", dir, suffix));
+            ids.push(dir.to_string());
+        }
+        self_.select_target_directory.set_model(Some(&model));
+        let has_items = !ids.is_empty();
+        self_.target_directory_ids.replace(ids);
+        if has_items && self_.select_target_directory.selected() == gtk4::INVALID_LIST_POSITION {
+            self_.select_target_directory.set_selected(0);
         }
     }
 
@@ -194,13 +191,15 @@ impl EpicCreateAssetProject {
             )
         );
 
-        self_.select_target_directory.connect_changed(clone!(
-            #[weak(rename_to=cap)]
-            self,
-            move |_| {
-                cap.directory_changed();
-            }
-        ));
+        self_
+            .select_target_directory
+            .connect_selected_notify(clone!(
+                #[weak(rename_to=cap)]
+                self,
+                move |_| {
+                    cap.directory_changed();
+                }
+            ));
     }
 
     fn directory_changed(&self) {
@@ -210,7 +209,7 @@ impl EpicCreateAssetProject {
     fn validate_target_directory(&self) {
         let self_ = self.imp();
         if let Some(project) = self.project_name() {
-            if let Some(id) = self_.select_target_directory.active_id() {
+            if let Some(id) = self.selected_target_directory() {
                 let mut path = PathBuf::from_str(id.as_str()).unwrap();
                 path.push(project);
                 if path.exists() {
@@ -225,7 +224,7 @@ impl EpicCreateAssetProject {
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
                 if let Some(project) = self.project_name() {
-                    if let Some(id) = self_.select_target_directory.active_id() {
+                    if let Some(id) = self.selected_target_directory() {
                         let mut path = PathBuf::from_str(id.as_str()).unwrap();
                         path.push(project);
                         dm.add_asset_download(
@@ -286,5 +285,18 @@ impl EpicCreateAssetProject {
 
     pub fn project_name(&self) -> Option<String> {
         self.property("project-name")
+    }
+
+    fn selected_target_directory(&self) -> Option<String> {
+        let self_ = self.imp();
+        let selected = self_.select_target_directory.selected();
+        if selected == gtk4::INVALID_LIST_POSITION {
+            return None;
+        }
+        self_
+            .target_directory_ids
+            .borrow()
+            .get(selected as usize)
+            .cloned()
     }
 }
