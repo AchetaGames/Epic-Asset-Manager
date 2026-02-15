@@ -290,16 +290,17 @@ impl EpicAsset {
             move |gesture, _, x, y| {
                 // Check if click was on the button - if so, don't emit tile-clicked
                 // The button's own handler will take care of it
-                let button_allocation = self_.action_button.allocation();
-                let btn_x = button_allocation.x() as f64;
-                let btn_y = button_allocation.y() as f64;
-                let btn_w = button_allocation.width() as f64;
-                let btn_h = button_allocation.height() as f64;
+                if let Some(bounds) = self_.action_button.compute_bounds(&asset) {
+                    let btn_x = bounds.x() as f64;
+                    let btn_y = bounds.y() as f64;
+                    let btn_w = bounds.width() as f64;
+                    let btn_h = bounds.height() as f64;
 
-                // Get the click position relative to the tile
-                if x >= btn_x && x <= btn_x + btn_w && y >= btn_y && y <= btn_y + btn_h {
-                    // Click was on button area, let button handle it
-                    return;
+                    // Get the click position relative to the tile
+                    if x >= btn_x && x <= btn_x + btn_w && y >= btn_y && y <= btn_y + btn_h {
+                        // Click was on button area, let button handle it
+                        return;
+                    }
                 }
 
                 use std::io::Write;

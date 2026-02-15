@@ -48,8 +48,6 @@ pub mod imp {
             let app = self.obj();
             let self_ = app.imp();
             if let Some(window) = self_.window.get() {
-                window.show();
-
                 if let Ok(item) = self.item.borrow().to_value().get::<String>() {
                     window.set_property("item", item);
                 }
@@ -294,7 +292,7 @@ impl EpicAssetManager {
             .documenters(vec!["Osayami".to_string()])
             .build();
 
-        dialog.show();
+        dialog.present();
     }
 
     pub fn run(&self) {

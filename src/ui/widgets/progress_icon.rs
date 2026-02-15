@@ -77,7 +77,7 @@ pub mod imp {
         fn snapshot(&self, snapshot: &gtk4::Snapshot) {
             let widget = self.obj();
             let size = widget.size() as f32;
-            let mut color = widget.style_context().color();
+            let mut color = widget.color();
             let fraction = if widget.clockwise() {
                 1.0 - widget.fraction()
             } else {

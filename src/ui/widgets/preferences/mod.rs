@@ -349,7 +349,7 @@ impl PreferencesWindow {
 
         if !css.is_empty() {
             let provider = gtk4::CssProvider::new();
-            provider.load_from_data(css);
+            provider.load_from_string(css);
             gtk4::style_context_add_provider_for_display(
                 &gtk4::gdk::Display::default().expect("Could not get default display"),
                 &provider,

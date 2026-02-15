@@ -129,11 +129,8 @@ pub mod imp {
             let obj = self.obj();
             // Devel Profile
             if PROFILE == "Devel" {
-                obj.style_context().add_class("devel");
+                obj.add_css_class("devel");
             }
-
-            let button = self.color_scheme_btn.get();
-            let style_manager = adw::StyleManager::default();
 
             // load latest window state
             obj.load_window_size();
@@ -414,7 +411,7 @@ impl EpicAssetManagerWindow {
         let preferences = PreferencesWindow::new();
         preferences.set_transient_for(Some(self));
         preferences.set_window(self);
-        preferences.show();
+        preferences.present();
         preferences
     }
 
