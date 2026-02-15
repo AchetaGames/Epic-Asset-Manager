@@ -188,6 +188,24 @@ impl FabLibraryBox {
                         }
                     ),
                 );
+
+                row.connect_local(
+                    "download-requested",
+                    false,
+                    clone!(
+                        #[weak]
+                        fab,
+                        #[upgrade_or]
+                        None,
+                        move |values| {
+                            let asset_widget = values[0]
+                                .get::<crate::ui::widgets::logged_in::library::asset::EpicAsset>()
+                                .unwrap();
+                            fab.handle_download_requested(&asset_widget);
+                            None
+                        }
+                    ),
+                );
             }
         ));
 
@@ -372,6 +390,23 @@ impl FabLibraryBox {
             if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
                 if let Some(details) = self_.details.get() {
                     details.set_fab_asset(asset);
+                }
+            }
+        }
+    }
+
+    fn handle_download_requested(
+        &self,
+        asset_widget: &crate::ui::widgets::logged_in::library::asset::EpicAsset,
+    ) {
+        let self_ = self.imp();
+        if let Some(fab_data) = asset_widget.imp().fab_data.borrow().as_ref() {
+            if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
+                if let Some(details) = self_.details.get() {
+                    details.set_fab_asset(asset);
+                    if !asset.project_versions.is_empty() {
+                        details.open_fab_version_dialog(asset);
+                    }
                 }
             }
         }

@@ -734,7 +734,7 @@ impl EpicAssetDetails {
         self.check_fab_favorite(&fab_asset.asset_id);
     }
 
-    fn open_fab_version_dialog(&self, fab_asset: &FabAsset) {
+    pub fn open_fab_version_dialog(&self, fab_asset: &FabAsset) {
         let self_ = self.imp();
         debug!("Opening FAB version dialog for {}", fab_asset.title);
 
