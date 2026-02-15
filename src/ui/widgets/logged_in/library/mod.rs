@@ -6,6 +6,7 @@ use gtk4::{self, prelude::*, CustomSorter};
 use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, trace};
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -25,10 +26,10 @@ pub mod imp {
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
     use gtk4::gio::ListStore;
-    use gtk4::glib::{Object, ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
+    use gtk4::glib::{Object, ParamSpec, ParamSpecString, ParamSpecUInt};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -41,6 +42,12 @@ pub mod imp {
         #[template_child]
         pub asset_search: TemplateChild<gtk4::SearchEntry>,
         #[template_child]
+        pub category_dropdown: TemplateChild<gtk4::DropDown>,
+        #[template_child]
+        pub downloaded_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
+        pub favorites_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
         pub select_order_by: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub order: TemplateChild<gtk4::Button>,
@@ -48,7 +55,6 @@ pub mod imp {
         pub count_label: TemplateChild<gtk4::Label>,
         #[template_child]
         pub refresh_progress: TemplateChild<gtk4::ProgressBar>,
-        pub sidebar_expanded: RefCell<bool>,
         pub filter: RefCell<Option<String>>,
         pub search: RefCell<Option<String>>,
         pub actions: gio::SimpleActionGroup,
@@ -58,6 +64,8 @@ pub mod imp {
         pub sorter_model: gtk4::SortListModel,
         pub grid_model: ListStore,
         pub order_by_ids: RefCell<Vec<String>>,
+        pub category_hierarchy: RefCell<BTreeMap<String, BTreeSet<String>>>,
+        pub category_filter_paths: RefCell<Vec<String>>,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub loaded_data: RefCell<HashMap<String, crate::models::asset_data::AssetData>>,
         pub asset_product_names: RefCell<HashMap<String, String>>,
@@ -84,11 +92,13 @@ pub mod imp {
                 sidebar: OnceCell::new(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
+                category_dropdown: TemplateChild::default(),
+                downloaded_filter: TemplateChild::default(),
+                favorites_filter: TemplateChild::default(),
                 select_order_by: TemplateChild::default(),
                 order: TemplateChild::default(),
                 count_label: TemplateChild::default(),
                 refresh_progress: TemplateChild::default(),
-                sidebar_expanded: RefCell::new(false),
                 filter: RefCell::new(None),
                 search: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
@@ -104,6 +114,8 @@ pub mod imp {
                 ),
                 grid_model: gio::ListStore::new::<crate::models::asset_data::AssetData>(),
                 order_by_ids: RefCell::new(Vec::new()),
+                category_hierarchy: RefCell::new(BTreeMap::new()),
+                category_filter_paths: RefCell::new(vec![String::new()]),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
@@ -135,7 +147,6 @@ pub mod imp {
 
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::builder("sidebar-expanded").build(),
                     ParamSpecUInt::builder("to-load")
                         .minimum(0)
                         .default_value(0)
@@ -155,10 +166,6 @@ pub mod imp {
 
         fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
-                "sidebar-expanded" => {
-                    let sidebar_expanded = value.get().unwrap();
-                    self.sidebar_expanded.replace(sidebar_expanded);
-                }
                 "to-load" => {
                     self.loading.replace(value.get().unwrap());
                 }
@@ -194,7 +201,6 @@ pub mod imp {
 
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
                 "to-load" => self.loading.borrow().to_value(),
                 "loaded" => self.loaded.borrow().to_value(),
                 "filter" => self.filter.borrow().to_value(),
@@ -418,6 +424,7 @@ impl EpicLibraryBox {
         );
     }
 
+    #[allow(dead_code)]
     fn asset_selected(&self, model: &gtk4::SingleSelection) {
         if let Some(a) = model.selected_item() {
             let self_ = self.imp();
@@ -841,6 +848,10 @@ impl EpicLibraryBox {
             self_.select_order_by.set_selected(0);
         }
 
+        let cat_model = gtk4::StringList::new(&["All"]);
+        self_.category_dropdown.set_model(Some(&cat_model));
+        self_.category_dropdown.set_selected(0);
+
         if let Some(sidebar) = self_.sidebar.get() {
             sidebar.set_logged_in(self);
         }
@@ -858,6 +869,30 @@ impl EpicLibraryBox {
             self,
             move |_| {
                 let _ = library.imp();
+            }
+        ));
+
+        self_.downloaded_filter.connect_toggled(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                library.apply_filter();
+            }
+        ));
+
+        self_.favorites_filter.connect_toggled(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                library.apply_filter();
+            }
+        ));
+
+        self_.category_dropdown.connect_selected_notify(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                library.apply_filter();
             }
         ));
     }
@@ -959,7 +994,28 @@ impl EpicLibraryBox {
         let self_ = self.imp();
         let search = self.search();
         let filter_p = self.filter();
-        if filter_p.is_none() && search.is_none() {
+        let downloaded_only = self_.downloaded_filter.is_active();
+        let favorites_only = self_.favorites_filter.is_active();
+
+        let selected_cat = self_.category_dropdown.selected();
+        let category_filter: Option<String> =
+            if selected_cat == 0 || selected_cat == gtk4::INVALID_LIST_POSITION {
+                None
+            } else {
+                self_
+                    .category_filter_paths
+                    .borrow()
+                    .get(selected_cat as usize)
+                    .filter(|p| !p.is_empty())
+                    .cloned()
+            };
+
+        if filter_p.is_none()
+            && search.is_none()
+            && !downloaded_only
+            && !favorites_only
+            && category_filter.is_none()
+        {
             self_.filter_model.set_filter(None::<&gtk4::CustomFilter>);
             self.update_count();
             return;
@@ -969,15 +1025,94 @@ impl EpicLibraryBox {
             let asset = object
                 .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
-            search.as_ref().map_or(true, |se| {
+            let matches_search = search.as_ref().map_or(true, |se| {
                 asset
                     .name()
                     .to_ascii_lowercase()
                     .contains(&se.to_ascii_lowercase())
-            }) && filter_p.as_ref().map_or(true, |f| asset.check_category(f))
+            });
+            let matches_category = filter_p.as_ref().map_or(true, |f| asset.check_category(f));
+            let matches_downloaded = !downloaded_only || asset.downloaded();
+            let matches_favorites = !favorites_only || asset.favorite();
+            let matches_dropdown = category_filter
+                .as_ref()
+                .map_or(true, |c| asset.check_category(c));
+
+            matches_search
+                && matches_category
+                && matches_downloaded
+                && matches_favorites
+                && matches_dropdown
         });
         self_.filter_model.set_filter(Some(&filter));
         self.update_count();
+    }
+
+    pub fn add_category_to_dropdown(&self, path: &str) {
+        let self_ = self.imp();
+        let parts: Vec<&str> = path.splitn(2, '/').collect();
+        let top_level = parts[0];
+        let subcategory = parts.get(1).copied();
+
+        let mut hierarchy = self_.category_hierarchy.borrow_mut();
+        let is_new_top = !hierarchy.contains_key(top_level);
+
+        if is_new_top {
+            hierarchy.insert(top_level.to_string(), BTreeSet::new());
+        }
+
+        let is_new_sub = if let Some(sub) = subcategory {
+            hierarchy
+                .entry(top_level.to_string())
+                .or_default()
+                .insert(sub.to_string())
+        } else {
+            false
+        };
+
+        if is_new_top || is_new_sub {
+            drop(hierarchy);
+            self.rebuild_category_dropdown();
+        }
+    }
+
+    fn capitalize(s: &str) -> String {
+        let mut c = s.chars();
+        c.next().map_or_else(String::new, |f| {
+            f.to_uppercase().collect::<String>() + c.as_str()
+        })
+    }
+
+    fn rebuild_category_dropdown(&self) {
+        let self_ = self.imp();
+        let prev_selected = self_.category_dropdown.selected();
+        let prev_path = self_
+            .category_filter_paths
+            .borrow()
+            .get(prev_selected as usize)
+            .cloned()
+            .unwrap_or_default();
+
+        let hierarchy = self_.category_hierarchy.borrow();
+
+        let model = gtk4::StringList::new(&["All"]);
+        let mut paths = vec![String::new()];
+
+        for (top, subs) in hierarchy.iter() {
+            model.append(&Self::capitalize(top));
+            paths.push(top.clone());
+
+            for sub in subs {
+                model.append(&format!("    {}", Self::capitalize(sub)));
+                paths.push(format!("{}/{}", top, sub));
+            }
+        }
+
+        let new_selected = paths.iter().position(|p| p == &prev_path).unwrap_or(0) as u32;
+
+        self_.category_filter_paths.replace(paths);
+        self_.category_dropdown.set_model(Some(&model));
+        self_.category_dropdown.set_selected(new_selected);
     }
 
     pub fn add_asset(
@@ -990,9 +1125,7 @@ impl EpicLibraryBox {
             for category in categories {
                 let mut cats = self_.categories.borrow_mut();
                 if cats.insert(category.path.clone()) {
-                    if let Some(sidebar) = self_.sidebar.get() {
-                        sidebar.add_category(&category.path);
-                    }
+                    self.add_category_to_dropdown(&category.path);
                 }
             }
         };

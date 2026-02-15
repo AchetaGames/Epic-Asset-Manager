@@ -3,7 +3,6 @@ use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use log::{debug, error, warn};
-use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub mod version_dialog;
@@ -16,6 +15,7 @@ pub mod imp {
     use gtk4::gio::ListStore;
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
+    use std::collections::{BTreeSet, HashSet};
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -29,6 +29,12 @@ pub mod imp {
         #[template_child]
         pub fab_search: TemplateChild<gtk4::SearchEntry>,
         #[template_child]
+        pub category_dropdown: TemplateChild<gtk4::DropDown>,
+        #[template_child]
+        pub downloaded_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
+        pub favorites_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
         pub count_label: TemplateChild<gtk4::Label>,
         #[template_child]
         pub refresh_progress: TemplateChild<gtk4::ProgressBar>,
@@ -37,6 +43,10 @@ pub mod imp {
         pub search: RefCell<Option<String>>,
         /// Tracks asset IDs already in the grid to avoid duplicates on refresh
         pub known_asset_ids: RefCell<HashSet<String>>,
+        /// Sorted set of known category names for the dropdown
+        pub category_names: RefCell<BTreeSet<String>>,
+        /// Parallel index: position 0 = "" (All), then sorted category names
+        pub category_filter_names: RefCell<Vec<String>>,
         pub image_load_pool: ThreadPool,
         pub settings: gio::Settings,
     }
@@ -54,6 +64,9 @@ pub mod imp {
                 details: OnceCell::new(),
                 fab_grid: TemplateChild::default(),
                 fab_search: TemplateChild::default(),
+                category_dropdown: TemplateChild::default(),
+                downloaded_filter: TemplateChild::default(),
+                favorites_filter: TemplateChild::default(),
                 count_label: TemplateChild::default(),
                 refresh_progress: TemplateChild::default(),
                 grid_model: ListStore::new::<crate::models::fab_data::FabData>(),
@@ -63,6 +76,8 @@ pub mod imp {
                 ),
                 search: RefCell::new(None),
                 known_asset_ids: RefCell::new(HashSet::new()),
+                category_names: RefCell::new(BTreeSet::new()),
+                category_filter_names: RefCell::new(vec![String::new()]),
                 image_load_pool: ThreadPool::with_name("fab_image_pool".to_string(), 10),
                 settings: gio::Settings::new(crate::config::APP_ID),
             }
@@ -147,6 +162,10 @@ impl FabLibraryBox {
     fn setup_widgets(&self) {
         let self_ = self.imp();
 
+        let cat_model = gtk4::StringList::new(&["All"]);
+        self_.category_dropdown.set_model(Some(&cat_model));
+        self_.category_dropdown.set_selected(0);
+
         self_.fab_search.connect_search_changed(clone!(
             #[weak(rename_to=fab)]
             self,
@@ -158,6 +177,30 @@ impl FabLibraryBox {
                     Some(text.to_string())
                 };
                 fab.imp().search.replace(search);
+                fab.update_filter();
+            }
+        ));
+
+        self_.category_dropdown.connect_selected_notify(clone!(
+            #[weak(rename_to=fab)]
+            self,
+            move |_| {
+                fab.update_filter();
+            }
+        ));
+
+        self_.downloaded_filter.connect_toggled(clone!(
+            #[weak(rename_to=fab)]
+            self,
+            move |_| {
+                fab.update_filter();
+            }
+        ));
+
+        self_.favorites_filter.connect_toggled(clone!(
+            #[weak(rename_to=fab)]
+            self,
+            move |_| {
                 fab.update_filter();
             }
         ));
@@ -243,25 +286,104 @@ impl FabLibraryBox {
     fn update_filter(&self) {
         let self_ = self.imp();
         let search = self_.search.borrow().clone();
+        let downloaded_only = self_.downloaded_filter.is_active();
+        let favorites_only = self_.favorites_filter.is_active();
+
+        let selected_cat = self_.category_dropdown.selected();
+        let category_filter: Option<String> =
+            if selected_cat == 0 || selected_cat == gtk4::INVALID_LIST_POSITION {
+                None
+            } else {
+                self_
+                    .category_filter_names
+                    .borrow()
+                    .get(selected_cat as usize)
+                    .filter(|n| !n.is_empty())
+                    .cloned()
+            };
+
+        if search.is_none() && !downloaded_only && !favorites_only && category_filter.is_none() {
+            self_.filter_model.set_filter(None::<&gtk4::CustomFilter>);
+            self.update_count();
+            return;
+        }
 
         let filter = gtk4::CustomFilter::new(move |obj| {
             if let Some(data) = obj.downcast_ref::<crate::models::fab_data::FabData>() {
-                if let Some(ref s) = search {
-                    let name = data.name().to_lowercase();
-                    return name.contains(&s.to_lowercase());
-                }
-                return true;
+                let matches_search = search.as_ref().map_or(true, |s| {
+                    data.name().to_lowercase().contains(&s.to_lowercase())
+                });
+                let matches_downloaded = !downloaded_only || data.downloaded();
+                let matches_favorites = !favorites_only || data.favorite();
+                let matches_category = category_filter
+                    .as_ref()
+                    .map_or(true, |c| data.check_category(c));
+
+                return matches_search
+                    && matches_downloaded
+                    && matches_favorites
+                    && matches_category;
             }
             false
         });
 
         self_.filter_model.set_filter(Some(&filter));
+        self.update_count();
     }
 
     fn update_count(&self) {
         let self_ = self.imp();
-        let count = self_.grid_model.n_items();
+        let count = self_.filter_model.n_items();
         self_.count_label.set_label(&format!("{} assets", count));
+    }
+
+    fn add_asset_categories(&self, asset: &egs_api::api::types::fab_library::FabAsset) {
+        let self_ = self.imp();
+        let mut names = self_.category_names.borrow_mut();
+        let mut changed = false;
+
+        for category in &asset.categories {
+            if let Some(name) = &category.name {
+                if !name.is_empty() && names.insert(name.clone()) {
+                    changed = true;
+                }
+            }
+        }
+
+        if changed {
+            drop(names);
+            self.rebuild_category_dropdown();
+        }
+    }
+
+    fn rebuild_category_dropdown(&self) {
+        let self_ = self.imp();
+        let prev_selected = self_.category_dropdown.selected();
+        let prev_name = self_
+            .category_filter_names
+            .borrow()
+            .get(prev_selected as usize)
+            .cloned()
+            .unwrap_or_default();
+
+        let names = self_.category_names.borrow();
+
+        let model = gtk4::StringList::new(&["All"]);
+        let mut filter_names = vec![String::new()];
+
+        for name in names.iter() {
+            model.append(name);
+            filter_names.push(name.clone());
+        }
+
+        let new_selected = filter_names
+            .iter()
+            .position(|n| n == &prev_name)
+            .unwrap_or(0) as u32;
+
+        self_.category_filter_names.replace(filter_names);
+        self_.category_dropdown.set_model(Some(&model));
+        self_.category_dropdown.set_selected(new_selected);
     }
 
     fn fab_cache_dir(cache_dir: &str) -> PathBuf {
@@ -469,6 +591,7 @@ impl FabLibraryBox {
         {
             return;
         }
+        self.add_asset_categories(asset);
         let data = crate::models::fab_data::FabData::new(asset, image);
         self_.grid_model.append(&data);
         self.update_count();
@@ -484,6 +607,11 @@ impl FabLibraryBox {
         let self_ = self.imp();
         self_.grid_model.remove_all();
         self_.known_asset_ids.borrow_mut().clear();
+        self_.category_names.borrow_mut().clear();
+        self_.category_filter_names.replace(vec![String::new()]);
+        let model = gtk4::StringList::new(&["All"]);
+        self_.category_dropdown.set_model(Some(&model));
+        self_.category_dropdown.set_selected(0);
         self.update_count();
     }
 

@@ -5,23 +5,41 @@
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
         <property name="orientation">vertical</property>
-        <property name="css-classes">view</property>
 
-        <!-- Header -->
+        <!-- Search, filters, and count toolbar -->
         <child>
-            <object class="GtkBox" id="fab_header">
-                <property name="css-classes">section-header</property>
+            <object class="GtkBox">
                 <property name="spacing">8</property>
                 <property name="margin-start">16</property>
                 <property name="margin-end">16</property>
-                <property name="margin-top">12</property>
+                <property name="margin-top">8</property>
                 <property name="margin-bottom">8</property>
                 <child>
-                    <object class="GtkLabel">
-                        <property name="label">FAB LIBRARY</property>
-                        <property name="css-classes">section-title</property>
-                        <property name="halign">start</property>
+                    <object class="GtkSearchEntry" id="fab_search">
+                        <property name="placeholder-text">Search FAB assets...</property>
                         <property name="hexpand">true</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkDropDown" id="category_dropdown">
+                        <property name="tooltip-text" translatable="yes">Filter by category</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox">
+                        <property name="css-classes">linked</property>
+                        <child>
+                            <object class="GtkToggleButton" id="downloaded_filter">
+                                <property name="icon-name">folder-download-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Only show downloaded</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkToggleButton" id="favorites_filter">
+                                <property name="icon-name">starred-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Only show starred</property>
+                            </object>
+                        </child>
                     </object>
                 </child>
                 <child>
@@ -30,26 +48,15 @@
                         <property name="css-classes">dim-label</property>
                     </object>
                 </child>
-                <child>
-                    <object class="GtkSearchEntry" id="fab_search">
-                        <property name="placeholder-text">Search FAB assets...</property>
-                    </object>
-                </child>
             </object>
         </child>
 
-        <!-- Progress bar for loading -->
+        <!-- FAB Grid with scroll -->
         <child>
-            <object class="GtkProgressBar" id="refresh_progress">
-                <property name="visible">false</property>
-            </object>
-        </child>
-
-        <!-- FAB Grid -->
-        <child>
-            <object class="GtkScrolledWindow" id="fab_scroll">
+            <object class="GtkScrolledWindow">
                 <property name="hexpand">true</property>
                 <property name="vexpand">true</property>
+                <property name="hscrollbar-policy">never</property>
                 <property name="child">
                     <object class="GtkGridView" id="fab_grid">
                         <property name="halign">fill</property>
@@ -61,6 +68,22 @@
                         <property name="margin-bottom">8</property>
                     </object>
                 </property>
+            </object>
+        </child>
+
+        <!-- Progress bar -->
+        <child>
+            <object class="GtkBox">
+                <property name="margin-start">16</property>
+                <property name="margin-end">16</property>
+                <property name="margin-bottom">6</property>
+                <property name="spacing">8</property>
+                <child>
+                    <object class="GtkProgressBar" id="refresh_progress">
+                        <property name="hexpand">true</property>
+                        <property name="visible">false</property>
+                    </object>
+                </child>
             </object>
         </child>
     </template>
