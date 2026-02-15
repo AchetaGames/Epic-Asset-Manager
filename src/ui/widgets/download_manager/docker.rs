@@ -84,25 +84,19 @@ impl Docker for crate::ui::widgets::download_manager::EpicDownloadManager {
         item.set_total_files(digests.len() as u64);
 
         let v = version.to_string();
-        let mut vec: Vec<(String, DownloadStatus)> = Vec::new();
-        for digest in &digests {
-            vec.push((digest.0.clone(), DownloadStatus::Init));
-        }
-
         let should_download = {
-            let mut state = self_.state.borrow_mut();
-            if state.docker_digests.contains_key(version) {
-                false
-            } else {
-                state.docker_digests.insert(v.clone(), vec);
-                true
-            }
+            let state = self_.state.borrow();
+            !state.docker_digests.contains_key(version)
         };
-
         if should_download {
+            let mut vec: Vec<(String, DownloadStatus)> = Vec::new();
+            for digest in &digests {
+                vec.push((digest.0.clone(), DownloadStatus::Init));
+            }
             for digest in digests {
                 self.download_docker_digest(&v, digest);
             }
+            self_.state.borrow_mut().docker_digests.insert(v, vec);
         }
     }
 

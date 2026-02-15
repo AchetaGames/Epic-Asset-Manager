@@ -49,6 +49,7 @@ pub mod imp {
         pub extracted_files: RefCell<u64>,
         pub post_actions: RefCell<Vec<crate::ui::widgets::download_manager::PostDownloadAction>>,
         pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
+        #[allow(dead_code)]
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub pause_button: TemplateChild<gtk4::Button>,
@@ -171,7 +172,7 @@ pub mod imp {
                     }
                 }
                 "status" => {
-                    let status = value
+                    let _status = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
                         .map(|l| format!("{l}"));

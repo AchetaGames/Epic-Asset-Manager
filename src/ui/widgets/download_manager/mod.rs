@@ -551,7 +551,8 @@ impl EpicDownloadManager {
 
     pub fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
         let self_ = self.imp();
-        if let Some(senders) = self_.state.borrow_mut().thread_senders.remove(key) {
+        let mut state = self_.state.borrow_mut();
+        if let Some(senders) = state.thread_senders.remove(key) {
             for sender in senders {
                 if sender.send(msg.clone()).is_err() {
                     warn!("Unable to send message {:?} to {}", msg, key);

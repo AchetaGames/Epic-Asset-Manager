@@ -93,6 +93,7 @@ pub trait Asset {
         unimplemented!()
     }
 
+    #[allow(dead_code)]
     fn asset_finished(&self, _item: &super::download_item::EpicDownloadItem) {
         unimplemented!()
     }
@@ -111,6 +112,7 @@ pub trait Asset {
         unimplemented!()
     }
 
+    #[allow(dead_code)]
     fn asset_cleanup(&self, _asset: String) {
         unimplemented!()
     }
@@ -550,33 +552,37 @@ impl Asset for super::EpicDownloadManager {
         let sender = self_.sender.clone();
         for chunk in manifest.file_chunk_parts {
             // perform chunk download make sure we do not download the same chunk twice
-            let mut state = self_.state.borrow_mut();
-            state
-                .asset_guids
-                .entry(id.clone())
-                .or_default()
-                .push(chunk.guid.clone());
-            match state.downloaded_chunks.get_mut(&chunk.guid) {
-                None => {
-                    state
-                        .downloaded_chunks
-                        .insert(chunk.guid.clone(), vec![full_filename.clone()]);
-                    info!("Inserting file into chunk init {}", full_filename.clone());
-                    let mut p = target.clone();
-                    let g = chunk.guid.clone();
-                    p.push(format!("{g}.chunk"));
-                    let _ = sender.send_blocking(Msg::RedownloadChunk(
-                        Url::parse("unix:/").unwrap(),
-                        p,
-                        g,
-                    ));
+            let (should_redownload, chunks_len) = {
+                let mut state = self_.state.borrow_mut();
+                state
+                    .asset_guids
+                    .entry(id.clone())
+                    .or_default()
+                    .push(chunk.guid.clone());
+                let mut should_redownload = false;
+                match state.downloaded_chunks.get_mut(&chunk.guid) {
+                    None => {
+                        state
+                            .downloaded_chunks
+                            .insert(chunk.guid.clone(), vec![full_filename.clone()]);
+                        info!("Inserting file into chunk init {}", full_filename.clone());
+                        should_redownload = true;
+                    }
+                    Some(files) => {
+                        files.push(full_filename.clone());
+                        info!("Inserting file into chunk {}", full_filename.clone());
+                    }
                 }
-                Some(files) => {
-                    files.push(full_filename.clone());
-                    info!("Inserting file into chunk {}", full_filename.clone());
-                }
+                (should_redownload, state.downloaded_chunks.len())
+            };
+            if should_redownload {
+                let mut p = target.clone();
+                let g = chunk.guid.clone();
+                p.push(format!("{g}.chunk"));
+                let _ =
+                    sender.send_blocking(Msg::RedownloadChunk(Url::parse("unix:/").unwrap(), p, g));
             }
-            info!("Chunks length: {}", state.downloaded_chunks.len());
+            info!("Chunks length: {}", chunks_len);
         }
     }
 
