@@ -265,6 +265,11 @@ impl EpicLoggedInBox {
         self_.details.set_fab_listing_detail(detail, formats);
     }
 
+    pub fn load_fab_taxonomy(&self, groups: Vec<egs_api::api::types::fab_taxonomy::FabTagGroup>) {
+        let self_ = self.imp();
+        self_.fab.apply_fab_taxonomy(groups);
+    }
+
     pub fn activate(&self, _active: bool) {
         // No-op in unified view - all sections always visible
     }

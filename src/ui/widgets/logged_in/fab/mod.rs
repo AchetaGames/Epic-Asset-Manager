@@ -47,6 +47,8 @@ pub mod imp {
         pub filter_model: gtk4::FilterListModel,
         pub browse_filter_model: gtk4::FilterListModel,
         pub browse_mode: RefCell<bool>,
+        pub browse_category: RefCell<Option<String>>,
+        pub taxonomy_loaded: std::cell::Cell<bool>,
         pub browse_cursor: RefCell<Option<String>>,
         pub browse_known_ids: RefCell<HashSet<String>>,
         pub search: RefCell<Option<String>>,
@@ -91,6 +93,8 @@ pub mod imp {
                     None::<gtk4::CustomFilter>,
                 ),
                 browse_mode: RefCell::new(false),
+                browse_category: RefCell::new(None),
+                taxonomy_loaded: std::cell::Cell::new(false),
                 browse_cursor: RefCell::new(None),
                 browse_known_ids: RefCell::new(HashSet::new()),
                 search: RefCell::new(None),
@@ -234,8 +238,25 @@ impl FabLibraryBox {
         self_.category_dropdown.connect_selected_notify(clone!(
             #[weak(rename_to=fab)]
             self,
-            move |_| {
-                fab.update_filter();
+            move |dropdown| {
+                let self_ = fab.imp();
+                if *self_.browse_mode.borrow() {
+                    let idx = dropdown.selected() as usize;
+                    let slug = self_
+                        .category_filter_names
+                        .borrow()
+                        .get(idx)
+                        .cloned()
+                        .unwrap_or_default();
+                    let category = if slug.is_empty() { None } else { Some(slug) };
+                    self_.browse_category.replace(category);
+                    self_.browse_cursor.replace(None);
+                    self_.browse_known_ids.borrow_mut().clear();
+                    self_.browse_model.remove_all();
+                    fab.fetch_browse_results(None);
+                } else {
+                    fab.update_filter();
+                }
             }
         ));
 
@@ -428,12 +449,20 @@ impl FabLibraryBox {
         let self_ = self.imp();
         self_.browse_mode.replace(browse);
         if browse {
+            self.load_fab_taxonomy();
             self_.browse_cursor.replace(None);
             self_.browse_known_ids.borrow_mut().clear();
             self_.browse_model.remove_all();
+            self_.downloaded_filter.set_visible(false);
+            self_.favorites_filter.set_visible(false);
+            self_.category_dropdown.set_visible(true);
             self.fetch_browse_results(None);
         } else {
+            self_.browse_category.replace(None);
             self_.load_more_button.set_visible(false);
+            self_.downloaded_filter.set_visible(true);
+            self_.favorites_filter.set_visible(true);
+            self.rebuild_category_dropdown();
         }
         self.bind_grid_model(if browse {
             &self_.browse_filter_model
@@ -491,6 +520,55 @@ impl FabLibraryBox {
         self_.category_filter_names.replace(filter_names);
         self_.category_dropdown.set_model(Some(&model));
         self_.category_dropdown.set_selected(new_selected);
+    }
+
+    fn load_fab_taxonomy(&self) {
+        let self_ = self.imp();
+        if self_.taxonomy_loaded.get() {
+            return;
+        }
+        self_.taxonomy_loaded.set(true);
+
+        if let Some(window) = self.main_window() {
+            let win_ = window.imp();
+            let eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
+
+            self_.image_load_pool.execute(move || {
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+                if let Some(groups) = crate::RUNTIME.block_on(eg.fab_tag_groups()) {
+                    let _ =
+                        sender.send_blocking(crate::ui::messages::Msg::FabTaxonomyLoaded(groups));
+                }
+            });
+        }
+    }
+
+    pub fn apply_fab_taxonomy(&self, groups: Vec<egs_api::api::types::fab_taxonomy::FabTagGroup>) {
+        let self_ = self.imp();
+        if !*self_.browse_mode.borrow() {
+            return;
+        }
+
+        let model = gtk4::StringList::new(&["All"]);
+        let mut filter_names = vec![String::new()];
+
+        for group in &groups {
+            if let Some(tags) = &group.tags {
+                for tag in tags {
+                    if let Some(name) = &tag.name {
+                        model.append(name);
+                        filter_names.push(tag.slug.clone().unwrap_or_default());
+                    }
+                }
+            }
+        }
+
+        self_.category_filter_names.replace(filter_names);
+        self_.category_dropdown.set_model(Some(&model));
+        self_.category_dropdown.set_selected(0);
     }
 
     fn fab_cache_dir(cache_dir: &str) -> PathBuf {
@@ -762,6 +840,7 @@ impl FabLibraryBox {
             let eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = win_.model.borrow().sender.clone();
             let search_text = self_.search.borrow().clone();
+            let browse_cat = self_.browse_category.borrow().clone();
 
             self_.image_load_pool.execute(move || {
                 if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
@@ -775,6 +854,7 @@ impl FabLibraryBox {
                 params.sort_by = Some("-createdAt".to_string());
                 params.cursor = cursor;
                 params.q = search_text;
+                params.categories = browse_cat;
 
                 match crate::RUNTIME.block_on(eg.try_fab_search(&params)) {
                     Ok(results) => {

@@ -55,6 +55,9 @@ impl Update for EpicAssetManagerWindow {
                     .logged_in_stack
                     .show_fab_listing_detail(&detail, &formats);
             }
+            Msg::FabTaxonomyLoaded(groups) => {
+                self_.logged_in_stack.load_fab_taxonomy(groups);
+            }
             Msg::ProcessEpicAsset(epic_asset) => {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }
