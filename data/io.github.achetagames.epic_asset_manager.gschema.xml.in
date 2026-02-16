@@ -52,10 +52,6 @@
             <default>""</default>
             <summary>Temporary download directory</summary>
         </key>
-        <key name="default-view" type="s">
-            <default>"library"</default>
-            <summary>Default View</summary>
-        </key>
         <key name="unreal-vault-directories" type="as">
             <default>[]</default>
             <summary>Unreal Vault Directories</summary>
@@ -82,7 +78,7 @@
             <summary>Is sidebar expanded</summary>
         </key>
         <key name="default-category" type="s">
-            <default>"unreal"</default>
+            <default>"library"</default>
             <summary>Default Sidebar Category</summary>
         </key>
     </schema>

@@ -1,8 +1,7 @@
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*};
+use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
-use log::debug;
 
 pub mod imp {
     use super::*;
@@ -67,7 +66,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicGamesBox(ObjectSubclass<imp::EpicGamesBox>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicGamesBox {

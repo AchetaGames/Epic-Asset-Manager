@@ -1,24 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
     <requires lib="gtk" version="4.0"/>
-    <template class="EpicLibraryBox" parent="GtkBox">
+    <template class="FabLibraryBox" parent="GtkBox">
         <property name="hexpand">true</property>
         <property name="vexpand">true</property>
         <property name="orientation">vertical</property>
 
-        <!-- Filter and sort toolbar -->
+        <!-- Search, filters, and count toolbar -->
         <child>
             <object class="GtkBox">
-                <property name="halign">fill</property>
+                <property name="spacing">8</property>
                 <property name="margin-start">16</property>
                 <property name="margin-end">16</property>
                 <property name="margin-top">8</property>
                 <property name="margin-bottom">8</property>
-                <property name="spacing">8</property>
                 <child>
-                    <object class="GtkSearchEntry" id="asset_search">
-                        <property name="width-request">200</property>
-                        <property name="placeholder-text" translatable="yes">Search</property>
+                    <object class="GtkSearchEntry" id="fab_search">
+                        <property name="placeholder-text" translatable="yes">Search FAB assets...</property>
                         <property name="hexpand">true</property>
                     </object>
                 </child>
@@ -45,36 +43,22 @@
                     </object>
                 </child>
                 <child>
-                    <object class="GtkSeparator">
-                        <property name="orientation">vertical</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkBox">
-                        <property name="css-classes">linked</property>
-                        <child>
-                            <object class="GtkDropDown" id="select_order_by">
-                            </object>
-                        </child>
-                        <child>
-                            <object class="GtkButton" id="order">
-                                <property name="action-name">library.order</property>
-                                <property name="icon-name">view-sort-ascending-symbolic</property>
-                            </object>
-                        </child>
+                    <object class="GtkLabel" id="count_label">
+                        <property name="halign">end</property>
+                        <property name="css-classes">dim-label</property>
                     </object>
                 </child>
             </object>
         </child>
 
-        <!-- Grid area with scroll -->
+        <!-- FAB Grid with scroll -->
         <child>
             <object class="GtkScrolledWindow">
                 <property name="hexpand">true</property>
                 <property name="vexpand">true</property>
                 <property name="hscrollbar-policy">never</property>
                 <property name="child">
-                    <object class="GtkGridView" id="asset_grid">
+                    <object class="GtkGridView" id="fab_grid">
                         <property name="halign">fill</property>
                         <property name="valign">start</property>
                         <property name="max-columns">255</property>
@@ -87,7 +71,7 @@
             </object>
         </child>
 
-        <!-- Progress bar and count -->
+        <!-- Progress bar -->
         <child>
             <object class="GtkBox">
                 <property name="margin-start">16</property>
@@ -97,14 +81,7 @@
                 <child>
                     <object class="GtkProgressBar" id="refresh_progress">
                         <property name="hexpand">true</property>
-                        <property name="show-text">true</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkLabel" id="count_label">
-                        <property name="css-classes">menu</property>
-                        <property name="label" translatable="yes">0 items</property>
-                        <property name="halign">end</property>
+                        <property name="visible">false</property>
                     </object>
                 </child>
             </object>

@@ -1,9 +1,9 @@
 pub mod dir_row;
 
-use adw::prelude::PreferencesWindowExt;
+use adw::prelude::PreferencesDialogExt;
 use gtk4::gio::{File, FileQueryInfoFlags, FileType, SettingsBindFlags};
 use gtk4::glib::clone;
-use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate};
+use gtk4::{gio, glib, prelude::*, subclass::prelude::*, CompositeTemplate, StringList};
 use gtk_macros::action;
 use log::{debug, error};
 use once_cell::sync::OnceCell;
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 pub mod imp {
     use super::*;
     use crate::window::EpicAssetManagerWindow;
-    use adw::subclass::{preferences_window::PreferencesWindowImpl, window::AdwWindowImpl};
+    use adw::subclass::{dialog::AdwDialogImpl, preferences_dialog::PreferencesDialogImpl};
     use glib::subclass::{self};
     use std::cell::RefCell;
 
@@ -31,7 +31,7 @@ pub mod imp {
                 )>,
             >,
         >,
-        pub file_chooser: RefCell<Option<gtk4::FileChooserDialog>>,
+        pub file_chooser: RefCell<Option<gtk4::FileDialog>>,
         #[template_child]
         pub cache_directory_row: TemplateChild<adw::ActionRow>,
         #[template_child]
@@ -53,20 +53,18 @@ pub mod imp {
         #[template_child]
         pub sidebar_switch: TemplateChild<gtk4::Switch>,
         #[template_child]
-        pub default_view_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub log_level_selection: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub log_level_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub default_category_selection: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub default_category_selection: TemplateChild<gtk4::ComboBoxText>,
-        #[template_child]
-        pub accent_color_selection: TemplateChild<gtk4::ComboBoxText>,
+        pub accent_color_selection: TemplateChild<gtk4::DropDown>,
     }
 
     #[glib::object_subclass]
     impl ObjectSubclass for PreferencesWindow {
         const NAME: &'static str = "PreferencesWindow";
         type Type = super::PreferencesWindow;
-        type ParentType = adw::PreferencesWindow;
+        type ParentType = adw::PreferencesDialog;
 
         fn new() -> Self {
             let settings = gio::Settings::new(crate::config::APP_ID);
@@ -87,7 +85,6 @@ pub mod imp {
                 github_user: TemplateChild::default(),
                 dark_theme_switch: TemplateChild::default(),
                 sidebar_switch: TemplateChild::default(),
-                default_view_selection: TemplateChild::default(),
                 log_level_selection: TemplateChild::default(),
                 default_category_selection: TemplateChild::default(),
                 accent_color_selection: TemplateChild::default(),
@@ -107,20 +104,21 @@ pub mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             let obj = self.obj();
+            obj.setup_dropdowns();
             obj.bind_settings();
             obj.load_settings();
             obj.setup_actions();
         }
     }
     impl WidgetImpl for PreferencesWindow {}
-    impl WindowImpl for PreferencesWindow {}
-    impl AdwWindowImpl for PreferencesWindow {}
-    impl PreferencesWindowImpl for PreferencesWindow {}
+    impl AdwDialogImpl for PreferencesWindow {}
+    impl PreferencesDialogImpl for PreferencesWindow {}
 }
 
 glib::wrapper! {
     pub struct PreferencesWindow(ObjectSubclass<imp::PreferencesWindow>)
-        @extends gtk4::Widget, gtk4::Window, adw::Window, adw::PreferencesWindow;
+        @extends gtk4::Widget, adw::Dialog, adw::PreferencesDialog,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::ShortcutManager;
 }
 
 #[derive(PartialEq, Debug, Clone, Copy, Hash, Eq)]
@@ -140,8 +138,74 @@ impl Default for PreferencesWindow {
 }
 
 impl PreferencesWindow {
+    const LOG_LEVEL_OPTIONS: [(&'static str, &'static str); 5] = [
+        ("0", "Error"),
+        ("1", "Warn"),
+        ("2", "Info"),
+        ("3", "Debug"),
+        ("4", "Trace"),
+    ];
+    const DEFAULT_CATEGORY_OPTIONS: [(&'static str, &'static str); 5] = [
+        ("engines", "Engines"),
+        ("projects", "Projects"),
+        ("library", "Library"),
+        ("fab", "Fab"),
+        ("games", "Games"),
+    ];
+    const ACCENT_COLOR_OPTIONS: [(&'static str, &'static str); 7] = [
+        ("default", "Default (Blue)"),
+        ("olive", "Olive"),
+        ("orange", "Orange"),
+        ("purple", "Purple"),
+        ("pink", "Pink"),
+        ("red", "Red"),
+        ("teal", "Teal"),
+    ];
+
     pub fn new() -> Self {
         glib::Object::new()
+    }
+
+    fn setup_dropdowns(&self) {
+        let self_ = self.imp();
+        Self::set_dropdown_items(&self_.log_level_selection, &Self::LOG_LEVEL_OPTIONS);
+        Self::set_dropdown_items(
+            &self_.default_category_selection,
+            &Self::DEFAULT_CATEGORY_OPTIONS,
+        );
+        Self::set_dropdown_items(&self_.accent_color_selection, &Self::ACCENT_COLOR_OPTIONS);
+    }
+
+    fn set_dropdown_items(dropdown: &gtk4::DropDown, items: &[(&str, &str)]) {
+        let labels: Vec<&str> = items.iter().map(|(_, label)| *label).collect();
+        let model = StringList::new(&labels);
+        dropdown.set_model(Some(&model));
+    }
+
+    fn dropdown_selected_id(
+        dropdown: &gtk4::DropDown,
+        items: &[(&str, &str)],
+        fallback: &str,
+    ) -> String {
+        let selected = dropdown.selected() as usize;
+        items
+            .get(selected)
+            .map(|(id, _)| (*id).to_string())
+            .unwrap_or_else(|| fallback.to_string())
+    }
+
+    fn dropdown_set_selected_id(
+        dropdown: &gtk4::DropDown,
+        items: &[(&str, &str)],
+        id: &str,
+        fallback: &str,
+    ) {
+        let index = items
+            .iter()
+            .position(|(item_id, _)| *item_id == id)
+            .or_else(|| items.iter().position(|(item_id, _)| *item_id == fallback))
+            .unwrap_or(0);
+        dropdown.set_selected(index as u32);
     }
 
     pub fn set_window(&self, window: &crate::window::EpicAssetManagerWindow) {
@@ -204,15 +268,7 @@ impl PreferencesWindow {
             }
         ));
 
-        self_.default_view_selection.connect_changed(clone!(
-            #[weak(rename_to=preferences)]
-            self,
-            move |_| {
-                preferences.default_view_changed();
-            }
-        ));
-
-        self_.log_level_selection.connect_changed(clone!(
+        self_.log_level_selection.connect_selected_notify(clone!(
             #[weak(rename_to=preferences)]
             self,
             move |_| {
@@ -220,15 +276,17 @@ impl PreferencesWindow {
             }
         ));
 
-        self_.default_category_selection.connect_changed(clone!(
-            #[weak(rename_to=preferences)]
-            self,
-            move |_| {
-                preferences.default_category_changed();
-            }
-        ));
+        self_
+            .default_category_selection
+            .connect_selected_notify(clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |_| {
+                    preferences.default_category_changed();
+                }
+            ));
 
-        self_.accent_color_selection.connect_changed(clone!(
+        self_.accent_color_selection.connect_selected_notify(clone!(
             #[weak(rename_to=preferences)]
             self,
             move |_| {
@@ -240,11 +298,9 @@ impl PreferencesWindow {
     fn log_level_changed(&self) {
         let self_ = self.imp();
 
-        if let Ok(level) = self_
-            .log_level_selection
-            .active_id()
-            .unwrap_or_else(|| "0".into())
-            .parse::<i32>()
+        if let Ok(level) =
+            Self::dropdown_selected_id(&self_.log_level_selection, &Self::LOG_LEVEL_OPTIONS, "0")
+                .parse::<i32>()
         {
             self_.settings.set_int("log-level", level).unwrap();
             Self::set_log_level(level);
@@ -261,85 +317,80 @@ impl PreferencesWindow {
         }
     }
 
-    fn default_view_changed(&self) {
-        let self_ = self.imp();
-        self_
-            .settings
-            .set_string(
-                "default-view",
-                &self_
-                    .default_view_selection
-                    .active_id()
-                    .unwrap_or_else(|| "library".into()),
-            )
-            .unwrap();
-    }
-
     fn default_category_changed(&self) {
         let self_ = self.imp();
+        let selected = Self::dropdown_selected_id(
+            &self_.default_category_selection,
+            &Self::DEFAULT_CATEGORY_OPTIONS,
+            "library",
+        );
         self_
             .settings
-            .set_string(
-                "default-category",
-                &self_
-                    .default_category_selection
-                    .active_id()
-                    .unwrap_or_else(|| "unreal".into()),
-            )
+            .set_string("default-category", &selected)
             .unwrap();
     }
 
     fn accent_color_changed(&self) {
         let self_ = self.imp();
-        let color = self_
-            .accent_color_selection
-            .active_id()
-            .unwrap_or_else(|| "default".into());
-        self_
-            .settings
-            .set_string("accent-color", &color)
-            .unwrap();
+        let color = Self::dropdown_selected_id(
+            &self_.accent_color_selection,
+            &Self::ACCENT_COLOR_OPTIONS,
+            "default",
+        );
+        self_.settings.set_string("accent-color", &color).unwrap();
         Self::apply_accent_color(&color);
     }
 
     pub fn apply_accent_color(color: &str) {
         let css = match color {
-            "olive" => "
+            "olive" => {
+                "
                 @define-color accent_bg_color #4b8501;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #4b8501;
-            ",
-            "orange" => "
+            "
+            }
+            "orange" => {
+                "
                 @define-color accent_bg_color #e95420;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #e95420;
-            ",
-            "purple" => "
+            "
+            }
+            "purple" => {
+                "
                 @define-color accent_bg_color #924d8b;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #924d8b;
-            ",
-            "pink" => "
+            "
+            }
+            "pink" => {
+                "
                 @define-color accent_bg_color #e91e63;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #e91e63;
-            ",
-            "red" => "
+            "
+            }
+            "red" => {
+                "
                 @define-color accent_bg_color #c01c28;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #c01c28;
-            ",
-            "teal" => "
+            "
+            }
+            "teal" => {
+                "
                 @define-color accent_bg_color #308280;
                 @define-color accent_fg_color #ffffff;
                 @define-color accent_color #308280;
-            ",
+            "
+            }
             _ => "", // default - no override, use system
         };
 
         if !css.is_empty() {
             let provider = gtk4::CssProvider::new();
-            provider.load_from_data(css);
+            provider.load_from_string(css);
             gtk4::style_context_add_provider_for_display(
                 &gtk4::gdk::Display::default().expect("Could not get default display"),
                 &provider,
@@ -386,20 +437,30 @@ impl PreferencesWindow {
             );
         }
 
-        let view = self_.settings.string("default-view");
-        self_.default_view_selection.set_active_id(Some(&view));
         let level = self_.settings.int("log-level");
-        self_
-            .log_level_selection
-            .set_active_id(Some(&format!("{level}")));
+        let level_id = format!("{level}");
+        Self::dropdown_set_selected_id(
+            &self_.log_level_selection,
+            &Self::LOG_LEVEL_OPTIONS,
+            level_id.as_str(),
+            "0",
+        );
         self.log_level_changed();
         let category = self_.settings.string("default-category");
-        self_
-            .default_category_selection
-            .set_active_id(Some(&category));
+        Self::dropdown_set_selected_id(
+            &self_.default_category_selection,
+            &Self::DEFAULT_CATEGORY_OPTIONS,
+            category.as_str(),
+            "library",
+        );
 
         let accent = self_.settings.string("accent-color");
-        self_.accent_color_selection.set_active_id(Some(&accent));
+        Self::dropdown_set_selected_id(
+            &self_.accent_color_selection,
+            &Self::ACCENT_COLOR_OPTIONS,
+            accent.as_str(),
+            "default",
+        );
         Self::apply_accent_color(&accent);
     }
 
@@ -519,29 +580,24 @@ impl PreferencesWindow {
         self.set_visible_page_name(name);
     }
 
-    fn handle_file_dialogue_response(
-        &self,
-        dialog: &gtk4::FileChooserDialog,
-        response: gtk4::ResponseType,
-        kind: DirectoryConfigType,
-    ) {
-        if response == gtk4::ResponseType::Accept {
-            if let Some(file) = dialog.file() {
-                self.set_directory(&file, kind);
-            }
-        }
-        dialog.destroy();
-    }
-
     fn select_directory(&self, title: &'static str, kind: DirectoryConfigType) {
-        let dialog: gtk4::FileChooserDialog = self.select_file(&[], title);
-        dialog.connect_response(clone!(
-            #[weak(rename_to=preferences)]
-            self,
-            move |d, response| {
-                preferences.handle_file_dialogue_response(d, response, kind);
-            }
-        ));
+        let dialog = gtk4::FileDialog::builder().title(title).modal(true).build();
+        let self_ = self.imp();
+        self_.file_chooser.replace(Some(dialog.clone()));
+        let parent_window = self_.window.get().cloned();
+        dialog.select_folder(
+            parent_window.as_ref(),
+            None::<&gio::Cancellable>,
+            clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
+                        preferences.set_directory(&file, kind);
+                    }
+                }
+            ),
+        );
     }
 
     pub fn setup_actions(&self) {
@@ -883,37 +939,5 @@ impl PreferencesWindow {
             }
         }
         self.update_directories(kind);
-    }
-
-    fn select_file(
-        &self,
-        filters: &'static [&str],
-        title: &'static str,
-    ) -> gtk4::FileChooserDialog {
-        let self_ = self.imp();
-
-        let native = gtk4::FileChooserDialog::new(
-            Some(title),
-            Some(self),
-            gtk4::FileChooserAction::SelectFolder,
-            &[
-                ("Select", gtk4::ResponseType::Accept),
-                ("Cancel", gtk4::ResponseType::Cancel),
-            ],
-        );
-
-        native.set_modal(true);
-        native.set_transient_for(Some(self));
-
-        for f in filters {
-            let filter = gtk4::FileFilter::new();
-            filter.add_mime_type(f);
-            filter.set_name(Some(f));
-            native.add_filter(&filter);
-        }
-
-        self_.file_chooser.replace(Some(native.clone()));
-        native.show();
-        native
     }
 }

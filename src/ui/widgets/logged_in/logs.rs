@@ -94,7 +94,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicLogs(ObjectSubclass<imp::EpicLogs>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicLogs {
@@ -274,10 +275,8 @@ impl EpicLogs {
             self_.load_pool.execute(move || {
                 if let Ok(rd) = project.read_dir() {
                     for d in rd.flatten() {
-                        if let Ok(w) = crate::RUNNING.read() {
-                            if !*w {
-                                return;
-                            }
+                        if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                            return;
                         };
                         let p = d.path();
                         if p.is_dir() {
@@ -304,10 +303,8 @@ impl EpicLogs {
     fn read_logs_in_path(project: &Path, crash: bool, sender: &async_channel::Sender<Msg>) {
         if let Ok(rd) = project.read_dir() {
             for d in rd.flatten() {
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
                 };
                 let p = d.path();
                 if p.is_file() {

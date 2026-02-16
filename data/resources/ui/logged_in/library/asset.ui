@@ -27,7 +27,7 @@
                 <child type="overlay">
                     <object class="GtkImage">
                         <property name="css-classes">star</property>
-                        <property name="icon-name">starred</property>
+                        <property name="icon-name">starred-symbolic</property>
                         <property name="pixel-size">25</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
@@ -36,11 +36,22 @@
                 </child>
                 <child type="overlay">
                     <object class="GtkImage">
-                        <property name="icon-name">emblem-default</property>
+                        <property name="icon-name">folder-download-symbolic</property>
                         <property name="pixel-size">25</property>
                         <property name="halign">end</property>
                         <property name="valign">end</property>
                         <property name="visible" bind-source="EpicAsset" bind-property="downloaded" bind-flags="sync-create"/>
+                    </object>
+                </child>
+                <child type="overlay">
+                    <object class="GtkLabel">
+                        <property name="label" translatable="yes">FAB</property>
+                        <property name="css-classes">fab-badge</property>
+                        <property name="halign">end</property>
+                        <property name="valign">start</property>
+                        <property name="margin-top">4</property>
+                        <property name="margin-end">4</property>
+                        <property name="visible" bind-source="EpicAsset" bind-property="is-fab" bind-flags="sync-create"/>
                     </object>
                 </child>
             </object>

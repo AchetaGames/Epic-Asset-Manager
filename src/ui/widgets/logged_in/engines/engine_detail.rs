@@ -6,7 +6,6 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, warn};
 use std::ffi::OsString;
-use std::str::FromStr;
 
 pub mod imp {
     use super::*;
@@ -127,7 +126,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicEngineDetails(ObjectSubclass<imp::EpicEngineDetails>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicEngineDetails {
@@ -179,19 +179,16 @@ impl EpicEngineDetails {
             }, |p| {
                 let context = gtk4::gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    let app = gtk4::gio::AppInfo::create_from_commandline(
-                        if ashpd::is_sandboxed().await {
-                            format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
-                        } else {
-                            format!("\"{}\"", p.to_str().unwrap())
-                        },
-                        Some("Unreal Engine"),
-                        gtk4::gio::AppInfoCreateFlags::NONE,
-                    ).unwrap();
-                    app.launch(&[], Some(&context)).expect("Failed to launch application");
-                });
+                let app = gtk4::gio::AppInfo::create_from_commandline(
+                    if crate::tools::is_sandboxed() {
+                        format!("flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\"", p.to_str().unwrap())
+                    } else {
+                        format!("\"{}\"", p.to_str().unwrap())
+                    },
+                    Some("Unreal Engine"),
+                    gtk4::gio::AppInfoCreateFlags::NONE,
+                ).unwrap();
+                app.launch(&[], Some(&context)).expect("Failed to launch application");
             });
         };
         self.show_confirmation("Engine Launched");
@@ -259,7 +256,7 @@ impl EpicEngineDetails {
                 ));
         }
 
-        if let Some(branch) = &data.branch() {
+        if let Some(_branch) = &data.branch() {
             self_
                 .details
                 .append(&crate::window::EpicAssetManagerWindow::create_info_row(
@@ -279,13 +276,7 @@ impl EpicEngineDetails {
     fn open_dir(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
-            {
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    crate::tools::open_directory(&format!("{p}/Engine")).await;
-                });
-            };
+            crate::tools::open_directory(&format!("{p}/Engine"));
         }
     }
 
@@ -301,26 +292,25 @@ impl EpicEngineDetails {
     }
 
     fn get_engine_binary_path(path: &str) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(path) {
-            p.push("Engine");
-            p.push("Binaries");
-            p.push("Linux");
-            let mut test = p.clone();
-            test.push("UE4Editor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            let mut test = p.clone();
-            test.push("UnrealEditor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            error!("Unable to launch the engine");
-        };
+        let mut p = std::path::PathBuf::from(path);
+        p.push("Engine");
+        p.push("Binaries");
+        p.push("Linux");
+        let mut test = p.clone();
+        test.push("UE4Editor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        let mut test = p.clone();
+        test.push("UnrealEditor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        error!("Unable to launch the engine");
         None
     }
 

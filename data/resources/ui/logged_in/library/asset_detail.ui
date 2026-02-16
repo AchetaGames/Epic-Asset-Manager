@@ -15,16 +15,8 @@
                     <object class="GtkBox">
                         <property name="orientation">vertical</property>
                         <child>
-                            <!-- TODO: GtkInfoBar is deprecated, switch to AdwBanner -->
-                            <object class="GtkInfoBar" id="warning">
-                                <property name="css-classes">warning</property>
-                                <property name="message-type">GTK_MESSAGE_ERROR</property>
+                            <object class="AdwBanner" id="warning">
                                 <property name="revealed">false</property>
-                                <child>
-                                    <object class="GtkLabel" id="warning_message">
-                                        <property name="wrap">true</property>
-                                    </object>
-                                </child>
                             </object>
                         </child>
                         <child>
@@ -40,8 +32,7 @@
                                         <property name="halign">start</property>
                                         <property name="valign">center</property>
                                         <property name="action-name">details.close</property>
-                                        <property name="css-classes">flat
-</property>
+                                        <property name="css-classes">flat</property>
                                         <property name="icon-name">window-close-symbolic</property>
                                     </object>
                                 </child>
@@ -58,8 +49,7 @@
                                     <object class="GtkButton" id="favorite">
                                         <property name="halign">end</property>
                                         <property name="valign">center</property>
-                                        <property name="css-classes">flat
-</property>
+                                        <property name="css-classes">flat</property>
                                         <property name="action-name">details.toggle_favorite</property>
                                         <property name="icon-name">non-starred-symbolic</property>
                                     </object>
@@ -142,7 +132,7 @@
                                         </child>
                                         <child>
                                             <object class="AdwPreferencesGroup">
-                                                <property name="title">Information</property>
+                                                <property name="title" translatable="yes">Information</property>
                                                 <property name="valign">start</property>
                                                 <child>
                                                     <object class="GtkListBox" id="details_box">

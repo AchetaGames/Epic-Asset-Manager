@@ -49,6 +49,7 @@ pub mod imp {
         pub extracted_files: RefCell<u64>,
         pub post_actions: RefCell<Vec<crate::ui::widgets::download_manager::PostDownloadAction>>,
         pub speed_queue: RefCell<VecDeque<(chrono::DateTime<chrono::Utc>, u128)>>,
+        #[allow(dead_code)]
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub pause_button: TemplateChild<gtk4::Button>,
@@ -171,7 +172,7 @@ pub mod imp {
                     }
                 }
                 "status" => {
-                    let status = value
+                    let _status = value
                         .get::<Option<String>>()
                         .expect("type conformity checked by `Object::set_property`")
                         .map(|l| format!("{l}"));
@@ -261,7 +262,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicDownloadItem(ObjectSubclass<imp::EpicDownloadItem>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicDownloadItem {
@@ -692,10 +694,7 @@ impl EpicDownloadItem {
             if let Some(w) = self_.window.get() {
                 w.close_download_manager();
             }
-            let ctx = glib::MainContext::default();
-            ctx.spawn_local(async move {
-                crate::tools::open_directory(&p).await;
-            });
+            crate::tools::open_directory(&p);
         };
     }
 }

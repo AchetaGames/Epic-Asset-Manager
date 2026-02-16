@@ -5,7 +5,7 @@
             <object class="AdwPreferencesPage">
                 <child>
                     <object class="AdwPreferencesGroup">
-                        <property name="title">Details</property>
+                        <property name="title" translatable="yes">Details</property>
                         <child>
                             <object class="GtkListBox" id="additional_details">
                                 <property name="selection-mode">GTK_SELECTION_NONE</property>
@@ -16,7 +16,7 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup" id="local_group">
-                        <property name="title">Local Files</property>
+                        <property name="title" translatable="yes">Local Files</property>
                         <child>
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">Path:</property>
@@ -31,12 +31,12 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup">
-                        <property name="title">Download</property>
+                        <property name="title" translatable="yes">Download</property>
                         <child>
                             <object class="AdwActionRow">
-                                <property name="title">Version:</property>
+                                <property name="title" translatable="yes">Version:</property>
                                 <child>
-                                    <object class="GtkComboBoxText" id="select_download_version">
+                                    <object class="GtkDropDown" id="select_download_version">
                                         <property name="halign">center</property>
                                         <property name="valign">center</property>
                                     </object>
@@ -45,7 +45,7 @@
                         </child>
                         <child>
                             <object class="AdwActionRow">
-                                <property name="title">Target:</property>
+                                <property name="title" translatable="yes">Target:</property>
                                 <property name="title_lines">1</property>
                                 <child>
                                     <object class="EpicDownloadDetails" id="download_details">
@@ -57,7 +57,7 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup" id="project_group">
-                        <property name="title">Add to project</property>
+                        <property name="title" translatable="yes">Add to project</property>
                         <child>
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">Target:</property>
@@ -72,7 +72,7 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup"  id="new_project_group">
-                        <property name="title">Create Project</property>
+                        <property name="title" translatable="yes">Create Project</property>
                         <child>
                             <object class="AdwActionRow">
                                 <property name="title" translatable="yes">Create a new Unreal project from this asset</property>
@@ -101,7 +101,7 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup"  id="engine_group">
-                        <property name="title">Add to Engine</property>
+                        <property name="title" translatable="yes">Add to Engine</property>
                         <child>
                             <object class="AdwExpanderRow">
                                 <property name="title" translatable="yes">Add to Engine</property>
@@ -111,7 +111,7 @@
                 </child>
                 <child>
                     <object class="AdwPreferencesGroup" id="install_group">
-                        <property name="title">Install</property>
+                        <property name="title" translatable="yes">Install</property>
                         <child>
                             <object class="AdwExpanderRow">
                                 <property name="title" translatable="yes">Install</property>

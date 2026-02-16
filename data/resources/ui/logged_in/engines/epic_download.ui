@@ -43,7 +43,7 @@
                                                                             <object class="AdwStatusPage">
                                                                                 <property name="height-request">280</property>
                                                                                 <property name="icon-name">emblem-synchronizing-symbolic</property>
-                                                                                <property name="title">Loading</property>
+                                                                                <property name="title" translatable="yes">Loading</property>
                                                                             </object>
                                                                         </property>
                                                                     </object>
@@ -55,8 +55,8 @@
                                                                         <property name="child">
                                                                             <object class="GtkImage">
                                                                                 <property name="halign">start</property>
-                                                                                <property name="icon_name">emblem-default-symbolic</property>
-                                                                                <property name="tooltip-text">Valid</property>
+                                                                                <property name="icon-name">emblem-default-symbolic</property>
+                                                                                <property name="tooltip-text" translatable="yes">Valid</property>
                                                                             </object>
                                                                         </property>
                                                                     </object>
@@ -94,17 +94,15 @@
                                                                                                 <property name="tooltip-text">https://www.unrealengine.com/en-US/eulacheck/unreal</property>
                                                                                                 <property name="icon-name">help-browser-symbolic</property>
                                                                                                 <property name="valign">center</property>
-                                                                                                <property name="css-classes"></property>
                                                                                             </object>
                                                                                         </child>
                                                                                         <child>
-                                                                                            <object class="GtkButton">
-                                                                                                <property name="action-name">epic_download.revalidate_eula</property>
-                                                                                                <property name="tooltip-text">Revalidate</property>
-                                                                                                <property name="icon-name">view-refresh-symbolic</property>
-                                                                                                <property name="valign">center</property>
-                                                                                                <property name="css-classes"></property>
-                                                                                            </object>
+                                                                            <object class="GtkButton">
+                                                                                <property name="action-name">epic_download.revalidate_eula</property>
+                                                                                <property name="tooltip-text" translatable="yes">Revalidate</property>
+                                                                                <property name="icon-name">view-refresh-symbolic</property>
+                                                                                <property name="valign">center</property>
+                                                                            </object>
                                                                                         </child>
                                                                                     </object>
                                                                                 </child>
@@ -123,7 +121,6 @@
                                                                                                 <property name="action-name">epic_download.download</property>
                                                                                                 <property name="tooltip-text">https://www.unrealengine.com/linux</property>
                                                                                                 <property name="icon-name">help-browser-symbolic</property>
-                                                                                                 <property name="css-classes"></property>
                                                                                             </object>
                                                                                         </child>
                                                                                     </object>
@@ -156,7 +153,7 @@
                                                             </object>
                                                         </child>
                                                         <child>
-                                                            <object class="GtkComboBoxText" id="version_selector">
+                                                            <object class="GtkDropDown" id="version_selector">
                                                                 <property name="hexpand">true</property>
                                                             </object>
                                                         </child>
@@ -202,8 +199,7 @@
                                 <property name="hexpand">true</property>
                                 <property name="name">engine_install_button</property>
                                 <property name="action-name">epic_download.install</property>
-                                <property name="css-classes">
-suggested-action</property>
+                                <property name="css-classes">suggested-action</property>
                                 <child>
                                     <object class="AdwButtonContent">
                                         <property name="icon-name">folder-download-symbolic</property>

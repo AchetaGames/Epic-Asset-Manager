@@ -12,7 +12,6 @@ pub use create_project_dialog::EpicCreateProjectDialog;
 use crate::models::asset_data::AssetType;
 use crate::tools::or::Or;
 use crate::ui::widgets::download_manager::asset::Asset;
-use adw::prelude::ExpanderRowExt;
 use egs_api::api::types::asset_info::AssetInfo;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
@@ -45,8 +44,10 @@ pub mod imp {
         platforms: RefCell<Option<String>>,
         release_date: RefCell<Option<String>>,
         release_notes: RefCell<Option<String>>,
+        pub release_ids: RefCell<Vec<String>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
-        pub current_manifest: RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
+        pub current_manifest:
+            RefCell<Option<egs_api::api::types::download_manifest::DownloadManifest>>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         pub size_label: RefCell<gtk4::Label>,
         pub disk_size_label: RefCell<gtk4::Label>,
@@ -54,7 +55,7 @@ pub mod imp {
         pub settings: gtk4::gio::Settings,
         pub download_manager: OnceCell<EpicDownloadManager>,
         #[template_child]
-        pub select_download_version: TemplateChild<gtk4::ComboBoxText>,
+        pub select_download_version: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub project_group: TemplateChild<adw::PreferencesGroup>,
         #[template_child]
@@ -93,6 +94,7 @@ pub mod imp {
                 platforms: RefCell::new(None),
                 release_date: RefCell::new(None),
                 release_notes: RefCell::new(None),
+                release_ids: RefCell::new(Vec::new()),
                 asset: RefCell::new(None),
                 current_manifest: RefCell::new(None),
                 window: OnceCell::new(),
@@ -214,7 +216,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAssetActions(ObjectSubclass<imp::EpicAssetActions>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicAssetActions {
@@ -267,13 +270,15 @@ impl EpicAssetActions {
             }
         ));
 
-        self_.select_download_version.connect_changed(clone!(
-            #[weak(rename_to=download_details)]
-            self,
-            move |_| {
-                download_details.version_selected();
-            }
-        ));
+        self_
+            .select_download_version
+            .connect_selected_notify(clone!(
+                #[weak(rename_to=download_details)]
+                self,
+                move |_| {
+                    download_details.version_selected();
+                }
+            ));
 
         self_.download_details.connect_local(
             "start-download",
@@ -363,7 +368,7 @@ impl EpicAssetActions {
         }
 
         // Set the selected version
-        if let Some(id) = self_.select_download_version.active_id() {
+        if let Some(id) = self.selected_download_version() {
             dialog.set_selected_version(&id);
         }
 
@@ -392,7 +397,7 @@ impl EpicAssetActions {
     }
 
     pub fn set_action(&self, action: &Action) {
-        let self_ = self.imp();
+        let _self = self.imp();
         match action {
             Action::Download => {}
             Action::AddToProject => {}
@@ -420,7 +425,8 @@ impl EpicAssetActions {
         self_.add_to_project.set_asset(&asset.clone());
         self_.create_asset_project.set_asset(&asset.clone());
         self_.local_assets.set_asset(&asset.clone());
-        self_.select_download_version.remove_all();
+        let model = gtk4::StringList::new(&[] as &[&str]);
+        let mut release_ids = Vec::new();
         self_.local_group.set_visible(false);
         let vaults = self_.settings.strv("unreal-vault-directories");
         if let Some(releases) = asset.sorted_releases() {
@@ -432,20 +438,24 @@ impl EpicAssetActions {
                         self_.local_group.set_visible(true);
                     }
                 }
-                self_.select_download_version.append(
-                    Some(release.id.as_ref().unwrap_or(&String::new())),
-                    &format!(
-                        "{}{}",
-                        release
-                            .version_title
-                            .as_ref()
-                            .unwrap_or(&String::new())
-                            .or(release.app_id.as_ref().unwrap_or(&String::new())),
-                        if id == 0 { " (latest)" } else { "" }
-                    ),
+                let label = format!(
+                    "{}{}",
+                    release
+                        .version_title
+                        .as_ref()
+                        .unwrap_or(&String::new())
+                        .or(release.app_id.as_ref().unwrap_or(&String::new())),
+                    if id == 0 { " (latest)" } else { "" }
                 );
+                model.append(&label);
+                release_ids.push(release.id.as_ref().unwrap_or(&String::new()).to_string());
             }
-            self_.select_download_version.set_active(Some(0));
+        }
+        self_.select_download_version.set_model(Some(&model));
+        let has_items = !release_ids.is_empty();
+        self_.release_ids.replace(release_ids);
+        if has_items && self_.select_download_version.selected() == gtk4::INVALID_LIST_POSITION {
+            self_.select_download_version.set_selected(0);
         }
 
         if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(asset) {
@@ -465,7 +475,6 @@ impl EpicAssetActions {
             };
         }
 
-        // TODO: Switch to self.add_detail_exp()
         let size_label = gtk4::Label::new(Some("Loading..."));
         self.add_detail("Download Size:", &size_label);
         self_.size_label.replace(size_label);
@@ -481,7 +490,7 @@ impl EpicAssetActions {
         manifests: Vec<egs_api::api::types::download_manifest::DownloadManifest>,
     ) {
         let self_ = self.imp();
-        if let Some(id) = self_.select_download_version.active_id() {
+        if let Some(id) = self.selected_download_version() {
             if release_id.eq(&id) {
                 if let Some(manifest) = manifests.into_iter().next() {
                     // Store the manifest for later use
@@ -530,7 +539,7 @@ impl EpicAssetActions {
         while let Some(el) = self_.additional_details.first_child() {
             self_.additional_details.remove(&el);
         }
-        if let Some(id) = self_.select_download_version.active_id() {
+        if let Some(id) = self.selected_download_version() {
             self.set_property("selected-version", id.to_string());
             self_
                 .download_details
@@ -600,5 +609,14 @@ impl EpicAssetActions {
     pub fn has_asset(&self) -> bool {
         let self_ = self.imp();
         self_.asset.borrow().is_some()
+    }
+
+    fn selected_download_version(&self) -> Option<String> {
+        let self_ = self.imp();
+        let selected = self_.select_download_version.selected();
+        if selected == gtk4::INVALID_LIST_POSITION {
+            return None;
+        }
+        self_.release_ids.borrow().get(selected as usize).cloned()
     }
 }

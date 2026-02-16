@@ -1,13 +1,16 @@
 use crate::models::asset_data::AssetType;
+use crate::ui::widgets::download_manager::asset::Asset;
+use crate::ui::widgets::logged_in::fab::version_dialog::EpicFabVersionDialog;
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
+use egs_api::api::types::fab_library::FabAsset;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
-use log::{error, info};
+use log::{debug, info};
 
 pub mod imp {
     use super::*;
@@ -24,6 +27,7 @@ pub mod imp {
         pub expanded: RefCell<bool>,
         pub downloaded_location: RefCell<Option<std::path::PathBuf>>,
         pub asset: RefCell<Option<egs_api::api::types::asset_info::AssetInfo>>,
+        pub fab_asset: RefCell<Option<egs_api::api::types::fab_library::FabAsset>>,
         #[template_child]
         pub detail_slider: TemplateChild<gtk4::Revealer>,
         #[template_child]
@@ -45,9 +49,7 @@ pub mod imp {
         #[template_child]
         pub actions_menu: TemplateChild<gtk4::MenuButton>,
         #[template_child]
-        pub warning: TemplateChild<gtk4::InfoBar>,
-        #[template_child]
-        pub warning_message: TemplateChild<gtk4::Label>,
+        pub warning: TemplateChild<adw::Banner>,
         #[template_child]
         pub images:
             TemplateChild<crate::ui::widgets::logged_in::library::image_stack::EpicImageOverlay>,
@@ -72,6 +74,7 @@ pub mod imp {
                 expanded: RefCell::new(false),
                 downloaded_location: RefCell::new(None),
                 asset: RefCell::new(None),
+                fab_asset: RefCell::new(None),
                 detail_slider: TemplateChild::default(),
                 details_revealer: TemplateChild::default(),
                 actions_revealer: TemplateChild::default(),
@@ -83,7 +86,6 @@ pub mod imp {
                 favorite: TemplateChild::default(),
                 actions_menu: TemplateChild::default(),
                 warning: TemplateChild::default(),
-                warning_message: TemplateChild::default(),
                 images: TemplateChild::default(),
                 asset_actions: TemplateChild::default(),
                 window: OnceCell::new(),
@@ -154,7 +156,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAssetDetails(ObjectSubclass<imp::EpicAssetDetails>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicAssetDetails {
@@ -336,29 +339,6 @@ impl EpicAssetDetails {
                 }
             )
         );
-
-        self_.warning_message.connect_activate_link(clone!(
-            #[weak(rename_to=details)]
-            self,
-            #[upgrade_or]
-            glib::Propagation::Stop,
-            move |_, uri| {
-                details.process_uri(uri);
-                glib::Propagation::Stop
-            }
-        ));
-    }
-
-    fn process_uri(&self, uri: &str) {
-        match uri {
-            "engines" => {
-                // In unified view, engines section is always visible on the same page
-                // No action needed - user can scroll to see it
-            }
-            _ => {
-                error!("Unhandled uri clicked: {}", uri);
-            }
-        }
     }
 
     fn show_download_details(
@@ -450,7 +430,7 @@ impl EpicAssetDetails {
                         #[cfg(target_os = "linux")]
                         {
                             self_.warning.set_revealed(true);
-                            self_.warning_message.set_markup("Games can currently only be downloaded, installing and running them is out of scope of the project right now.");
+                            self_.warning.set_title("Games can currently only be downloaded, installing and running them is out of scope of the project right now.");
                         }
                         // self.create_actions_button(
                         //     "Play",
@@ -467,8 +447,7 @@ impl EpicAssetDetails {
                         #[cfg(target_os = "linux")]
                         {
                             self_.warning.set_revealed(true);
-                            self_.warning_message.set_wrap(true);
-                            self_.warning_message.set_markup("This is a Windows Build of the Engine. To install Linux version please use the <a href=\"engines\">Engines</a> tab.");
+                            self_.warning.set_title("This is a Windows Build of the Engine. To install Linux version please use the Engines tab.");
                         }
                     }
                     AssetType::Plugin => {
@@ -536,6 +515,7 @@ impl EpicAssetDetails {
 
         self_.images.set_property("asset", asset.id.clone());
         self_.asset.replace(Some(asset.clone()));
+        self_.fab_asset.replace(None);
         self.set_actions();
         self_.asset_actions.set_asset(asset);
         self_.details_revealer.set_reveal_child(true);
@@ -566,7 +546,7 @@ impl EpicAssetDetails {
             self_.details_box.remove(&el);
         }
         if let Some(dev_name) = &asset.developer {
-            let text = format!("Developer: {dev_name}");
+            let text = format!("Developer: {}", glib::markup_escape_text(dev_name));
             self.add_info_row(&text);
         }
 
@@ -586,13 +566,13 @@ impl EpicAssetDetails {
                     cats.push(category.path.clone());
                 }
             }
-            let cats = &cats.join(", ");
+            let cats = glib::markup_escape_text(&cats.join(", "));
             let text = format!("Categories: {cats}");
             self.add_info_row(&text);
         }
 
         if let Some(platforms) = &asset.platforms() {
-            let platforms = &platforms.join(", ");
+            let platforms = glib::markup_escape_text(&platforms.join(", "));
             let text = format!("Platforms: {platforms}");
             self.add_info_row(&text);
         }
@@ -605,7 +585,8 @@ impl EpicAssetDetails {
 
         if let Some(compatible_apps) = &asset.compatible_apps() {
             if !compatible_apps.is_empty() {
-                let compat = &compatible_apps.join(", ").replace("UE_", "");
+                let compat =
+                    glib::markup_escape_text(&compatible_apps.join(", ").replace("UE_", ""));
                 let text = format!("Compatible with: {compat}");
                 self.add_info_row(&text);
             }
@@ -621,6 +602,176 @@ impl EpicAssetDetails {
             self.add_info_row(text);
         }
         self.check_favorite();
+    }
+
+    pub fn set_fab_asset(&self, fab_asset: &FabAsset) {
+        let self_ = self.imp();
+
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+            self.set_property("visible", true);
+        }
+
+        if let Some(a) = &*self_.fab_asset.borrow() {
+            if fab_asset.asset_id == a.asset_id {
+                return;
+            }
+        }
+
+        self_.asset.replace(None);
+        self_.fab_asset.replace(Some(fab_asset.clone()));
+
+        self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand_set(false);
+        self_.actions_revealer.set_reveal_child(false);
+        self_.actions_revealer.set_vexpand(false);
+        self_.download_confirmation_revealer.set_reveal_child(false);
+        self_.download_confirmation_revealer.set_vexpand(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(false);
+        get_action!(self_.actions, @show_asset_details).set_enabled(false);
+        self_.warning.set_revealed(false);
+
+        info!("Showing FAB details for {}", fab_asset.title);
+        self_.title.set_label(&fab_asset.title);
+
+        // TODO: FAB images use a different type than AssetInfo KeyImage —
+        // the image carousel needs extension to support FabAsset images directly.
+        self_.images.clear();
+        self_
+            .images
+            .set_property("asset", fab_asset.asset_id.clone());
+
+        while let Some(el) = self_.details_box.first_child() {
+            self_.details_box.remove(&el);
+        }
+
+        if !fab_asset.description.is_empty() {
+            let text =
+                &html2pango::matrix_html_to_markup(&fab_asset.description).replace("\n\n", "\n");
+            self.add_info_row(text);
+        }
+
+        let cat_names: Vec<String> = fab_asset
+            .categories
+            .iter()
+            .filter_map(|c| c.name.clone())
+            .collect();
+        if !cat_names.is_empty() {
+            let text = format!(
+                "Categories: {}",
+                glib::markup_escape_text(&cat_names.join(", "))
+            );
+            self.add_info_row(&text);
+        }
+
+        if !fab_asset.source.is_empty() {
+            let text = format!("Source: {}", glib::markup_escape_text(&fab_asset.source));
+            self.add_info_row(&text);
+        }
+
+        if !fab_asset.distribution_method.is_empty() {
+            let text = format!(
+                "Distribution: {}",
+                glib::markup_escape_text(&fab_asset.distribution_method)
+            );
+            self.add_info_row(&text);
+        }
+
+        let engine_versions: Vec<String> = fab_asset
+            .project_versions
+            .iter()
+            .flat_map(|pv| pv.engine_versions.iter().cloned())
+            .collect();
+        if !engine_versions.is_empty() {
+            let compat = glib::markup_escape_text(&engine_versions.join(", ").replace("UE_", ""));
+            let text = format!("Compatible with: {}", compat);
+            self.add_info_row(&text);
+        }
+
+        let platforms: Vec<String> = fab_asset
+            .project_versions
+            .iter()
+            .flat_map(|pv| pv.target_platforms.iter().cloned())
+            .collect();
+        if !platforms.is_empty() {
+            let text = format!(
+                "Platforms: {}",
+                glib::markup_escape_text(&platforms.join(", "))
+            );
+            self.add_info_row(&text);
+        }
+
+        if !fab_asset.url.is_empty() {
+            let text = format!("URL: <a href=\"{}\">{}</a>", fab_asset.url, fab_asset.url);
+            self.add_info_row(&text);
+        }
+
+        while let Some(el) = self_.actions_box.first_child() {
+            self_.actions_box.remove(&el);
+        }
+
+        if !fab_asset.project_versions.is_empty() {
+            let download_button = gtk4::Button::builder()
+                .child(&Self::build_box_with_icon_label(
+                    Some("Download"),
+                    "folder-download-symbolic",
+                ))
+                .build();
+            download_button.set_css_classes(&["flat"]);
+
+            let fab_asset_clone = fab_asset.clone();
+            download_button.connect_clicked(clone!(
+                #[weak(rename_to=details)]
+                self,
+                move |_| {
+                    details.open_fab_version_dialog(&fab_asset_clone);
+                }
+            ));
+
+            self_.actions_box.append(&download_button);
+        }
+
+        self.check_fab_favorite(&fab_asset.asset_id);
+    }
+
+    pub fn open_fab_version_dialog(&self, fab_asset: &FabAsset) {
+        let self_ = self.imp();
+        debug!("Opening FAB version dialog for {}", fab_asset.title);
+
+        let dialog = EpicFabVersionDialog::new();
+
+        dialog.set_fab_asset(fab_asset);
+
+        let fab_asset_for_signal = fab_asset.clone();
+        dialog.connect_closure(
+            "version-selected",
+            false,
+            glib::closure_local!(
+                #[weak(rename_to=details)]
+                self,
+                move |_dialog: EpicFabVersionDialog, artifact_id: String, platform: String| {
+                    debug!(
+                        "FAB version selected: artifact_id={}, platform={}",
+                        artifact_id, platform
+                    );
+                    let self_ = details.imp();
+                    if let Some(dm) = self_.download_manager.get() {
+                        dm.add_fab_asset_download(
+                            fab_asset_for_signal.clone(),
+                            artifact_id,
+                            platform,
+                            &None,
+                        );
+                    }
+                }
+            ),
+        );
+
+        if let Some(window) = self_.window.get() {
+            adw::prelude::AdwDialogExt::present(&dialog, Some(window));
+        } else {
+            adw::prelude::AdwDialogExt::present(&dialog, gtk4::Widget::NONE);
+        }
     }
 
     fn add_info_row(&self, text: &str) {
@@ -646,20 +797,31 @@ impl EpicAssetDetails {
     pub fn toggle_favorites(&self) {
         let self_ = self.imp();
         let db = crate::models::database::connection();
-        if let Some(asset) = self.asset() {
+
+        let asset_id = if let Some(asset) = self.asset() {
+            Some(asset.id)
+        } else {
+            self_
+                .fab_asset
+                .borrow()
+                .as_ref()
+                .map(|fa| fa.asset_id.clone())
+        };
+
+        if let Some(id) = asset_id {
             if let Ok(mut conn) = db.get() {
                 if let Some(fav) = self_.favorite.icon_name() {
                     if fav.eq("starred") {
                         diesel::delete(
                             crate::schema::favorite_asset::table
-                                .filter(crate::schema::favorite_asset::asset.eq(asset.id)),
+                                .filter(crate::schema::favorite_asset::asset.eq(&id)),
                         )
                         .execute(&mut conn)
                         .expect("Unable to delete favorite from DB");
                         self_.favorite.set_icon_name("non-starred-symbolic");
                     } else {
                         diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
-                            .values(crate::schema::favorite_asset::asset.eq(asset.id))
+                            .values(crate::schema::favorite_asset::asset.eq(&id))
                             .execute(&mut conn)
                             .expect("Unable to insert favorite to the DB");
                         self_.favorite.set_icon_name("starred");
@@ -679,12 +841,19 @@ impl EpicAssetDetails {
                 let l_ = l.imp();
                 l_.library.refresh_asset(&asset.id);
             }
+        } else if let Some(fab_asset) = self_.fab_asset.borrow().as_ref() {
+            if let Some(w) = self_.window.get() {
+                let w_ = w.imp();
+                let l = w_.logged_in_stack.clone();
+                let l_ = l.imp();
+                l_.fab.refresh_fab_asset(&fab_asset.asset_id);
+            }
         }
     }
 
     pub fn has_asset(&self) -> bool {
         let self_ = self.imp();
-        self_.asset.borrow().is_some()
+        self_.asset.borrow().is_some() || self_.fab_asset.borrow().is_some()
     }
 
     pub fn check_favorite(&self) {
@@ -705,6 +874,27 @@ impl EpicAssetDetails {
                     }
                     return;
                 }
+            }
+        }
+        self_.favorite.set_icon_name("non-starred-symbolic");
+    }
+
+    fn check_fab_favorite(&self, asset_id: &str) {
+        let self_ = self.imp();
+        let db = crate::models::database::connection();
+        if let Ok(mut conn) = db.get() {
+            let ex: Result<bool, diesel::result::Error> = select(exists(
+                crate::schema::favorite_asset::table
+                    .filter(crate::schema::favorite_asset::asset.eq(asset_id)),
+            ))
+            .get_result(&mut conn);
+            if let Ok(fav) = ex {
+                if fav {
+                    self_.favorite.set_icon_name("starred");
+                } else {
+                    self_.favorite.set_icon_name("non-starred-symbolic");
+                }
+                return;
             }
         }
         self_.favorite.set_icon_name("non-starred-symbolic");
@@ -733,7 +923,8 @@ impl EpicAssetDetails {
         let self_ = self.imp();
         log::info!("Opening Create Project dialog from asset detail...");
 
-        let dialog = crate::ui::widgets::logged_in::library::actions::EpicCreateProjectDialog::new();
+        let dialog =
+            crate::ui::widgets::logged_in::library::actions::EpicCreateProjectDialog::new();
 
         // Set the transient parent window
         if let Some(window) = self_.window.get() {

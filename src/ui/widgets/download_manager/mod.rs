@@ -27,6 +27,10 @@ pub enum Msg {
         String,
         Vec<egs_api::api::types::download_manifest::DownloadManifest>,
     ),
+    StartFabAssetDownload(
+        String,
+        Vec<egs_api::api::types::download_manifest::DownloadManifest>,
+    ),
     PerformAssetDownload(
         String,
         String,
@@ -88,6 +92,19 @@ pub mod imp {
     use std::collections::HashMap;
     use threadpool::ThreadPool;
 
+    #[derive(Debug, Default)]
+    pub struct DownloadState {
+        pub download_items: HashMap<String, EpicDownloadItem>,
+        pub downloaded_files: HashMap<String, super::asset::DownloadedFile>,
+        pub downloaded_chunks: HashMap<String, Vec<String>>,
+        pub asset_guids: HashMap<String, Vec<String>>,
+        pub paused_asset_chunks: HashMap<String, Vec<(Url, PathBuf)>>,
+        pub paused_docker_digests: HashMap<String, Vec<(String, u64)>>,
+        pub thread_senders: HashMap<String, Vec<std::sync::mpsc::Sender<super::ThreadMessages>>>,
+        pub chunk_urls: HashMap<String, Vec<Url>>,
+        pub docker_digests: HashMap<String, Vec<(String, super::DownloadStatus)>>,
+    }
+
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/io/github/achetagames/epic_asset_manager/download_manager.ui")]
     pub struct EpicDownloadManager {
@@ -100,15 +117,7 @@ pub mod imp {
         pub file_pool: ThreadPool,
         pub sender: async_channel::Sender<Msg>,
         pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
-        pub download_items: RefCell<HashMap<String, EpicDownloadItem>>,
-        pub downloaded_files: RefCell<HashMap<String, asset::DownloadedFile>>,
-        pub downloaded_chunks: RefCell<HashMap<String, Vec<String>>>,
-        pub asset_guids: RefCell<HashMap<String, Vec<String>>>,
-        pub paused_asset_chunks: RefCell<HashMap<String, Vec<(Url, PathBuf)>>>,
-        pub paused_docker_digests: RefCell<HashMap<String, Vec<(String, u64)>>>,
-        pub thread_senders: RefCell<HashMap<String, Vec<std::sync::mpsc::Sender<ThreadMessages>>>>,
-        pub chunk_urls: RefCell<HashMap<String, Vec<Url>>>,
-        pub docker_digests: RefCell<HashMap<String, Vec<(String, DownloadStatus)>>>,
+        pub state: RefCell<DownloadState>,
         #[template_child]
         pub downloads: TemplateChild<gtk4::ListBox>,
         has_children: RefCell<bool>,
@@ -129,15 +138,7 @@ pub mod imp {
                 sender,
                 download_pool: ThreadPool::with_name("Download Pool".to_string(), 5),
                 receiver: RefCell::new(Some(receiver)),
-                download_items: RefCell::new(HashMap::new()),
-                downloaded_files: RefCell::new(HashMap::new()),
-                downloaded_chunks: RefCell::new(HashMap::new()),
-                asset_guids: RefCell::new(HashMap::new()),
-                paused_asset_chunks: RefCell::new(HashMap::new()),
-                paused_docker_digests: RefCell::new(HashMap::new()),
-                thread_senders: RefCell::new(HashMap::new()),
-                chunk_urls: RefCell::new(HashMap::new()),
-                docker_digests: RefCell::new(HashMap::new()),
+                state: RefCell::new(DownloadState::default()),
                 downloads: TemplateChild::default(),
                 thumbnail_pool: ThreadPool::with_name("Thumbnail Pool".to_string(), 5),
                 image_pool: ThreadPool::with_name("Image Pool".to_string(), 5),
@@ -205,13 +206,54 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicDownloadManager(ObjectSubclass<imp::EpicDownloadManager>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicDownloadManager {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn cached_download(
+    url: &reqwest::Url,
+    md5: &str,
+    extension: &str,
+    cache_dir: &str,
+) -> Result<PathBuf, ()> {
+    let mut cache_path = PathBuf::from(cache_dir);
+    cache_path.push("images");
+    cache_path.push(format!("{}.{}", md5, extension));
+    if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(());
+    }
+    if let Ok(response) = reqwest::blocking::get(url.clone()) {
+        if let Ok(b) = response.bytes() {
+            if let Some(parent) = cache_path.parent() {
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    error!("Unable to create cache directory {:?}: {}", parent, e);
+                    return Err(());
+                }
+            } else {
+                error!("Cache path missing parent: {:?}", cache_path);
+                return Err(());
+            }
+            //TODO: Report downloaded size
+            match File::create(cache_path.as_path()) {
+                Ok(mut thumbnail) => {
+                    if let Err(e) = thumbnail.write_all(&b) {
+                        error!("Unable to write thumbnail {:?}: {}", cache_path, e);
+                    }
+                }
+                Err(e) => {
+                    error!("{:?}", e);
+                }
+            }
+            return Ok(cache_path);
+        }
+    }
+    Err(())
 }
 
 impl EpicDownloadManager {
@@ -276,6 +318,9 @@ impl EpicDownloadManager {
                 item.set_property("thumbnail", Some(image));
             }
             Msg::StartAssetDownload(id, manifest) => {
+                self.start_download_asset(&id, &manifest);
+            }
+            Msg::StartFabAssetDownload(id, manifest) => {
                 self.start_download_asset(&id, &manifest);
             }
             Msg::PerformAssetDownload(id, release, name, manifest) => {
@@ -359,8 +404,8 @@ impl EpicDownloadManager {
 
     fn get_item(&self, id: &str) -> Option<EpicDownloadItem> {
         let self_ = self.imp();
-        let mut items = self_.download_items.borrow_mut();
-        items.get_mut(id).map(|i| i.clone())
+        let state = self_.state.borrow();
+        state.download_items.get(id).cloned()
     }
 
     fn finish(&self, item: &download_item::EpicDownloadItem) {
@@ -402,7 +447,6 @@ impl EpicDownloadManager {
     fn finalize_file_download(&self, file: &str, file_details: asset::DownloadedFile) {
         let self_ = self.imp();
         info!("File finished: {}", file);
-        self_.downloaded_files.borrow_mut().remove(file);
         let vaults = self_.settings.strv("unreal-vault-directories");
         let temp_dir = std::path::PathBuf::from(vaults.first().map_or_else(
             || {
@@ -413,23 +457,35 @@ impl EpicDownloadManager {
             },
             std::string::ToString::to_string,
         ));
-        for chunk in file_details.finished_chunks {
-            if let Some(ch) = self_.downloaded_chunks.borrow_mut().get_mut(&chunk.guid) {
-                ch.retain(|x| !x.eq(file));
-                if ch.is_empty() {
-                    let mut p = temp_dir.clone();
-                    p.push(&file_details.release);
-                    p.push("temp");
+        let mut empty_chunks = Vec::new();
+        {
+            let mut state = self_.state.borrow_mut();
+            state.downloaded_files.remove(file);
+            for chunk in file_details.finished_chunks {
+                if let Some(ch) = state.downloaded_chunks.get_mut(&chunk.guid) {
+                    ch.retain(|x| !x.eq(file));
+                    if ch.is_empty() {
+                        empty_chunks.push(chunk.guid);
+                    }
+                }
+            }
+        }
+        for guid in empty_chunks {
+            let mut p = temp_dir.clone();
+            p.push(&file_details.release);
+            p.push("temp");
 
-                    p.push(format!("{}.chunk", chunk.guid));
-                    debug!("Removing chunk {}", p.as_path().to_str().unwrap());
-                    if let Err(e) = std::fs::remove_file(p.clone()) {
-                        error!("Unable to remove chunk file: {}", e);
-                    };
-                    if let Err(e) = std::fs::remove_dir(p.parent().unwrap()) {
-                        debug!("Unable to remove the temp directory(yet): {}", e);
-                    };
-                    if let Err(e) = std::fs::remove_dir(p.parent().unwrap().parent().unwrap()) {
+            p.push(format!("{guid}.chunk"));
+            debug!("Removing chunk {}", p.as_path().to_string_lossy());
+            if let Err(e) = std::fs::remove_file(p.clone()) {
+                error!("Unable to remove chunk file: {}", e);
+            };
+            if let Some(parent) = p.parent() {
+                if let Err(e) = std::fs::remove_dir(parent) {
+                    debug!("Unable to remove the temp directory(yet): {}", e);
+                };
+                if let Some(grandparent) = parent.parent() {
+                    if let Err(e) = std::fs::remove_dir(grandparent) {
                         debug!("Unable to remove the temp directory(yet): {}", e);
                     };
                 }
@@ -438,14 +494,15 @@ impl EpicDownloadManager {
         self_
             .sender
             .send_blocking(Msg::FileExtracted(file_details.asset))
-            .unwrap();
+            .ok();
     }
 
     pub fn progress(&self) -> f32 {
         let self_ = self.imp();
-        let items = self_.download_items.borrow().values().len();
+        let state = self_.state.borrow();
+        let items = state.download_items.values().len();
         let mut progress = 0.0_f32;
-        for item in self_.download_items.borrow().values() {
+        for item in state.download_items.values() {
             progress += item.progress();
         }
         if items > 0 {
@@ -463,34 +520,20 @@ impl EpicDownloadManager {
     ) {
         let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
-        let mut cache_path = PathBuf::from(cache_dir);
-        cache_path.push("images");
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
+        let extension = name.unwrap_or("png").to_string();
         self_.thumbnail_pool.execute(move || {
-            if let Ok(w) = crate::RUNNING.read() {
-                if !*w {
-                    return;
-                }
-            }
-            if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
-                if let Ok(b) = response.bytes() {
-                    std::fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
-                    //TODO: Report downloaded size
-                    match File::create(cache_path.as_path()) {
-                        Ok(mut thumbnail) => {
-                            thumbnail.write_all(&b).unwrap();
-                        }
-                        Err(e) => {
-                            error!("{:?}", e);
-                        }
-                    }
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset))
-                        .unwrap();
-                }
+            if cached_download(
+                &image.url,
+                &image.md5,
+                extension.as_str(),
+                cache_dir.as_str(),
+            )
+            .is_ok()
+            {
+                let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset));
             };
         });
     }
@@ -498,8 +541,9 @@ impl EpicDownloadManager {
     pub fn add_thread_sender(&self, key: String, sender: std::sync::mpsc::Sender<ThreadMessages>) {
         let self_ = self.imp();
         self_
-            .thread_senders
+            .state
             .borrow_mut()
+            .thread_senders
             .entry(key)
             .or_default()
             .push(sender);
@@ -507,7 +551,8 @@ impl EpicDownloadManager {
 
     pub fn send_to_thread_sender(&self, key: &str, msg: &ThreadMessages) {
         let self_ = self.imp();
-        if let Some(senders) = self_.thread_senders.borrow_mut().remove(key) {
+        let mut state = self_.state.borrow_mut();
+        if let Some(senders) = state.thread_senders.remove(key) {
             for sender in senders {
                 if sender.send(msg.clone()).is_err() {
                     warn!("Unable to send message {:?} to {}", msg, key);
@@ -524,40 +569,30 @@ impl EpicDownloadManager {
     ) {
         let self_ = self.imp();
         let cache_dir = self_.settings.string("cache-directory").to_string();
-        let mut cache_path = PathBuf::from(cache_dir);
-        cache_path.push("images");
         let name = Path::new(image.url.path())
             .extension()
             .and_then(OsStr::to_str);
-        cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
+        let extension = name.unwrap_or("png").to_string();
         let img = image.clone();
         self_.image_pool.execute(move || {
-            if let Ok(w) = crate::RUNNING.read() {
-                if !*w {
-                    return;
-                }
+            if crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                debug!("Downloading image");
             }
-            debug!("Downloading image");
-            if let Ok(response) = reqwest::blocking::get(image.url.clone()) {
-                if let Ok(b) = response.bytes() {
-                    std::fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
-                    //TODO: Report downloaded size
-                    match File::create(cache_path.as_path()) {
-                        Ok(mut thumbnail) => {
-                            thumbnail.write_all(&b).unwrap();
-                        }
-                        Err(e) => {
-                            error!("{:?}", e);
-                        }
-                    }
-                    sender
-                        .send_blocking(
-                            crate::ui::widgets::logged_in::library::image_stack::Msg::LoadImage(
-                                asset, img,
-                            ),
-                        )
-                        .unwrap();
-                }
+            if cached_download(
+                &image.url,
+                &image.md5,
+                extension.as_str(),
+                cache_dir.as_str(),
+            )
+            .is_ok()
+            {
+                sender
+                    .send_blocking(
+                        crate::ui::widgets::logged_in::library::image_stack::Msg::LoadImage(
+                            asset, img,
+                        ),
+                    )
+                    .ok();
             };
         });
     }

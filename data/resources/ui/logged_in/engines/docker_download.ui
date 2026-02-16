@@ -11,7 +11,7 @@
                     <object class="AdwPreferencesPage">
                         <child>
                             <object class="AdwPreferencesGroup">
-                                <property name="title">Download details</property>
+                                <property name="title" translatable="yes">Download details</property>
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
@@ -25,8 +25,7 @@
                                         <property name="margin-end">32</property>
                                         <property name="name">engine_install_button</property>
                                         <property name="action-name">docker_download.install</property>
-                                        <property name="css-classes">
-suggested-action</property>
+                                        <property name="css-classes">suggested-action</property>
                                         <child>
                                             <object class="AdwButtonContent">
                                                 <property name="icon-name">folder-download-symbolic</property>

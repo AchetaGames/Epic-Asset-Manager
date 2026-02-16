@@ -5,7 +5,7 @@ use crate::ui::widgets::logged_in::engines::UnrealEngine;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
-use gtk4::{self, gio, prelude::*, ComboBoxText};
+use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::debug;
@@ -42,6 +42,7 @@ pub mod imp {
         path: RefCell<Option<String>>,
         pub uproject: RefCell<Option<Uproject>>,
         pub engine: RefCell<Option<UnrealEngine>>,
+        pub engine_ids: RefCell<Vec<String>>,
         pub settings: gio::Settings,
         pub details_group: gtk4::SizeGroup,
         position: RefCell<u32>,
@@ -68,6 +69,7 @@ pub mod imp {
                 path: RefCell::new(None),
                 uproject: RefCell::new(None),
                 engine: RefCell::new(None),
+                engine_ids: RefCell::new(Vec::new()),
                 settings: gio::Settings::new(crate::config::APP_ID),
                 details_group: gtk4::SizeGroup::new(gtk4::SizeGroupMode::Horizontal),
                 position: RefCell::new(0),
@@ -139,7 +141,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct UnrealProjectDetails(ObjectSubclass<imp::UnrealProjectDetails>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for UnrealProjectDetails {
@@ -186,10 +189,7 @@ impl UnrealProjectDetails {
     fn open_dir(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            let ctx = glib::MainContext::default();
-            ctx.spawn_local(async move {
-                crate::tools::open_directory(&p).await;
-            });
+            crate::tools::open_directory(&p);
         }
     }
 
@@ -210,23 +210,21 @@ impl UnrealProjectDetails {
                 };
                 let context = gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    let app = gio::AppInfo::create_from_commandline(
-                        if ashpd::is_sandboxed().await {
-                            format!(
-                                "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
-                                p.to_str().unwrap(),
-                                path
-                            )
-                        } else {
-                            format!("\"{p:?}\" \"{path}\"")
-                        },
-                        Some("Unreal Engine"),
-                        gio::AppInfoCreateFlags::NONE,
-                    ).unwrap();
-                    app.launch(&[], Some(&context)).expect("Failed to launch application");
-                });
+                let app = gio::AppInfo::create_from_commandline(
+                    if crate::tools::is_sandboxed() {
+                        format!(
+                            "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
+                            p.to_str().unwrap(),
+                            path
+                        )
+                    } else {
+                        format!("\"{p:?}\" \"{path}\"")
+                    },
+                    Some("Unreal Engine"),
+                    gio::AppInfoCreateFlags::NONE,
+                ).unwrap();
+                app.launch(&[], Some(&context))
+                    .expect("Failed to launch application");
             }
         };
         let self_ = self.imp();
@@ -301,7 +299,8 @@ impl UnrealProjectDetails {
         }
 
         // Engine
-        let combo = ComboBoxText::new();
+        let model = gtk4::StringList::new(&[] as &[&str]);
+        let combo = gtk4::DropDown::new(Some(model.clone()), None::<gtk4::Expression>);
         let associated = self.associated_engine(project);
         self.set_launch_enabled(false);
         let db = crate::models::database::connection();
@@ -317,9 +316,9 @@ impl UnrealProjectDetails {
             }
         };
 
-        self.populate_engines(&combo, &associated, &mut last_engine);
+        self.populate_engines(&model, &combo, &associated, &mut last_engine);
 
-        combo.connect_changed(clone!(
+        combo.connect_selected_notify(clone!(
             #[weak(rename_to=detail)]
             self,
             move |c| {
@@ -327,10 +326,10 @@ impl UnrealProjectDetails {
             }
         ));
         if let Some(engine) = associated {
-            combo.set_active_id(Some(&engine.path));
+            Self::set_selected_engine(&combo, &engine.path, &self_.engine_ids.borrow());
         } else if let Some(last) = last_engine {
-            combo.set_active_id(Some(&last));
-        };
+            Self::set_selected_engine(&combo, &last, &self_.engine_ids.borrow());
+        }
         // TODO: Change the project config based on the engine selected
 
         self_
@@ -368,51 +367,54 @@ impl UnrealProjectDetails {
 
     fn populate_engines(
         &self,
-        combo: &ComboBoxText,
+        model: &gtk4::StringList,
+        combo: &gtk4::DropDown,
         associated: &Option<UnrealEngine>,
         last_engine: &mut Option<String>,
     ) {
+        let self_ = self.imp();
+        self_.engine_ids.borrow_mut().clear();
         let mut paths = std::collections::HashSet::new();
         for engine in self.available_engines() {
             if !paths.insert(engine.path.clone()) {
                 continue;
             };
-            combo.append(
-                Some(&engine.path),
-                &format!(
-                    "{}{}",
-                    engine.version.format(),
-                    match associated {
-                        None => {
-                            last_engine.clone().map_or("", |last| {
-                                if engine.path.eq(&last) {
-                                    " (last)"
-                                } else {
-                                    ""
-                                }
-                            })
+            let label = format!(
+                "{}{}",
+                engine.version.format(),
+                match associated {
+                    None => last_engine.clone().map_or("", |last| {
+                        if engine.path.eq(&last) {
+                            " (last)"
+                        } else {
+                            ""
                         }
-                        Some(eng) => {
-                            if eng.path.eq(&engine.path) {
-                                " (current)"
-                            } else if let Some(last) = last_engine.clone() {
-                                if engine.path.eq(&last) {
-                                    " (last)"
-                                } else {
-                                    ""
-                                }
+                    }),
+                    Some(eng) => {
+                        if eng.path.eq(&engine.path) {
+                            " (current)"
+                        } else if let Some(last) = last_engine.clone() {
+                            if engine.path.eq(&last) {
+                                " (last)"
                             } else {
                                 ""
                             }
+                        } else {
+                            ""
                         }
                     }
-                ),
+                }
             );
+            model.append(&label);
+            self_.engine_ids.borrow_mut().push(engine.path.clone());
+        }
+        if model.n_items() > 0 && combo.selected() == gtk4::INVALID_LIST_POSITION {
+            combo.set_selected(0);
         }
     }
 
-    fn engine_selected(&self, combo: &ComboBoxText) {
-        if let Some(eng) = combo.active_id() {
+    fn engine_selected(&self, combo: &gtk4::DropDown) {
+        if let Some(eng) = self.selected_engine(combo) {
             let self_ = self.imp();
             for engine in self.available_engines() {
                 if engine.path.eq(&eng) {
@@ -433,6 +435,21 @@ impl UnrealProjectDetails {
                 .engine_from_assoociation(&uproject.engine_association);
         }
         None
+    }
+
+    fn selected_engine(&self, combo: &gtk4::DropDown) -> Option<String> {
+        let self_ = self.imp();
+        let selected = combo.selected();
+        if selected == gtk4::INVALID_LIST_POSITION {
+            return None;
+        }
+        self_.engine_ids.borrow().get(selected as usize).cloned()
+    }
+
+    fn set_selected_engine(combo: &gtk4::DropDown, target: &str, ids: &[String]) {
+        if let Some(idx) = ids.iter().position(|id| id == target) {
+            combo.set_selected(idx as u32);
+        }
     }
 
     fn available_engines(&self) -> Vec<UnrealEngine> {

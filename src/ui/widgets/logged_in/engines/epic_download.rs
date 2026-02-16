@@ -10,7 +10,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::thread;
-use tokio::runtime::Builder;
 use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
@@ -55,7 +54,7 @@ pub mod imp {
         #[template_child]
         pub eula_stack: TemplateChild<gtk4::Stack>,
         #[template_child]
-        pub version_selector: TemplateChild<gtk4::ComboBoxText>,
+        pub version_selector: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub versions_row: TemplateChild<gtk4::ListBoxRow>,
         #[template_child]
@@ -125,7 +124,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicEngineDownload(ObjectSubclass<imp::EpicEngineDownload>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicEngineDownload {
@@ -210,7 +210,7 @@ impl EpicEngineDownload {
 
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
-        self_.version_selector.connect_changed(clone!(
+        self_.version_selector.connect_selected_notify(clone!(
             #[weak(rename_to=detail)]
             self,
             move |_| {
@@ -221,7 +221,7 @@ impl EpicEngineDownload {
 
     pub fn version_selected(&self) {
         let self_ = self.imp();
-        if let Some(selected) = self_.version_selector.active_id() {
+        if let Some(selected) = self.selected_version() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
                     let byte = byte_unit::Byte::from_u64(version.size)
@@ -289,7 +289,7 @@ impl EpicEngineDownload {
 
     pub fn install_engine(&self) {
         let self_ = self.imp();
-        if let Some(selected) = self_.version_selector.active_id() {
+        if let Some(selected) = self.selected_version() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
                     if let Some(dm) = self_.download_manager.get() {
@@ -318,12 +318,7 @@ impl EpicEngineDownload {
             });
 
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     sender.send_blocking(token.code).unwrap();
                 }
             });
@@ -344,12 +339,7 @@ impl EpicEngineDownload {
             });
 
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     sender.send_blocking(token.code).unwrap();
                 }
             });
@@ -384,7 +374,7 @@ impl EpicEngineDownload {
                 }
             }
             Msg::Versions(versions) => {
-                self_.version_selector.remove_all();
+                let model = gtk4::StringList::new(&[] as &[&str]);
                 let mut result: HashMap<String, Blob> = HashMap::new();
                 for version in versions {
                     let re =
@@ -420,15 +410,26 @@ impl EpicEngineDownload {
                     )
                 });
 
+                let has_items = !version.is_empty();
                 for ver in version {
-                    self_.version_selector.append(Some(ver), ver);
-                    if self_.version_selector.active_id().is_none() {
-                        self_.version_selector.set_active_id(Some(ver));
-                    }
+                    model.append(ver);
+                }
+                self_.version_selector.set_model(Some(&model));
+                if has_items && self_.version_selector.selected() == gtk4::INVALID_LIST_POSITION {
+                    self_.version_selector.set_selected(0);
                 }
                 get_action!(self_.actions, @install).set_enabled(true);
             }
         }
+    }
+
+    fn selected_version(&self) -> Option<String> {
+        let self_ = self.imp();
+        self_
+            .version_selector
+            .selected_item()
+            .and_downcast::<gtk4::StringObject>()
+            .map(|item| item.string().to_string())
     }
 
     fn validate_eula(&self) {
@@ -437,21 +438,16 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
-            let Some(id) = eg.user_details().account_id else {
+            let Some(_) = eg.user_details().account_id else {
                 sender.send_blocking(Msg::EULAValid(false)).unwrap();
                 return;
             };
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
                     sender
-                        .send_blocking(Msg::EULAValid(web.validate_eula(&id)))
+                        .send_blocking(Msg::EULAValid(web.validate_eula()))
                         .unwrap();
                 };
             });
@@ -464,12 +460,7 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
                     if let Ok(versions) = web.run_query::<VersionResponse>(

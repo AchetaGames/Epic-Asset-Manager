@@ -2,8 +2,8 @@
 <interface>
     <template class="EpicAddToProject" parent="GtkBox">
         <property name="css-classes">linked</property>
-        <child> <!-- TODO: Switch to GtkDropDown -->
-            <object class="GtkComboBoxText" id="select_target_directory">
+        <child>
+            <object class="GtkDropDown" id="select_target_directory">
                 <property name="valign">center</property>
             </object>
         </child>
@@ -20,18 +20,21 @@
             </object>
         </child>
         <child>
-            <object class="GtkInfoBar" id="warning_row">
+            <object class="GtkBox" id="warning_row">
+                <property name="orientation">vertical</property>
                 <property name="visible">false</property>
-                <property name="message-type">GTK_MESSAGE_WARNING</property>
                 <child>
-                    <object class="GtkLabel">
-                        <property name="hexpand">true</property>
-                        <property name="label" translatable="yes">Asset already exists in the target project</property>
+                    <object class="AdwBanner">
+                        <property name="title" translatable="yes">Asset already exists in the target project</property>
+                        <property name="revealed">true</property>
                     </object>
                 </child>
                 <child>
                     <object class="GtkCheckButton" id="overwrite">
-                        <property name="label">Overwrite?</property>
+                        <property name="label" translatable="yes">Overwrite?</property>
+                        <property name="margin-start">12</property>
+                        <property name="margin-top">6</property>
+                        <property name="margin-bottom">6</property>
                     </object>
                 </child>
             </object>

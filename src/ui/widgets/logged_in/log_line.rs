@@ -112,7 +112,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicLogLine(ObjectSubclass<imp::EpicLogLine>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicLogLine {
@@ -161,31 +162,14 @@ impl EpicLogLine {
     pub fn open_path(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
-            {
-                let ctx = glib::MainContext::default();
-                ctx.spawn_local(async move {
-                    crate::tools::open_directory(&p).await;
-                });
-            };
+            crate::tools::open_directory(&p);
         }
     }
 
     pub fn open_file(&self) {
         if let Some(p) = self.path() {
             debug!("Trying to open {}", p);
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(dir) = std::fs::File::open(&p) {
-                    let ctx = glib::MainContext::default();
-                    ctx.spawn_local(async move {
-                        ashpd::desktop::open_uri::OpenFileRequest::default()
-                            .send_file(&dir)
-                            .await
-                            .unwrap();
-                    });
-                };
-            };
+            crate::tools::open_file(&p);
         }
     }
 

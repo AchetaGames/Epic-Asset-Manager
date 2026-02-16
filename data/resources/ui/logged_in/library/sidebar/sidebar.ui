@@ -4,153 +4,89 @@
         <property name="vexpand">true</property>
         <property name="hexpand-set">true</property>
         <child>
-            <object class="GtkBox">
+            <object class="GtkBox" id="navigation">
                 <property name="orientation">vertical</property>
+                <property name="hexpand">false</property>
                 <child>
                     <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="name">main</property>
+                        <property name="margin-top">6</property>
+                        <property name="margin-start">5</property>
+                        <property name="margin-end">4</property>
+                        <property name="spacing">4</property>
                         <child>
-                            <object class="GtkBox" id="navigation">
-                                <property name="orientation">vertical</property>
-                                <property name="hexpand">false</property>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="orientation">vertical</property>
-                                        <property name="name">main</property>
-                                        <property name="margin-top">6</property>
-                                        <property name="margin-start">5</property>
-                                        <property name="margin-end">4</property>
-                                        <property name="spacing">4</property>
-                                        <child>
-                                            <object class="EpicSidebarButton" id="all_category">
-                                                <property name="icon-name">input-dialpad-symbolic</property>
-                                                <property name="tooltip-text" translatable="yes">All</property>
-                                                <property name="path">all</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarButton" id="unreal_category">
-                                                <property name="icon-name">ue-logo-symbolic</property>
-                                                <property name="filter">plugins|projects|assets</property>
-                                                <property name="path">unreal</property>
-                                                <property name="tooltip-text" translatable="yes">Unreal Assets</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicSidebarButton" id="games_category">
-                                                <property name="icon-name">input-gaming-symbolic</property>
-                                                <property name="filter">games|dlc</property>
-                                                <property name="path">games</property>
-                                                <property name="tooltip-text" translatable="yes">Games</property>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
+                            <object class="EpicSidebarButton" id="engines_category">
+                                <property name="icon-name">application-x-firmware-symbolic</property>
+                                <property name="path">engines</property>
+                                <property name="tooltip-text" translatable="yes">Engine Versions</property>
                             </object>
                         </child>
                         <child>
-                            <object class="GtkSeparator">
-                                <property name="visible" bind-source="EpicSidebar" bind-property="expanded" bind-flags="sync-create"/>
+                            <object class="EpicSidebarButton" id="projects_category">
+                                <property name="icon-name">folder-symbolic</property>
+                                <property name="path">projects</property>
+                                <property name="tooltip-text" translatable="yes">Projects</property>
                             </object>
                         </child>
                         <child>
-                            <object class="GtkRevealer" id="detail_slider">
-                                <property name="hexpand" bind-source="EpicSidebar" bind-property="expanded" bind-flags="sync-create"/>
-                                <property name="reveal-child" bind-source="EpicSidebar" bind-property="expanded" bind-flags="sync-create"/>
-                                <property name="transition-type">slide-left</property>
-                                <child>
-                                    <object class="GtkBox">
-                                        <property name="orientation">vertical</property>
-                                        <child>
-                                          <object class="GtkBox">
-                                              <property name="margin-top">8</property>
-                                              <property name="margin-bottom">3</property>
-                                              <property name="margin-start">12</property>
-                                              <property name="margin-end">12</property>
-                                              <property name="spacing">12</property>
-                                              <child>
-                                                  <object class="GtkLabel">
-                                                      <property name="css-classes">heading</property>
-                                                      <property name="label">Filters</property>
-                                                      <property name="halign">start</property>
-                                                      <property name="valign">center</property>
-                                                  </object>
-                                              </child>
-                                              <child>
-                                                  <object class="GtkBox">
-                                                      <property name="halign">fill</property>
-                                                      <property name="css-classes">linked</property>
-                                                      <child>
-                                                          <object class="GtkToggleButton" id="downloaded_filter">
-                                                              <property name="icon-name">folder-download-symbolic</property>
-                                                              <property name="has-tooltip">true</property>
-                                                              <property name="tooltip-text">Only show downloaded</property>
-                                                              <property name="hexpand">true</property>
-                                                              <property name="halign">fill</property>
-                                                              <property name="valign">center</property>
-                                                          </object>
-                                                      </child>
-                                                      <child>
-                                                          <object class="GtkToggleButton" id="favorites_filter">
-                                                              <property name="icon-name">starred-symbolic</property>
-                                                              <property name="has-tooltip">true</property>
-                                                              <property name="tooltip-text">Only show starred</property>
-                                                              <property name="hexpand">true</property>
-                                                              <property name="halign">fill</property>
-                                                              <property name="valign">center</property>
-                                                          </object>
-                                                      </child>
-                                                  </object>
-                                              </child>
-                                          </object>
-                                        </child>
-                                        <child>
-                                            <object class="GtkStack" id="stack">
-                                            </object>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                              <property name="css-classes">view</property>
-                                              <child>
-                                                  <object class="GtkButton" id="marketplace_button">
-                                                      <property name="action-name">sidebar.marketplace</property>
-                                                      <property name="halign">fill</property>
-                                                      <property name="valign">center</property>
-                                                      <property name="hexpand">true</property>
-                                                      <property name="tooltip-text" translatable="yes">Open Marketplace</property>
-                                                      <property name="css-classes">
-flat</property>
-                                                      <property name="margin-top">8</property>
-                                                      <property name="margin-bottom">8</property>
-                                                      <property name="margin-start">10</property>
-                                                      <property name="margin-end">10</property>
-                                                      <child>
-                                                          <object class="AdwButtonContent">
-                                                              <property name="icon-name">web-browser-symbolic</property>
-                                                              <property name="label" translatable="yes">Marketplace</property>
-                                                          </object>
-                                                      </child>
-                                                  </object>
-                                              </child>
-                                          </object>
-                                        </child>
-                                    </object>
-                                </child>
+                            <object class="EpicSidebarButton" id="library_category">
+                                <property name="icon-name">view-grid-symbolic</property>
+                                <property name="path">library</property>
+                                <property name="tooltip-text" translatable="yes">Asset Library</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="EpicSidebarButton" id="fab_category">
+                                <property name="icon-name">emblem-shared-symbolic</property>
+                                <property name="path">fab</property>
+                                <property name="tooltip-text" translatable="yes">Fab Library</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="EpicSidebarButton" id="games_category">
+                                <property name="icon-name">input-gaming-symbolic</property>
+                                <property name="filter">games|dlc</property>
+                                <property name="path">games</property>
+                                <property name="tooltip-text" translatable="yes">Games</property>
                             </object>
                         </child>
                     </object>
                 </child>
+                <!-- Browser buttons at bottom of nav strip -->
                 <child>
-                    <object class="GtkToggleButton" id="expand_button">
-                        <property name="name">category_button</property>
-                        <property name="action-name">sidebar.expand</property>
+                    <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="vexpand">true</property>
                         <property name="valign">end</property>
-                        <property name="tooltip-text" translatable="yes">Toggle Sidebar</property>
-                        <property name="css-classes">expand-button</property>
+                        <property name="margin-start">5</property>
+                        <property name="margin-end">4</property>
+                        <property name="margin-bottom">6</property>
+                        <property name="spacing">4</property>
                         <child>
-                            <object class="GtkImage" id="expand_image">
-                                <property name="icon-name">sidebar-show-symbolic</property>
-                                <property name="halign">start</property>
-                                <property name="margin-start">5</property>
+                            <object class="GtkButton" id="fab_button">
+                                <property name="action-name">sidebar.fab</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="tooltip-text" translatable="yes">Open Fab</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="icon-name">emblem-shared-symbolic</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="marketplace_button">
+                                <property name="action-name">sidebar.marketplace</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="tooltip-text" translatable="yes">Open Marketplace</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="icon-name">web-browser-symbolic</property>
+                                    </object>
+                                </child>
                             </object>
                         </child>
                     </object>

@@ -17,11 +17,14 @@ use gtk4::gio;
 use log::debug;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::Arc;
 
-lazy_static::lazy_static! {
-    static ref RUNNING: Arc<std::sync::RwLock<bool>> = Arc::new(std::sync::RwLock::new(true));
-}
+static RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> = once_cell::sync::Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create Tokio runtime")
+});
 
 /// Find the gresource file in standard locations
 fn find_resources_file() -> PathBuf {
@@ -49,7 +52,11 @@ fn find_resources_file() -> PathBuf {
     // 4. User local install
     if let Some(home) = std::env::var_os("HOME") {
         let home_path = PathBuf::from(home);
-        search_paths.push(home_path.join(".local/share/epic_asset_manager").join(resource_name));
+        search_paths.push(
+            home_path
+                .join(".local/share/epic_asset_manager")
+                .join(resource_name),
+        );
     }
 
     // 5. System install locations
@@ -96,8 +103,12 @@ fn main() {
     adw::init().expect("Unable to start Adwaita");
 
     let resources_path = find_resources_file();
-    let res = gio::Resource::load(&resources_path)
-        .unwrap_or_else(|e| panic!("Could not load gresource file at {:?}: {}", resources_path, e));
+    let res = gio::Resource::load(&resources_path).unwrap_or_else(|e| {
+        panic!(
+            "Could not load gresource file at {:?}: {}",
+            resources_path, e
+        )
+    });
     gio::resources_register(&res);
 
     let app = EpicAssetManager::new();
@@ -105,7 +116,5 @@ fn main() {
     debug!("{}", PROFILE);
     debug!("{}", VERSION);
     app.run();
-    if let Ok(mut w) = crate::RUNNING.write() {
-        *w = false;
-    };
+    crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
 }

@@ -21,41 +21,8 @@ pub struct RedirectResponse {
 
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EULAResponse {
-    pub errors: Option<Vec<Error>>,
-    pub data: Data,
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Data {
-    #[serde(rename = "Eula")]
-    pub eula: Eula,
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Eula {
-    pub has_account_accepted: Option<HasAccountAccepted>,
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Error {
-    pub message: String,
-    pub correlation_id: String,
-    pub service_response: String,
-    pub stack: Value,
-    pub path: Option<Vec<String>>,
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HasAccountAccepted {
+pub struct CosmosEulaAcceptResponse {
     pub accepted: bool,
-    pub key: String,
-    pub locale: String,
-    pub version: i64,
 }
 
 impl EpicWeb {
@@ -92,20 +59,23 @@ impl EpicWeb {
                 }
             }
             Err(e) => {
-                error!("Failed to run query: {}", e);
+                error!("Failed to get XSRF token: {}", e);
             }
         }
         let mut map = HashMap::new();
         map.insert("exchangeCode", exchange_token);
-        if let Err(e) = self
+        match self
             .client
             .post("https://www.epicgames.com/id/api/exchange")
             .json(&map)
-            .header("x-xsrf-token", csrf)
+            .header("x-xsrf-token", &csrf)
             .send()
         {
-            error!("Failed to run query: {}", e);
-        };
+            Ok(_) => {}
+            Err(e) => {
+                error!("Failed exchange code: {}", e);
+            }
+        }
         let mut sid = String::new();
         match self
             .client
@@ -117,65 +87,61 @@ impl EpicWeb {
                     sid = response.sid;
                 }
                 Err(e) => {
-                    error!("Error parsing json: {:?}", e);
+                    error!("Error parsing redirect json: {:?}", e);
                 }
             },
             Err(e) => {
-                error!("Failed to run query: {}", e);
+                error!("Failed to get redirect SID: {}", e);
             }
         }
-        if let Err(e) = self
+        match self
             .client
             .get(format!(
                 "https://www.unrealengine.com/id/api/set-sid?sid={sid}"
             ))
             .send()
         {
-            error!("Failed to run query: {}", e);
-        };
-    }
-
-    pub fn validate_eula(&self, id: &str) -> bool {
-        let mut map = HashMap::new();
-        let query= ["{    Eula {        hasAccountAccepted(id: \"unreal_engine\", locale: \"en\", accountId: \"", id, "\"){            accepted            key            locale            version        }    }}"];
-        map.insert("query", query.join(""));
+            Ok(r) => {
+                debug!("set-sid status={}", r.status());
+            }
+            Err(e) => {
+                error!("Failed set-sid: {}", e);
+            }
+        }
         match self
             .client
-            .post("https://graphql.unrealengine.com/ue/graphql")
-            .json(&map)
+            .get("https://www.unrealengine.com/api/cosmos/auth")
+            .header("Accept", "application/json")
             .send()
         {
-            Err(e) => {
-                error!("Failed to run query: {}", e);
-            }
             Ok(r) => {
-                match r.text() {
-                    Ok(t) => {
-                        match serde_json::from_str::<EULAResponse>(&t) {
-                            Ok(eula) => {
-                                return match eula.data.eula.has_account_accepted {
-                                    None => {
-                                        let _ = eula.errors.map_or((), |errors| for error in errors {
-                                            error!("Failed to query EULA status: {} with response: {}", error.message, error.service_response);
-                                        });
-                                        false
-                                    }
-                                    Some(accepted) => accepted.accepted,
-                                };
-                            }
-                            Err(e) => {
-                                error!("Failed to parse EULA json: {}", e);
-                                debug!("Response: {}", t);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        error!("Failed to read EULA text: {}", e);
-                    }
-                };
+                debug!("cosmos/auth status={}", r.status());
             }
-        };
-        false
+            Err(e) => {
+                error!("Failed cosmos auth upgrade: {}", e);
+            }
+        }
+    }
+
+    pub fn validate_eula(&self) -> bool {
+        match self
+            .client
+            .get("https://www.unrealengine.com/api/cosmos/eula/accept?eulaId=unreal_engine2&locale=en")
+            .header("Accept", "application/json")
+            .send()
+        {
+            Ok(r) => match r.json::<CosmosEulaAcceptResponse>() {
+                Ok(response) => response.accepted,
+                Err(e) => {
+                    error!("Failed to parse EULA response: {}", e);
+                    false
+                }
+            },
+            Err(e) => {
+                error!("Failed to query EULA acceptance: {}", e);
+                false
+            }
+        }
     }
 
     pub fn run_query<T: DeserializeOwned>(&self, url: String) -> Result<T, reqwest::Error> {

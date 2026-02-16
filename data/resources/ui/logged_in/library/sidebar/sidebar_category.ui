@@ -9,7 +9,7 @@
         <property name="spacing">12</property>
         <child>
             <object class="GtkImage">
-                <property name="icon_name">list-remove-symbolic</property>
+                <property name="icon-name">list-remove-symbolic</property>
             </object>
         </child>
         <child>
@@ -21,7 +21,7 @@
         </child>
         <child>
             <object class="GtkImage">
-                <property name="icon_name">go-next-symbolic</property>
+                <property name="icon-name">go-next-symbolic</property>
                 <property name="visible" bind-source="EpicSidebarCategory" bind-property="leaf" bind-flags="sync-create|invert-boolean"/>
             </object>
         </child>

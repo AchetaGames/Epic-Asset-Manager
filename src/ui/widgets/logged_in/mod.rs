@@ -4,6 +4,7 @@ use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 
 pub mod engines;
+pub mod fab;
 pub mod games;
 pub mod library;
 mod log_line;
@@ -36,7 +37,10 @@ pub mod imp {
         #[template_child]
         pub games: TemplateChild<crate::ui::widgets::logged_in::games::EpicGamesBox>,
         #[template_child]
-        pub details: TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
+        pub fab: TemplateChild<crate::ui::widgets::logged_in::fab::FabLibraryBox>,
+        #[template_child]
+        pub details:
+            TemplateChild<crate::ui::widgets::logged_in::library::asset_detail::EpicAssetDetails>,
         pub settings: gtk4::gio::Settings,
     }
 
@@ -56,6 +60,7 @@ pub mod imp {
                 engines: TemplateChild::default(),
                 projects: TemplateChild::default(),
                 games: TemplateChild::default(),
+                fab: TemplateChild::default(),
                 details: TemplateChild::default(),
                 settings: gtk4::gio::Settings::new(crate::config::APP_ID),
             }
@@ -116,7 +121,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicLoggedInBox(ObjectSubclass<imp::EpicLoggedInBox>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicLoggedInBox {
@@ -141,11 +147,15 @@ impl EpicLoggedInBox {
         self_.details.set_window(&window.clone());
         self_.library.set_details(&self_.details);
         self_.library.set_window(&window.clone());
-        self_.library.set_sidebar(&self_.sidebar);
+        // page_stack must be set before set_sidebar, because set_sidebar triggers
+        // set_logged_in → .clicked() → switch_main_page which needs the stack
         self_.sidebar.set_page_stack(&self_.page_stack);
+        self_.library.set_sidebar(&self_.sidebar);
         self_.engines.set_window(&window.clone());
         self_.projects.set_window(&window.clone());
         self_.games.set_window(&window.clone());
+        self_.fab.set_details(&self_.details);
+        self_.fab.set_window(&window.clone());
     }
 
     pub fn set_download_manager(
@@ -161,6 +171,7 @@ impl EpicLoggedInBox {
         self_.details.set_download_manager(dm);
         self_.library.set_download_manager(dm);
         self_.engines.set_download_manager(dm);
+        self_.fab.set_download_manager(dm);
     }
 
     pub fn details(&self) -> &library::asset_detail::EpicAssetDetails {
@@ -217,6 +228,20 @@ impl EpicLoggedInBox {
         self_.library.flush_assets();
     }
 
+    pub fn add_fab_asset(
+        &self,
+        asset: &egs_api::api::types::fab_library::FabAsset,
+        image: Option<gtk4::gdk::Texture>,
+    ) {
+        let self_ = self.imp();
+        self_.fab.add_fab_asset(asset, image);
+    }
+
+    pub fn flush_fab_assets(&self) {
+        let self_ = self.imp();
+        self_.fab.flush_fab_assets();
+    }
+
     pub fn activate(&self, _active: bool) {
         // No-op in unified view - all sections always visible
     }
@@ -235,9 +260,9 @@ impl EpicLoggedInBox {
 impl Refresh for EpicLoggedInBox {
     fn run_refresh(&self) {
         let self_ = self.imp();
-        // Refresh all sections in unified view
         self_.engines.run_refresh();
         self_.projects.run_refresh();
         self_.library.run_refresh();
+        self_.fab.run_refresh();
     }
 }

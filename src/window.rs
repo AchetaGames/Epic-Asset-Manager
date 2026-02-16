@@ -129,11 +129,8 @@ pub mod imp {
             let obj = self.obj();
             // Devel Profile
             if PROFILE == "Devel" {
-                obj.style_context().add_class("devel");
+                obj.add_css_class("devel");
             }
-
-            let button = self.color_scheme_btn.get();
-            let style_manager = adw::StyleManager::default();
 
             // load latest window state
             obj.load_window_size();
@@ -152,9 +149,7 @@ pub mod imp {
             }
 
             // Signal background tasks to stop
-            if let Ok(mut w) = crate::RUNNING.write() {
-                *w = false;
-            }
+            crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
 
             // Quit the application when window is closed
             if let Some(app) = self.obj().application() {
@@ -171,7 +166,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAssetManagerWindow(ObjectSubclass<imp::EpicAssetManagerWindow>)
-        @extends gtk4::Widget, gtk4::Window, gtk4::ApplicationWindow, gio::ActionMap, gio::ActionGroup;
+        @extends gtk4::Widget, gtk4::Window, gtk4::ApplicationWindow,
+        @implements gio::ActionMap, gio::ActionGroup, gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
 }
 
 impl EpicAssetManagerWindow {
@@ -385,35 +381,31 @@ impl EpicAssetManagerWindow {
         }
     }
 
-    // TODO: Switch to adw::Toast or adw::Banner
-    pub fn add_notification(&self, name: &str, message: &str, message_type: gtk4::MessageType) {
+    pub fn add_notification(&self, name: &str, message: &str, _message_type: gtk4::MessageType) {
         let self_ = self.imp();
         self.clear_notification(name);
-        let notif = gtk4::InfoBar::builder()
-            .message_type(message_type)
+        let banner = adw::Banner::builder()
+            .title(message)
+            .revealed(true)
             .name(name)
-            .show_close_button(true)
             .build();
-        let label = gtk4::Label::builder().label(message).build();
-        notif.add_child(&label);
-        notif.connect_response(clone!(
+        banner.connect_button_clicked(clone!(
             #[weak]
-            notif,
+            banner,
             #[weak(rename_to=window)]
             self,
-            move |_, _| {
+            move |_| {
                 let self_ = window.imp();
-                self_.notifications.remove(&notif);
+                self_.notifications.remove(&banner);
             }
         ));
-        self_.notifications.append(&notif);
+        self_.notifications.append(&banner);
     }
 
     pub fn show_preferences(&self) -> PreferencesWindow {
         let preferences = PreferencesWindow::new();
-        preferences.set_transient_for(Some(self));
         preferences.set_window(self);
-        preferences.show();
+        adw::prelude::AdwDialogExt::present(&preferences, Some(self));
         preferences
     }
 
@@ -448,13 +440,15 @@ impl EpicAssetManagerWindow {
             },
             |id| {
                 if let Ok(mut conn) = db.get() {
-                    diesel::replace_into(crate::schema::user_data::table)
+                    if let Err(e) = diesel::replace_into(crate::schema::user_data::table)
                         .values((
                             crate::schema::user_data::name.eq("display_name"),
                             crate::schema::user_data::value.eq(id),
                         ))
                         .execute(&mut conn)
-                        .expect("Unable to insert display name to the DB");
+                    {
+                        error!("Unable to insert display name to the DB: {}", e);
+                    }
                 };
                 self_.appmenu_button.set_label(id);
             },
@@ -466,14 +460,14 @@ impl EpicAssetManagerWindow {
                 .unwrap_or(&"login".to_string())
                 .as_str(),
             "eam_epic_games_token",
-            ud.access_token(),
+            ud.access_token().map(String::from),
             "token-expiration",
             ud.expires_at,
         );
         self.save_secret(
             "refresh",
             "eam_epic_games_refresh_token",
-            ud.refresh_token(),
+            ud.refresh_token().map(String::from),
             "refresh-token-expiration",
             ud.refresh_expires_at,
         );
@@ -540,12 +534,14 @@ impl EpicAssetManagerWindow {
             },
             |e| e.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
         );
-        self_
+        if let Err(e) = self_
             .model
             .borrow()
             .settings
             .set_string(expiration_name, d.as_str())
-            .unwrap();
+        {
+            warn!("Failed to save expiration {}: {}", expiration_name, e);
+        }
 
         #[cfg(target_os = "linux")]
         {
@@ -557,48 +553,59 @@ impl EpicAssetManagerWindow {
                 }
                 Some(ss) => {
                     // Clear the insecure storage if any
-                    self_
-                        .model
-                        .borrow()
-                        .settings
-                        .set_string(
-                            match secret_name {
-                                "eam_epic_games_token" => "token",
-                                "eam_epic_games_refresh_token" => "refresh-token",
-                                _ => {
-                                    return;
-                                }
-                            },
-                            "",
-                        )
-                        .unwrap();
+                    if let Err(e) = self_.model.borrow().settings.set_string(
+                        match secret_name {
+                            "eam_epic_games_token" => "token",
+                            "eam_epic_games_refresh_token" => "refresh-token",
+                            _ => {
+                                return;
+                            }
+                        },
+                        "",
+                    ) {
+                        warn!("Failed to clear insecure secret {}: {}", secret_name, e);
+                    }
                     match secret {
-                        None => {
-                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                                secret_name,
-                                attributes,
-                                b"",
-                                true,
-                                "text/plain",
-                            ) {
-                                error!("Failed to save secret {}", e);
+                        None => match ss.get_any_collection() {
+                            Ok(collection) => {
+                                if let Err(e) = collection.create_item(
+                                    secret_name,
+                                    attributes,
+                                    b"",
+                                    true,
+                                    "text/plain",
+                                ) {
+                                    error!("Failed to save secret {}", e);
+                                    self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                                    self.save_insecure(secret_name, secret);
+                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to access secret service collection: {}", e);
                                 self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
                                 self.save_insecure(secret_name, secret);
                             }
-                        }
-                        Some(rt) => {
-                            if let Err(e) = ss.get_any_collection().unwrap().create_item(
-                                secret_name,
-                                attributes,
-                                rt.as_bytes(),
-                                true,
-                                "text/plain",
-                            ) {
-                                error!("Failed to save secret {}", e);
+                        },
+                        Some(rt) => match ss.get_any_collection() {
+                            Ok(collection) => {
+                                if let Err(e) = collection.create_item(
+                                    secret_name,
+                                    attributes,
+                                    rt.as_bytes(),
+                                    true,
+                                    "text/plain",
+                                ) {
+                                    error!("Failed to save secret {}", e);
+                                    self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
+                                    self.save_insecure(secret_name, Some(rt));
+                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to access secret service collection: {}", e);
                                 self.add_notification("ss_none_auth", "org.freedesktop.Secret.Service not available for use, secrets stored insecurely!", gtk4::MessageType::Warning);
                                 self.save_insecure(secret_name, Some(rt));
                             }
-                        }
+                        },
                     }
                 }
             }
@@ -611,21 +618,18 @@ impl EpicAssetManagerWindow {
 
     fn save_insecure(&self, secret_name: &str, secret: Option<String>) {
         let self_ = self.imp();
-        self_
-            .model
-            .borrow()
-            .settings
-            .set_string(
-                match secret_name {
-                    "eam_epic_games_token" => "token",
-                    "eam_epic_games_refresh_token" => "refresh-token",
-                    _ => {
-                        return;
-                    }
-                },
-                &secret.unwrap_or_default(),
-            )
-            .unwrap();
+        if let Err(e) = self_.model.borrow().settings.set_string(
+            match secret_name {
+                "eam_epic_games_token" => "token",
+                "eam_epic_games_refresh_token" => "refresh-token",
+                _ => {
+                    return;
+                }
+            },
+            &secret.unwrap_or_default(),
+        ) {
+            warn!("Failed to save insecure secret {}: {}", secret_name, e);
+        }
     }
 
     pub fn close_download_manager(&self) {

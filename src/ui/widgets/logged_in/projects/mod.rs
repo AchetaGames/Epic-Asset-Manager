@@ -128,7 +128,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicProjectsBox(ObjectSubclass<imp::EpicProjectsBox>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicProjectsBox {
@@ -306,13 +307,12 @@ impl EpicProjectsBox {
                     self_.details.collapse();
                 }
             }
-            if let Ok(file) = PathBuf::from_str(&p) {
-                if let Some(directory) = file.parent() {
-                    self_
-                        .projects
-                        .borrow_mut()
-                        .remove(directory.to_str().unwrap());
-                }
+            let file = PathBuf::from(&p);
+            if let Some(directory) = file.parent() {
+                self_
+                    .projects
+                    .borrow_mut()
+                    .remove(directory.to_str().unwrap());
             }
         }
     }

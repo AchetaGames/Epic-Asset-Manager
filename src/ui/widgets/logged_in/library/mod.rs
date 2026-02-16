@@ -6,12 +6,12 @@ use gtk4::{self, prelude::*, CustomSorter};
 use gtk4::{gio, glib, subclass::prelude::*, CompositeTemplate};
 use gtk_macros::action;
 use log::{debug, error, trace};
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use tokio::runtime::Builder;
 
 mod actions;
 pub mod asset;
@@ -26,10 +26,10 @@ pub mod imp {
     use crate::window::EpicAssetManagerWindow;
     use gtk4::gio;
     use gtk4::gio::ListStore;
-    use gtk4::glib::{Object, ParamSpec, ParamSpecBoolean, ParamSpecString, ParamSpecUInt};
+    use gtk4::glib::{Object, ParamSpec, ParamSpecString, ParamSpecUInt};
     use once_cell::sync::OnceCell;
     use std::cell::RefCell;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
     use threadpool::ThreadPool;
 
     #[derive(Debug, CompositeTemplate)]
@@ -42,14 +42,19 @@ pub mod imp {
         #[template_child]
         pub asset_search: TemplateChild<gtk4::SearchEntry>,
         #[template_child]
-        pub select_order_by: TemplateChild<gtk4::ComboBoxText>,
+        pub category_dropdown: TemplateChild<gtk4::DropDown>,
+        #[template_child]
+        pub downloaded_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
+        pub favorites_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
+        pub select_order_by: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub order: TemplateChild<gtk4::Button>,
         #[template_child]
         pub count_label: TemplateChild<gtk4::Label>,
         #[template_child]
         pub refresh_progress: TemplateChild<gtk4::ProgressBar>,
-        pub sidebar_expanded: RefCell<bool>,
         pub filter: RefCell<Option<String>>,
         pub search: RefCell<Option<String>>,
         pub actions: gio::SimpleActionGroup,
@@ -58,6 +63,9 @@ pub mod imp {
         pub filter_model: gtk4::FilterListModel,
         pub sorter_model: gtk4::SortListModel,
         pub grid_model: ListStore,
+        pub order_by_ids: RefCell<Vec<String>>,
+        pub category_hierarchy: RefCell<BTreeMap<String, BTreeSet<String>>>,
+        pub category_filter_paths: RefCell<Vec<String>>,
         pub loaded_assets: RefCell<HashMap<String, egs_api::api::types::asset_info::AssetInfo>>,
         pub loaded_data: RefCell<HashMap<String, crate::models::asset_data::AssetData>>,
         pub asset_product_names: RefCell<HashMap<String, String>>,
@@ -84,11 +92,13 @@ pub mod imp {
                 sidebar: OnceCell::new(),
                 asset_grid: TemplateChild::default(),
                 asset_search: TemplateChild::default(),
+                category_dropdown: TemplateChild::default(),
+                downloaded_filter: TemplateChild::default(),
+                favorites_filter: TemplateChild::default(),
                 select_order_by: TemplateChild::default(),
                 order: TemplateChild::default(),
                 count_label: TemplateChild::default(),
                 refresh_progress: TemplateChild::default(),
-                sidebar_expanded: RefCell::new(false),
                 filter: RefCell::new(None),
                 search: RefCell::new(None),
                 actions: gio::SimpleActionGroup::new(),
@@ -103,6 +113,9 @@ pub mod imp {
                     gtk4::Sorter::NONE.cloned(),
                 ),
                 grid_model: gio::ListStore::new::<crate::models::asset_data::AssetData>(),
+                order_by_ids: RefCell::new(Vec::new()),
+                category_hierarchy: RefCell::new(BTreeMap::new()),
+                category_filter_paths: RefCell::new(vec![String::new()]),
                 loaded_assets: RefCell::new(HashMap::new()),
                 loaded_data: RefCell::new(HashMap::new()),
                 asset_product_names: RefCell::new(HashMap::new()),
@@ -134,7 +147,6 @@ pub mod imp {
 
             static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
                 vec![
-                    ParamSpecBoolean::builder("sidebar-expanded").build(),
                     ParamSpecUInt::builder("to-load")
                         .minimum(0)
                         .default_value(0)
@@ -154,10 +166,6 @@ pub mod imp {
 
         fn set_property(&self, _id: usize, value: &glib::Value, pspec: &ParamSpec) {
             match pspec.name() {
-                "sidebar-expanded" => {
-                    let sidebar_expanded = value.get().unwrap();
-                    self.sidebar_expanded.replace(sidebar_expanded);
-                }
                 "to-load" => {
                     self.loading.replace(value.get().unwrap());
                 }
@@ -193,7 +201,6 @@ pub mod imp {
 
         fn property(&self, _id: usize, pspec: &ParamSpec) -> glib::Value {
             match pspec.name() {
-                "sidebar-expanded" => self.sidebar_expanded.borrow().to_value(),
                 "to-load" => self.loading.borrow().to_value(),
                 "loaded" => self.loaded.borrow().to_value(),
                 "filter" => self.filter.borrow().to_value(),
@@ -219,7 +226,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicLibraryBox(ObjectSubclass<imp::EpicLibraryBox>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicLibraryBox {
@@ -292,7 +300,11 @@ impl EpicLibraryBox {
             move |_factory, item| {
                 // Debug: write to file
                 use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/factory_setup.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/factory_setup.log")
+                {
                     let _ = writeln!(f, "Factory setup called - creating EpicAsset");
                 }
 
@@ -312,8 +324,15 @@ impl EpicLibraryBox {
                         move |values| {
                             // Debug - this should print if the signal handler is called
                             use std::io::Write;
-                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                                let _ = writeln!(f, ">>> SIGNAL HANDLER CALLED for download-requested <<<");
+                            if let Ok(mut f) = std::fs::OpenOptions::new()
+                                .create(true)
+                                .append(true)
+                                .open("/tmp/asset_click.log")
+                            {
+                                let _ = writeln!(
+                                    f,
+                                    ">>> SIGNAL HANDLER CALLED for download-requested <<<"
+                                );
                             }
                             let asset = values[0].get::<EpicAsset>().unwrap();
                             library.handle_asset_action(&asset, "download");
@@ -405,6 +424,7 @@ impl EpicLibraryBox {
         );
     }
 
+    #[allow(dead_code)]
     fn asset_selected(&self, model: &gtk4::SingleSelection) {
         if let Some(a) = model.selected_item() {
             let self_ = self.imp();
@@ -426,7 +446,11 @@ impl EpicLibraryBox {
 
         // Debug
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
             let _ = writeln!(f, "handle_asset_action called with action: {}", action);
         }
 
@@ -468,58 +492,94 @@ impl EpicLibraryBox {
 
         // Debug
         use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/asset_click.log")
+        {
             let _ = writeln!(f, "start_asset_download called for: {:?}", asset_info.title);
         }
 
         // Get the first release to download
         if let Some(release_info) = asset_info.release_info.as_ref() {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
                 let _ = writeln!(f, "Found release_info with {} releases", release_info.len());
             }
             if let Some(first) = release_info.first() {
                 if let Some(release_id) = &first.app_id {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
                         let _ = writeln!(f, "Starting download for release_id: {}", release_id);
                     }
 
                     // Start the download via download manager
                     if let Some(dm) = self_.download_manager.get() {
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/asset_click.log")
+                        {
                             let _ = writeln!(f, "Got download manager, calling add_asset_download");
                         }
                         use crate::ui::widgets::download_manager::asset::Asset;
                         dm.add_asset_download(
                             release_id.clone(),
                             asset_info.clone(),
-                            &None,  // Use default vault directory
-                            None,   // No special post-download actions
+                            &None, // Use default vault directory
+                            None,  // No special post-download actions
                         );
 
                         // Show the download manager
                         if let Some(window) = self_.window.get() {
-                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                            if let Ok(mut f) = std::fs::OpenOptions::new()
+                                .create(true)
+                                .append(true)
+                                .open("/tmp/asset_click.log")
+                            {
                                 let _ = writeln!(f, "Showing download manager");
                             }
                             window.show_download_manager();
                         }
                     } else {
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/asset_click.log")
+                        {
                             let _ = writeln!(f, "ERROR: Download manager not available!");
                         }
                     }
                 } else {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/asset_click.log")
+                    {
                         let _ = writeln!(f, "ERROR: No app_id in first release");
                     }
                 }
             } else {
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/asset_click.log")
+                {
                     let _ = writeln!(f, "ERROR: No releases found");
                 }
             }
         } else {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/asset_click.log")
+            {
                 let _ = writeln!(f, "ERROR: No release_info in asset");
             }
         }
@@ -774,11 +834,29 @@ impl EpicLibraryBox {
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
 
+        let order_by = ["name", "updated", "released"];
+        let order_labels = ["Name", "Updated", "Released"];
+        let model = gtk4::StringList::new(&[] as &[&str]);
+        for label in order_labels {
+            model.append(label);
+        }
+        self_.select_order_by.set_model(Some(&model));
+        self_
+            .order_by_ids
+            .replace(order_by.iter().map(|id| id.to_string()).collect());
+        if self_.select_order_by.selected() == gtk4::INVALID_LIST_POSITION {
+            self_.select_order_by.set_selected(0);
+        }
+
+        let cat_model = gtk4::StringList::new(&["All"]);
+        self_.category_dropdown.set_model(Some(&cat_model));
+        self_.category_dropdown.set_selected(0);
+
         if let Some(sidebar) = self_.sidebar.get() {
             sidebar.set_logged_in(self);
         }
 
-        self_.select_order_by.connect_changed(clone!(
+        self_.select_order_by.connect_selected_notify(clone!(
             #[weak(rename_to=library)]
             self,
             move |_| {
@@ -793,6 +871,30 @@ impl EpicLibraryBox {
                 let _ = library.imp();
             }
         ));
+
+        self_.downloaded_filter.connect_toggled(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                library.apply_filter();
+            }
+        ));
+
+        self_.favorites_filter.connect_toggled(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                library.apply_filter();
+            }
+        ));
+
+        self_.category_dropdown.connect_selected_notify(clone!(
+            #[weak(rename_to=library)]
+            self,
+            move |_| {
+                library.apply_filter();
+            }
+        ));
     }
 
     pub fn order_changed(&self) {
@@ -800,9 +902,18 @@ impl EpicLibraryBox {
         let asc = self_.order.icon_name().map_or(false, |name| {
             matches!(name.as_str(), "view-sort-ascending-symbolic")
         });
-        if let Some(by) = self_.select_order_by.active_id() {
+        if let Some(by) = self.selected_order_by() {
             self_.sorter_model.set_sorter(Some(&Self::sorter(&by, asc)));
-        };
+        }
+    }
+
+    fn selected_order_by(&self) -> Option<String> {
+        let self_ = self.imp();
+        let selected = self_.select_order_by.selected();
+        if selected == gtk4::INVALID_LIST_POSITION {
+            return None;
+        }
+        self_.order_by_ids.borrow().get(selected as usize).cloned()
     }
 
     pub fn setup_actions(&self) {
@@ -883,7 +994,28 @@ impl EpicLibraryBox {
         let self_ = self.imp();
         let search = self.search();
         let filter_p = self.filter();
-        if filter_p.is_none() && search.is_none() {
+        let downloaded_only = self_.downloaded_filter.is_active();
+        let favorites_only = self_.favorites_filter.is_active();
+
+        let selected_cat = self_.category_dropdown.selected();
+        let category_filter: Option<String> =
+            if selected_cat == 0 || selected_cat == gtk4::INVALID_LIST_POSITION {
+                None
+            } else {
+                self_
+                    .category_filter_paths
+                    .borrow()
+                    .get(selected_cat as usize)
+                    .filter(|p| !p.is_empty())
+                    .cloned()
+            };
+
+        if filter_p.is_none()
+            && search.is_none()
+            && !downloaded_only
+            && !favorites_only
+            && category_filter.is_none()
+        {
             self_.filter_model.set_filter(None::<&gtk4::CustomFilter>);
             self.update_count();
             return;
@@ -893,15 +1025,94 @@ impl EpicLibraryBox {
             let asset = object
                 .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
-            search.as_ref().map_or(true, |se| {
+            let matches_search = search.as_ref().map_or(true, |se| {
                 asset
                     .name()
                     .to_ascii_lowercase()
                     .contains(&se.to_ascii_lowercase())
-            }) && filter_p.as_ref().map_or(true, |f| asset.check_category(f))
+            });
+            let matches_category = filter_p.as_ref().map_or(true, |f| asset.check_category(f));
+            let matches_downloaded = !downloaded_only || asset.downloaded();
+            let matches_favorites = !favorites_only || asset.favorite();
+            let matches_dropdown = category_filter
+                .as_ref()
+                .map_or(true, |c| asset.check_category(c));
+
+            matches_search
+                && matches_category
+                && matches_downloaded
+                && matches_favorites
+                && matches_dropdown
         });
         self_.filter_model.set_filter(Some(&filter));
         self.update_count();
+    }
+
+    pub fn add_category_to_dropdown(&self, path: &str) {
+        let self_ = self.imp();
+        let parts: Vec<&str> = path.splitn(2, '/').collect();
+        let top_level = parts[0];
+        let subcategory = parts.get(1).copied();
+
+        let mut hierarchy = self_.category_hierarchy.borrow_mut();
+        let is_new_top = !hierarchy.contains_key(top_level);
+
+        if is_new_top {
+            hierarchy.insert(top_level.to_string(), BTreeSet::new());
+        }
+
+        let is_new_sub = if let Some(sub) = subcategory {
+            hierarchy
+                .entry(top_level.to_string())
+                .or_default()
+                .insert(sub.to_string())
+        } else {
+            false
+        };
+
+        if is_new_top || is_new_sub {
+            drop(hierarchy);
+            self.rebuild_category_dropdown();
+        }
+    }
+
+    fn capitalize(s: &str) -> String {
+        let mut c = s.chars();
+        c.next().map_or_else(String::new, |f| {
+            f.to_uppercase().collect::<String>() + c.as_str()
+        })
+    }
+
+    fn rebuild_category_dropdown(&self) {
+        let self_ = self.imp();
+        let prev_selected = self_.category_dropdown.selected();
+        let prev_path = self_
+            .category_filter_paths
+            .borrow()
+            .get(prev_selected as usize)
+            .cloned()
+            .unwrap_or_default();
+
+        let hierarchy = self_.category_hierarchy.borrow();
+
+        let model = gtk4::StringList::new(&["All"]);
+        let mut paths = vec![String::new()];
+
+        for (top, subs) in hierarchy.iter() {
+            model.append(&Self::capitalize(top));
+            paths.push(top.clone());
+
+            for sub in subs {
+                model.append(&format!("    {}", Self::capitalize(sub)));
+                paths.push(format!("{}/{}", top, sub));
+            }
+        }
+
+        let new_selected = paths.iter().position(|p| p == &prev_path).unwrap_or(0) as u32;
+
+        self_.category_filter_paths.replace(paths);
+        self_.category_dropdown.set_model(Some(&model));
+        self_.category_dropdown.set_selected(new_selected);
     }
 
     pub fn add_asset(
@@ -914,18 +1125,14 @@ impl EpicLibraryBox {
             for category in categories {
                 let mut cats = self_.categories.borrow_mut();
                 if cats.insert(category.path.clone()) {
-                    if let Some(sidebar) = self_.sidebar.get() {
-                        sidebar.add_category(&category.path);
-                    }
+                    self.add_category_to_dropdown(&category.path);
                 }
             }
         };
         if let Some(window) = self.main_window() {
             let win_ = window.imp();
             let sender = win_.model.borrow().sender.clone();
-            sender
-                .send_blocking(crate::ui::messages::Msg::EndAssetProcessing)
-                .unwrap();
+            let _ = sender.send_blocking(crate::ui::messages::Msg::EndAssetProcessing);
             let mut assets = self_.loaded_assets.borrow_mut();
             let mut asset_products = self_.asset_product_names.borrow_mut();
             if match assets.get_mut(&asset.id) {
@@ -1000,12 +1207,10 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             match asset.thumbnail() {
                 None => {
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
-                            asset.clone(),
-                            None,
-                        ))
-                        .unwrap();
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
+                        asset.clone(),
+                        None,
+                    ));
                 }
                 Some(t) => {
                     let cache_dir = self_.settings.string("cache-directory").to_string();
@@ -1015,21 +1220,21 @@ impl EpicLibraryBox {
                     cache_path.push(format!("{}.{}", t.md5, name.unwrap_or("png")));
                     let asset = asset.clone();
                     self_.image_load_pool.execute(move || {
-                        if let Ok(w) = crate::RUNNING.read() {
-                            if !*w {
-                                return;
-                            }
+                        if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                            return;
                         }
                         if cache_path.as_path().exists() {
                             match gtk4::gdk::Texture::from_file(&gio::File::for_path(
                                 cache_path.as_path(),
                             )) {
-                                Ok(t) => sender
-                                    .send_blocking(crate::ui::messages::Msg::ProcessAssetThumbnail(
-                                        asset.clone(),
-                                        Some(t),
-                                    ))
-                                    .unwrap(),
+                                Ok(t) => {
+                                    let _ = sender.send_blocking(
+                                        crate::ui::messages::Msg::ProcessAssetThumbnail(
+                                            asset.clone(),
+                                            Some(t),
+                                        ),
+                                    );
+                                }
                                 Err(e) => {
                                     error!(
                                         "Unable to load file {}{} to texture: {}",
@@ -1038,12 +1243,10 @@ impl EpicLibraryBox {
                                 }
                             };
                         } else {
-                            sender
-                                .send_blocking(crate::ui::messages::Msg::DownloadImage(
-                                    t,
-                                    asset.clone(),
-                                ))
-                                .unwrap();
+                            let _ = sender.send_blocking(crate::ui::messages::Msg::DownloadImage(
+                                t,
+                                asset.clone(),
+                            ));
                         }
                     });
                 }
@@ -1071,37 +1274,41 @@ impl EpicLibraryBox {
             let mut cached: Vec<String> = vec![];
             if cache_path.is_dir() {
                 debug!("Checking cache");
-                let entries = std::fs::read_dir(cache_path).unwrap();
-                for entry in entries {
-                    let sender = win_.model.borrow().sender.clone();
-                    if let Ok(entr) = entry {
-                        let mut asset_file = entr.path();
-                        cached.push(entr.file_name().into_string().unwrap_or_default());
-                        asset_file.push("asset_info.json");
-                        self_.asset_load_pool.execute(move || {
-                            // Load assets from cache
+                match std::fs::read_dir(cache_path) {
+                    Ok(entries) => {
+                        for entry in entries {
+                            let sender = win_.model.borrow().sender.clone();
+                            if let Ok(entr) = entry {
+                                let mut asset_file = entr.path();
+                                cached.push(entr.file_name().into_string().unwrap_or_default());
+                                asset_file.push("asset_info.json");
+                                self_.asset_load_pool.execute(move || {
+                                    // Load assets from cache
 
-                            if let Ok(w) = crate::RUNNING.read() {
-                                if !*w {
-                                    return;
-                                }
-                            }
-
-                            if asset_file.exists() {
-                                sender
-                                    .send_blocking(crate::ui::messages::Msg::StartAssetProcessing)
-                                    .unwrap();
-                                if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
-                                    if let Ok(asset) = serde_json::from_reader(f) {
-                                        sender
-                                            .send_blocking(
-                                                crate::ui::messages::Msg::ProcessAssetInfo(asset),
-                                            )
-                                            .unwrap();
+                                    if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                                        return;
                                     }
-                                };
+
+                                    if asset_file.exists() {
+                                        let _ = sender.send_blocking(
+                                            crate::ui::messages::Msg::StartAssetProcessing,
+                                        );
+                                        if let Ok(f) = std::fs::File::open(asset_file.as_path()) {
+                                            if let Ok(asset) = serde_json::from_reader(f) {
+                                                let _ = sender.send_blocking(
+                                                    crate::ui::messages::Msg::ProcessAssetInfo(
+                                                        asset,
+                                                    ),
+                                                );
+                                            }
+                                        };
+                                    }
+                                });
                             }
-                        });
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to read cache directory: {}", e);
                     }
                 }
             };
@@ -1114,11 +1321,7 @@ impl EpicLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             // Start loading assets from the API
             self_.asset_load_pool.execute(move || {
-                let mut assets = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.list_assets(None, None));
+                let mut assets = crate::RUNTIME.block_on(eg.list_assets(None, None));
                 assets.sort_by(|a, b| {
                     let contains_a = cached.contains(&a.catalog_item_id);
                     let contains_b = cached.contains(&b.catalog_item_id);
@@ -1133,12 +1336,8 @@ impl EpicLibraryBox {
                     }
                 });
                 for asset in assets {
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::StartAssetProcessing)
-                        .unwrap();
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessEpicAsset(asset))
-                        .unwrap();
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::StartAssetProcessing);
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessEpicAsset(asset));
                 }
             });
             self.refresh_state_changed();
@@ -1176,11 +1375,31 @@ impl EpicLibraryBox {
             // Write the Epic Asset file
             self_.asset_load_pool.execute(move || {
                 cache_dir_c.push("epic_asset.json");
-                fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
-                if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
-                    asset_file
-                        .write_all(serde_json::to_string(&ea).unwrap().as_bytes().as_ref())
-                        .unwrap();
+                let Some(parent) = cache_dir_c.parent() else {
+                    error!("Missing parent directory for epic asset cache");
+                    return;
+                };
+                if let Err(e) = fs::create_dir_all(parent) {
+                    error!("Failed to create epic asset cache directory: {}", e);
+                    return;
+                }
+                let asset_file = File::create(cache_dir_c.as_path());
+                let mut asset_file = match asset_file {
+                    Ok(asset_file) => asset_file,
+                    Err(e) => {
+                        error!("Failed to create epic asset cache file: {}", e);
+                        return;
+                    }
+                };
+                let payload = match serde_json::to_string(&ea) {
+                    Ok(payload) => payload,
+                    Err(e) => {
+                        error!("Failed to serialize epic asset: {}", e);
+                        return;
+                    }
+                };
+                if let Err(e) = asset_file.write_all(payload.as_bytes()) {
+                    error!("Failed to write epic asset cache file: {}", e);
                 }
             });
 
@@ -1189,28 +1408,36 @@ impl EpicLibraryBox {
             let mut cache_dir_c = cache_dir;
             let epic_asset = epic_asset.clone();
             self_.asset_load_pool.execute(move || {
-                if let Ok(w) = crate::RUNNING.read() {
-                    if !*w {
-                        return;
-                    }
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
                 }
-                if let Some(asset) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.asset_info(epic_asset.clone()))
-                {
+                if let Some(asset) = crate::RUNTIME.block_on(eg.asset_info(&epic_asset)) {
                     // TODO: Check with already added assets to see if it needs updating
                     cache_dir_c.push("asset_info.json");
-                    fs::create_dir_all(cache_dir_c.parent().unwrap()).unwrap();
-                    if let Ok(mut asset_file) = File::create(cache_dir_c.as_path()) {
-                        asset_file
-                            .write_all(serde_json::to_string(&asset).unwrap().as_bytes().as_ref())
-                            .unwrap();
+                    if let Some(parent) = cache_dir_c.parent() {
+                        if let Err(e) = fs::create_dir_all(parent) {
+                            error!("Failed to create asset info cache directory: {}", e);
+                        } else {
+                            match File::create(cache_dir_c.as_path()) {
+                                Ok(mut asset_file) => match serde_json::to_string(&asset) {
+                                    Ok(payload) => {
+                                        if let Err(e) = asset_file.write_all(payload.as_bytes()) {
+                                            error!("Failed to write asset info cache file: {}", e);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("Failed to serialize asset info: {}", e);
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Failed to create asset info cache file: {}", e);
+                                }
+                            }
+                        }
+                    } else {
+                        error!("Missing parent directory for asset info cache");
                     }
-                    sender
-                        .send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset))
-                        .unwrap();
+                    let _ = sender.send_blocking(crate::ui::messages::Msg::ProcessAssetInfo(asset));
                 }
             });
         }
@@ -1229,7 +1456,9 @@ impl EpicLibraryBox {
         // Search in grid_model (not loaded_data) because that's what the widgets are bound to
         for i in 0..self_.grid_model.n_items() {
             if let Some(obj) = self_.grid_model.item(i) {
-                let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
+                let data = obj
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap();
                 if data.id() == id {
                     data.set_downloading(downloading);
                     if !downloading {
@@ -1246,7 +1475,9 @@ impl EpicLibraryBox {
         // Search in grid_model (not loaded_data) because that's what the widgets are bound to
         for i in 0..self_.grid_model.n_items() {
             if let Some(obj) = self_.grid_model.item(i) {
-                let data = obj.downcast_ref::<crate::models::asset_data::AssetData>().unwrap();
+                let data = obj
+                    .downcast_ref::<crate::models::asset_data::AssetData>()
+                    .unwrap();
                 if data.id() == id {
                     data.set_download_info(progress, speed);
                     return;
