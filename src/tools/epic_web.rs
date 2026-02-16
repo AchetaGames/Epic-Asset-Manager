@@ -105,7 +105,7 @@ impl EpicWeb {
     pub fn validate_eula(&self) -> bool {
         match self
             .client
-            .get("https://www.unrealengine.com/api/cosmos/eula/accept?eulaId=unreal_engine&locale=en")
+            .get("https://www.unrealengine.com/api/cosmos/eula/accept?eulaId=unreal_engine2&locale=en")
             .header("Accept", "application/json")
             .send()
         {
