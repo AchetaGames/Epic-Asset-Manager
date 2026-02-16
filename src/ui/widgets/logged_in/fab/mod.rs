@@ -988,10 +988,14 @@ impl FabLibraryBox {
                 let formats = crate::RUNTIME
                     .block_on(eg.fab_listing_ue_formats(&uid))
                     .unwrap_or_default();
+                let owned = crate::RUNTIME
+                    .block_on(eg.fab_listing_state(&uid))
+                    .and_then(|s| s.acquired)
+                    .unwrap_or(false);
 
                 if let Some(detail) = detail {
                     let _ = sender.send_blocking(
-                        crate::ui::messages::Msg::ProcessFabListingDetail(detail, formats),
+                        crate::ui::messages::Msg::ProcessFabListingDetail(detail, formats, owned),
                     );
                 }
             });

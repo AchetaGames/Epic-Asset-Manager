@@ -22,7 +22,7 @@ pub enum Msg {
     FlushFabAssets,
     ProcessFabBrowseResult(FabAsset, Option<gtk4::gdk::Texture>),
     FlushFabBrowseResults(Option<String>),
-    ProcessFabListingDetail(FabListingDetail, Vec<FabListingUeFormat>),
+    ProcessFabListingDetail(FabListingDetail, Vec<FabListingUeFormat>, bool),
     FabTaxonomyLoaded(Vec<FabTagGroup>),
     #[cfg(target_os = "linux")]
     DockerClient(ghregistry::Client),

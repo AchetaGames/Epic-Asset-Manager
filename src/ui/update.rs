@@ -50,10 +50,10 @@ impl Update for EpicAssetManagerWindow {
             Msg::FlushFabBrowseResults(cursor) => {
                 self_.logged_in_stack.flush_fab_browse_results(cursor);
             }
-            Msg::ProcessFabListingDetail(detail, formats) => {
+            Msg::ProcessFabListingDetail(detail, formats, owned) => {
                 self_
                     .logged_in_stack
-                    .show_fab_listing_detail(&detail, &formats);
+                    .show_fab_listing_detail(&detail, &formats, owned);
             }
             Msg::FabTaxonomyLoaded(groups) => {
                 self_.logged_in_stack.load_fab_taxonomy(groups);

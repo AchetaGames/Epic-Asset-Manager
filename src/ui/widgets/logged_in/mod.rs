@@ -260,9 +260,10 @@ impl EpicLoggedInBox {
         &self,
         detail: &egs_api::api::types::fab_search::FabListingDetail,
         formats: &[egs_api::api::types::fab_search::FabListingUeFormat],
+        owned: bool,
     ) {
         let self_ = self.imp();
-        self_.details.set_fab_listing_detail(detail, formats);
+        self_.details.set_fab_listing_detail(detail, formats, owned);
     }
 
     pub fn load_fab_taxonomy(&self, groups: Vec<egs_api::api::types::fab_taxonomy::FabTagGroup>) {

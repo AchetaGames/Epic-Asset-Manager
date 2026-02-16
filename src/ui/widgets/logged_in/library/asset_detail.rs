@@ -739,6 +739,7 @@ impl EpicAssetDetails {
         &self,
         detail: &FabListingDetail,
         formats: &[FabListingUeFormat],
+        owned: bool,
     ) {
         let self_ = self.imp();
 
@@ -773,6 +774,10 @@ impl EpicAssetDetails {
 
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el);
+        }
+
+        if owned {
+            self.add_info_row("<b>Owned</b>");
         }
 
         if let Some(user) = &detail.user {
