@@ -46,12 +46,12 @@ pub mod imp {
         pub browse_model: ListStore,
         pub filter_model: gtk4::FilterListModel,
         pub browse_filter_model: gtk4::FilterListModel,
-        pub search: RefCell<Option<String>>,
         pub browse_mode: RefCell<bool>,
         pub browse_cursor: RefCell<Option<String>>,
+        pub browse_known_ids: RefCell<HashSet<String>>,
+        pub search: RefCell<Option<String>>,
         /// Tracks asset IDs already in the grid to avoid duplicates on refresh
         pub known_asset_ids: RefCell<HashSet<String>>,
-        pub browse_known_ids: RefCell<HashSet<String>>,
         /// Sorted set of known category names for the dropdown
         pub category_names: RefCell<BTreeSet<String>>,
         /// Parallel index: position 0 = "" (All), then sorted category names
@@ -90,11 +90,11 @@ pub mod imp {
                     None::<gtk4::gio::ListStore>,
                     None::<gtk4::CustomFilter>,
                 ),
-                search: RefCell::new(None),
                 browse_mode: RefCell::new(false),
                 browse_cursor: RefCell::new(None),
-                known_asset_ids: RefCell::new(HashSet::new()),
                 browse_known_ids: RefCell::new(HashSet::new()),
+                search: RefCell::new(None),
+                known_asset_ids: RefCell::new(HashSet::new()),
                 category_names: RefCell::new(BTreeSet::new()),
                 category_filter_names: RefCell::new(vec![String::new()]),
                 image_load_pool: ThreadPool::with_name("fab_image_pool".to_string(), 10),
@@ -189,17 +189,27 @@ impl FabLibraryBox {
             #[weak(rename_to=fab)]
             self,
             move |entry| {
-                let text = entry.text();
                 if *fab.imp().browse_mode.borrow() {
-                    fab.search_marketplace(&text);
+                    return;
+                }
+                let text = entry.text();
+                let search = if text.is_empty() {
+                    None
                 } else {
-                    let search = if text.is_empty() {
-                        None
-                    } else {
-                        Some(text.to_string())
-                    };
-                    fab.imp().search.replace(search);
-                    fab.update_filter();
+                    Some(text.to_string())
+                };
+                fab.imp().search.replace(search);
+                fab.update_filter();
+            }
+        ));
+
+        self_.fab_search.connect_activate(clone!(
+            #[weak(rename_to=fab)]
+            self,
+            move |entry| {
+                if *fab.imp().browse_mode.borrow() {
+                    let text = entry.text();
+                    fab.search_marketplace(&text);
                 }
             }
         ));
@@ -299,11 +309,13 @@ impl FabLibraryBox {
         factory.connect_bind(move |_, list_item| {
             let item = list_item.downcast_ref::<gtk4::ListItem>().unwrap();
             if let Some(data) = item.item() {
-                if let Some(fab_data) =
-                    data.downcast_ref::<crate::models::fab_data::FabData>()
-                {
-                    if let Some(child) = item.child() {
-                        if let Some(asset) = child.downcast_ref::<crate::ui::widgets::logged_in::library::asset::EpicAsset>() {
+                if let Some(child) = item.child() {
+                    if let Some(asset) = child
+                        .downcast_ref::<crate::ui::widgets::logged_in::library::asset::EpicAsset>(
+                    ) {
+                        if let Some(fab_data) =
+                            data.downcast_ref::<crate::models::fab_data::FabData>()
+                        {
                             asset.set_fab_data(fab_data);
                         }
                     }
@@ -312,48 +324,22 @@ impl FabLibraryBox {
         });
 
         self_.filter_model.set_model(Some(&self_.grid_model));
+        self_
+            .browse_filter_model
+            .set_model(Some(&self_.browse_model));
+        self.bind_grid_model(&self_.filter_model);
+        self_.fab_grid.set_factory(Some(&factory));
+    }
 
+    fn bind_grid_model(&self, model: &gtk4::FilterListModel) {
+        let self_ = self.imp();
         let selection_model = gtk4::SingleSelection::builder()
-            .model(&self_.filter_model)
+            .model(model)
             .autoselect(false)
             .can_unselect(true)
             .build();
 
         self_.fab_grid.set_model(Some(&selection_model));
-        self_.fab_grid.set_factory(Some(&factory));
-    }
-
-    fn set_browse_mode(&self, browse: bool) {
-        let self_ = self.imp();
-        self_.browse_mode.replace(browse);
-
-        if browse {
-            self_.filter_model.set_model(Some(&self_.browse_model));
-            self_
-                .fab_search
-                .set_placeholder_text(Some("Search Fab marketplace..."));
-            self_.downloaded_filter.set_visible(false);
-            self_.favorites_filter.set_visible(false);
-            self_.category_dropdown.set_visible(false);
-            let has_cursor = self_.browse_cursor.borrow().is_some();
-            self_.load_more_button.set_visible(has_cursor);
-            if self_.browse_model.n_items() > 0 {
-                self.update_filter();
-            } else {
-                self.fetch_browse_results(None);
-            }
-        } else {
-            self_.filter_model.set_model(Some(&self_.grid_model));
-            self_
-                .fab_search
-                .set_placeholder_text(Some("Search FAB assets..."));
-            self_.downloaded_filter.set_visible(true);
-            self_.favorites_filter.set_visible(true);
-            self_.category_dropdown.set_visible(true);
-            self_.load_more_button.set_visible(false);
-            self.update_filter();
-        }
-        self.update_count();
     }
 
     fn update_filter(&self) {
@@ -374,6 +360,14 @@ impl FabLibraryBox {
                     .filter(|n| !n.is_empty())
                     .cloned()
             };
+
+        if *self_.browse_mode.borrow() {
+            self_
+                .browse_filter_model
+                .set_filter(None::<&gtk4::CustomFilter>);
+            self.update_count();
+            return;
+        }
 
         if search.is_none() && !downloaded_only && !favorites_only && category_filter.is_none() {
             self_.filter_model.set_filter(None::<&gtk4::CustomFilter>);
@@ -406,144 +400,48 @@ impl FabLibraryBox {
 
     fn update_count(&self) {
         let self_ = self.imp();
-        let count = self_.filter_model.n_items();
+        let count = if *self_.browse_mode.borrow() {
+            self_.browse_filter_model.n_items()
+        } else {
+            self_.filter_model.n_items()
+        };
         self_.count_label.set_label(&format!("{} assets", count));
-    }
-
-    fn search_listing_to_fab_asset(
-        listing: &egs_api::api::types::fab_search::FabSearchListing,
-    ) -> egs_api::api::types::fab_library::FabAsset {
-        use egs_api::api::types::fab_library::{Category, FabAsset, Image};
-
-        let categories = listing
-            .category
-            .as_ref()
-            .map(|cat| {
-                vec![Category {
-                    id: cat.uid.clone().unwrap_or_default(),
-                    name: cat.name.clone(),
-                }]
-            })
-            .unwrap_or_default();
-
-        let images = listing
-            .thumbnails
-            .as_ref()
-            .map(|thumbs| {
-                thumbs
-                    .iter()
-                    .map(|thumb| Image {
-                        height: String::new(),
-                        md5: None,
-                        type_field: thumb.thumbnail_type.clone().unwrap_or_default(),
-                        uploaded_date: String::new(),
-                        url: thumb.media_url.clone().unwrap_or_default(),
-                        width: String::new(),
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        FabAsset {
-            asset_id: listing.uid.clone(),
-            asset_namespace: String::new(),
-            categories,
-            custom_attributes: Vec::new(),
-            description: String::new(),
-            distribution_method: String::new(),
-            images,
-            legacy_item_id: None,
-            project_versions: Vec::new(),
-            source: String::new(),
-            title: listing.title.clone().unwrap_or_default(),
-            url: String::new(),
-        }
-    }
-
-    fn clear_browse_results(&self) {
-        let self_ = self.imp();
-        self_.browse_model.remove_all();
-        self_.browse_known_ids.borrow_mut().clear();
-        self_.browse_cursor.replace(None);
-        self_.load_more_button.set_visible(false);
-        self_.refresh_progress.set_visible(false);
-        self.update_count();
     }
 
     fn search_marketplace(&self, query: &str) {
         let self_ = self.imp();
-        if query.is_empty() {
-            self_.search.replace(None);
-            self.clear_browse_results();
-            return;
-        }
+        let search = if query.is_empty() {
+            None
+        } else {
+            Some(query.to_string())
+        };
+        self_.search.replace(search);
 
-        self_.search.replace(Some(query.to_string()));
-        if self_.browse_model.n_items() == 0 {
-            self_.refresh_progress.set_visible(true);
+        // Server-side search: clear existing results and re-fetch with query
+        self_.browse_cursor.replace(None);
+        self_.browse_known_ids.borrow_mut().clear();
+        self_.browse_model.remove_all();
+        self.fetch_browse_results(None);
+    }
+
+    fn set_browse_mode(&self, browse: bool) {
+        let self_ = self.imp();
+        self_.browse_mode.replace(browse);
+        if browse {
+            self_.browse_cursor.replace(None);
+            self_.browse_known_ids.borrow_mut().clear();
+            self_.browse_model.remove_all();
             self.fetch_browse_results(None);
+        } else {
+            self_.load_more_button.set_visible(false);
         }
+        self.bind_grid_model(if browse {
+            &self_.browse_filter_model
+        } else {
+            &self_.filter_model
+        });
         self.update_filter();
-    }
-
-    fn load_more_browse_results(&self) {
-        let self_ = self.imp();
-        if !*self_.browse_mode.borrow() {
-            return;
-        }
-        if let Some(cursor) = self_.browse_cursor.borrow().clone() {
-            self_.refresh_progress.set_visible(true);
-            self.fetch_browse_results(Some(cursor));
-        }
-    }
-
-    fn fetch_browse_results(&self, cursor: Option<String>) {
-        let self_ = self.imp();
-        if let Some(window) = self.main_window() {
-            let win_ = window.imp();
-            let eg = win_.model.borrow().epic_games.borrow().clone();
-            let sender = win_.model.borrow().sender.clone();
-            let cache_dir = self_.settings.string("cache-directory").to_string();
-
-            self_.image_load_pool.execute(move || {
-                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
-                    return;
-                }
-
-                use egs_api::api::types::fab_search::FabSearchParams;
-                let params = FabSearchParams {
-                    channels: Some("unreal-engine".to_string()),
-                    sort_by: Some("-createdAt".to_string()),
-                    count: Some(40),
-                    cursor,
-                    ..Default::default()
-                };
-
-                match crate::RUNTIME.block_on(eg.try_fab_search(&params)) {
-                    Ok(results) => {
-                        let next_cursor = results.cursors.as_ref().and_then(|c| c.next.clone());
-                        for listing in &results.results {
-                            if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
-                                return;
-                            }
-                            let asset = Self::search_listing_to_fab_asset(listing);
-                            let texture = Self::load_fab_thumbnail(&asset, &cache_dir);
-                            let _ = sender.send_blocking(
-                                crate::ui::messages::Msg::ProcessFabBrowseResult(asset, texture),
-                            );
-                        }
-                        let _ = sender.send_blocking(
-                            crate::ui::messages::Msg::FlushFabBrowseResults(next_cursor),
-                        );
-                    }
-                    Err(e) => {
-                        error!("Fab browse failed: {:?}", e);
-                        let _ = sender
-                            .send_blocking(crate::ui::messages::Msg::FlushFabBrowseResults(None));
-                    }
-                }
-            });
-        }
+        self.update_count();
     }
 
     fn add_asset_categories(&self, asset: &egs_api::api::types::fab_library::FabAsset) {
@@ -847,11 +745,120 @@ impl FabLibraryBox {
 
     pub fn flush_fab_browse_results(&self, cursor: Option<String>) {
         let self_ = self.imp();
-        self_.browse_cursor.replace(cursor.clone());
-        let show_load_more = cursor.is_some() && *self_.browse_mode.borrow();
-        self_.load_more_button.set_visible(show_load_more);
+        self_.browse_cursor.replace(cursor);
         self_.refresh_progress.set_visible(false);
+        let show_load_more =
+            *self_.browse_mode.borrow() && self_.browse_cursor.borrow().as_ref().is_some();
+        self_.load_more_button.set_visible(show_load_more);
         self.update_count();
+    }
+
+    pub fn fetch_browse_results(&self, cursor: Option<String>) {
+        let self_ = self.imp();
+        self_.refresh_progress.set_visible(true);
+
+        if let Some(window) = self.main_window() {
+            let win_ = window.imp();
+            let eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
+            let search_text = self_.search.borrow().clone();
+
+            self_.image_load_pool.execute(move || {
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+
+                use egs_api::api::types::fab_search::FabSearchParams;
+                let mut params = FabSearchParams::default();
+                params.channels = Some("unreal-engine".to_string());
+                params.count = Some(40);
+                params.sort_by = Some("-createdAt".to_string());
+                params.cursor = cursor;
+                params.q = search_text;
+
+                match crate::RUNTIME.block_on(eg.try_fab_search(&params)) {
+                    Ok(results) => {
+                        for listing in results.results {
+                            if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                                return;
+                            }
+
+                            let mut asset = egs_api::api::types::fab_library::FabAsset::default();
+                            asset.asset_id = listing.uid.clone();
+                            asset.title = listing.title.clone().unwrap_or_default();
+                            asset.url = format!("https://www.fab.com/listings/{}", listing.uid);
+                            if let Some(cat) = listing.category.as_ref() {
+                                asset.categories =
+                                    vec![egs_api::api::types::fab_library::Category {
+                                        id: String::new(),
+                                        name: cat.name.clone(),
+                                    }];
+                            }
+                            if let Some(thumbs) = listing.thumbnails.as_ref() {
+                                if let Some(url) =
+                                    thumbs.iter().find_map(|thumb| thumb.media_url.clone())
+                                {
+                                    asset.images = vec![egs_api::api::types::fab_library::Image {
+                                        height: String::new(),
+                                        md5: None,
+                                        type_field: "thumbnail".to_string(),
+                                        uploaded_date: String::new(),
+                                        url: url.clone(),
+                                        width: String::new(),
+                                    }];
+                                }
+                            }
+
+                            let texture = listing.thumbnails.as_ref().and_then(|thumbs| {
+                                thumbs.iter().find_map(|thumb| {
+                                    thumb.media_url.clone().and_then(|url| {
+                                        reqwest::blocking::get(url)
+                                            .ok()
+                                            .and_then(|response| response.bytes().ok())
+                                            .and_then(|bytes| {
+                                                let bytes = glib::Bytes::from_owned(bytes.to_vec());
+                                                gtk4::gdk::Texture::from_bytes(&bytes).ok()
+                                            })
+                                    })
+                                })
+                            });
+
+                            sender
+                                .send_blocking(crate::ui::messages::Msg::ProcessFabBrowseResult(
+                                    asset, texture,
+                                ))
+                                .unwrap();
+                        }
+
+                        let next_cursor = results.cursors.as_ref().and_then(|c| c.next.clone());
+                        sender
+                            .send_blocking(crate::ui::messages::Msg::FlushFabBrowseResults(
+                                next_cursor,
+                            ))
+                            .unwrap();
+                    }
+                    Err(e) => {
+                        error!("Failed to fetch FAB browse results: {}", e);
+                        sender
+                            .send_blocking(crate::ui::messages::Msg::FlushFabBrowseResults(None))
+                            .unwrap();
+                    }
+                }
+            });
+        }
+    }
+
+    pub fn load_more_browse_results(&self) {
+        let cursor = self.imp().browse_cursor.borrow().clone();
+        self.fetch_browse_results(cursor);
+    }
+
+    pub fn clear_browse_results(&self) {
+        let self_ = self.imp();
+        self_.browse_model.remove_all();
+        self_.browse_known_ids.borrow_mut().clear();
+        self_.browse_cursor.replace(None);
+        self_.load_more_button.set_visible(false);
     }
 
     pub fn clear(&self) {
@@ -863,6 +870,9 @@ impl FabLibraryBox {
         let model = gtk4::StringList::new(&["All"]);
         self_.category_dropdown.set_model(Some(&model));
         self_.category_dropdown.set_selected(0);
+        if *self_.browse_mode.borrow() {
+            self_.browse_model.remove_all();
+        }
         self.update_count();
     }
 

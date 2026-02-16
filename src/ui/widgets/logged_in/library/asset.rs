@@ -32,6 +32,7 @@ pub mod imp {
         pub download_info: TemplateChild<gtk4::Label>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
         pub fab_data: RefCell<Option<crate::models::fab_data::FabData>>,
+        pub fab_search_data: RefCell<Option<crate::models::fab_search_data::FabSearchData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
 
@@ -59,6 +60,7 @@ pub mod imp {
                 download_info: TemplateChild::default(),
                 data: RefCell::new(None),
                 fab_data: RefCell::new(None),
+                fab_search_data: RefCell::new(None),
                 handler: RefCell::new(None),
             }
         }
@@ -557,6 +559,7 @@ impl EpicAsset {
             }
         }
         self_.fab_data.replace(Some(data.clone()));
+        self_.fab_search_data.replace(None);
         self.set_property("label", data.name());
         self.set_property("thumbnail", data.image());
         self.set_property("favorite", data.favorite());
@@ -618,5 +621,45 @@ impl EpicAsset {
             };
             self_.download_info.set_label(&info_text);
         }
+    }
+
+    pub fn set_fab_search_data(&self, data: &crate::models::fab_search_data::FabSearchData) {
+        let self_ = self.imp();
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+
+        self_.fab_data.replace(None);
+        self_.fab_search_data.replace(Some(data.clone()));
+        self.set_property("label", data.title());
+        self.set_property("thumbnail", data.image());
+        self.set_property("favorite", false);
+        self.set_property("downloaded", false);
+        self.set_property("is-fab", true);
+        self.set_property("kind", Some("marketplace".to_string()));
+        self.update_action_label();
+
+        self_.handler.replace(Some(data.connect_local(
+            "refreshed",
+            false,
+            clone!(
+                #[weak(rename_to=asset)]
+                self,
+                #[weak]
+                data,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    asset.set_property("thumbnail", data.image());
+                    None
+                }
+            ),
+        )));
+
+        self_.progress_bar.set_visible(false);
+        self_.download_info.set_visible(false);
+        self_.progress_bar.set_fraction(0.0);
     }
 }

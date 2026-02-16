@@ -15,15 +15,15 @@
                 <property name="margin-top">8</property>
                 <property name="margin-bottom">8</property>
                 <child>
-                    <object class="GtkSearchEntry" id="fab_search">
-                        <property name="placeholder-text" translatable="yes">Search FAB assets...</property>
-                        <property name="hexpand">true</property>
-                    </object>
-                </child>
-                <child>
                     <object class="GtkToggleButton" id="browse_toggle">
                         <property name="icon-name">globe-symbolic</property>
                         <property name="tooltip-text" translatable="yes">Browse Marketplace</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkSearchEntry" id="fab_search">
+                        <property name="placeholder-text" translatable="yes">Search assets...</property>
+                        <property name="hexpand">true</property>
                     </object>
                 </child>
                 <child>
@@ -77,15 +77,16 @@
             </object>
         </child>
 
-        <!-- Load more button -->
         <child>
             <object class="GtkBox">
                 <property name="margin-start">16</property>
                 <property name="margin-end">16</property>
                 <property name="margin-bottom">6</property>
+                <property name="spacing">8</property>
                 <child>
                     <object class="GtkButton" id="load_more_button">
                         <property name="label" translatable="yes">Load More Results</property>
+                        <property name="halign">center</property>
                         <property name="visible">false</property>
                     </object>
                 </child>
