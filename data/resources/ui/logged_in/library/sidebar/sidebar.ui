@@ -53,14 +53,29 @@
                         </child>
                     </object>
                 </child>
-                <!-- Marketplace button at bottom of nav strip -->
+                <!-- Browser buttons at bottom of nav strip -->
                 <child>
                     <object class="GtkBox">
+                        <property name="orientation">vertical</property>
                         <property name="vexpand">true</property>
                         <property name="valign">end</property>
                         <property name="margin-start">5</property>
                         <property name="margin-end">4</property>
                         <property name="margin-bottom">6</property>
+                        <property name="spacing">4</property>
+                        <child>
+                            <object class="GtkButton" id="fab_button">
+                                <property name="action-name">sidebar.fab</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="tooltip-text" translatable="yes">Open Fab</property>
+                                <child>
+                                    <object class="GtkImage">
+                                        <property name="icon-name">emblem-shared-symbolic</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
                         <child>
                             <object class="GtkButton" id="marketplace_button">
                                 <property name="action-name">sidebar.marketplace</property>

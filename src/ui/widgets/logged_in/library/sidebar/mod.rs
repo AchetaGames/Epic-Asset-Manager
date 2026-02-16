@@ -155,6 +155,18 @@ impl EpicSidebar {
                 }
             )
         );
+
+        action!(
+            self_.actions,
+            "fab",
+            clone!(
+                #[weak(rename_to=sidebar)]
+                self,
+                move |_, _| {
+                    sidebar.open_fab();
+                }
+            )
+        );
     }
 
     fn open_marketplace(&self) {
@@ -166,7 +178,7 @@ impl EpicSidebar {
 
             glib::spawn_future_local(async move {
                 while let Ok(response) = receiver.recv().await {
-                    open_browser(&response);
+                    open_marketplace_browser(&response);
                 }
             });
 
@@ -177,6 +189,10 @@ impl EpicSidebar {
                 }
             });
         }
+    }
+
+    fn open_fab(&self) {
+        open_fab_browser();
     }
 
     pub fn set_filter(&self, filter: Option<String>, path: Option<String>) {
@@ -200,11 +216,22 @@ impl EpicSidebar {
     }
 }
 
-fn open_browser(code: &str) {
+fn open_marketplace_browser(code: &str) {
+    let url = format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace");
     #[cfg(target_os = "linux")]
-    if gio::AppInfo::launch_default_for_uri(&format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace"), None::<&gio::AppLaunchContext>).is_err() {
-        error!("Please go to https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace");
+    if gio::AppInfo::launch_default_for_uri(&url, None::<&gio::AppLaunchContext>).is_err() {
+        error!("Please go to {url}");
     }
     #[cfg(target_os = "windows")]
-    open::that(format!("https://www.epicgames.com/id/exchange?exchangeCode={code}&redirectUrl=https%3A%2F%2Fwww.unrealengine.com%2Fmarketplace"));
+    open::that(&url);
+}
+
+fn open_fab_browser() {
+    let url = "https://www.fab.com/library";
+    #[cfg(target_os = "linux")]
+    if gio::AppInfo::launch_default_for_uri(url, None::<&gio::AppLaunchContext>).is_err() {
+        error!("Please go to {url}");
+    }
+    #[cfg(target_os = "windows")]
+    open::that(url);
 }
