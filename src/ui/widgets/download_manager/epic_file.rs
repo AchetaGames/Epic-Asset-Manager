@@ -1,6 +1,6 @@
 use crate::ui::widgets::download_manager::{download_item, Msg, ThreadMessages};
-use crate::ui::widgets::logged_in::engines::epic_download::Blob;
 use crate::ui::widgets::logged_in::refresh::Refresh;
+use egs_api::api::types::engine_blob::EngineBlob;
 use glib::clone;
 use gtk4::glib;
 use gtk4::prelude::WidgetExt;
@@ -555,7 +555,7 @@ fn run(
     let _ = sender.send_blocking(Msg::EpicFileFinished(ver));
 }
 
-fn filter_versions(versions: Vec<Blob>, version: &str) -> Option<Blob> {
+fn filter_versions(versions: Vec<EngineBlob>, version: &str) -> Option<EngineBlob> {
     versions.into_iter().find(|ver| ver.name.eq(version))
 }
 

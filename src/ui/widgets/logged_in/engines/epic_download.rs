@@ -1,5 +1,5 @@
-use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
+use egs_api::api::types::engine_blob::EngineBlob;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -7,7 +7,6 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::error;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::thread;
 use version_compare::Cmp;
@@ -15,22 +14,7 @@ use version_compare::Cmp;
 #[derive(Debug, Clone)]
 pub enum Msg {
     EULAValid(bool),
-    Versions(Vec<Blob>),
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VersionResponse {
-    pub blobs: Vec<Blob>,
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Blob {
-    pub name: String,
-    pub created_at: String,
-    pub size: u64,
-    pub url: String,
+    Versions(Vec<EngineBlob>),
 }
 
 pub mod imp {
@@ -67,7 +51,7 @@ pub mod imp {
         pub actions: gio::SimpleActionGroup,
         pub sender: async_channel::Sender<Msg>,
         pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
-        pub engine_versions: RefCell<Option<HashMap<String, Blob>>>,
+        pub engine_versions: RefCell<Option<HashMap<String, EngineBlob>>>,
     }
 
     #[glib::object_subclass]
@@ -375,7 +359,7 @@ impl EpicEngineDownload {
             }
             Msg::Versions(versions) => {
                 let model = gtk4::StringList::new(&[] as &[&str]);
-                let mut result: HashMap<String, Blob> = HashMap::new();
+                let mut result: HashMap<String, EngineBlob> = HashMap::new();
                 for version in versions {
                     let re =
                         Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
@@ -444,30 +428,39 @@ impl EpicEngineDownload {
             };
             thread::spawn(move || {
                 if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
-                    let mut web = EpicWeb::new();
-                    web.start_session(token.code);
-                    sender
-                        .send_blocking(Msg::EULAValid(web.validate_eula()))
-                        .unwrap();
-                };
+                    if let Err(e) = crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
+                        error!("Failed to setup Cosmos session: {:?}", e);
+                        sender.send_blocking(Msg::EULAValid(false)).unwrap();
+                        return;
+                    }
+                }
+                let eula_accepted = crate::RUNTIME
+                    .block_on(eg.cosmos_eula_check("unreal_engine2", "en"))
+                    .unwrap_or(false);
+                sender.send_blocking(Msg::EULAValid(eula_accepted)).unwrap();
             });
         }
     }
 
-    pub fn get_versions(&self, sender: async_channel::Sender<Vec<Blob>>) {
+    pub fn get_versions(&self, sender: async_channel::Sender<Vec<EngineBlob>>) {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
                 if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
-                    let mut web = EpicWeb::new();
-                    web.start_session(token.code);
-                    if let Ok(versions) = web.run_query::<VersionResponse>(
-                        "https://www.unrealengine.com/api/blobs/linux".to_string(),
-                    ) {
-                        sender.send_blocking(versions.blobs).unwrap();
-                    };
+                    if let Err(e) = crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
+                        error!("Failed to setup Cosmos session: {:?}", e);
+                        return;
+                    }
+                }
+                match crate::RUNTIME.block_on(eg.try_engine_versions("linux")) {
+                    Ok(response) => {
+                        sender.send_blocking(response.blobs).unwrap();
+                    }
+                    Err(e) => {
+                        error!("Failed to fetch engine versions: {:?}", e);
+                    }
                 }
             });
         }
