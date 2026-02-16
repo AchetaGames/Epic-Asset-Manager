@@ -50,6 +50,11 @@ impl Update for EpicAssetManagerWindow {
             Msg::FlushFabBrowseResults(cursor) => {
                 self_.logged_in_stack.flush_fab_browse_results(cursor);
             }
+            Msg::ProcessFabListingDetail(detail, formats) => {
+                self_
+                    .logged_in_stack
+                    .show_fab_listing_detail(&detail, &formats);
+            }
             Msg::ProcessEpicAsset(epic_asset) => {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }

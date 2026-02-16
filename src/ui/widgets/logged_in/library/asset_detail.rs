@@ -5,6 +5,7 @@ use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
 use egs_api::api::types::fab_library::FabAsset;
+use egs_api::api::types::fab_search::{FabListingDetail, FabListingUeFormat};
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -732,6 +733,144 @@ impl EpicAssetDetails {
         }
 
         self.check_fab_favorite(&fab_asset.asset_id);
+    }
+
+    pub fn set_fab_listing_detail(
+        &self,
+        detail: &FabListingDetail,
+        formats: &[FabListingUeFormat],
+    ) {
+        let self_ = self.imp();
+
+        if !self.is_expanded() {
+            self.set_property("expanded", true);
+            self.set_property("visible", true);
+        }
+
+        self_.asset.replace(None);
+        self_.fab_asset.replace(None);
+
+        self_.details_revealer.set_reveal_child(true);
+        self_.details_revealer.set_vexpand_set(false);
+        self_.actions_revealer.set_reveal_child(false);
+        self_.actions_revealer.set_vexpand(false);
+        self_.download_confirmation_revealer.set_reveal_child(false);
+        self_.download_confirmation_revealer.set_vexpand(false);
+        get_action!(self_.actions, @show_download_details).set_enabled(false);
+        get_action!(self_.actions, @show_asset_details).set_enabled(false);
+        self_.warning.set_revealed(false);
+
+        info!(
+            "Showing Fab listing detail for {}",
+            detail.title.as_deref().unwrap_or("Unknown")
+        );
+        self_
+            .title
+            .set_label(detail.title.as_deref().unwrap_or("Unknown"));
+
+        self_.images.clear();
+        self_.images.set_property("asset", detail.uid.clone());
+
+        while let Some(el) = self_.details_box.first_child() {
+            self_.details_box.remove(&el);
+        }
+
+        if let Some(user) = &detail.user {
+            if let Some(seller) = &user.seller_name {
+                let text = format!("Seller: {}", glib::markup_escape_text(seller));
+                self.add_info_row(&text);
+            }
+        }
+
+        if let Some(category) = &detail.category {
+            if let Some(name) = &category.name {
+                let text = format!("Category: {}", glib::markup_escape_text(name));
+                self.add_info_row(&text);
+            }
+        }
+
+        if let Some(true) = detail.is_free {
+            self.add_info_row("Price: <b>Free</b>");
+        }
+
+        if let Some(ratings) = &detail.ratings {
+            let mut parts = Vec::new();
+            if let Some(avg) = ratings.get("averageRating").and_then(|v| v.as_f64()) {
+                parts.push(format!("★ {:.1}/5", avg));
+            }
+            if let Some(total) = ratings.get("total").and_then(|v| v.as_u64()) {
+                parts.push(format!("{} ratings", total));
+            }
+            if !parts.is_empty() {
+                let text = format!("Rating: {}", parts.join(" · "));
+                self.add_info_row(&text);
+            }
+        }
+
+        let engine_versions: Vec<String> = formats
+            .iter()
+            .filter_map(|f| f.technical_specs.as_ref())
+            .flat_map(|ts| {
+                ts.unreal_engine_engine_versions
+                    .iter()
+                    .flat_map(|v| v.iter().cloned())
+            })
+            .collect();
+        if !engine_versions.is_empty() {
+            let compat = glib::markup_escape_text(&engine_versions.join(", "));
+            let text = format!("Compatible with: {}", compat);
+            self.add_info_row(&text);
+        }
+
+        let platforms: Vec<String> = formats
+            .iter()
+            .filter_map(|f| f.technical_specs.as_ref())
+            .flat_map(|ts| {
+                ts.unreal_engine_target_platforms
+                    .iter()
+                    .flat_map(|v| v.iter().cloned())
+            })
+            .collect();
+        if !platforms.is_empty() {
+            let text = format!(
+                "Platforms: {}",
+                glib::markup_escape_text(&platforms.join(", "))
+            );
+            self.add_info_row(&text);
+        }
+
+        if let Some(tags) = &detail.tags {
+            let tag_names: Vec<String> = tags.iter().filter_map(|t| t.name.clone()).collect();
+            if !tag_names.is_empty() {
+                let text = format!("Tags: {}", glib::markup_escape_text(&tag_names.join(", ")));
+                self.add_info_row(&text);
+            }
+        }
+
+        let fab_url = format!("https://www.fab.com/listings/{}", detail.uid);
+        let text = format!("URL: <a href=\"{}\">{}</a>", fab_url, fab_url);
+        self.add_info_row(&text);
+
+        if let Some(desc) = &detail.description {
+            let text = &html2pango::matrix_html_to_markup(desc).replace("\n\n", "\n");
+            self.add_info_row(text);
+        }
+
+        for format in formats {
+            if let Some(specs) = &format.technical_specs {
+                if let Some(tech_details) = &specs.technical_details {
+                    let text =
+                        &html2pango::matrix_html_to_markup(tech_details).replace("\n\n", "\n");
+                    self.add_info_row(text);
+                }
+            }
+        }
+
+        while let Some(el) = self_.actions_box.first_child() {
+            self_.actions_box.remove(&el);
+        }
+
+        self_.favorite.set_icon_name("non-starred-symbolic");
     }
 
     pub fn open_fab_version_dialog(&self, fab_asset: &FabAsset) {

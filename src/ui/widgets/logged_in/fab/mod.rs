@@ -883,10 +883,38 @@ impl FabLibraryBox {
         let self_ = self.imp();
         if let Some(fab_data) = asset_widget.imp().fab_data.borrow().as_ref() {
             if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
-                if let Some(details) = self_.details.get() {
+                if *self_.browse_mode.borrow() {
+                    self.fetch_listing_detail(&asset.asset_id);
+                } else if let Some(details) = self_.details.get() {
                     details.set_fab_asset(asset);
                 }
             }
+        }
+    }
+
+    fn fetch_listing_detail(&self, uid: &str) {
+        if let Some(window) = self.main_window() {
+            let win_ = window.imp();
+            let eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
+            let uid = uid.to_string();
+
+            self.imp().image_load_pool.execute(move || {
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+
+                let detail = crate::RUNTIME.block_on(eg.fab_listing(&uid));
+                let formats = crate::RUNTIME
+                    .block_on(eg.fab_listing_ue_formats(&uid))
+                    .unwrap_or_default();
+
+                if let Some(detail) = detail {
+                    let _ = sender.send_blocking(
+                        crate::ui::messages::Msg::ProcessFabListingDetail(detail, formats),
+                    );
+                }
+            });
         }
     }
 

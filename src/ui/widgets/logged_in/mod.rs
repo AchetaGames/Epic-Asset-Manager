@@ -256,6 +256,15 @@ impl EpicLoggedInBox {
         self_.fab.flush_fab_browse_results(cursor);
     }
 
+    pub fn show_fab_listing_detail(
+        &self,
+        detail: &egs_api::api::types::fab_search::FabListingDetail,
+        formats: &[egs_api::api::types::fab_search::FabListingUeFormat],
+    ) {
+        let self_ = self.imp();
+        self_.details.set_fab_listing_detail(detail, formats);
+    }
+
     pub fn activate(&self, _active: bool) {
         // No-op in unified view - all sections always visible
     }
