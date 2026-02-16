@@ -18,6 +18,8 @@ pub enum Msg {
     DownloadImage(KeyImage, AssetInfo),
     ProcessFabAsset(FabAsset, Option<gtk4::gdk::Texture>),
     FlushFabAssets,
+    ProcessFabBrowseResult(FabAsset, Option<gtk4::gdk::Texture>),
+    FlushFabBrowseResults(Option<String>),
     #[cfg(target_os = "linux")]
     DockerClient(ghregistry::Client),
     #[cfg(target_os = "linux")]

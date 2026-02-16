@@ -242,6 +242,20 @@ impl EpicLoggedInBox {
         self_.fab.flush_fab_assets();
     }
 
+    pub fn add_fab_browse_result(
+        &self,
+        asset: &egs_api::api::types::fab_library::FabAsset,
+        image: Option<gtk4::gdk::Texture>,
+    ) {
+        let self_ = self.imp();
+        self_.fab.add_fab_browse_result(asset, image);
+    }
+
+    pub fn flush_fab_browse_results(&self, cursor: Option<String>) {
+        let self_ = self.imp();
+        self_.fab.flush_fab_browse_results(cursor);
+    }
+
     pub fn activate(&self, _active: bool) {
         // No-op in unified view - all sections always visible
     }

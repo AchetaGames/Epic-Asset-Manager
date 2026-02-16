@@ -21,6 +21,12 @@
                     </object>
                 </child>
                 <child>
+                    <object class="GtkToggleButton" id="browse_toggle">
+                        <property name="icon-name">globe-symbolic</property>
+                        <property name="tooltip-text" translatable="yes">Browse Marketplace</property>
+                    </object>
+                </child>
+                <child>
                     <object class="GtkDropDown" id="category_dropdown">
                         <property name="tooltip-text" translatable="yes">Filter by category</property>
                     </object>
@@ -68,6 +74,21 @@
                         <property name="margin-bottom">8</property>
                     </object>
                 </property>
+            </object>
+        </child>
+
+        <!-- Load more button -->
+        <child>
+            <object class="GtkBox">
+                <property name="margin-start">16</property>
+                <property name="margin-end">16</property>
+                <property name="margin-bottom">6</property>
+                <child>
+                    <object class="GtkButton" id="load_more_button">
+                        <property name="label" translatable="yes">Load More Results</property>
+                        <property name="visible">false</property>
+                    </object>
+                </child>
             </object>
         </child>
 
