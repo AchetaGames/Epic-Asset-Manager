@@ -1,4 +1,4 @@
-use log::error;
+use log::{debug, error};
 use reqwest::blocking::{Client, ClientBuilder};
 use reqwest::header::HeaderMap;
 use serde::de::DeserializeOwned;
@@ -59,20 +59,23 @@ impl EpicWeb {
                 }
             }
             Err(e) => {
-                error!("Failed to run query: {}", e);
+                error!("Failed to get XSRF token: {}", e);
             }
         }
         let mut map = HashMap::new();
         map.insert("exchangeCode", exchange_token);
-        if let Err(e) = self
+        match self
             .client
             .post("https://www.epicgames.com/id/api/exchange")
             .json(&map)
-            .header("x-xsrf-token", csrf)
+            .header("x-xsrf-token", &csrf)
             .send()
         {
-            error!("Failed to run query: {}", e);
-        };
+            Ok(_) => {}
+            Err(e) => {
+                error!("Failed exchange code: {}", e);
+            }
+        }
         let mut sid = String::new();
         match self
             .client
@@ -84,22 +87,40 @@ impl EpicWeb {
                     sid = response.sid;
                 }
                 Err(e) => {
-                    error!("Error parsing json: {:?}", e);
+                    error!("Error parsing redirect json: {:?}", e);
                 }
             },
             Err(e) => {
-                error!("Failed to run query: {}", e);
+                error!("Failed to get redirect SID: {}", e);
             }
         }
-        if let Err(e) = self
+        match self
             .client
             .get(format!(
                 "https://www.unrealengine.com/id/api/set-sid?sid={sid}"
             ))
             .send()
         {
-            error!("Failed to run query: {}", e);
-        };
+            Ok(r) => {
+                debug!("set-sid status={}", r.status());
+            }
+            Err(e) => {
+                error!("Failed set-sid: {}", e);
+            }
+        }
+        match self
+            .client
+            .get("https://www.unrealengine.com/api/cosmos/auth")
+            .header("Accept", "application/json")
+            .send()
+        {
+            Ok(r) => {
+                debug!("cosmos/auth status={}", r.status());
+            }
+            Err(e) => {
+                error!("Failed cosmos auth upgrade: {}", e);
+            }
+        }
     }
 
     pub fn validate_eula(&self) -> bool {
@@ -112,7 +133,7 @@ impl EpicWeb {
             Ok(r) => match r.json::<CosmosEulaAcceptResponse>() {
                 Ok(response) => response.accepted,
                 Err(e) => {
-                    error!("Failed to parse EULA acceptance response: {}", e);
+                    error!("Failed to parse EULA response: {}", e);
                     false
                 }
             },
