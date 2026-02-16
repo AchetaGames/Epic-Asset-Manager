@@ -2,10 +2,21 @@ use crate::window::EpicAssetManagerWindow;
 use chrono::{DateTime, Utc};
 use gtk4::prelude::SettingsExt;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
-use log::debug;
+use log::{debug, warn};
 use std::thread;
 
 impl EpicAssetManagerWindow {
+    /// Establish a Cosmos session after login so engine EULA checks and
+    /// version queries can reuse the shared cookie jar without re-auth.
+    fn setup_cosmos_session(eg: &mut egs_api::EpicGames) {
+        if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
+            match crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
+                Ok(_) => debug!("Cosmos session established"),
+                Err(e) => warn!("Failed to establish Cosmos session: {:?}", e),
+            }
+        }
+    }
+
     pub fn login(&self, sid: String) {
         let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
         self_.main_stack.set_visible_child_name("progress");
@@ -16,6 +27,7 @@ impl EpicAssetManagerWindow {
         thread::spawn(move || {
             let start = std::time::Instant::now();
             if crate::RUNTIME.block_on(eg.auth_code(None, Some(s))) {
+                Self::setup_cosmos_session(&mut eg);
                 sender
                     .send_blocking(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();
@@ -85,6 +97,7 @@ impl EpicAssetManagerWindow {
         thread::spawn(move || {
             let start = std::time::Instant::now();
             if crate::RUNTIME.block_on(eg.login()) {
+                Self::setup_cosmos_session(&mut eg);
                 sender
                     .send_blocking(crate::ui::messages::Msg::LoginOk(eg.user_details()))
                     .unwrap();

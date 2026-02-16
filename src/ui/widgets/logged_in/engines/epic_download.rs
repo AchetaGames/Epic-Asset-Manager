@@ -416,6 +416,17 @@ impl EpicEngineDownload {
             .map(|item| item.string().to_string())
     }
 
+    fn setup_cosmos_session(eg: &mut egs_api::EpicGames) -> bool {
+        if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
+            if let Err(e) = crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
+                error!("Failed to setup Cosmos session: {:?}", e);
+                return false;
+            }
+            return true;
+        }
+        false
+    }
+
     fn validate_eula(&self) {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
@@ -427,16 +438,20 @@ impl EpicEngineDownload {
                 return;
             };
             thread::spawn(move || {
-                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
-                    if let Err(e) = crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
-                        error!("Failed to setup Cosmos session: {:?}", e);
-                        sender.send_blocking(Msg::EULAValid(false)).unwrap();
-                        return;
+                let eula_accepted =
+                    crate::RUNTIME.block_on(eg.cosmos_eula_check("unreal_engine2", "en"));
+                let eula_accepted = match eula_accepted {
+                    Some(accepted) => accepted,
+                    None => {
+                        if !Self::setup_cosmos_session(&mut eg) {
+                            sender.send_blocking(Msg::EULAValid(false)).unwrap();
+                            return;
+                        }
+                        crate::RUNTIME
+                            .block_on(eg.cosmos_eula_check("unreal_engine2", "en"))
+                            .unwrap_or(false)
                     }
-                }
-                let eula_accepted = crate::RUNTIME
-                    .block_on(eg.cosmos_eula_check("unreal_engine2", "en"))
-                    .unwrap_or(false);
+                };
                 sender.send_blocking(Msg::EULAValid(eula_accepted)).unwrap();
             });
         }
@@ -448,20 +463,23 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
-                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
-                    if let Err(e) = crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
-                        error!("Failed to setup Cosmos session: {:?}", e);
-                        return;
+                let result = crate::RUNTIME.block_on(eg.try_engine_versions("linux"));
+                let response = match result {
+                    Ok(response) => response,
+                    Err(_) => {
+                        if !Self::setup_cosmos_session(&mut eg) {
+                            return;
+                        }
+                        match crate::RUNTIME.block_on(eg.try_engine_versions("linux")) {
+                            Ok(response) => response,
+                            Err(e) => {
+                                error!("Failed to fetch engine versions: {:?}", e);
+                                return;
+                            }
+                        }
                     }
-                }
-                match crate::RUNTIME.block_on(eg.try_engine_versions("linux")) {
-                    Ok(response) => {
-                        sender.send_blocking(response.blobs).unwrap();
-                    }
-                    Err(e) => {
-                        error!("Failed to fetch engine versions: {:?}", e);
-                    }
-                }
+                };
+                sender.send_blocking(response.blobs).unwrap();
             });
         }
     }
