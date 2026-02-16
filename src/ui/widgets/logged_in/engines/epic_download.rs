@@ -438,7 +438,7 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
-            let Some(id) = eg.user_details().account_id else {
+            let Some(_) = eg.user_details().account_id else {
                 sender.send_blocking(Msg::EULAValid(false)).unwrap();
                 return;
             };
@@ -447,7 +447,7 @@ impl EpicEngineDownload {
                     let mut web = EpicWeb::new();
                     web.start_session(token.code);
                     sender
-                        .send_blocking(Msg::EULAValid(web.validate_eula(&id)))
+                        .send_blocking(Msg::EULAValid(web.validate_eula()))
                         .unwrap();
                 };
             });
