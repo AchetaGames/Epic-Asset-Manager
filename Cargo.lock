@@ -921,9 +921,9 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "egs-api"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdb25e82ef1168dfd41d8d2edb92179a386fac6c0ddcb14b5801d0c3a1779f1d"
+checksum = "5843d5b0eccf7d5ec0405f3aea7c57a085b6a7418a7fdff431af3e66dd26955f"
 dependencies = [
  "chrono",
  "flate2",
