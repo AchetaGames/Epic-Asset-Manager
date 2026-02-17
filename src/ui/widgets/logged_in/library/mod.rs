@@ -1092,12 +1092,15 @@ impl EpicLibraryBox {
 
     fn update_progress(&self) {
         let self_ = self.imp();
-        self_
-            .refresh_progress
-            .set_fraction(f64::from(self.loaded()) / f64::from(self.loading()));
-        self_
-            .refresh_progress
-            .set_visible(self.loaded() != self.loading());
+        let loading = self.loading();
+        let loaded = self.loaded();
+        let fraction = if loading > 0 {
+            f64::from(loaded) / f64::from(loading)
+        } else {
+            0.0
+        };
+        self_.refresh_progress.set_fraction(fraction);
+        self_.refresh_progress.set_visible(loaded != loading);
     }
 
     pub fn load_thumbnail(&self, asset: &egs_api::api::types::asset_info::AssetInfo) {
