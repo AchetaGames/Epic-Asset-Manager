@@ -16,7 +16,7 @@
                 <property name="margin-bottom">8</property>
                 <child>
                     <object class="GtkToggleButton" id="browse_toggle">
-                        <property name="icon-name">globe-symbolic</property>
+                        <property name="icon-name">find-location-symbolic</property>
                         <property name="tooltip-text" translatable="yes">Browse Marketplace</property>
                     </object>
                 </child>
