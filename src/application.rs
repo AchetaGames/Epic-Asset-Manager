@@ -283,7 +283,8 @@ impl EpicAssetManager {
             .developers(vec!["Acheta Games".to_string()])
             .build();
 
-        adw::prelude::AdwDialogExt::present(&dialog, Some(&self.main_window()));
+        let window = self.main_window();
+        adw::prelude::AdwDialogExt::present(&dialog, Some(window.upcast_ref::<gtk4::Widget>()));
     }
 
     pub fn run(&self) {
