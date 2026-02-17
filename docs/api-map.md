@@ -529,48 +529,80 @@ Auth: EPIC_BEARER_TOKEN + EPIC_SSO cookies
 
 ## Implementation Plan: egs-api vs EAM
 
+> **Status legend**: ✅ = done in egs-api + used in EAM, 🟡 = done in egs-api but NOT yet used in EAM, ❌ = not implemented anywhere
+>
+> Last updated: 2026-02-16 — after completing egs-api 0.12.0 integration phases 1–4.
+
 ### Belongs in `egs-api` (generic, reusable API client)
 
 **High priority** (blocks EAM features):
 
-| Endpoint | Proposed Method | Notes |
-|----------|----------------|-------|
-| `GET /api/cosmos/auth` | `cosmos_auth_upgrade()` | **Mandatory** after set-sid — upgrades bearer token, sets EPIC_EG1 JWTs |
-| `GET/POST /api/cosmos/eula/accept` | `validate_eula(id)` / `accept_eula(id, version)` | Eliminates EAM's raw EpicWeb EULA code |
-| `/i/listings/search` | `fab_search(filters)` | With filters, cursor pagination, aggregations |
-| `/i/listings/{uid}` | `fab_listing(uid)` | Full listing detail |
-| `/i/listings/{uid}/asset-formats/unreal-engine` | `fab_listing_formats(uid)` | UE-specific tech details |
-| `/i/users/me/listings-states/{uid}` | `fab_listing_state(uid)` | Ownership/wishlist per listing |
-| `/i/users/me/listings-states?listing_ids=...` | `fab_listing_states_bulk(ids)` | Bulk ownership check |
-| `/e/accounts/{id}/ue/library` | `fab_egl_library(account_id)` | Launcher-style library (OAuth2 bearer, cursor pagination) |
-| `/p/egl/listings/{uid}/asset-formats/{fmt}/files/{fid}/download-info` | `fab_egl_download_info(uid, fmt, fid)` | Get presigned download URL (OAuth2 bearer) |
+| Status | Endpoint | Actual Method | Notes |
+|--------|----------|---------------|-------|
+| ✅ | `GET /api/cosmos/auth` | `cosmos_auth_upgrade()` / `cosmos_session_setup()` | EAM calls `cosmos_session_setup` at login + engine download |
+| ✅ | `GET /api/cosmos/eula/accept` | `cosmos_eula_check(id, locale)` | EAM calls in `epic_download.rs` for UE EULA |
+| 🟡 | `POST /api/cosmos/eula/accept` | `cosmos_eula_accept(id, locale, version)` | In egs-api, EAM doesn't call yet (no EULA accept UI) |
+| ✅ | `/i/listings/search` | `fab_search(params)` / `try_fab_search(params)` | EAM browse mode: text search, category filter, pagination |
+| ✅ | `/i/listings/{uid}` | `fab_listing(uid)` | EAM browse detail panel |
+| ✅ | `/i/listings/{uid}/asset-formats/unreal-engine` | `fab_listing_ue_formats(uid)` | EAM browse detail panel (UE versions, platforms) |
+| ✅ | `/i/users/me/listings-states/{uid}` | `fab_listing_state(uid)` | EAM browse detail "Owned ✓" badge |
+| 🟡 | `/i/users/me/listings-states?listing_ids=...` | `fab_listing_states_bulk(ids)` | In egs-api; EAM uses per-click single check instead (response lacks UID for correlation) |
+| ✅ | `/e/accounts/{id}/ue/library` | `fab_library_items(account_id)` | EAM library tab — fetches owned assets |
+| ✅ | `/p/egl/listings/{uid}/asset-formats/{fmt}/files/{fid}/download-info` | `fab_file_download_info(...)` + `fab_asset_manifest(...)` + `fab_download_manifest(...)` | EAM download manager — full download pipeline |
 
 **Medium priority** (cleaner architecture):
 
-| Endpoint | Proposed Method | Notes |
-|----------|----------------|-------|
-| `GET /api/cosmos/account` | `cosmos_account()` | Account info via Cosmos |
-| `GET /api/cosmos/communication/opt-in` | `cosmos_comm_opt_in(setting)` | Communication preference check |
-| `GET /api/cosmos/policy/aodc` | `cosmos_policy_aodc()` | Age of Digital Consent check |
-| `GET /api/cosmos/search` | `cosmos_search(query, slug, locale, filter)` | Site search (low value for EAM, but completes the API surface) |
-| `/i/listings/prices-infos?offer_ids=...` | `fab_bulk_prices(offer_ids)` | Bulk pricing |
-| `/i/listings/{uid}/prices-infos` | `fab_listing_prices(uid)` | Per-listing pricing |
-| `/i/taxonomy/licenses` | `fab_licenses()` | Static, cacheable |
-| `/i/taxonomy/asset-format-groups` | `fab_format_groups()` | Static, cacheable |
-| `/i/tags/groups` | `fab_tags()` | Static, cacheable |
-| `/i/unreal-engine/versions` | `fab_ue_versions()` | Static, cacheable |
-| `/i/listings/{uid}/ownership` | `fab_listing_ownership(uid)` | License types user owns |
-| `GET /api/blobs/{platform}` | `engine_versions(platform)` | Replaces EAM's direct blobs query |
+| Status | Endpoint | Actual Method | Notes |
+|--------|----------|---------------|-------|
+| 🟡 | `GET /api/cosmos/account` | `cosmos_account()` | In egs-api; EAM could use for account display |
+| 🟡 | `GET /api/cosmos/communication/opt-in` | `cosmos_comm_opt_in(setting)` | In egs-api; low value for EAM |
+| 🟡 | `GET /api/cosmos/policy/aodc` | `cosmos_policy_aodc()` | In egs-api; low value for EAM |
+| 🟡 | `GET /api/cosmos/search` | `cosmos_search(query, slug, locale, filter)` | In egs-api; low value for EAM |
+| 🟡 | `/i/listings/prices-infos?offer_ids=...` | `fab_bulk_prices(offer_ids)` | In egs-api; EAM could show prices in browse |
+| 🟡 | `/i/listings/{uid}/prices-infos` | `fab_listing_prices(uid)` | In egs-api; EAM could show price in detail panel |
+| 🟡 | `/i/taxonomy/licenses` | `fab_licenses()` | In egs-api; static, cacheable |
+| 🟡 | `/i/taxonomy/asset-format-groups` | `fab_format_groups()` | In egs-api; static, cacheable |
+| ✅ | `/i/tags/groups` | `fab_tag_groups()` | EAM browse mode category dropdown |
+| 🟡 | `/i/unreal-engine/versions` | `fab_ue_versions()` | In egs-api; could replace hardcoded version lists |
+| 🟡 | `/i/listings/{uid}/ownership` | `fab_listing_ownership(uid)` | In egs-api; more detailed than `fab_listing_state` |
+| ✅ | `GET /api/blobs/{platform}` | `engine_versions(platform)` / `try_engine_versions(platform)` | EAM calls in `epic_download.rs` for Linux engine downloads |
+| 🟡 | `/i/channels/{slug}` | `fab_channel(slug)` | In egs-api; could enrich browse mode UI |
+| 🟡 | `/i/store/listings/{uid}/reviews` | `fab_listing_reviews(uid, ...)` | In egs-api; could show reviews in detail panel |
+| 🟡 | `/i/library/entitlements/search` | `fab_library_entitlements(params)` | In egs-api; alternative to `fab_library_items` with richer filtering |
 
 **Low priority** (consolidation):
 
-| Endpoint | Proposed Method | Notes |
-|----------|----------------|-------|
-| `/i/csrf` + `/i/users/context` | `fab_init_session()` | Fab session bootstrap |
-| Full SID flow (XSRF → exchange → redirect → set-sid → cosmos/auth) | Encapsulate in `auth_sid()` | Currently split between egs-api and EAM's EpicWeb |
+| Status | Endpoint | Actual Method | Notes |
+|--------|----------|---------------|-------|
+| 🟡 | `/i/csrf` | `fab_csrf()` | In egs-api; needed for browser-path Fab auth |
+| 🟡 | `/i/users/context` | `fab_user_context()` | In egs-api; country, currency, feature flags |
+| ❌ | Full SID flow (XSRF → exchange → redirect → set-sid → cosmos/auth) | — | Currently split between egs-api and EAM's EpicWeb |
 
 **End goal**: EAM's `EpicWeb` struct can be **eliminated entirely** — its three
 responsibilities (session setup, EULA, engine versions) all move into egs-api.
+
+**Remaining to eliminate EpicWeb**: The blobs API is now in egs-api (`engine_versions()`),
+and EAM already calls it directly. An audit of remaining `EpicWeb` usages is needed to
+determine what else (if anything) still depends on it before removal.
+
+### Summary
+
+| Category | ✅ Done | 🟡 In egs-api, not used | ❌ Missing |
+|----------|---------|--------------------------|-----------|
+| **High priority** | 8 | 2 | 0 |
+| **Medium priority** | 2 | 10 | 0 |
+| **Low priority** | 0 | 2 | 1 |
+| **Total** | **10** | **14** | **1** |
+
+### What remains to build in EAM (features using existing egs-api methods)
+
+1. **Pricing in browse** — `fab_bulk_prices()` or `fab_listing_prices()` to show prices on browse tiles/detail
+2. **Bulk owned badges** — `fab_listing_states_bulk()` on visible browse tiles (needs egs-api to include UID in response for correlation)
+3. **EULA accept flow** — `cosmos_eula_accept()` for UE EULA acceptance UI instead of just checking
+4. **Reviews in detail panel** — `fab_listing_reviews()` to show user reviews
+5. **Entitlement-based library** — `fab_library_entitlements()` as richer alternative to current `fab_library_items()`
+6. **UE version list from Fab** — `fab_ue_versions()` could replace hardcoded version references
+7. **Remove EpicWeb** — no longer blocked (blobs API is in egs-api); need to audit remaining EpicWeb usages
 
 ### Stays in EAM (application-specific)
 
@@ -580,8 +612,7 @@ responsibilities (session setup, EULA, engine versions) all move into egs-api.
 - **Account v2 communication prefs** — email opt-in/notification settings
 - **Account v2 code redemption** — niche, low priority
 - **Payment APIs** (`payment-website-pci.ol.epicgames.com`) — PCI-scoped, never in a generic client
-- **Fab store layout** — `/i/channels/`, `/i/layouts/`, `/i/blades/`, `/i/banners/` (CMS/presentation)
-- **Fab reviews** — `/i/store/listings/{uid}/reviews` (nice-to-have UI detail)
+- **Fab store layout** — `/i/layouts/`, `/i/blades/`, `/i/banners/` (CMS/presentation)
 - **Fab cart/wallet/consents** — purchase flow, not relevant for asset management
 - **Fab seller info** — `/i/sellers/name/{name}/trader-info` (store display detail)
 - **Epic ID helpers** — `/id/api/location`, `/id/api/i18n`, `/id/api/analytics` (browser-oriented)
