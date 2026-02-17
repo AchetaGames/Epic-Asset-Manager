@@ -334,7 +334,6 @@ impl UnrealProjectDetails {
         } else if let Some(last) = last_engine {
             Self::set_selected_engine(&combo, &last, &self_.engine_ids.borrow());
         }
-        // TODO: Change the project config based on the engine selected
 
         self_
             .details
@@ -423,8 +422,30 @@ impl UnrealProjectDetails {
             for engine in self.available_engines() {
                 if engine.path.eq(&eng) {
                     self.set_launch_enabled(true);
+                    let association = engine.guid.clone().unwrap_or_else(|| engine.path.clone());
+                    if let Some(ref mut uproject) = *self_.uproject.borrow_mut() {
+                        uproject.engine_association = association;
+                        self.save_uproject(uproject);
+                    }
                     self_.engine.replace(Some(engine));
                 }
+            }
+        }
+    }
+
+    fn save_uproject(&self, uproject: &Uproject) {
+        let Some(path) = self.path() else {
+            log::error!("No project path available for saving .uproject");
+            return;
+        };
+        match serde_json::to_string_pretty(uproject) {
+            Ok(json) => {
+                if let Err(e) = std::fs::write(&path, &json) {
+                    log::error!("Failed to write .uproject file '{}': {}", path, e);
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to serialize .uproject: {}", e);
             }
         }
     }

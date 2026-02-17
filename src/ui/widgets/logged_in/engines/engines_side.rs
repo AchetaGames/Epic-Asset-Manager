@@ -228,7 +228,9 @@ impl EpicEnginesSide {
 
     pub fn path(&self) -> Option<String> {
         let self_ = self.imp();
-        // TODO: Check if we are on install tab and return empty
+        if self_.stack.visible_child_name().as_deref() == Some("install") {
+            return None;
+        }
         self_.details.path()
     }
 
