@@ -135,7 +135,7 @@ pub mod imp {
         type ParentType = gtk4::Box;
 
         fn new() -> Self {
-            let (sender, receiver) = async_channel::bounded(256);
+            let (sender, receiver) = async_channel::unbounded();
             Self {
                 actions: gio::SimpleActionGroup::new(),
                 settings: gio::Settings::new(crate::config::APP_ID),

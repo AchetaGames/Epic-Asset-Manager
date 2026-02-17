@@ -421,7 +421,7 @@ impl Asset for super::EpicDownloadManager {
 
         item.set_property("status", "validating".to_string());
         for (filename, manifest) in dm[0].files() {
-            info!("Starting download of {} file {}", id, filename);
+            debug!("Starting download of {} file {}", id, filename);
             let r_id = id.to_string();
             let r_name = dm[0].app_name_string.clone();
             let f_name = filename.clone();
@@ -445,7 +445,7 @@ impl Asset for super::EpicDownloadManager {
         filename: String,
         manifest: egs_api::api::types::download_manifest::FileManifestList,
     ) {
-        info!("Downloading file {} for {}", filename, id);
+        debug!("Downloading file {} for {}", filename, id);
         let self_ = self.imp();
         let Some(_item) = self.get_item(&id) else {
             return;
@@ -479,29 +479,25 @@ impl Asset for super::EpicDownloadManager {
         }
         let sender = self_.sender.clone();
         for chunk in manifest.file_chunk_parts {
-            // perform chunk download make sure we do not download the same chunk twice
-            let (should_redownload, chunks_len) = {
+            let should_redownload = {
                 let mut state = self_.state.borrow_mut();
                 state
                     .asset_guids
                     .entry(id.clone())
                     .or_default()
                     .push(chunk.guid.clone());
-                let mut should_redownload = false;
                 match state.downloaded_chunks.get_mut(&chunk.guid) {
                     None => {
                         state
                             .downloaded_chunks
                             .insert(chunk.guid.clone(), vec![full_filename.clone()]);
-                        info!("Inserting file into chunk init {}", full_filename.clone());
-                        should_redownload = true;
+                        true
                     }
                     Some(files) => {
                         files.push(full_filename.clone());
-                        info!("Inserting file into chunk {}", full_filename.clone());
+                        false
                     }
                 }
-                (should_redownload, state.downloaded_chunks.len())
             };
             if should_redownload {
                 let mut p = target.clone();
@@ -510,7 +506,6 @@ impl Asset for super::EpicDownloadManager {
                 let _ =
                     sender.send_blocking(Msg::RedownloadChunk(Url::parse("unix:/").unwrap(), p, g));
             }
-            info!("Chunks length: {}", chunks_len);
         }
     }
 
