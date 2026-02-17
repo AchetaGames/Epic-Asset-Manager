@@ -49,6 +49,7 @@ pub mod imp {
         pub browse_mode: RefCell<bool>,
         pub browse_category: RefCell<Option<String>>,
         pub taxonomy_loaded: std::cell::Cell<bool>,
+        pub fab_taxonomy: RefCell<Option<Vec<egs_api::api::types::fab_taxonomy::FabTagGroup>>>,
         pub browse_cursor: RefCell<Option<String>>,
         pub browse_known_ids: RefCell<HashSet<String>>,
         pub search: RefCell<Option<String>>,
@@ -95,6 +96,7 @@ pub mod imp {
                 browse_mode: RefCell::new(false),
                 browse_category: RefCell::new(None),
                 taxonomy_loaded: std::cell::Cell::new(false),
+                fab_taxonomy: RefCell::new(None),
                 browse_cursor: RefCell::new(None),
                 browse_known_ids: RefCell::new(HashSet::new()),
                 search: RefCell::new(None),
@@ -450,6 +452,10 @@ impl FabLibraryBox {
         self_.browse_mode.replace(browse);
         if browse {
             self.load_fab_taxonomy();
+            let cached_groups = self_.fab_taxonomy.borrow().clone();
+            if let Some(groups) = cached_groups {
+                self.apply_fab_taxonomy(groups);
+            }
             self_.browse_cursor.replace(None);
             self_.browse_known_ids.borrow_mut().clear();
             self_.browse_model.remove_all();
@@ -548,6 +554,7 @@ impl FabLibraryBox {
 
     pub fn apply_fab_taxonomy(&self, groups: Vec<egs_api::api::types::fab_taxonomy::FabTagGroup>) {
         let self_ = self.imp();
+        self_.fab_taxonomy.replace(Some(groups));
         if !*self_.browse_mode.borrow() {
             return;
         }
@@ -555,12 +562,14 @@ impl FabLibraryBox {
         let model = gtk4::StringList::new(&["All"]);
         let mut filter_names = vec![String::new()];
 
-        for group in &groups {
-            if let Some(tags) = &group.tags {
-                for tag in tags {
-                    if let Some(name) = &tag.name {
-                        model.append(name);
-                        filter_names.push(tag.slug.clone().unwrap_or_default());
+        if let Some(groups) = self_.fab_taxonomy.borrow().as_ref() {
+            for group in groups {
+                if let Some(tags) = &group.tags {
+                    for tag in tags {
+                        if let Some(name) = &tag.name {
+                            model.append(name);
+                            filter_names.push(tag.slug.clone().unwrap_or_default());
+                        }
                     }
                 }
             }
@@ -807,6 +816,7 @@ impl FabLibraryBox {
         &self,
         asset: &egs_api::api::types::fab_library::FabAsset,
         image: Option<gtk4::gdk::Texture>,
+        price_label: &str,
     ) {
         let self_ = self.imp();
         if !self_
@@ -816,7 +826,7 @@ impl FabLibraryBox {
         {
             return;
         }
-        let data = crate::models::fab_data::FabData::new(asset, image);
+        let data = crate::models::fab_data::FabData::new_browse(asset, image, price_label);
         self_.browse_model.append(&data);
         self.update_count();
     }
@@ -903,9 +913,23 @@ impl FabLibraryBox {
                                 })
                             });
 
+                            let price_label = if listing.is_free == Some(true) {
+                                "Free".to_string()
+                            } else if let Some(price_val) = &listing.starting_price {
+                                price_val
+                                    .get("price")
+                                    .and_then(|p| p.as_f64())
+                                    .map(|p| format!("${:.2}", p))
+                                    .unwrap_or_else(|| "View on Fab".to_string())
+                            } else {
+                                "View on Fab".to_string()
+                            };
+
                             sender
                                 .send_blocking(crate::ui::messages::Msg::ProcessFabBrowseResult(
-                                    asset, texture,
+                                    asset,
+                                    texture,
+                                    price_label,
                                 ))
                                 .unwrap();
                         }

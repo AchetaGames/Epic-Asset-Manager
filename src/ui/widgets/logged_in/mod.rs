@@ -246,9 +246,10 @@ impl EpicLoggedInBox {
         &self,
         asset: &egs_api::api::types::fab_library::FabAsset,
         image: Option<gtk4::gdk::Texture>,
+        price_label: &str,
     ) {
         let self_ = self.imp();
-        self_.fab.add_fab_browse_result(asset, image);
+        self_.fab.add_fab_browse_result(asset, image, price_label);
     }
 
     pub fn flush_fab_browse_results(&self, cursor: Option<String>) {

@@ -19,6 +19,7 @@ pub mod imp {
         pub downloading: RefCell<bool>,
         pub download_progress: RefCell<f64>,
         pub kind: RefCell<Option<String>>,
+        pub price_label: RefCell<String>,
         pub action_label: RefCell<String>,
         pub is_fab: RefCell<bool>,
         thumbnail: RefCell<Option<Texture>>,
@@ -51,6 +52,7 @@ pub mod imp {
                 downloading: RefCell::new(false),
                 download_progress: RefCell::new(0.0),
                 kind: RefCell::new(None),
+                price_label: RefCell::new(String::new()),
                 action_label: RefCell::new("Download".to_string()),
                 is_fab: RefCell::new(false),
                 thumbnail: RefCell::new(None),
@@ -119,6 +121,7 @@ pub mod imp {
                         .default_value(0.0)
                         .build(),
                     glib::ParamSpecString::builder("kind").build(),
+                    glib::ParamSpecString::builder("price-label").build(),
                     glib::ParamSpecString::builder("action-label").build(),
                     glib::ParamSpecBoolean::builder("is-fab").build(),
                 ]
@@ -173,6 +176,13 @@ pub mod imp {
                     self.kind.replace(kind);
                     self.obj().update_action_label();
                 }
+                "price-label" => {
+                    let price_label: Option<String> = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.price_label.replace(price_label.unwrap_or_default());
+                    self.obj().update_action_label();
+                }
                 "action-label" => {
                     let action_label: String = value
                         .get()
@@ -223,6 +233,7 @@ pub mod imp {
                 "downloading" => self.downloading.borrow().to_value(),
                 "download-progress" => self.download_progress.borrow().to_value(),
                 "kind" => self.kind.borrow().to_value(),
+                "price-label" => self.price_label.borrow().to_value(),
                 "action-label" => self.action_label.borrow().to_value(),
                 "is-fab" => self.is_fab.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
@@ -255,28 +266,10 @@ impl EpicAsset {
     fn setup_button(&self) {
         let self_ = self.imp();
 
-        // Debug: write to file to verify this is being called
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(f, "setup_button called - connecting click handler");
-        }
-
         self_.action_button.connect_clicked(clone!(
             #[weak(rename_to=asset)]
             self,
             move |_| {
-                // Debug: write to file
-                if let Ok(mut f) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("/tmp/asset_click.log")
-                {
-                    let _ = writeln!(f, "Button clicked!");
-                }
                 asset.on_action_clicked();
             }
         ));
@@ -305,18 +298,6 @@ impl EpicAsset {
                     }
                 }
 
-                use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("/tmp/asset_click.log")
-                {
-                    let _ = writeln!(
-                        f,
-                        "Tile clicked at ({}, {}) - emitting tile-clicked signal",
-                        x, y
-                    );
-                }
                 asset.emit_by_name::<()>("tile-clicked", &[]);
             }
         ));
@@ -327,8 +308,11 @@ impl EpicAsset {
         let self_ = self.imp();
         let downloaded = *self_.downloaded.borrow();
         let kind = self_.kind.borrow().clone();
+        let price_label = self_.price_label.borrow().clone();
 
-        let label = if !downloaded {
+        let label = if !price_label.is_empty() {
+            price_label
+        } else if !downloaded {
             "Download".to_string()
         } else {
             match kind.as_deref() {
@@ -345,52 +329,30 @@ impl EpicAsset {
         let self_ = self.imp();
         let downloaded = *self_.downloaded.borrow();
         let kind = self_.kind.borrow().clone();
-        let label: Option<String> = self.property("label");
+        let price_label = self_.price_label.borrow().clone();
 
-        // Debug: write to file to verify this is being called
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(
-                f,
-                "on_action_clicked: downloaded={}, kind={:?}, label={:?}",
-                downloaded, kind, label
-            );
+        if !price_label.is_empty() {
+            if let Some(fab_data) = self_.fab_data.borrow().as_ref() {
+                if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
+                    if !asset.url.is_empty() {
+                        let _ = gtk4::gio::AppInfo::launch_default_for_uri(
+                            &asset.url,
+                            None::<&gtk4::gio::AppLaunchContext>,
+                        );
+                    }
+                }
+            }
+            return;
         }
 
-        // Emit signal for parent to handle the action
         if !downloaded {
-            if let Ok(mut f) = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("/tmp/asset_click.log")
-            {
-                let _ = writeln!(f, "Emitting download-requested signal");
-            }
             self.emit_by_name::<()>("download-requested", &[]);
         } else {
             match kind.as_deref() {
                 Some("projects") => {
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/asset_click.log")
-                    {
-                        let _ = writeln!(f, "Emitting create-project-requested signal");
-                    }
                     self.emit_by_name::<()>("create-project-requested", &[]);
                 }
                 _ => {
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/asset_click.log")
-                    {
-                        let _ = writeln!(f, "Emitting add-to-project-requested signal");
-                    }
                     self.emit_by_name::<()>("add-to-project-requested", &[]);
                 }
             }
@@ -411,6 +373,7 @@ impl EpicAsset {
         self.set_property("thumbnail", data.image());
         self.set_property("favorite", data.favorite());
         self.set_property("is-fab", false);
+        self.set_property("price-label", "");
 
         // Set kind before downloaded so action_label updates correctly
         let kind_str = match data.kind() {
@@ -565,6 +528,7 @@ impl EpicAsset {
         self.set_property("favorite", data.favorite());
         self.set_property("downloaded", data.downloaded());
         self.set_property("is-fab", true);
+        self.set_property("price-label", data.price_label());
 
         self_.handler.replace(Some(data.connect_local(
             "refreshed",
@@ -639,6 +603,7 @@ impl EpicAsset {
         self.set_property("downloaded", false);
         self.set_property("is-fab", true);
         self.set_property("kind", Some("marketplace".to_string()));
+        self.set_property("price-label", "");
         self.update_action_label();
 
         self_.handler.replace(Some(data.connect_local(

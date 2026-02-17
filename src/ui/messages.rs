@@ -20,7 +20,7 @@ pub enum Msg {
     DownloadImage(KeyImage, AssetInfo),
     ProcessFabAsset(FabAsset, Option<gtk4::gdk::Texture>),
     FlushFabAssets,
-    ProcessFabBrowseResult(FabAsset, Option<gtk4::gdk::Texture>),
+    ProcessFabBrowseResult(FabAsset, Option<gtk4::gdk::Texture>, String),
     FlushFabBrowseResults(Option<String>),
     ProcessFabListingDetail(FabListingDetail, Vec<FabListingUeFormat>, bool),
     FabTaxonomyLoaded(Vec<FabTagGroup>),

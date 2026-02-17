@@ -22,6 +22,7 @@ mod imp {
     pub struct FabData {
         id: RefCell<Option<String>>,
         name: RefCell<Option<String>>,
+        price_label: RefCell<String>,
         favorite: RefCell<bool>,
         downloaded: RefCell<bool>,
         downloading: RefCell<bool>,
@@ -43,6 +44,7 @@ mod imp {
             Self {
                 id: RefCell::new(None),
                 name: RefCell::new(None),
+                price_label: RefCell::new(String::new()),
                 favorite: RefCell::new(false),
                 downloaded: RefCell::new(false),
                 downloading: RefCell::new(false),
@@ -72,6 +74,7 @@ mod imp {
                 vec![
                     glib::ParamSpecString::builder("name").build(),
                     glib::ParamSpecString::builder("id").build(),
+                    glib::ParamSpecString::builder("price-label").build(),
                     ParamSpecObject::builder::<Texture>("thumbnail").build(),
                     glib::ParamSpecBoolean::builder("favorite").build(),
                     glib::ParamSpecBoolean::builder("downloaded").build(),
@@ -107,6 +110,12 @@ mod imp {
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
                     self.favorite.replace(favorite);
+                }
+                "price-label" => {
+                    let price_label: Option<String> = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.price_label.replace(price_label.unwrap_or_default());
                 }
                 "downloaded" => {
                     let downloaded = value
@@ -147,6 +156,7 @@ mod imp {
                 "name" => self.name.borrow().to_value(),
                 "id" => self.id.borrow().to_value(),
                 "favorite" => self.favorite.borrow().to_value(),
+                "price-label" => self.price_label.borrow().to_value(),
                 "downloaded" => self.downloaded.borrow().to_value(),
                 "downloading" => self.downloading.borrow().to_value(),
                 "download-progress" => self.download_progress.borrow().to_value(),
@@ -179,6 +189,12 @@ impl FabData {
         data
     }
 
+    pub fn new_browse(asset: &FabAsset, image: Option<Texture>, price_label: &str) -> FabData {
+        let data = Self::new(asset, image);
+        data.set_property("price-label", price_label);
+        data
+    }
+
     pub fn id(&self) -> String {
         self.property("id")
     }
@@ -197,6 +213,10 @@ impl FabData {
 
     pub fn image(&self) -> Option<Texture> {
         self.property("thumbnail")
+    }
+
+    pub fn price_label(&self) -> String {
+        self.property("price-label")
     }
 
     fn has_category(&self, cat: &str) -> bool {
