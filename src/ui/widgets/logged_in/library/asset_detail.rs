@@ -4,6 +4,7 @@ use crate::ui::widgets::logged_in::fab::version_dialog::EpicFabVersionDialog;
 use diesel::dsl::exists;
 use diesel::{select, ExpressionMethods, QueryDsl, RunQueryDsl};
 use egs_api::api::types::asset_info::AssetInfo;
+use egs_api::api::types::asset_info::KeyImage;
 use egs_api::api::types::fab_library::FabAsset;
 use egs_api::api::types::fab_search::{FabListingDetail, FabListingUeFormat};
 use gtk4::glib::clone;
@@ -165,6 +166,42 @@ impl Default for EpicAssetDetails {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Convert a FAB library `Image` to a `KeyImage` for the image carousel.
+fn fab_image_to_key_image(img: &egs_api::api::types::fab_library::Image) -> Option<KeyImage> {
+    let url = reqwest::Url::parse(&img.url).ok()?;
+    Some(KeyImage {
+        type_field: img.type_field.clone(),
+        url,
+        md5: img.md5.clone().unwrap_or_default(),
+        width: img.width.parse().unwrap_or(0),
+        height: img.height.parse().unwrap_or(0),
+        size: 0,
+        uploaded_date: chrono::DateTime::parse_from_rfc3339(&img.uploaded_date)
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or_default(),
+    })
+}
+
+/// Convert a FAB listing `FabThumbnail` to a `KeyImage` for the image carousel.
+fn fab_thumbnail_to_key_image(
+    thumb: &egs_api::api::types::fab_search::FabThumbnail,
+) -> Option<KeyImage> {
+    let url_str = thumb.media_url.as_deref()?;
+    let url = reqwest::Url::parse(url_str).ok()?;
+    Some(KeyImage {
+        type_field: thumb
+            .thumbnail_type
+            .clone()
+            .unwrap_or_else(|| "Thumbnail".to_string()),
+        url,
+        md5: thumb.uid.clone().unwrap_or_default(),
+        width: 0,
+        height: 0,
+        size: 0,
+        uploaded_date: chrono::Utc::now(),
+    })
 }
 
 impl EpicAssetDetails {
@@ -635,12 +672,19 @@ impl EpicAssetDetails {
         info!("Showing FAB details for {}", fab_asset.title);
         self_.title.set_label(&fab_asset.title);
 
-        // TODO: FAB images use a different type than AssetInfo KeyImage —
-        // the image carousel needs extension to support FabAsset images directly.
         self_.images.clear();
         self_
             .images
             .set_property("asset", fab_asset.asset_id.clone());
+
+        for image in &fab_asset.images {
+            if let Some(key_image) = fab_image_to_key_image(image) {
+                if key_image.width < 300 || key_image.height < 300 {
+                    continue;
+                }
+                self_.images.add_image(&key_image);
+            }
+        }
 
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el);
@@ -771,6 +815,14 @@ impl EpicAssetDetails {
 
         self_.images.clear();
         self_.images.set_property("asset", detail.uid.clone());
+
+        if let Some(thumbnails) = &detail.thumbnails {
+            for thumb in thumbnails {
+                if let Some(key_image) = fab_thumbnail_to_key_image(thumb) {
+                    self_.images.add_image(&key_image);
+                }
+            }
+        }
 
         while let Some(el) = self_.details_box.first_child() {
             self_.details_box.remove(&el);
