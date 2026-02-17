@@ -1314,7 +1314,23 @@ impl EpicLibraryBox {
                 if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
                     return;
                 }
-                if let Some(asset) = crate::RUNTIME.block_on(eg.asset_info(&epic_asset)) {
+                let asset_result = crate::RUNTIME.block_on(eg.try_asset_info(&epic_asset));
+                match &asset_result {
+                    Ok(Some(_)) => {}
+                    Ok(None) => {
+                        warn!(
+                            "asset_info returned None for catalog_item_id={} namespace={}",
+                            epic_asset.catalog_item_id, epic_asset.namespace
+                        );
+                    }
+                    Err(e) => {
+                        warn!(
+                            "asset_info failed for catalog_item_id={}: {:?}",
+                            epic_asset.catalog_item_id, e
+                        );
+                    }
+                }
+                if let Some(asset) = asset_result.ok().flatten() {
                     // TODO: Check with already added assets to see if it needs updating
                     cache_dir_c.push("asset_info.json");
                     if let Some(parent) = cache_dir_c.parent() {

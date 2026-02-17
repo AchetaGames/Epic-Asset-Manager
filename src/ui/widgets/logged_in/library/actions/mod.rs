@@ -454,8 +454,14 @@ impl EpicAssetActions {
         self_.select_download_version.set_model(Some(&model));
         let has_items = !release_ids.is_empty();
         self_.release_ids.replace(release_ids);
-        if has_items && self_.select_download_version.selected() == gtk4::INVALID_LIST_POSITION {
-            self_.select_download_version.set_selected(0);
+        if has_items {
+            if self_.select_download_version.selected() == gtk4::INVALID_LIST_POSITION {
+                self_.select_download_version.set_selected(0);
+            } else {
+                // Signal won't fire if selected index didn't change,
+                // so call version_selected() directly for the new asset.
+                self.version_selected();
+            }
         }
 
         if let Some(kind) = crate::models::asset_data::AssetData::decide_kind(asset) {

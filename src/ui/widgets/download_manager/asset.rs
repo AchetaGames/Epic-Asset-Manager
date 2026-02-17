@@ -288,52 +288,47 @@ impl Asset for super::EpicDownloadManager {
     ) {
         let self_ = self.imp();
 
-        debug!(
-            "download_asset_manifest called for: {:?}, has_window: {}",
-            asset.title,
-            self_.window.get().is_some()
-        );
-
         if let Some(window) = self_.window.get() {
-            debug!("Window found, queuing manifest download");
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let id = release_id.clone();
             self_.download_pool.execute(move || {
-                debug!("Thread pool executing manifest download for: {}", id);
                 if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
                     return;
                 }
-                let start = std::time::Instant::now();
-                debug!("Looking for release with app_id: {}", release_id);
-                // Find release by app_id (release_id parameter is actually the app_id)
-                let release_info = asset.release_info.as_ref().and_then(|releases| {
-                    releases
-                        .iter()
-                        .find(|r| r.app_id.as_ref() == Some(&release_id))
-                        .cloned()
+                // release_id may be either a release.id (from version dropdown)
+                // or an app_id (from tile download button). Try both lookups.
+                let release_info = asset.release_info(&release_id).or_else(|| {
+                    asset.release_info.as_ref().and_then(|releases| {
+                        releases
+                            .iter()
+                            .find(|r| r.app_id.as_deref() == Some(&release_id))
+                            .cloned()
+                    })
                 });
-                if let Some(_release_info) = release_info {
-                    debug!("Found release_info, fetching asset manifest...");
+                if let Some(found_release) = release_info {
+                    let app_name = found_release.app_id.clone().unwrap_or_default();
                     if let Some(manifest) = crate::RUNTIME.block_on(eg.asset_manifest(
                         None,
                         None,
                         Some(asset.namespace.clone()),
                         Some(asset.id.clone()),
-                        Some(release_id.clone()),
+                        Some(app_name),
                     )) {
-                        debug!("Got asset manifest: {:?}", manifest);
                         let d = crate::RUNTIME.block_on(eg.asset_download_manifests(manifest));
-                        debug!("Got {} download manifests for {}", d.len(), id);
                         let _ = sender.send_blocking((id, d));
-                        // TODO cache download manifest
                     } else {
-                        warn!("Failed to get asset manifest from API for: {}", release_id);
+                        warn!(
+                            "Failed to get asset manifest for release_id={}, app_id={:?}",
+                            release_id, found_release.app_id
+                        );
                     }
                 } else {
-                    warn!("No release_info found for: {}", release_id);
+                    warn!(
+                        "No release_info found for '{}' in asset {:?}",
+                        release_id, asset.title
+                    );
                 }
-                debug!("Download Manifest requests took {:?}", start.elapsed());
             });
         } else {
             warn!("No window set on download manager");
