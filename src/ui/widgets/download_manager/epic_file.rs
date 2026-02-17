@@ -80,11 +80,21 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
         let (send, recv) = std::sync::mpsc::channel::<ThreadMessages>();
         self.add_thread_sender(version.to_string(), send);
         let sender = self_.sender.clone();
-        let link = Url::parse(url).expect("Valid URL");
+        let link = match Url::parse(url) {
+            Ok(u) => u,
+            Err(e) => {
+                error!("Invalid download URL '{}': {}", url, e);
+                return;
+            }
+        };
         let ver = version.to_string();
-        let mut p = self
-            .engine_target_directory()
-            .expect("Invalid Target directory");
+        let mut p = match self.engine_target_directory() {
+            Some(p) => p,
+            None => {
+                error!("No engine target directory configured");
+                return;
+            }
+        };
         p.push("epic");
         p.push(version);
         self_.download_pool.execute(move || {
@@ -215,9 +225,13 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn epic_finished(&self, item: &download_item::EpicDownloadItem) {
         let self_ = self.imp();
         if let Some(version) = item.version() {
-            let mut p = self
-                .engine_target_directory()
-                .expect("Invalid Target directory");
+            let mut p = match self.engine_target_directory() {
+                Some(p) => p,
+                None => {
+                    error!("No engine target directory configured");
+                    return;
+                }
+            };
             p.push("epic");
             p.push(version);
             if let Err(e) = fs::remove_file(&p) {
@@ -259,9 +273,13 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
             }
         }
 
-        let mut p = self
-            .engine_target_directory()
-            .expect("Invalid Target directory");
+        let mut p = match self.engine_target_directory() {
+            Some(p) => p,
+            None => {
+                error!("No engine target directory configured for cancel");
+                return;
+            }
+        };
         p.push("epic");
         p.push(version);
         if let Err(e) = fs::remove_file(p) {
@@ -291,22 +309,36 @@ impl EpicFile for crate::ui::widgets::download_manager::EpicDownloadManager {
     fn epic_file_finished(&self, version: &str) {
         let self_ = self.imp();
         info!("Finished file download");
-        let mut p = self
-            .engine_target_directory()
-            .expect("Invalid Target directory");
+        let mut p = match self.engine_target_directory() {
+            Some(p) => p,
+            None => {
+                error!("No engine target directory configured");
+                return;
+            }
+        };
         p.push("epic");
         p.push(version);
         let re = Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+(?:_preview-\d+)?)").unwrap();
 
-        let mut target = self
-            .engine_target_directory()
-            .expect("Invalid Target directory");
+        let mut target = match self.engine_target_directory() {
+            Some(p) => p,
+            None => {
+                error!("No engine target directory configured");
+                return;
+            }
+        };
         if let Some(cap) = re.captures_iter(version).next() {
             target.push(&cap[1]);
         }
         if p.exists() {
             if let Some(item) = self.get_item(version) {
-                let metadata = fs::metadata(p.as_path()).expect("unable to read metadata");
+                let metadata = match fs::metadata(p.as_path()) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        error!("Unable to read metadata for {:?}: {}", p, e);
+                        return;
+                    }
+                };
                 item.add_downloaded_size(item.total_size() - item.downloaded_size());
                 if u128::from(metadata.size()) == item.total_size() {
                     let file = match File::open(&p) {
@@ -372,7 +404,14 @@ fn extract(
         };
         file_target.push(&outpath);
         if file_target.exists() {
-            let metadata = fs::metadata(file_target.as_path()).expect("unable to read metadata");
+            let metadata = match fs::metadata(file_target.as_path()) {
+                Ok(m) => m,
+                Err(e) => {
+                    error!("Unable to read metadata for {:?}: {}", file_target, e);
+                    let _ = sender.send_blocking(Msg::EpicFileExtracted(ver.clone()));
+                    continue;
+                }
+            };
             if metadata.size() == file.size() {
                 let _ = sender.send_blocking(Msg::EpicFileExtracted(ver.clone()));
                 continue;
@@ -480,7 +519,13 @@ fn run(
         return;
     }
     let mut client = if p.exists() {
-        let metadata = fs::metadata(p.as_path()).expect("unable to read metadata");
+        let metadata = match fs::metadata(p.as_path()) {
+            Ok(m) => m,
+            Err(e) => {
+                error!("Unable to read metadata for {:?}: {}", p, e);
+                return;
+            }
+        };
         if metadata.size() == size {
             debug!("Already downloaded {}", p.to_str().unwrap_or_default());
             let _ = sender.send_blocking(Msg::EpicDownloadProgress(ver.clone(), size));

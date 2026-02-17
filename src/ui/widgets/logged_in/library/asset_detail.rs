@@ -1008,18 +1008,23 @@ impl EpicAssetDetails {
             if let Ok(mut conn) = db.get() {
                 if let Some(fav) = self_.favorite.icon_name() {
                     if fav.eq("starred") {
-                        diesel::delete(
+                        if let Err(e) = diesel::delete(
                             crate::schema::favorite_asset::table
                                 .filter(crate::schema::favorite_asset::asset.eq(&id)),
                         )
                         .execute(&mut conn)
-                        .expect("Unable to delete favorite from DB");
+                        {
+                            log::error!("Unable to delete favorite from DB: {}", e);
+                        }
                         self_.favorite.set_icon_name("non-starred-symbolic");
                     } else {
-                        diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
-                            .values(crate::schema::favorite_asset::asset.eq(&id))
-                            .execute(&mut conn)
-                            .expect("Unable to insert favorite to the DB");
+                        if let Err(e) =
+                            diesel::insert_or_ignore_into(crate::schema::favorite_asset::table)
+                                .values(crate::schema::favorite_asset::asset.eq(&id))
+                                .execute(&mut conn)
+                        {
+                            log::error!("Unable to insert favorite to DB: {}", e);
+                        }
                         self_.favorite.set_icon_name("starred");
                     };
                     self.refresh_asset();

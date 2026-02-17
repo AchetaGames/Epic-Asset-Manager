@@ -206,7 +206,10 @@ impl UnrealProjectDetails {
                             unreal_project_latest_engine::engine.eq(eng.path),
                         ))
                         .execute(&mut conn)
-                        .expect("Unable to insert last engine to the DB");
+                        .unwrap_or_else(|e| {
+                            log::error!("Unable to insert last engine to DB: {}", e);
+                            0
+                        });
                 };
                 let context = gio::AppLaunchContext::new();
                 context.setenv("GLIBC_TUNABLES", "glibc.rtld.dynamic_sort=2");
@@ -223,8 +226,9 @@ impl UnrealProjectDetails {
                     Some("Unreal Engine"),
                     gio::AppInfoCreateFlags::NONE,
                 ).unwrap();
-                app.launch(&[], Some(&context))
-                    .expect("Failed to launch application");
+                app.launch(&[], Some(&context)).unwrap_or_else(|e| {
+                    log::error!("Failed to launch application: {}", e);
+                });
             }
         };
         let self_ = self.imp();

@@ -5,7 +5,7 @@ use glib::clone;
 use gtk4::glib;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, warn};
 use rand::Rng;
 use reqwest::Url;
 use sha1::digest::core_api::CoreWrapper;
@@ -383,7 +383,13 @@ impl Asset for super::EpicDownloadManager {
             v.push("data");
             v
         } else {
-            PathBuf::from_str(&targets.pop().unwrap().0).unwrap()
+            match targets.pop() {
+                Some(t) => PathBuf::from(&t.0),
+                None => {
+                    error!("No target directories available for asset download");
+                    return;
+                }
+            }
         };
         let t = target.clone();
         let manifest = dm[0].clone();
@@ -1319,7 +1325,13 @@ impl AssetPriv for super::EpicDownloadManager {
             v.push("data");
             v
         } else {
-            PathBuf::from_str(&targets.pop().unwrap().0).unwrap()
+            match targets.pop() {
+                Some(t) => PathBuf::from(&t.0),
+                None => {
+                    error!("No target directories available for file extraction");
+                    return;
+                }
+            }
         };
         let sender = self_.sender.clone();
         let f_c = f.clone();

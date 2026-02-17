@@ -318,7 +318,13 @@ impl EpicLogs {
                             };
                         }
                     };
-                    let metadata = std::fs::metadata(p.as_path()).expect("unable to read metadata");
+                    let metadata = match std::fs::metadata(p.as_path()) {
+                        Ok(m) => m,
+                        Err(e) => {
+                            log::error!("Unable to read metadata for {:?}: {}", p, e);
+                            continue;
+                        }
+                    };
                     sender
                         .send_blocking(Msg::AddLog(
                             p.to_str().unwrap_or_default().to_string(),

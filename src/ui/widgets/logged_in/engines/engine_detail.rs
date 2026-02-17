@@ -188,7 +188,9 @@ impl EpicEngineDetails {
                     Some("Unreal Engine"),
                     gtk4::gio::AppInfoCreateFlags::NONE,
                 ).unwrap();
-                app.launch(&[], Some(&context)).expect("Failed to launch application");
+                app.launch(&[], Some(&context)).unwrap_or_else(|e| {
+                    log::error!("Failed to launch engine: {}", e);
+                });
             });
         };
         self.show_confirmation("Engine Launched");
