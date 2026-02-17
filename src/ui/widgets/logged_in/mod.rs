@@ -285,6 +285,11 @@ impl EpicLoggedInBox {
         let self_ = self.imp();
         self_.page_stack.visible_child_name()
     }
+
+    pub fn on_fab_added_to_library(&self, uid: &str) {
+        let self_ = self.imp();
+        self_.fab.on_added_to_library(uid);
+    }
 }
 
 impl Refresh for EpicLoggedInBox {

@@ -24,6 +24,7 @@ pub enum Msg {
     FlushFabBrowseResults(Option<String>),
     ProcessFabListingDetail(FabListingDetail, Vec<FabListingUeFormat>, bool),
     FabTaxonomyLoaded(Vec<FabTagGroup>),
+    FabAddedToLibrary(String),
     #[cfg(target_os = "linux")]
     DockerClient(ghregistry::Client),
     #[cfg(target_os = "linux")]

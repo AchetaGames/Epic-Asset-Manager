@@ -37,6 +37,10 @@ pub mod imp {
         #[template_child]
         pub favorites_filter: TemplateChild<gtk4::ToggleButton>,
         #[template_child]
+        pub free_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
+        pub on_sale_filter: TemplateChild<gtk4::ToggleButton>,
+        #[template_child]
         pub load_more_button: TemplateChild<gtk4::Button>,
         #[template_child]
         pub count_label: TemplateChild<gtk4::Label>,
@@ -80,6 +84,8 @@ pub mod imp {
                 category_dropdown: TemplateChild::default(),
                 downloaded_filter: TemplateChild::default(),
                 favorites_filter: TemplateChild::default(),
+                free_filter: TemplateChild::default(),
+                on_sale_filter: TemplateChild::default(),
                 load_more_button: TemplateChild::default(),
                 count_label: TemplateChild::default(),
                 refresh_progress: TemplateChild::default(),
@@ -277,6 +283,30 @@ impl FabLibraryBox {
                 fab.update_filter();
             }
         ));
+
+        self_.free_filter.connect_toggled(clone!(
+            #[weak(rename_to=fab)]
+            self,
+            move |_| {
+                let self_ = fab.imp();
+                self_.browse_cursor.replace(None);
+                self_.browse_known_ids.borrow_mut().clear();
+                self_.browse_model.remove_all();
+                fab.fetch_browse_results(None);
+            }
+        ));
+
+        self_.on_sale_filter.connect_toggled(clone!(
+            #[weak(rename_to=fab)]
+            self,
+            move |_| {
+                let self_ = fab.imp();
+                self_.browse_cursor.replace(None);
+                self_.browse_known_ids.borrow_mut().clear();
+                self_.browse_model.remove_all();
+                fab.fetch_browse_results(None);
+            }
+        ));
     }
 
     fn setup_grid(&self) {
@@ -322,6 +352,24 @@ impl FabLibraryBox {
                                 .get::<crate::ui::widgets::logged_in::library::asset::EpicAsset>()
                                 .unwrap();
                             fab.handle_download_requested(&asset_widget);
+                            None
+                        }
+                    ),
+                );
+
+                row.connect_local(
+                    "add-to-library-requested",
+                    false,
+                    clone!(
+                        #[weak]
+                        fab,
+                        #[upgrade_or]
+                        None,
+                        move |values| {
+                            let asset_widget = values[0]
+                                .get::<crate::ui::widgets::logged_in::library::asset::EpicAsset>()
+                                .unwrap();
+                            fab.handle_add_to_library(&asset_widget);
                             None
                         }
                     ),
@@ -461,6 +509,8 @@ impl FabLibraryBox {
             self_.browse_model.remove_all();
             self_.downloaded_filter.set_visible(false);
             self_.favorites_filter.set_visible(false);
+            self_.free_filter.set_visible(true);
+            self_.on_sale_filter.set_visible(true);
             self_.category_dropdown.set_visible(true);
             self.fetch_browse_results(None);
         } else {
@@ -468,6 +518,8 @@ impl FabLibraryBox {
             self_.load_more_button.set_visible(false);
             self_.downloaded_filter.set_visible(true);
             self_.favorites_filter.set_visible(true);
+            self_.free_filter.set_visible(false);
+            self_.on_sale_filter.set_visible(false);
             self.rebuild_category_dropdown();
         }
         self.bind_grid_model(if browse {
@@ -851,6 +903,8 @@ impl FabLibraryBox {
             let sender = win_.model.borrow().sender.clone();
             let search_text = self_.search.borrow().clone();
             let browse_cat = self_.browse_category.borrow().clone();
+            let is_free = self_.free_filter.is_active();
+            let on_sale = self_.on_sale_filter.is_active();
 
             self_.image_load_pool.execute(move || {
                 if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
@@ -865,6 +919,12 @@ impl FabLibraryBox {
                 params.cursor = cursor;
                 params.q = search_text;
                 params.categories = browse_cat;
+                if is_free {
+                    params.is_free = Some(true);
+                }
+                if on_sale {
+                    params.min_discount_percentage = Some(1);
+                }
 
                 match crate::RUNTIME.block_on(eg.try_fab_search(&params)) {
                     Ok(results) => {
@@ -965,6 +1025,47 @@ impl FabLibraryBox {
         self_.load_more_button.set_visible(false);
     }
 
+    pub fn add_to_library(&self, listing_uid: &str) {
+        if let Some(window) = self.main_window() {
+            let win_ = window.imp();
+            let eg = win_.model.borrow().epic_games.borrow().clone();
+            let sender = win_.model.borrow().sender.clone();
+            let uid = listing_uid.to_string();
+
+            self.imp().image_load_pool.execute(move || {
+                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+                match crate::RUNTIME.block_on(eg.fab_add_to_library(&uid)) {
+                    Ok(()) => {
+                        debug!("Successfully added {} to library", uid);
+                        let _ =
+                            sender.send_blocking(crate::ui::messages::Msg::FabAddedToLibrary(uid));
+                    }
+                    Err(e) => {
+                        error!("Failed to add {} to library: {}", uid, e);
+                    }
+                }
+            });
+        }
+    }
+
+    pub fn on_added_to_library(&self, uid: &str) {
+        let self_ = self.imp();
+        for i in 0..self_.browse_model.n_items() {
+            if let Some(item) = self_.browse_model.item(i) {
+                if let Some(data) = item.downcast_ref::<crate::models::fab_data::FabData>() {
+                    if let Some(asset) = data.imp().asset.borrow().as_ref() {
+                        if asset.asset_id == uid {
+                            data.set_property("price-label", "Added ✓");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn clear(&self) {
         let self_ = self.imp();
         self_.grid_model.remove_all();
@@ -1039,6 +1140,17 @@ impl FabLibraryBox {
                         details.open_fab_version_dialog(asset);
                     }
                 }
+            }
+        }
+    }
+
+    fn handle_add_to_library(
+        &self,
+        asset_widget: &crate::ui::widgets::logged_in::library::asset::EpicAsset,
+    ) {
+        if let Some(fab_data) = asset_widget.imp().fab_data.borrow().as_ref() {
+            if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
+                self.add_to_library(&asset.asset_id);
             }
         }
     }

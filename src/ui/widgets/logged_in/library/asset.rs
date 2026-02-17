@@ -100,6 +100,9 @@ pub mod imp {
                         glib::subclass::Signal::builder("tile-clicked")
                             .flags(glib::SignalFlags::ACTION)
                             .build(),
+                        glib::subclass::Signal::builder("add-to-library-requested")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
                     ]
                 });
             SIGNALS.as_ref()
@@ -332,6 +335,10 @@ impl EpicAsset {
         let price_label = self_.price_label.borrow().clone();
 
         if !price_label.is_empty() {
+            if price_label == "Free" {
+                self.emit_by_name::<()>("add-to-library-requested", &[]);
+                return;
+            }
             if let Some(fab_data) = self_.fab_data.borrow().as_ref() {
                 if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
                     if !asset.url.is_empty() {

@@ -46,6 +46,20 @@
                                 <property name="tooltip-text" translatable="yes">Only show starred</property>
                             </object>
                         </child>
+                        <child>
+                            <object class="GtkToggleButton" id="free_filter">
+                                <property name="icon-name">selection-mode-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">Free only</property>
+                                <property name="visible">false</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkToggleButton" id="on_sale_filter">
+                                <property name="icon-name">go-down-symbolic</property>
+                                <property name="tooltip-text" translatable="yes">On sale</property>
+                                <property name="visible">false</property>
+                            </object>
+                        </child>
                     </object>
                 </child>
                 <child>
