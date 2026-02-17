@@ -96,11 +96,6 @@ pub trait Asset {
         unimplemented!()
     }
 
-    #[allow(dead_code)]
-    fn asset_finished(&self, _item: &super::download_item::EpicDownloadItem) {
-        unimplemented!()
-    }
-
     fn file_already_extracted(
         &self,
         _asset_id: String,
@@ -779,13 +774,6 @@ impl Asset for super::EpicDownloadManager {
                 }
             }
         }
-    }
-
-    fn asset_finished(&self, item: &super::download_item::EpicDownloadItem) {
-        self.finish(item);
-        if let Some(r) = item.release() {
-            self.asset_cleanup(r);
-        };
     }
 
     fn file_already_extracted(

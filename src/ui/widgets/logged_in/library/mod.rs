@@ -405,23 +405,6 @@ impl EpicLibraryBox {
         );
     }
 
-    #[allow(dead_code)]
-    fn asset_selected(&self, model: &gtk4::SingleSelection) {
-        if let Some(a) = model.selected_item() {
-            let self_ = self.imp();
-            let asset = a
-                .downcast::<crate::models::asset_data::AssetData>()
-                .unwrap();
-            let assets = self_.loaded_assets.borrow();
-            if let Some(a) = assets.get(&asset.id()) {
-                if let Some(details) = self_.details.get() {
-                    details.set_asset(a);
-                    details.set_property("position", model.selected());
-                }
-            }
-        }
-    }
-
     fn handle_asset_action(&self, asset_widget: &EpicAsset, action: &str) {
         let self_ = self.imp();
 

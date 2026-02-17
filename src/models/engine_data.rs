@@ -383,39 +383,6 @@ impl EngineData {
     pub fn needs_update(&self) -> bool {
         self.property("needs-update")
     }
-
-    // #[cfg(target_os = "linux")]
-    // fn git_callbacks() -> git2::RemoteCallbacks<'static> {
-    //     let git_config = git2::Config::open_default().unwrap();
-    //     let mut cb = git2::RemoteCallbacks::new();
-    //     cb.credentials(move |url, username, allowed| {
-    //         let mut cred_helper = git2::CredentialHelper::new(url);
-    //         cred_helper.config(&git_config);
-    //         if allowed.is_ssh_key() {
-    //             // TODO: Add configuration to specify the ssh key and password(if needed)
-    //             let mut key = glib::home_dir();
-    //             key.push(".ssh");
-    //             key.push("id_rsa");
-    //
-    //             let user = username
-    //                 .map(std::string::ToString::to_string)
-    //                 .or_else(|| cred_helper.username.clone())
-    //                 .unwrap_or_else(|| "git".to_string());
-    //             if key.exists() {
-    //                 git2::Cred::ssh_key(&user, None, key.as_path(), None)
-    //             } else {
-    //                 git2::Cred::ssh_key_from_agent(&user)
-    //             }
-    //         } else if allowed.is_user_pass_plaintext() {
-    //             git2::Cred::credential_helper(&git_config, url, username)
-    //         } else if allowed.is_default() {
-    //             git2::Cred::default()
-    //         } else {
-    //             Err(git2::Error::from_str("no authentication available"))
-    //         }
-    //     });
-    //     cb
-    // }
 }
 
 #[cfg(test)]

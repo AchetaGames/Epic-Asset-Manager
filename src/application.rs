@@ -273,22 +273,17 @@ impl EpicAssetManager {
         crate::ui::widgets::preferences::PreferencesWindow::apply_accent_color(&accent);
     }
 
-    // TODO: Switch to adw:AboutDialog
     fn show_about_dialog(&self) {
-        let dialog = gtk4::AboutDialog::builder()
-            .program_name("Epic Asset Manager")
-            .logo_icon_name(config::APP_ID)
+        let dialog = adw::AboutDialog::builder()
+            .application_name("Epic Asset Manager")
+            .application_icon(config::APP_ID)
             .license_type(gtk4::License::MitX11)
             .website("https://github.com/AchetaGames/Epic-Asset-Manager/wiki")
-            .website_label("Wiki")
             .version(config::VERSION)
-            .transient_for(self.main_window())
-            .modal(true)
-            .authors(vec!["Acheta Games".to_string()])
-            .documenters(vec!["Osayami".to_string()])
+            .developers(vec!["Acheta Games".to_string()])
             .build();
 
-        dialog.present();
+        adw::prelude::AdwDialogExt::present(&dialog, Some(&self.main_window()));
     }
 
     pub fn run(&self) {
