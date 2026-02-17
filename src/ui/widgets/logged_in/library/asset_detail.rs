@@ -679,7 +679,10 @@ impl EpicAssetDetails {
 
         for image in &fab_asset.images {
             if let Some(key_image) = fab_image_to_key_image(image) {
-                if key_image.width < 300 || key_image.height < 300 {
+                if key_image.width > 0
+                    && key_image.height > 0
+                    && (key_image.width < 300 || key_image.height < 300)
+                {
                     continue;
                 }
                 self_.images.add_image(&key_image);
