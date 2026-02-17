@@ -2,6 +2,7 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use log::trace;
 
 pub mod imp {
     use super::*;
@@ -405,21 +406,12 @@ impl EpicAsset {
                 #[upgrade_or]
                 None,
                 move |_| {
-                    // Debug: log signal received
-                    use std::io::Write;
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/asset_click.log")
-                    {
-                        let _ = writeln!(
-                            f,
-                            "[SIGNAL] refreshed received: id={}, downloading={}, progress={}",
-                            data.id(),
-                            data.downloading(),
-                            data.download_progress()
-                        );
-                    }
+                    trace!(
+                        "Refreshed signal received: id={}, downloading={}, progress={}",
+                        data.id(),
+                        data.downloading(),
+                        data.download_progress()
+                    );
 
                     asset.set_property("favorite", data.favorite());
                     asset.set_property("downloaded", data.downloaded());
@@ -447,19 +439,12 @@ impl EpicAsset {
                         self_.download_info.set_label(&info_text);
                     }
 
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/asset_click.log")
-                    {
-                        let _ = writeln!(
-                            f,
-                            "[SIGNAL] After update: visible={}, fraction={}, info={}",
-                            self_.progress_bar.is_visible(),
-                            self_.progress_bar.fraction(),
-                            speed
-                        );
-                    }
+                    trace!(
+                        "After update: visible={}, fraction={}, speed={}",
+                        self_.progress_bar.is_visible(),
+                        self_.progress_bar.fraction(),
+                        speed
+                    );
                     None
                 }
             ),
@@ -470,19 +455,11 @@ impl EpicAsset {
         let downloading = data.downloading();
         let progress = data.download_progress();
 
-        // Debug: verify template children exist
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(f, "[set_data] Setting progress: downloading={}, progress={}, progress_bar valid={}, progress_bar valid={}",
-                downloading, progress,
-                self_.progress_bar.is_visible() || !self_.progress_bar.is_visible(), // will be true if widget exists
-                self_.progress_bar.fraction() >= 0.0 // will be true if widget exists
-            );
-        }
+        trace!(
+            "set_data: downloading={}, progress={}",
+            downloading,
+            progress
+        );
 
         self_.progress_bar.set_visible(downloading);
         self_.progress_bar.set_fraction(progress);
@@ -500,18 +477,11 @@ impl EpicAsset {
             self_.download_info.set_label(&info_text);
         }
 
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(
-                f,
-                "[set_data] After set: progress_bar.visible={}, progress_bar.fraction={}",
-                self_.progress_bar.is_visible(),
-                self_.progress_bar.fraction()
-            );
-        }
+        trace!(
+            "set_data: after set: progress_bar.visible={}, progress_bar.fraction={}",
+            self_.progress_bar.is_visible(),
+            self_.progress_bar.fraction()
+        );
     }
 
     /// Direct method to update download progress - bypasses signals

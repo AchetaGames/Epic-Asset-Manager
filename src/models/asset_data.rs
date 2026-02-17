@@ -6,7 +6,7 @@ use gtk4::gdk::Texture;
 use gtk4::prelude::ObjectExt;
 use gtk4::prelude::SettingsExtManual;
 use gtk4::{glib, subclass::prelude::*};
-use log::error;
+use log::{error, trace};
 use std::path::PathBuf;
 
 pub enum AssetType {
@@ -418,27 +418,13 @@ impl AssetData {
     }
 
     pub fn set_downloading(&self, downloading: bool) {
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(
-                f,
-                "[AssetData.set_downloading] id={}, downloading={}",
-                self.id(),
-                downloading
-            );
-        }
+        trace!(
+            "AssetData.set_downloading: id={}, downloading={}",
+            self.id(),
+            downloading
+        );
         self.set_property("downloading", downloading);
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(f, "[AssetData.set_downloading] Emitting refreshed signal");
-        }
+        trace!("AssetData.set_downloading: emitting refreshed signal");
         self.emit_by_name::<()>("refreshed", &[]);
     }
 

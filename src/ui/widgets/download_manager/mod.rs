@@ -60,6 +60,7 @@ pub enum Msg {
     EpicFileExtractionProgress(String, u64),
     EpicDownloadProgress(String, u64),
     IOError(String),
+    FileHashMismatch(String, asset::DownloadedFile),
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +104,10 @@ pub mod imp {
         pub thread_senders: HashMap<String, Vec<std::sync::mpsc::Sender<super::ThreadMessages>>>,
         pub chunk_urls: HashMap<String, Vec<Url>>,
         pub docker_digests: HashMap<String, Vec<(String, super::DownloadStatus)>>,
+        /// Retry counts for chunk downloads (key: chunk guid)
+        pub chunk_retries: HashMap<String, u32>,
+        /// Retry counts for file hash validation (key: file path)
+        pub file_retries: HashMap<String, u32>,
     }
 
     #[derive(Debug, CompositeTemplate)]
@@ -379,6 +384,9 @@ impl EpicDownloadManager {
             Msg::CancelChunk(_url, path, guid) => {
                 self.remove_chunk(path, guid);
             }
+            Msg::FileHashMismatch(file, file_details) => {
+                self.handle_file_hash_mismatch(&file, file_details);
+            }
             Msg::DockerCanceled(version, digest) => {
                 self.cancel_docker_digest(&version, digest);
             }
@@ -495,6 +503,71 @@ impl EpicDownloadManager {
             .sender
             .send_blocking(Msg::FileExtracted(file_details.asset))
             .ok();
+    }
+
+    fn handle_file_hash_mismatch(&self, file: &str, mut file_details: asset::DownloadedFile) {
+        let self_ = self.imp();
+        let retry_count = {
+            let mut state = self_.state.borrow_mut();
+            let count = state.file_retries.entry(file.to_string()).or_insert(0);
+            *count += 1;
+            *count
+        };
+
+        if retry_count > asset::MAX_FILE_HASH_RETRIES {
+            error!(
+                "File {} hash validation failed after {} retries, giving up",
+                file,
+                asset::MAX_FILE_HASH_RETRIES
+            );
+            if let Some(item) = self.get_item(&file_details.asset) {
+                item.set_property(
+                    "status",
+                    format!(
+                        "Failed: hash validation failed after {} retries",
+                        asset::MAX_FILE_HASH_RETRIES
+                    ),
+                );
+            }
+            return;
+        }
+
+        warn!(
+            "File {} hash mismatch, retrying (attempt {}/{})",
+            file,
+            retry_count,
+            asset::MAX_FILE_HASH_RETRIES
+        );
+
+        if let Some(item) = self.get_item(&file_details.asset) {
+            item.set_property(
+                "status",
+                format!(
+                    "Retrying (hash mismatch) {}/{}",
+                    retry_count,
+                    asset::MAX_FILE_HASH_RETRIES
+                ),
+            );
+        }
+
+        {
+            let mut state = self_.state.borrow_mut();
+            file_details.finished_chunks.clear();
+            if let Some(df) = state.downloaded_files.get_mut(file) {
+                df.finished_chunks.clear();
+            }
+            for chunk in &file_details.chunks {
+                state.chunk_retries.remove(&chunk.guid);
+            }
+        }
+
+        for chunk in &file_details.chunks {
+            let _ = self_.sender.send_blocking(Msg::RedownloadChunk(
+                reqwest::Url::parse("unix:/").unwrap(),
+                PathBuf::from(format!("{}.chunk", chunk.guid)),
+                chunk.guid.clone(),
+            ));
+        }
     }
 
     pub fn progress(&self) -> f32 {

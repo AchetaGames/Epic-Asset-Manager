@@ -5,7 +5,7 @@ use glib::clone;
 use gtk4::glib;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use rand::Rng;
 use reqwest::Url;
 use sha1::digest::core_api::CoreWrapper;
@@ -16,6 +16,9 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+
+const MAX_CHUNK_RETRIES: u32 = 3;
+pub const MAX_FILE_HASH_RETRIES: u32 = 2;
 
 #[derive(Default, Debug, Clone)]
 pub struct DownloadedFile {
@@ -189,19 +192,10 @@ impl Asset for super::EpicDownloadManager {
     ) {
         debug!("Adding download: {:?}", asset.title);
 
-        // Debug logging to file
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("/tmp/asset_click.log")
-        {
-            let _ = writeln!(
-                f,
-                "[add_asset_download] called for: {:?}, release_id: {}",
-                asset.title, release_id
-            );
-        }
+        debug!(
+            "add_asset_download called for: {:?}, release_id: {}",
+            asset.title, release_id
+        );
 
         let self_ = self.imp();
 
@@ -211,17 +205,7 @@ impl Asset for super::EpicDownloadManager {
                 None => {
                     let item = super::download_item::EpicDownloadItem::new();
                     debug!("Adding item to the list under: {}", release_id);
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/asset_click.log")
-                    {
-                        let _ = writeln!(
-                            f,
-                            "[add_asset_download] Creating new download item for: {}",
-                            release_id
-                        );
-                    }
+                    debug!("Creating new download item for: {}", release_id);
                     state
                         .download_items
                         .insert(release_id.clone(), item.clone());
@@ -229,16 +213,7 @@ impl Asset for super::EpicDownloadManager {
                 }
                 Some(_) => {
                     // Item is already downloading do nothing
-                    if let Ok(mut f) = std::fs::OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open("/tmp/asset_click.log")
-                    {
-                        let _ = writeln!(
-                            f,
-                            "[add_asset_download] Item already exists, returning early"
-                        );
-                    }
+                    debug!("add_asset_download: item already exists, returning early");
                     return;
                 }
             }
@@ -318,60 +293,33 @@ impl Asset for super::EpicDownloadManager {
     ) {
         let self_ = self.imp();
 
-        // Debug: check if window is set
-        {
-            use std::io::Write;
-            if let Ok(mut f) = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("/tmp/asset_click.log")
-            {
-                let has_window = self_.window.get().is_some();
-                let _ = writeln!(
-                    f,
-                    "[download_asset_manifest] called for: {:?}, has_window: {}",
-                    asset.title, has_window
-                );
-            }
-        }
+        debug!(
+            "download_asset_manifest called for: {:?}, has_window: {}",
+            asset.title,
+            self_.window.get().is_some()
+        );
 
         if let Some(window) = self_.window.get() {
-            {
-                use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("/tmp/asset_click.log")
-                {
-                    let _ = writeln!(
-                        f,
-                        "[download_asset_manifest] Window found, queuing manifest download"
-                    );
-                }
-            }
+            debug!("Window found, queuing manifest download");
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let id = release_id.clone();
             self_.download_pool.execute(move || {
-                use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "[download_asset_manifest] Thread pool executing for: {}", id);
-                }
+                debug!("Thread pool executing manifest download for: {}", id);
                 if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
                     return;
                 }
                 let start = std::time::Instant::now();
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "[download_asset_manifest] Looking for release with app_id: {}", release_id);
-                }
+                debug!("Looking for release with app_id: {}", release_id);
                 // Find release by app_id (release_id parameter is actually the app_id)
                 let release_info = asset.release_info.as_ref().and_then(|releases| {
-                    releases.iter().find(|r| r.app_id.as_ref() == Some(&release_id)).cloned()
+                    releases
+                        .iter()
+                        .find(|r| r.app_id.as_ref() == Some(&release_id))
+                        .cloned()
                 });
                 if let Some(_release_info) = release_info {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[download_asset_manifest] Found release_info, fetching asset manifest...");
-                    }
+                    debug!("Found release_info, fetching asset manifest...");
                     if let Some(manifest) = crate::RUNTIME.block_on(eg.asset_manifest(
                         None,
                         None,
@@ -380,36 +328,20 @@ impl Asset for super::EpicDownloadManager {
                         Some(release_id.clone()),
                     )) {
                         debug!("Got asset manifest: {:?}", manifest);
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                            let _ = writeln!(f, "[download_asset_manifest] Got asset manifest, fetching download manifests...");
-                        }
                         let d = crate::RUNTIME.block_on(eg.asset_download_manifests(manifest));
-                        debug!("Got asset download manifests for {}", id);
-                        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                            let _ = writeln!(f, "[download_asset_manifest] Got {} download manifests, sending to channel", d.len());
-                        }
+                        debug!("Got {} download manifests for {}", d.len(), id);
                         let _ = sender.send_blocking((id, d));
                         // TODO cache download manifest
-                    } else if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[download_asset_manifest] ERROR: Failed to get asset manifest from API");
+                    } else {
+                        warn!("Failed to get asset manifest from API for: {}", release_id);
                     }
-                } else if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "[download_asset_manifest] ERROR: No release_info found for: {}", release_id);
+                } else {
+                    warn!("No release_info found for: {}", release_id);
                 }
                 debug!("Download Manifest requests took {:?}", start.elapsed());
             });
         } else {
-            use std::io::Write;
-            if let Ok(mut f) = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("/tmp/asset_click.log")
-            {
-                let _ = writeln!(
-                    f,
-                    "[download_asset_manifest] ERROR: No window set on download manager!"
-                );
-            }
+            warn!("No window set on download manager");
         }
     }
     /// Process the downoad manifest to start downloading files
@@ -590,42 +522,75 @@ impl Asset for super::EpicDownloadManager {
         let self_ = self.imp();
         let sender = self_.sender.clone();
         let mut state = self_.state.borrow_mut();
+
+        let retry_count = state.chunk_retries.entry(g.to_string()).or_insert(0);
+        *retry_count += 1;
+
+        if *retry_count > MAX_CHUNK_RETRIES {
+            let attempt = *retry_count;
+            warn!(
+                "Chunk {} exceeded max retries ({}/{}), giving up",
+                g, attempt, MAX_CHUNK_RETRIES
+            );
+            let asset_id = state
+                .downloaded_chunks
+                .get(g)
+                .and_then(|files| files.first())
+                .and_then(|file| state.downloaded_files.get(file))
+                .map(|f| f.asset.clone());
+            drop(state);
+            if let Some(asset_id) = asset_id {
+                if let Some(item) = self.get_item(&asset_id) {
+                    item.set_property(
+                        "status",
+                        format!(
+                            "Failed: chunk download failed after {} retries",
+                            MAX_CHUNK_RETRIES
+                        ),
+                    );
+                }
+            }
+            return;
+        }
+
+        let attempt = *retry_count;
+        debug!(
+            "Retrying chunk {} (attempt {}/{})",
+            g, attempt, MAX_CHUNK_RETRIES
+        );
+
         match state.chunk_urls.get_mut(g) {
             None => {
-                // Unable to get chunk urls
                 let _ =
                     sender.send_blocking(Msg::PerformChunkDownload(link.clone(), p, g.to_string()));
             }
             Some(v) => {
                 v.retain(|x| !x.eq(link));
                 if v.is_empty() {
-                    // No other URL available, redownloading
-                    //TODO: This has the potential to loop forever
                     let _ = sender.send_blocking(Msg::PerformChunkDownload(
                         link.clone(),
                         p.clone(),
                         g.to_string(),
                     ));
-                };
-                let mut rng = rand::rng();
-                let index = rng.random_range(0..v.len());
-                let new: Option<&Url> = v.get(index);
-                match new {
-                    None => {
-                        // Unable to get random URL, retrying the same one
-                        let _ = sender.send_blocking(Msg::PerformChunkDownload(
-                            link.clone(),
-                            p,
-                            g.to_string(),
-                        ));
-                    }
-                    Some(u) => {
-                        // Using new url to redownload the chunk
-                        let _ = sender.send_blocking(Msg::PerformChunkDownload(
-                            u.clone(),
-                            p,
-                            g.to_string(),
-                        ));
+                } else {
+                    let mut rng = rand::rng();
+                    let index = rng.random_range(0..v.len());
+                    let new: Option<&Url> = v.get(index);
+                    match new {
+                        None => {
+                            let _ = sender.send_blocking(Msg::PerformChunkDownload(
+                                link.clone(),
+                                p,
+                                g.to_string(),
+                            ));
+                        }
+                        Some(u) => {
+                            let _ = sender.send_blocking(Msg::PerformChunkDownload(
+                                u.clone(),
+                                p,
+                                g.to_string(),
+                            ));
+                        }
                     }
                 }
             }
@@ -740,6 +705,7 @@ impl Asset for super::EpicDownloadManager {
             {
                 let mut state = self_.state.borrow_mut();
                 state.chunk_urls.remove(guid);
+                state.chunk_retries.remove(guid);
                 let affected_files = state
                     .downloaded_chunks
                     .get(guid)
@@ -884,11 +850,13 @@ impl Asset for super::EpicDownloadManager {
                     state.download_items.remove(&r);
                 }
                 for guid in guids {
+                    state.chunk_retries.remove(&guid);
                     for file in state
                         .downloaded_chunks
                         .remove(guid.as_str())
                         .unwrap_or_default()
                     {
+                        state.file_retries.remove(&file);
                         state.downloaded_files.remove(&file);
                     }
                 }
@@ -954,11 +922,13 @@ impl Asset for super::EpicDownloadManager {
             }
             if let Some(ref guids) = guids {
                 for guid in guids {
+                    state.chunk_retries.remove(guid.as_str());
                     for file in state
                         .downloaded_chunks
                         .remove(guid.as_str())
                         .unwrap_or_default()
                     {
+                        state.file_retries.remove(&file);
                         state.downloaded_files.remove(&file);
                     }
                     // Remove chunks if we are already in paused state
@@ -1398,7 +1368,8 @@ impl AssetPriv for super::EpicDownloadManager {
                         ));
                     } else {
                         error!("Failed to validate hash on: {:?}", vault);
-                        // TODO: Try to download this file again
+                        let _ = sender
+                            .send_blocking(Msg::FileHashMismatch(file_c.to_string(), f_c.clone()));
                     };
                 }
                 Err(e) => {
