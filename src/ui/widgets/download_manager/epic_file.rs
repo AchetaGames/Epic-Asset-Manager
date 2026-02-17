@@ -533,7 +533,7 @@ fn run(
             return;
         };
 
-        let c = reqwest::blocking::Client::new();
+        let c = &crate::HTTP_CLIENT;
         debug!("Trying to resume download");
         match c
             .get(link.clone())
@@ -550,7 +550,7 @@ fn run(
             }
         }
     } else {
-        match reqwest::blocking::get(link.clone()) {
+        match crate::HTTP_CLIENT.get(link.clone()).send() {
             Ok(c) => c,
             Err(e) => {
                 error!("Failed to start Engine download: {}", e);

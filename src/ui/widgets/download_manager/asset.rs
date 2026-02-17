@@ -629,7 +629,7 @@ impl Asset for super::EpicDownloadManager {
                 error!("Failed to create chunk directory {:?}: {}", parent, e);
                 return;
             }
-            let mut client = match reqwest::blocking::get(link.clone()) {
+            let mut client = match crate::HTTP_CLIENT.get(link.clone()).send() {
                 Ok(c) => c,
                 Err(e) => {
                     error!("Failed to start chunk download, trying again later: {}", e);

@@ -810,7 +810,7 @@ impl FabLibraryBox {
             return gtk4::gdk::Texture::from_file(&gio::File::for_path(&cache_path)).ok();
         }
 
-        if let Ok(response) = reqwest::blocking::get(url) {
+        if let Ok(response) = crate::HTTP_CLIENT.get(url).send() {
             if let Ok(bytes) = response.bytes() {
                 std::fs::create_dir_all(cache_path.parent().unwrap()).ok();
                 if let Ok(mut file) = std::fs::File::create(&cache_path) {
@@ -962,7 +962,9 @@ impl FabLibraryBox {
                             let texture = listing.thumbnails.as_ref().and_then(|thumbs| {
                                 thumbs.iter().find_map(|thumb| {
                                     thumb.media_url.clone().and_then(|url| {
-                                        reqwest::blocking::get(url)
+                                        crate::HTTP_CLIENT
+                                            .get(url)
+                                            .send()
                                             .ok()
                                             .and_then(|response| response.bytes().ok())
                                             .and_then(|bytes| {

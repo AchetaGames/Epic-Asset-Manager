@@ -25,6 +25,9 @@ static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> = once_cell::sync
         .build()
         .expect("Failed to create Tokio runtime")
 });
+/// Shared blocking HTTP client — reuses TLS config and connection pool across all threads.
+static HTTP_CLIENT: once_cell::sync::Lazy<reqwest::blocking::Client> =
+    once_cell::sync::Lazy::new(|| reqwest::blocking::Client::new());
 
 /// Find the gresource file in standard locations
 fn find_resources_file() -> PathBuf {

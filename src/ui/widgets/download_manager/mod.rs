@@ -233,7 +233,7 @@ fn cached_download(
     if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
         return Err(());
     }
-    if let Ok(response) = reqwest::blocking::get(url.clone()) {
+    if let Ok(response) = crate::HTTP_CLIENT.get(url.clone()).send() {
         if let Ok(b) = response.bytes() {
             if let Some(parent) = cache_path.parent() {
                 if let Err(e) = std::fs::create_dir_all(parent) {
