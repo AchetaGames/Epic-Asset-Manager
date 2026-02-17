@@ -43,7 +43,7 @@ pub mod imp {
         fn new() -> Self {
             let (sender, receiver) = async_channel::unbounded();
             Self {
-                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
+                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 2),
                 stack: TemplateChild::default(),
                 revealer: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),

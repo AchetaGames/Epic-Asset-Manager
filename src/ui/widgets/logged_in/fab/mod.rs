@@ -109,7 +109,7 @@ pub mod imp {
                 known_asset_ids: RefCell::new(HashSet::new()),
                 category_names: RefCell::new(BTreeSet::new()),
                 category_filter_names: RefCell::new(vec![String::new()]),
-                image_load_pool: ThreadPool::with_name("fab_image_pool".to_string(), 10),
+                image_load_pool: ThreadPool::with_name("fab_image_pool".to_string(), 5),
                 settings: gio::Settings::new(crate::config::APP_ID),
             }
         }

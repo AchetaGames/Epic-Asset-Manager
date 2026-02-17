@@ -38,7 +38,7 @@ pub mod imp {
                 sender,
                 receiver: RefCell::new(Some(receiver)),
                 pending: std::sync::RwLock::default(),
-                load_pool: ThreadPool::with_name("Logs Load Pool".to_string(), 1),
+                load_pool: ThreadPool::with_name("Plugin Load Pool".to_string(), 1),
             }
         }
 
