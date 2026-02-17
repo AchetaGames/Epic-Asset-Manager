@@ -79,7 +79,8 @@ fn find_resources_file() -> PathBuf {
 }
 
 fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("epic_asset_manager:info"))
+    let default_filter = "warn,epic_asset_manager=debug";
+    env_logger::Builder::from_env(Env::default().filter_or("EAM_LOG", default_filter))
         .format(|buf, record| {
             writeln!(
                 buf,
