@@ -95,56 +95,54 @@ impl Model {
         }
 
         if self.settings.strv("unreal-projects-directories").is_empty() {
-            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
-                None => { //TODO: Handle non standard directories
-                }
-                Some(mut dir) => {
-                    dir.push("Unreal Projects");
-                    let dir_str = dir.to_string_lossy();
-                    if let Err(e) = self
-                        .settings
-                        .set_strv("unreal-projects-directories", vec![dir_str.as_ref()])
-                    {
-                        warn!("Failed to set unreal projects directories: {}", e);
-                    }
-                }
-            };
+            let base =
+                gtk4::glib::user_special_dir(UserDirectory::Documents).unwrap_or_else(|| {
+                    warn!("No XDG Documents directory configured, falling back to $HOME");
+                    gtk4::glib::home_dir()
+                });
+            let mut dir = base;
+            dir.push("Unreal Projects");
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_strv("unreal-projects-directories", vec![dir_str.as_ref()])
+            {
+                warn!("Failed to set unreal projects directories: {}", e);
+            }
         }
 
         if self.settings.strv("unreal-vault-directories").is_empty() {
-            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
-                None => {
-                    //TODO: Handle non standard directories
-                }
-                Some(mut dir) => {
-                    dir.push("EpicVault");
-                    let dir_str = dir.to_string_lossy();
-                    if let Err(e) = self
-                        .settings
-                        .set_strv("unreal-vault-directories", vec![dir_str.as_ref()])
-                    {
-                        warn!("Failed to set unreal vault directories: {}", e);
-                    }
-                }
-            };
+            let base =
+                gtk4::glib::user_special_dir(UserDirectory::Documents).unwrap_or_else(|| {
+                    warn!("No XDG Documents directory configured, falling back to $HOME");
+                    gtk4::glib::home_dir()
+                });
+            let mut dir = base;
+            dir.push("EpicVault");
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_strv("unreal-vault-directories", vec![dir_str.as_ref()])
+            {
+                warn!("Failed to set unreal vault directories: {}", e);
+            }
         }
 
         if self.settings.strv("unreal-engine-directories").is_empty() {
-            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
-                None => {
-                    //TODO: Handle non standard directories
-                }
-                Some(mut dir) => {
-                    dir.push("Unreal Engine");
-                    let dir_str = dir.to_string_lossy();
-                    if let Err(e) = self
-                        .settings
-                        .set_strv("unreal-engine-directories", vec![dir_str.as_ref()])
-                    {
-                        warn!("Failed to set unreal engine directories: {}", e);
-                    }
-                }
-            };
+            let base =
+                gtk4::glib::user_special_dir(UserDirectory::Documents).unwrap_or_else(|| {
+                    warn!("No XDG Documents directory configured, falling back to $HOME");
+                    gtk4::glib::home_dir()
+                });
+            let mut dir = base;
+            dir.push("Unreal Engine");
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_strv("unreal-engine-directories", vec![dir_str.as_ref()])
+            {
+                warn!("Failed to set unreal engine directories: {}", e);
+            }
         }
     }
 
