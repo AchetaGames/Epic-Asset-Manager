@@ -144,9 +144,17 @@ sed -i "s/version = \"${current}\"/version = \"${next}\"/" Cargo.toml
 
 info "Updating ${METAINFO}"
 
-# Insert the new release block after <releases>
-sed -i "/<releases>/a\\
-${release_block}" "$METAINFO"
+# Insert the new release block after <releases> using python for safe XML handling
+python3 -c "
+import sys
+marker = '<releases>'
+block = sys.stdin.read()
+with open(sys.argv[1], 'r') as f:
+    content = f.read()
+content = content.replace(marker, marker + '\n' + block, 1)
+with open(sys.argv[1], 'w') as f:
+    f.write(content)
+" "$METAINFO" <<< "$release_block"
 
 # ── Commit & tag ─────────────────────────────────────────────────────────────
 
