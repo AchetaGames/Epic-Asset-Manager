@@ -64,6 +64,166 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.9.0" date="2026-02-25">
+        <description>
+            <p>Release 3.9.0</p>
+            <ul>
+                    <li>fix(build): use python3 for metainfo XML insertion in release script</li>
+                    <li>revert: restore original app icon SVG</li>
+                    <li>fix: resolve clippy warnings flagged by GitHub Advanced Security</li>
+                    <li>fix(ci): bump feature flags to actual minimum (gtk4 v4_12, libadwaita v1_5)</li>
+                    <li>fix(ci): lower gtk4/libadwaita Cargo feature flags for native builds</li>
+                    <li>fix(ci): lower gtk4/libadwaita meson requirements for clippy CI</li>
+                    <li>fix(ci): lower glib/gio meson requirement to 2.76 for clippy CI</li>
+                    <li>fix: deadlock on large asset downloads due to bounded channel</li>
+                    <li>chore: use EAM_LOG for log filtering, ignore noisy RUST_LOG from fenv</li>
+                    <li>fix: restore asset download manifest fetching and version selection</li>
+                    <li>perf: reuse shared HTTP client to avoid repeated TLS cert loading</li>
+                    <li>fix: guard progress bar fraction against division by zero</li>
+                    <li>fix: use upcast_ref for adw::AboutDialog::present parent widget</li>
+                    <li>perf: reduce thread pool sizes and add bounded channel for downloads</li>
+                    <li>fix: FAB images filtered out when API returns zero/missing dimensions</li>
+                    <li>fix: add engine sidebar install tab guard and save .uproject on engine switch</li>
+                    <li>fix: fall back to $HOME when XDG Documents directory is not configured</li>
+                    <li>fix: replace dangerous unwrap/expect calls with graceful error handling</li>
+                    <li>feat: populate image carousel for FAB assets and listing details</li>
+                    <li>chore: migrate AboutDialog to adw, remove dead code and commented-out SSH config</li>
+                    <li>fix: replace /tmp debug writes with log macros and add download retry limits</li>
+                    <li>feat(fab): add free/on-sale browse filters and add-to-library for free items</li>
+                    <li>feat(fab): upgrade egs-api to 0.13.0</li>
+                    <li>docs: update api-map endpoint status</li>
+                    <li>fix(ui): replace non-Adwaita icons with standard symbolic icons</li>
+                    <li>feat(fab): show price label on browse tiles for unowned marketplace items</li>
+                    <li>feat(fab): show ownership status in browse listing detail panel</li>
+                    <li>feat(fab): add server-side category filtering from Fab taxonomy API</li>
+                    <li>feat(fab): add browse result detail panel with listing metadata</li>
+                    <li>feat(fab): upgrade egs-api to 0.12.0 with server-side search and browse refactor</li>
+                    <li>feat(fab): add marketplace browse mode with cursor pagination</li>
+                    <li>feat(auth): establish Cosmos session at login with lazy fallback</li>
+                    <li>refactor(engine): replace EpicWeb with egs-api 0.11.0 Cosmos methods</li>
+                    <li>feat(sidebar): add Open Fab browser button and update API documentation</li>
+                    <li>fix(auth): add cosmos/auth session upgrade after set-sid</li>
+                    <li>fix: use correct EULA ID (unreal_engine2) for Cosmos validation</li>
+                    <li>fix(eula): replace dead GraphQL endpoint with Cosmos API for EULA validation</li>
+                    <li>refactor(build): rewrite next-release.sh for non-interactive use</li>
+                    <li>fix(preferences): consolidate startup tab into single dropdown with all 5 tabs</li>
+                    <li>fix(fab): refresh fab asset tile immediately after favorite toggle</li>
+                    <li>fix(ui): reorder page_stack init before set_sidebar to fix startup tab</li>
+                    <li>chore: remove stale TODO comments for completed GtkDropDown migration</li>
+                    <li>fix(ui): clean up window titlebar and preferences icon</li>
+                    <li>fix(ui): add Downloads heading and width to download manager popover</li>
+                    <li>fix(ui): add translatable="yes" to all user-facing strings</li>
+                    <li>fix(ui): migrate FAB version dialog from AdwWindow to AdwDialog</li>
+                    <li>chore: bump egs-api to 0.10.2</li>
+                    <li>refactor(ui): replace collapsible unreal page with per-section stack pages</li>
+                    <li>fix: remove unused imports and suppress dead_code warnings</li>
+                    <li>refactor(engines): replace PathBuf::from_str with PathBuf::from</li>
+                    <li>refactor(download-manager): fix borrow scoping in chunk and digest handling</li>
+                    <li>fix(build): include source_dir in meson gresource compilation</li>
+                    <li>fix(ui): normalize icon names, css-classes, and remove empty properties</li>
+                    <li>refactor: architectural improvements across 6 phases</li>
+                    <li>feat(fab): cache FAB library assets to disk for faster startup</li>
+                    <li>fix(fab): connect download-requested signal on FAB asset tiles</li>
+                    <li>fix(ui): remove leftover <items> tag from GtkDropDown in library.ui</li>
+                    <li>fix(ui): migrate GtkComboBoxText to GtkDropDown across all widgets</li>
+                    <li>fix(ui): migrate AdwPreferencesWindow to AdwPreferencesDialog</li>
+                    <li>fix(ui): migrate FileChooserDialog to FileDialog</li>
+                    <li>fix(ui): migrate GtkInfoBar to AdwBanner across all widgets</li>
+                    <li>fix(ui): replace deprecated GTK4/libadwaita API calls</li>
+                    <li>chore: target GNOME 48 platform (gtk4 v4_18, libadwaita v1_7)</li>
+                    <li>chore: update gtk4 0.9 → 0.10, libadwaita 0.7 → 0.8</li>
+                    <li>chore: update rand 0.8 → 0.9</li>
+                    <li>chore: update zip 2 → 8</li>
+                    <li>chore: update ashpd 0.10 → 0.12, secret-service 4 → 5, zbus 4 → 5</li>
+                    <li>feat(ui): add FAB sidebar navigation button</li>
+                    <li>feat(ui): add FAB badge overlay on asset tiles</li>
+                    <li>feat(ui): wire FAB download button and escape markup in detail panel</li>
+                    <li>feat(ui): add FAB download pipeline with version selection dialog</li>
+                    <li>fix(tools): prevent ashpd/zbus panic by dropping portal objects inside Tokio runtime</li>
+                    <li>chore: run cargo update for patch-level dependency updates</li>
+                    <li>chore: update egs-api 0.8 → 0.10 and reqwest 0.12 → 0.13</li>
+                    <li>feat(ui): integrate FAB page into logged-in layout</li>
+                    <li>feat(ui): add FAB message types and dispatch</li>
+                    <li>feat(ui): extend asset tile and detail panel for FAB assets</li>
+                    <li>feat(ui): add FAB library widget and UI template</li>
+                    <li>feat(models): add FabData GObject model for Fab marketplace assets</li>
+                    <li>style: apply cargo fmt formatting</li>
+                    <li>docs: add Features section to README</li>
+                    <li>docs: add screenshots and update README with new UI features</li>
+                    <li>fix(ui): preferences crash and square corners for dialogs</li>
+                    <li>feat(ui): add tile click to open asset details panel</li>
+                    <li>feat(ui): add project selection dialog for Add to Project</li>
+                    <li>feat(ui): add download info display to asset tiles</li>
+                    <li>feat(ui): move progress bar below button with system theme colors</li>
+                    <li>feat(ui): add download button functionality to asset tiles</li>
+                    <li>feat(ui): add project launch and download progress bar UI</li>
+                    <li>fix(ui): Create Project now copies already-downloaded assets directly</li>
+                    <li>feat(ui): improve Create Project dialog with file browser and engine detection</li>
+                    <li>feat(ui): add Create Project popup dialog</li>
+                    <li>feat(ui): add UE penguin icon to header bar and flatten button styles</li>
+                    <li>fix(app): proper application shutdown and local installation</li>
+                    <li>feat(ui): change close icons and add local install script</li>
+                    <li>style(ui): align search bar to right with fixed width</li>
+                    <li>feat(ui): add collapsible sections with GtkExpander</li>
+                    <li>style(ui): add bottom border to section dividers</li>
+                    <li>style(ui): add bottom border to headerbar for floating effect</li>
+                    <li>fix(ui): remove all rounded corners - use valid GTK4 CSS</li>
+                    <li>style(ui): apply Epic Launcher dark theme with square corners</li>
+                    <li>fix(ui): move detail panel to logged_in level for full-height display</li>
+                    <li>fix(ui): restore horizontal layout for library detail panel</li>
+                    <li>feat(ui): connect asset tile button actions to detail panel</li>
+                    <li>feat(ui): add action button to asset tiles</li>
+                    <li>fix(ui): Restructure library layout to match games page pattern</li>
+                    <li>feat(games): add dedicated Games page with page switching</li>
+                    <li>fix(sidebar): connect sidebar to library for button functionality</li>
+                    <li>fix(ui): page-level sidebar and unified scrolling</li>
+                    <li>feat(ui): implement unified home view with single scrollable page</li>
+                    <li>cargo: add lockfile to the repository</li>
+                    <li>.github: workflows: rust-clippy: build before running rust-clippy</li>
+                    <li>.github: workflows: rust-clippy: install prerequisites</li>
+                    <li>.github: update actions</li>
+                    <li>flatpak: update org.gnome.platform to 48</li>
+                    <li>CONTRIBUTING.md: adjust meson build instructions</li>
+                    <li>meson: require libadwaita 1.5 or newer</li>
+                    <li>meson: bump minimum required version to 0.59</li>
+                    <li>fix color_scheme_btn</li>
+                    <li>copy auth link</li>
+                    <li>simplify login ui xml</li>
+                    <li>remove unnecessary lines in preferences.ui && compacted asset title label setting</li>
+                    <li>a lot of ui improvements</li>
+                    <li>align asset details to top</li>
+                    <li>Update GTK version</li>
+                    <li>Update dependencies</li>
+                    <li>give back executable permission to some files</li>
+                    <li>fix file permissions</li>
+                    <li>use adwpreference for actions menu</li>
+                    <li>remove heading style from info rows</li>
+                    <li>boxed-list info rows</li>
+                    <li>Move to async_channel</li>
+                    <li>Start rewrite to current gtk crate</li>
+                    <li>add icon to Actions button in library tab</li>
+                    <li>compact asset detail and fixed scrolling</li>
+                    <li>remove unnecessary box</li>
+                    <li>improved projects tab</li>
+                    <li>close button icon for other tabs</li>
+                    <li>close button icon</li>
+                    <li>all-around-ui-improvements</li>
+                    <li>fix undone commit</li>
+                    <li>Revert "use label instead of placeholder text"</li>
+                    <li>taller-prefs-window</li>
+                    <li>various fixes in the preferences window</li>
+                    <li>use label instead of placeholder text</li>
+                    <li>Remove secret scanning</li>
+                    <li>Update upload artifact action</li>
+                    <li>Remove obsolete secrets scanning</li>
+                    <li>Update github actions</li>
+                    <li>Reverting Sqlite back to 0.25.2</li>
+                    <li>Updating Outdated dependencies</li>
+                    <li>flatpak: update org.gnome.platform to 46</li>
+            </ul>
+        </description>
+    </release>
+
     <release version="3.8.6" date="2024-05-13">
        <description>
               <p>Quick fix</p>
