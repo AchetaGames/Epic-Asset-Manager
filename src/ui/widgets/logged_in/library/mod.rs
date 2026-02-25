@@ -925,18 +925,18 @@ impl EpicLibraryBox {
             let asset = object
                 .downcast_ref::<crate::models::asset_data::AssetData>()
                 .unwrap();
-            let matches_search = search.as_ref().map_or(true, |se| {
+            let matches_search = search.as_ref().is_none_or(|se| {
                 asset
                     .name()
                     .to_ascii_lowercase()
                     .contains(&se.to_ascii_lowercase())
             });
-            let matches_category = filter_p.as_ref().map_or(true, |f| asset.check_category(f));
+            let matches_category = filter_p.as_ref().is_none_or(|f| asset.check_category(f));
             let matches_downloaded = !downloaded_only || asset.downloaded();
             let matches_favorites = !favorites_only || asset.favorite();
             let matches_dropdown = category_filter
                 .as_ref()
-                .map_or(true, |c| asset.check_category(c));
+                .is_none_or(|c| asset.check_category(c));
 
             matches_search
                 && matches_category

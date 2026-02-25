@@ -448,14 +448,14 @@ impl FabLibraryBox {
 
         let filter = gtk4::CustomFilter::new(move |obj| {
             if let Some(data) = obj.downcast_ref::<crate::models::fab_data::FabData>() {
-                let matches_search = search.as_ref().map_or(true, |s| {
-                    data.name().to_lowercase().contains(&s.to_lowercase())
-                });
+                let matches_search = search
+                    .as_ref()
+                    .is_none_or(|s| data.name().to_lowercase().contains(&s.to_lowercase()));
                 let matches_downloaded = !downloaded_only || data.downloaded();
                 let matches_favorites = !favorites_only || data.favorite();
                 let matches_category = category_filter
                     .as_ref()
-                    .map_or(true, |c| data.check_category(c));
+                    .is_none_or(|c| data.check_category(c));
 
                 return matches_search
                     && matches_downloaded
@@ -912,13 +912,15 @@ impl FabLibraryBox {
                 }
 
                 use egs_api::api::types::fab_search::FabSearchParams;
-                let mut params = FabSearchParams::default();
-                params.channels = Some("unreal-engine".to_string());
-                params.count = Some(40);
-                params.sort_by = Some("-createdAt".to_string());
-                params.cursor = cursor;
-                params.q = search_text;
-                params.categories = browse_cat;
+                let mut params = FabSearchParams {
+                    channels: Some("unreal-engine".to_string()),
+                    count: Some(40),
+                    sort_by: Some("-createdAt".to_string()),
+                    cursor,
+                    q: search_text,
+                    categories: browse_cat,
+                    ..Default::default()
+                };
                 if is_free {
                     params.is_free = Some(true);
                 }
@@ -933,10 +935,12 @@ impl FabLibraryBox {
                                 return;
                             }
 
-                            let mut asset = egs_api::api::types::fab_library::FabAsset::default();
-                            asset.asset_id = listing.uid.clone();
-                            asset.title = listing.title.clone().unwrap_or_default();
-                            asset.url = format!("https://www.fab.com/listings/{}", listing.uid);
+                            let mut asset = egs_api::api::types::fab_library::FabAsset {
+                                asset_id: listing.uid.clone(),
+                                title: listing.title.clone().unwrap_or_default(),
+                                url: format!("https://www.fab.com/listings/{}", listing.uid),
+                                ..Default::default()
+                            };
                             if let Some(cat) = listing.category.as_ref() {
                                 asset.categories =
                                     vec![egs_api::api::types::fab_library::Category {

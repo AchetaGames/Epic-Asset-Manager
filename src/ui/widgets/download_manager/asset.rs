@@ -886,7 +886,7 @@ impl Asset for super::EpicDownloadManager {
     fn cancel_asset_download(&self, asset: String) {
         let self_ = self.imp();
         let item = self.get_item(&asset);
-        let paused = item.as_ref().map_or(false, |item| item.paused());
+        let paused = item.as_ref().is_some_and(|item| item.paused());
         if let Some(item) = &item {
             item.set_property("status", "Canceled".to_string());
             item.set_property("speed", String::new());
