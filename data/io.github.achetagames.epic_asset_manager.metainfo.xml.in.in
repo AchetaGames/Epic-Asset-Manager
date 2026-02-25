@@ -62,8 +62,18 @@
     <url type="homepage">https://github.com/AchetaGames/Epic-Asset-Manager</url>
     <url type="bugtracker">https://github.com/AchetaGames/Epic-Asset-Manager/issues</url>
     <url type="donation">https://ko-fi.com/achetagames</url>
+    <url type="vcs-browser">https://github.com/AchetaGames/Epic-Asset-Manager</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.9.2" date="2026-02-25">
+        <description>
+            <p>Fix Flathub linter issues</p>
+            <ul>
+                <li>Replace low-quality desktop categories (GNOME, GTK) with Development and Utility</li>
+                <li>Add VCS browser URL to metainfo</li>
+            </ul>
+        </description>
+    </release>
     <release version="3.9.1" date="2026-02-25">
         <description>
             <p>Fix malformed XML in metainfo release notes</p>

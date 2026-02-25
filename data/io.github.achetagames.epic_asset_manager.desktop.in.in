@@ -4,8 +4,8 @@ Comment=Epic Asset Manager used to manage assets from Epic Games Store
 Type=Application
 Exec=epic_asset_manager %u
 Terminal=false
-Categories=GNOME;GTK;
-Keywords=Gnome;GTK;
+Categories=Development;Utility;
+Keywords=Unreal;Engine;Assets;Epic;
 # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
 Icon=@icon@
 StartupNotify=true

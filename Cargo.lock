@@ -992,7 +992,7 @@ dependencies = [
 
 [[package]]
 name = "epic_asset_manager"
-version = "3.9.1"
+version = "3.9.2"
 dependencies = [
  "anyhow",
  "ashpd",
