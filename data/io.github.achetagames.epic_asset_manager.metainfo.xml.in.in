@@ -64,6 +64,14 @@
     <url type="donation">https://ko-fi.com/achetagames</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.9.1" date="2026-02-25">
+        <description>
+            <p>Fix malformed XML in metainfo release notes</p>
+            <ul>
+                <li>Escape XML-invalid characters in metainfo release notes</li>
+            </ul>
+        </description>
+    </release>
     <release version="3.9.0" date="2026-02-25">
         <description>
             <p>Release 3.9.0</p>
@@ -124,7 +132,7 @@
                     <li>refactor: architectural improvements across 6 phases</li>
                     <li>feat(fab): cache FAB library assets to disk for faster startup</li>
                     <li>fix(fab): connect download-requested signal on FAB asset tiles</li>
-                    <li>fix(ui): remove leftover <items> tag from GtkDropDown in library.ui</li>
+                    <li>fix(ui): remove leftover items tag from GtkDropDown in library.ui</li>
                     <li>fix(ui): migrate GtkComboBoxText to GtkDropDown across all widgets</li>
                     <li>fix(ui): migrate AdwPreferencesWindow to AdwPreferencesDialog</li>
                     <li>fix(ui): migrate FileChooserDialog to FileDialog</li>
@@ -189,7 +197,7 @@
                     <li>fix color_scheme_btn</li>
                     <li>copy auth link</li>
                     <li>simplify login ui xml</li>
-                    <li>remove unnecessary lines in preferences.ui && compacted asset title label setting</li>
+                    <li>remove unnecessary lines in preferences.ui and compacted asset title label setting</li>
                     <li>a lot of ui improvements</li>
                     <li>align asset details to top</li>
                     <li>Update GTK version</li>
