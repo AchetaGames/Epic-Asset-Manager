@@ -24,9 +24,9 @@ pub mod imp {
         pub download_manager: OnceCell<EpicDownloadManager>,
         pub window: OnceCell<EpicAssetManagerWindow>,
         #[template_child]
-        pub select_target_directory: TemplateChild<gtk4::ComboBoxText>,
+        pub select_target_directory: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub warning_row: TemplateChild<gtk::InfoBar>,
+        pub warning_row: TemplateChild<gtk::Box>,
         #[template_child]
         pub overwrite: TemplateChild<gtk4::CheckButton>,
     }
@@ -111,7 +111,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAddToProject(ObjectSubclass<imp::EpicAddToProject>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicAddToProject {
@@ -150,7 +151,7 @@ impl EpicAddToProject {
 
     pub fn set_target_directories(&self) {
         let self_ = self.imp();
-        self_.select_target_directory.remove_all();
+        let model = gtk4::StringList::new(&[] as &[&str]);
         get_action!(self_.actions, @download_all).set_enabled(false);
         if let Some(w) = self_.window.get() {
             let w_ = w.imp();
@@ -158,8 +159,14 @@ impl EpicAddToProject {
             let l_ = l.imp();
             let p = l_.projects.imp();
             for path in p.projects.borrow().keys() {
-                self_.select_target_directory.append(Some(path), path);
+                model.append(path);
             }
+        }
+        self_.select_target_directory.set_model(Some(&model));
+        if model.n_items() > 0
+            && self_.select_target_directory.selected() == gtk4::INVALID_LIST_POSITION
+        {
+            self_.select_target_directory.set_selected(0);
         }
     }
 
@@ -180,27 +187,29 @@ impl EpicAddToProject {
             )
         );
 
-        self_.select_target_directory.connect_changed(clone!(
-            #[weak(rename_to=atp)]
-            self,
-            move |_| {
-                atp.directory_changed();
-            }
-        ));
+        self_
+            .select_target_directory
+            .connect_selected_notify(clone!(
+                #[weak(rename_to=atp)]
+                self,
+                move |_| {
+                    atp.directory_changed();
+                }
+            ));
     }
 
     fn add_to_project(&self) {
         let self_ = self.imp();
         if let Some(dm) = self_.download_manager.get() {
             if let Some(asset_info) = &*self_.asset.borrow() {
-                if let Some(id) = self_.select_target_directory.active_id() {
+                if let Some(id) = self.selected_target_directory() {
                     dm.add_asset_download(
                         self.selected_version(),
                         asset_info.clone(),
                         &None,
                         Some(vec![
                             crate::ui::widgets::download_manager::PostDownloadAction::Copy(
-                                id.to_string(),
+                                id,
                                 self_.overwrite.is_active(),
                             ),
                         ]),
@@ -230,7 +239,7 @@ impl EpicAddToProject {
             .warning_row
             .set_tooltip_text(Some("Files that would be overwritten: "));
         if let Some(manifest) = &*self_.manifest.borrow() {
-            if let Some(id) = self_.select_target_directory.active_id() {
+            if let Some(id) = self.selected_target_directory() {
                 let path = std::path::PathBuf::from_str(id.as_str()).unwrap();
                 for (file, _) in manifest.files() {
                     let mut p = path.clone();
@@ -266,5 +275,14 @@ impl EpicAddToProject {
 
     pub fn selected_version(&self) -> String {
         self.property("selected-version")
+    }
+
+    fn selected_target_directory(&self) -> Option<String> {
+        let self_ = self.imp();
+        self_
+            .select_target_directory
+            .selected_item()
+            .and_downcast::<gtk4::StringObject>()
+            .map(|item| item.string().to_string())
     }
 }

@@ -2,6 +2,17 @@
 <interface>
     <template class="EpicDownloadManager" parent="GtkBox">
         <property name="orientation">vertical</property>
+        <property name="width-request">400</property>
+        <child>
+            <object class="GtkLabel">
+                <property name="label" translatable="yes">Downloads</property>
+                <property name="css-classes">heading</property>
+                <property name="halign">start</property>
+                <property name="margin-start">12</property>
+                <property name="margin-top">8</property>
+                <property name="margin-bottom">4</property>
+            </object>
+        </child>
         <child>
             <object class="GtkListBox" id="downloads">
                 <property name="selection-mode">GTK_SELECTION_NONE</property>

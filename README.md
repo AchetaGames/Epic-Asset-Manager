@@ -62,5 +62,22 @@ epic_asset_manager
 ## Building
 See [Building](https://github.com/AchetaGames/Epic-Asset-Manager/wiki/Building)
 
+## Debugging
+
+Log output is controlled by the `EAM_LOG` environment variable using [env_logger](https://docs.rs/env_logger) syntax. The default is `warn,epic_asset_manager=debug` which shows only application logs.
+
+```bash
+# Default (app logs only)
+flatpak run io.github.achetagames.epic_asset_manager
+
+# Include egs-api HTTP debug output
+EAM_LOG="warn,epic_asset_manager=debug,egs_api=debug" flatpak run io.github.achetagames.epic_asset_manager
+
+# Full trace (all crates)
+EAM_LOG=trace flatpak run io.github.achetagames.epic_asset_manager
+```
+
+Note: `RUST_LOG` is intentionally ignored to avoid noise from the Flatpak development environment.
+
 ## Action video 
 [![Youtube Video](https://img.youtube.com/vi/vgy3j03sZns/maxresdefault.jpg)](https://www.youtube.com/watch?v=vgy3j03sZns)

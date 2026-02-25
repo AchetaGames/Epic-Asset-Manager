@@ -2,6 +2,7 @@ use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, prelude::*};
 use gtk4::{glib, CompositeTemplate};
+use log::trace;
 
 pub mod imp {
     use super::*;
@@ -19,7 +20,9 @@ pub mod imp {
         pub downloading: RefCell<bool>,
         pub download_progress: RefCell<f64>,
         pub kind: RefCell<Option<String>>,
+        pub price_label: RefCell<String>,
         pub action_label: RefCell<String>,
+        pub is_fab: RefCell<bool>,
         thumbnail: RefCell<Option<Texture>>,
         #[template_child]
         pub image: TemplateChild<gtk4::Picture>,
@@ -30,6 +33,8 @@ pub mod imp {
         #[template_child]
         pub download_info: TemplateChild<gtk4::Label>,
         pub data: RefCell<Option<crate::models::asset_data::AssetData>>,
+        pub fab_data: RefCell<Option<crate::models::fab_data::FabData>>,
+        pub fab_search_data: RefCell<Option<crate::models::fab_search_data::FabSearchData>>,
         pub handler: RefCell<Option<SignalHandlerId>>,
     }
 
@@ -48,13 +53,17 @@ pub mod imp {
                 downloading: RefCell::new(false),
                 download_progress: RefCell::new(0.0),
                 kind: RefCell::new(None),
+                price_label: RefCell::new(String::new()),
                 action_label: RefCell::new("Download".to_string()),
+                is_fab: RefCell::new(false),
                 thumbnail: RefCell::new(None),
                 image: TemplateChild::default(),
                 action_button: TemplateChild::default(),
                 progress_bar: TemplateChild::default(),
                 download_info: TemplateChild::default(),
                 data: RefCell::new(None),
+                fab_data: RefCell::new(None),
+                fab_search_data: RefCell::new(None),
                 handler: RefCell::new(None),
             }
         }
@@ -92,6 +101,9 @@ pub mod imp {
                         glib::subclass::Signal::builder("tile-clicked")
                             .flags(glib::SignalFlags::ACTION)
                             .build(),
+                        glib::subclass::Signal::builder("add-to-library-requested")
+                            .flags(glib::SignalFlags::ACTION)
+                            .build(),
                     ]
                 });
             SIGNALS.as_ref()
@@ -113,7 +125,9 @@ pub mod imp {
                         .default_value(0.0)
                         .build(),
                     glib::ParamSpecString::builder("kind").build(),
+                    glib::ParamSpecString::builder("price-label").build(),
                     glib::ParamSpecString::builder("action-label").build(),
+                    glib::ParamSpecBoolean::builder("is-fab").build(),
                 ]
             });
 
@@ -166,11 +180,24 @@ pub mod imp {
                     self.kind.replace(kind);
                     self.obj().update_action_label();
                 }
+                "price-label" => {
+                    let price_label: Option<String> = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.price_label.replace(price_label.unwrap_or_default());
+                    self.obj().update_action_label();
+                }
                 "action-label" => {
                     let action_label: String = value
                         .get()
                         .expect("type conformity checked by `Object::set_property`");
                     self.action_label.replace(action_label);
+                }
+                "is-fab" => {
+                    let is_fab: bool = value
+                        .get()
+                        .expect("type conformity checked by `Object::set_property`");
+                    self.is_fab.replace(is_fab);
                 }
                 "thumbnail" => {
                     let thumbnail: Option<Texture> = value
@@ -210,7 +237,9 @@ pub mod imp {
                 "downloading" => self.downloading.borrow().to_value(),
                 "download-progress" => self.download_progress.borrow().to_value(),
                 "kind" => self.kind.borrow().to_value(),
+                "price-label" => self.price_label.borrow().to_value(),
                 "action-label" => self.action_label.borrow().to_value(),
+                "is-fab" => self.is_fab.borrow().to_value(),
                 "thumbnail" => self.thumbnail.borrow().to_value(),
                 _ => unimplemented!(),
             }
@@ -223,7 +252,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAsset(ObjectSubclass<imp::EpicAsset>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicAsset {
@@ -240,20 +270,10 @@ impl EpicAsset {
     fn setup_button(&self) {
         let self_ = self.imp();
 
-        // Debug: write to file to verify this is being called
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "setup_button called - connecting click handler");
-        }
-
         self_.action_button.connect_clicked(clone!(
             #[weak(rename_to=asset)]
             self,
             move |_| {
-                // Debug: write to file
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "Button clicked!");
-                }
                 asset.on_action_clicked();
             }
         ));
@@ -266,25 +286,22 @@ impl EpicAsset {
             self,
             #[weak]
             self_,
-            move |gesture, _, x, y| {
+            move |_gesture, _, x, y| {
                 // Check if click was on the button - if so, don't emit tile-clicked
                 // The button's own handler will take care of it
-                let button_allocation = self_.action_button.allocation();
-                let btn_x = button_allocation.x() as f64;
-                let btn_y = button_allocation.y() as f64;
-                let btn_w = button_allocation.width() as f64;
-                let btn_h = button_allocation.height() as f64;
+                if let Some(bounds) = self_.action_button.compute_bounds(&asset) {
+                    let btn_x = bounds.x() as f64;
+                    let btn_y = bounds.y() as f64;
+                    let btn_w = bounds.width() as f64;
+                    let btn_h = bounds.height() as f64;
 
-                // Get the click position relative to the tile
-                if x >= btn_x && x <= btn_x + btn_w && y >= btn_y && y <= btn_y + btn_h {
-                    // Click was on button area, let button handle it
-                    return;
+                    // Get the click position relative to the tile
+                    if x >= btn_x && x <= btn_x + btn_w && y >= btn_y && y <= btn_y + btn_h {
+                        // Click was on button area, let button handle it
+                        return;
+                    }
                 }
 
-                use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                    let _ = writeln!(f, "Tile clicked at ({}, {}) - emitting tile-clicked signal", x, y);
-                }
                 asset.emit_by_name::<()>("tile-clicked", &[]);
             }
         ));
@@ -295,8 +312,11 @@ impl EpicAsset {
         let self_ = self.imp();
         let downloaded = *self_.downloaded.borrow();
         let kind = self_.kind.borrow().clone();
+        let price_label = self_.price_label.borrow().clone();
 
-        let label = if !downloaded {
+        let label = if !price_label.is_empty() {
+            price_label
+        } else if !downloaded {
             "Download".to_string()
         } else {
             match kind.as_deref() {
@@ -313,32 +333,34 @@ impl EpicAsset {
         let self_ = self.imp();
         let downloaded = *self_.downloaded.borrow();
         let kind = self_.kind.borrow().clone();
-        let label: Option<String> = self.property("label");
+        let price_label = self_.price_label.borrow().clone();
 
-        // Debug: write to file to verify this is being called
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "on_action_clicked: downloaded={}, kind={:?}, label={:?}", downloaded, kind, label);
+        if !price_label.is_empty() {
+            if price_label == "Free" {
+                self.emit_by_name::<()>("add-to-library-requested", &[]);
+                return;
+            }
+            if let Some(fab_data) = self_.fab_data.borrow().as_ref() {
+                if let Some(asset) = fab_data.imp().asset.borrow().as_ref() {
+                    if !asset.url.is_empty() {
+                        let _ = gtk4::gio::AppInfo::launch_default_for_uri(
+                            &asset.url,
+                            None::<&gtk4::gio::AppLaunchContext>,
+                        );
+                    }
+                }
+            }
+            return;
         }
 
-        // Emit signal for parent to handle the action
         if !downloaded {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                let _ = writeln!(f, "Emitting download-requested signal");
-            }
             self.emit_by_name::<()>("download-requested", &[]);
         } else {
             match kind.as_deref() {
                 Some("projects") => {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "Emitting create-project-requested signal");
-                    }
                     self.emit_by_name::<()>("create-project-requested", &[]);
                 }
                 _ => {
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "Emitting add-to-project-requested signal");
-                    }
                     self.emit_by_name::<()>("add-to-project-requested", &[]);
                 }
             }
@@ -358,6 +380,8 @@ impl EpicAsset {
         self.set_property("label", data.name());
         self.set_property("thumbnail", data.image());
         self.set_property("favorite", data.favorite());
+        self.set_property("is-fab", false);
+        self.set_property("price-label", "");
 
         // Set kind before downloaded so action_label updates correctly
         let kind_str = match data.kind() {
@@ -382,12 +406,12 @@ impl EpicAsset {
                 #[upgrade_or]
                 None,
                 move |_| {
-                    // Debug: log signal received
-                    use std::io::Write;
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[SIGNAL] refreshed received: id={}, downloading={}, progress={}",
-                            data.id(), data.downloading(), data.download_progress());
-                    }
+                    trace!(
+                        "Refreshed signal received: id={}, downloading={}, progress={}",
+                        data.id(),
+                        data.downloading(),
+                        data.download_progress()
+                    );
 
                     asset.set_property("favorite", data.favorite());
                     asset.set_property("downloaded", data.downloaded());
@@ -415,10 +439,12 @@ impl EpicAsset {
                         self_.download_info.set_label(&info_text);
                     }
 
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-                        let _ = writeln!(f, "[SIGNAL] After update: visible={}, fraction={}, info={}",
-                            self_.progress_bar.is_visible(), self_.progress_bar.fraction(), speed);
-                    }
+                    trace!(
+                        "After update: visible={}, fraction={}, speed={}",
+                        self_.progress_bar.is_visible(),
+                        self_.progress_bar.fraction(),
+                        speed
+                    );
                     None
                 }
             ),
@@ -429,15 +455,11 @@ impl EpicAsset {
         let downloading = data.downloading();
         let progress = data.download_progress();
 
-        // Debug: verify template children exist
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "[set_data] Setting progress: downloading={}, progress={}, progress_bar valid={}, progress_bar valid={}",
-                downloading, progress,
-                self_.progress_bar.is_visible() || !self_.progress_bar.is_visible(), // will be true if widget exists
-                self_.progress_bar.fraction() >= 0.0 // will be true if widget exists
-            );
-        }
+        trace!(
+            "set_data: downloading={}, progress={}",
+            downloading,
+            progress
+        );
 
         self_.progress_bar.set_visible(downloading);
         self_.progress_bar.set_fraction(progress);
@@ -455,10 +477,11 @@ impl EpicAsset {
             self_.download_info.set_label(&info_text);
         }
 
-        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("/tmp/asset_click.log") {
-            let _ = writeln!(f, "[set_data] After set: progress_bar.visible={}, progress_bar.fraction={}",
-                self_.progress_bar.is_visible(), self_.progress_bar.fraction());
-        }
+        trace!(
+            "set_data: after set: progress_bar.visible={}, progress_bar.fraction={}",
+            self_.progress_bar.is_visible(),
+            self_.progress_bar.fraction()
+        );
     }
 
     /// Direct method to update download progress - bypasses signals
@@ -466,5 +489,119 @@ impl EpicAsset {
         let self_ = self.imp();
         self_.progress_bar.set_visible(downloading);
         self_.progress_bar.set_fraction(progress);
+    }
+
+    pub fn set_fab_data(&self, data: &crate::models::fab_data::FabData) {
+        let self_ = self.imp();
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+        self_.fab_data.replace(Some(data.clone()));
+        self_.fab_search_data.replace(None);
+        self.set_property("label", data.name());
+        self.set_property("thumbnail", data.image());
+        self.set_property("favorite", data.favorite());
+        self.set_property("downloaded", data.downloaded());
+        self.set_property("is-fab", true);
+        self.set_property("price-label", data.price_label());
+
+        self_.handler.replace(Some(data.connect_local(
+            "refreshed",
+            false,
+            clone!(
+                #[weak(rename_to=asset)]
+                self,
+                #[weak]
+                data,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    asset.set_property("favorite", data.favorite());
+                    asset.set_property("downloaded", data.downloaded());
+                    asset.set_property("downloading", data.downloading());
+                    asset.set_property("download-progress", data.download_progress());
+
+                    let self_ = asset.imp();
+                    let downloading = data.downloading();
+                    let progress = data.download_progress();
+                    let speed = data.download_speed();
+
+                    self_.progress_bar.set_visible(downloading);
+                    self_.progress_bar.set_fraction(progress);
+                    self_.download_info.set_visible(downloading);
+
+                    if downloading {
+                        let pct = (progress * 100.0) as u32;
+                        let info_text = if speed.is_empty() {
+                            format!("{}%", pct)
+                        } else {
+                            format!("{}% - {}", pct, speed)
+                        };
+                        self_.download_info.set_label(&info_text);
+                    }
+                    None
+                }
+            ),
+        )));
+
+        let downloading = data.downloading();
+        let progress = data.download_progress();
+        self_.progress_bar.set_visible(downloading);
+        self_.progress_bar.set_fraction(progress);
+        self_.download_info.set_visible(downloading);
+
+        if downloading {
+            let speed = data.download_speed();
+            let pct = (progress * 100.0) as u32;
+            let info_text = if speed.is_empty() {
+                format!("{}%", pct)
+            } else {
+                format!("{}% - {}", pct, speed)
+            };
+            self_.download_info.set_label(&info_text);
+        }
+    }
+
+    pub fn set_fab_search_data(&self, data: &crate::models::fab_search_data::FabSearchData) {
+        let self_ = self.imp();
+        if let Some(d) = self_.data.take() {
+            if let Some(id) = self_.handler.take() {
+                d.disconnect(id);
+            }
+        }
+
+        self_.fab_data.replace(None);
+        self_.fab_search_data.replace(Some(data.clone()));
+        self.set_property("label", data.title());
+        self.set_property("thumbnail", data.image());
+        self.set_property("favorite", false);
+        self.set_property("downloaded", false);
+        self.set_property("is-fab", true);
+        self.set_property("kind", Some("marketplace".to_string()));
+        self.set_property("price-label", "");
+        self.update_action_label();
+
+        self_.handler.replace(Some(data.connect_local(
+            "refreshed",
+            false,
+            clone!(
+                #[weak(rename_to=asset)]
+                self,
+                #[weak]
+                data,
+                #[upgrade_or]
+                None,
+                move |_| {
+                    asset.set_property("thumbnail", data.image());
+                    None
+                }
+            ),
+        )));
+
+        self_.progress_bar.set_visible(false);
+        self_.download_info.set_visible(false);
+        self_.progress_bar.set_fraction(0.0);
     }
 }

@@ -2,6 +2,8 @@ pub mod asset_data;
 pub mod category_data;
 pub mod database;
 pub mod engine_data;
+pub mod fab_data;
+pub mod fab_search_data;
 pub mod log_data;
 mod plugin_data;
 pub mod project_data;
@@ -67,9 +69,13 @@ impl Model {
         if self.settings.string("cache-directory").is_empty() {
             let mut dir = gtk4::glib::user_cache_dir();
             dir.push("epic_asset_manager");
-            self.settings
-                .set_string("cache-directory", dir.to_str().unwrap())
-                .unwrap();
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_string("cache-directory", dir_str.as_ref())
+            {
+                warn!("Failed to set cache directory: {}", e);
+            }
         }
 
         if self
@@ -79,50 +85,64 @@ impl Model {
         {
             let mut dir = gtk4::glib::tmp_dir();
             dir.push("epic_asset_manager");
-            self.settings
-                .set_string("temporary-download-directory", dir.to_str().unwrap())
-                .unwrap();
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_string("temporary-download-directory", dir_str.as_ref())
+            {
+                warn!("Failed to set temporary download directory: {}", e);
+            }
         }
 
         if self.settings.strv("unreal-projects-directories").is_empty() {
-            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
-                None => { //TODO: Handle non standard directories
-                }
-                Some(mut dir) => {
-                    dir.push("Unreal Projects");
-                    self.settings
-                        .set_strv("unreal-projects-directories", vec![dir.to_str().unwrap()])
-                        .unwrap();
-                }
-            };
+            let base =
+                gtk4::glib::user_special_dir(UserDirectory::Documents).unwrap_or_else(|| {
+                    warn!("No XDG Documents directory configured, falling back to $HOME");
+                    gtk4::glib::home_dir()
+                });
+            let mut dir = base;
+            dir.push("Unreal Projects");
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_strv("unreal-projects-directories", vec![dir_str.as_ref()])
+            {
+                warn!("Failed to set unreal projects directories: {}", e);
+            }
         }
 
         if self.settings.strv("unreal-vault-directories").is_empty() {
-            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
-                None => {
-                    //TODO: Handle non standard directories
-                }
-                Some(mut dir) => {
-                    dir.push("EpicVault");
-                    self.settings
-                        .set_strv("unreal-vault-directories", vec![dir.to_str().unwrap()])
-                        .unwrap();
-                }
-            };
+            let base =
+                gtk4::glib::user_special_dir(UserDirectory::Documents).unwrap_or_else(|| {
+                    warn!("No XDG Documents directory configured, falling back to $HOME");
+                    gtk4::glib::home_dir()
+                });
+            let mut dir = base;
+            dir.push("EpicVault");
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_strv("unreal-vault-directories", vec![dir_str.as_ref()])
+            {
+                warn!("Failed to set unreal vault directories: {}", e);
+            }
         }
 
         if self.settings.strv("unreal-engine-directories").is_empty() {
-            match gtk4::glib::user_special_dir(UserDirectory::Documents) {
-                None => {
-                    //TODO: Handle non standard directories
-                }
-                Some(mut dir) => {
-                    dir.push("Unreal Engine");
-                    self.settings
-                        .set_strv("unreal-engine-directories", vec![dir.to_str().unwrap()])
-                        .unwrap();
-                }
-            };
+            let base =
+                gtk4::glib::user_special_dir(UserDirectory::Documents).unwrap_or_else(|| {
+                    warn!("No XDG Documents directory configured, falling back to $HOME");
+                    gtk4::glib::home_dir()
+                });
+            let mut dir = base;
+            dir.push("Unreal Engine");
+            let dir_str = dir.to_string_lossy();
+            if let Err(e) = self
+                .settings
+                .set_strv("unreal-engine-directories", vec![dir_str.as_ref()])
+            {
+                warn!("Failed to set unreal engine directories: {}", e);
+            }
         }
     }
 
@@ -135,8 +155,14 @@ impl Model {
                 .insecure_registry(false)
                 .username(Some(user))
                 .password(Some(token))
-                .build()
-                .unwrap();
+                .build();
+            let client = match client {
+                Ok(client) => client,
+                Err(e) => {
+                    error!("Failed to build registry client: {}", e);
+                    return;
+                }
+            };
             let sender = self.sender.clone();
             thread::spawn(move || {
                 let login_scope = "repository:epicgames/unreal-engine:pull";
@@ -144,11 +170,9 @@ impl Model {
                     Ok(docker_client) => match docker_client.is_auth() {
                         Ok(auth) => {
                             if auth {
-                                sender
-                                    .send_blocking(crate::ui::messages::Msg::DockerClient(
-                                        docker_client,
-                                    ))
-                                    .unwrap();
+                                let _ = sender.send_blocking(
+                                    crate::ui::messages::Msg::DockerClient(docker_client),
+                                );
                                 info!("Docker Authenticated");
                             }
                         }
@@ -158,9 +182,7 @@ impl Model {
                     },
                     Err(e) => {
                         error!("Failed authentication {:?}", e);
-                        sender
-                            .send_blocking(crate::ui::messages::Msg::GithubAuthFailed)
-                            .unwrap();
+                        let _ = sender.send_blocking(crate::ui::messages::Msg::GithubAuthFailed);
                     }
                 };
             });
@@ -334,7 +356,9 @@ impl Model {
         let td = exp - now;
         if td.num_seconds() < 600 {
             info!("Token {} is expired, removing", item);
-            self.settings.set_string(item, "").unwrap();
+            if let Err(e) = self.settings.set_string(item, "") {
+                warn!("Failed to clear expired token {}: {}", item, e);
+            }
             return None;
         }
 

@@ -132,7 +132,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct DockerEngineDownload(ObjectSubclass<imp::DockerEngineDownload>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for DockerEngineDownload {
@@ -243,9 +244,9 @@ impl DockerEngineDownload {
         ));
     }
 
-    fn type_selected(&self, check: &gtk4::CheckButton, combo: &gtk4::ComboBoxText) {
+    fn type_selected(&self, check: &gtk4::CheckButton, combo: &gtk4::DropDown) {
         let self_ = self.imp();
-        if let Some(selected) = combo.active_id() {
+        if let Some(selected) = Self::selected_version(combo) {
             if let Some(ver) = &*self_.docker_versions.borrow() {
                 if let Some(v) = ver.get(selected.as_str()) {
                     for label in v {
@@ -345,34 +346,34 @@ impl DockerEngineDownload {
                     glib::Propagation::Stop
                 }));
 
-                self_.details.append(&label);
-                get_action!(self_.actions, @install).set_enabled(false);
-            }, |versions| {
-                let combo = gtk4::ComboBoxText::new();
-                self_
-                    .details
-                    .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
-                        "Available Versions:",
-                        &combo,
-                    ));
+            self_.details.append(&label);
+            get_action!(self_.actions, @install).set_enabled(false);
+        }, |versions| {
+            let model = gtk4::StringList::new(&[] as &[&str]);
+            let combo = gtk4::DropDown::new(Some(model.clone()), None::<gtk4::Expression>);
+            self_
+                .details
+                .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
+                    "Available Versions:",
+                    &combo,
+                ));
 
-                let check = gtk4::CheckButton::builder() // Maybe use GtkSwitch instead?
-                    .active(true)
-                    .hexpand(true)
-                    .build();
-                let row = gtk4::ComboBoxText::new();
-                self_
-                    .details
-                    .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
-                        "Include Template Projects and Debug symbols",
-                        &check,
-                    ));
+            let check = gtk4::CheckButton::builder() // Maybe use GtkSwitch instead?
+                .active(true)
+                .hexpand(true)
+                .build();
+            self_
+                .details
+                .append(&crate::window::EpicAssetManagerWindow::create_widget_row(
+                    "Include Template Projects and Debug symbols",
+                    &check,
+                ));
 
-                combo.connect_changed(
-                    clone!(#[weak(rename_to=detail)] self, #[weak] check, move |c| {
-                        detail.version_selected(c, &check);
-                    }),
-                );
+            combo.connect_selected_notify(
+                clone!(#[weak(rename_to=detail)] self, #[weak] check, move |c| {
+                    detail.version_selected(c, &check);
+                }),
+            );
 
                 check.connect_toggled(
                     clone!(#[weak(rename_to=detail)] self, #[weak] combo, move |c| {
@@ -387,14 +388,13 @@ impl DockerEngineDownload {
                                    Cmp::Gt => std::cmp::Ordering::Greater,
                                }));
 
-                for ver in version {
-                    combo.append(Some(ver), ver);
-                    if combo.active_id().is_none() {
-                        combo.set_active_id(Some(ver));
-                    }
-                }
+            for ver in version {
+                model.append(ver);
+            }
+            if combo.selected() == gtk4::INVALID_LIST_POSITION {
+                combo.set_selected(0);
+            }
 
-                // TODO: Switch to create_info_row()
                 let size_label = gtk4::Label::builder()
                     .name("size_label")
                     .label("unknown")
@@ -424,10 +424,10 @@ impl DockerEngineDownload {
         };
     }
 
-    fn version_selected(&self, combo: &gtk4::ComboBoxText, check: &gtk4::CheckButton) {
+    fn version_selected(&self, combo: &gtk4::DropDown, check: &gtk4::CheckButton) {
         let self_ = self.imp();
         check.set_sensitive(false);
-        if let Some(selected) = combo.active_id() {
+        if let Some(selected) = Self::selected_version(combo) {
             if let Some(ver) = &*self_.docker_versions.borrow() {
                 if let Some(v) = ver.get(selected.as_str()) {
                     check.set_active(true);
@@ -498,6 +498,13 @@ impl DockerEngineDownload {
 
     pub fn selected(&self) -> Option<String> {
         self.property("selected")
+    }
+
+    fn selected_version(combo: &gtk4::DropDown) -> Option<String> {
+        combo
+            .selected_item()
+            .and_downcast::<gtk4::StringObject>()
+            .map(|item| item.string().to_string())
     }
 
     #[cfg(target_os = "linux")]

@@ -4,7 +4,6 @@ use gtk4::{self, gio, prelude::*};
 use gtk4::{glib, CompositeTemplate};
 use log::error;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 pub mod imp {
     use super::*;
@@ -80,7 +79,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicLocalAssets(ObjectSubclass<imp::EpicLocalAssets>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicLocalAssets {
@@ -163,13 +163,12 @@ impl EpicLocalAssets {
         remove_from_list_box(&self_.local_list, widget);
         remove_from_list_box(&self_.local_list_other, widget);
         if let Some(p) = widget.path() {
-            if let Ok(path) = PathBuf::from_str(&p) {
-                if path.exists() {
-                    if let Some(parent) = path.parent() {
-                        if let Err(e) = std::fs::remove_dir_all(parent) {
-                            error!("Unable to remove vault data: {:?}", e);
-                        };
-                    }
+            let path = PathBuf::from(&p);
+            if path.exists() {
+                if let Some(parent) = path.parent() {
+                    if let Err(e) = std::fs::remove_dir_all(parent) {
+                        error!("Unable to remove vault data: {:?}", e);
+                    };
                 }
             }
         };

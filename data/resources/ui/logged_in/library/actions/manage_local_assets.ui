@@ -6,9 +6,9 @@
             <object class="GtkListBox" id="local_list">
             </object>
         </child>
-        <child>
+         <child>
             <object class="GtkExpander" id="other_expander">
-                <property name="label">Other Versions</property>
+                <property name="label" translatable="yes">Other Versions</property>
                 <child>
                     <object class="GtkListBox" id="local_list_other">
                     </object>

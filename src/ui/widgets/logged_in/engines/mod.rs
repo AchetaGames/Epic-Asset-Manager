@@ -36,26 +36,25 @@ pub struct UnrealEngine {
 
 impl UnrealEngine {
     pub fn get_engine_binary_path(&self) -> Option<OsString> {
-        if let Ok(mut p) = std::path::PathBuf::from_str(&self.path) {
-            p.push("Engine");
-            p.push("Binaries");
-            p.push("Linux");
-            let mut test = p.clone();
-            test.push("UE4Editor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            let mut test = p.clone();
-            test.push("UnrealEditor");
-            if test.exists() {
-                let mut result = OsString::new();
-                result.push(test.into_os_string());
-                return Some(result);
-            }
-            error!("Unable to launch the engine");
-        };
+        let mut p = std::path::PathBuf::from(&self.path);
+        p.push("Engine");
+        p.push("Binaries");
+        p.push("Linux");
+        let mut test = p.clone();
+        test.push("UE4Editor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        let mut test = p.clone();
+        test.push("UnrealEditor");
+        if test.exists() {
+            let mut result = OsString::new();
+            result.push(test.into_os_string());
+            return Some(result);
+        }
+        error!("Unable to launch the engine");
         None
     }
 }
@@ -172,7 +171,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicEnginesBox(ObjectSubclass<imp::EpicEnginesBox>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicEnginesBox {
@@ -482,10 +482,8 @@ impl EpicEnginesBox {
                         let path = std::path::PathBuf::from(dir.to_string());
                         if let Ok(rd) = path.read_dir() {
                             for d in rd.flatten() {
-                                if let Ok(w) = crate::RUNNING.read() {
-                                    if !*w {
-                                        return;
-                                    }
+                                if !crate::RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                                    return;
                                 }
                                 let p = d.path();
                                 if p.is_dir() {

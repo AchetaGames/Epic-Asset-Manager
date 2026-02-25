@@ -36,6 +36,31 @@ impl Update for EpicAssetManagerWindow {
             Msg::FlushAssetThumbnails => {
                 self_.logged_in_stack.flush_assets();
             }
+            Msg::ProcessFabAsset(fab_asset, image) => {
+                self_.logged_in_stack.add_fab_asset(&fab_asset, image);
+            }
+            Msg::FlushFabAssets => {
+                self_.logged_in_stack.flush_fab_assets();
+            }
+            Msg::ProcessFabBrowseResult(fab_asset, image, price_label) => {
+                self_
+                    .logged_in_stack
+                    .add_fab_browse_result(&fab_asset, image, &price_label);
+            }
+            Msg::FlushFabBrowseResults(cursor) => {
+                self_.logged_in_stack.flush_fab_browse_results(cursor);
+            }
+            Msg::ProcessFabListingDetail(detail, formats, owned) => {
+                self_
+                    .logged_in_stack
+                    .show_fab_listing_detail(&detail, &formats, owned);
+            }
+            Msg::FabTaxonomyLoaded(groups) => {
+                self_.logged_in_stack.load_fab_taxonomy(groups);
+            }
+            Msg::FabAddedToLibrary(uid) => {
+                self_.logged_in_stack.on_fab_added_to_library(&uid);
+            }
             Msg::ProcessEpicAsset(epic_asset) => {
                 self_.logged_in_stack.process_epic_asset(&epic_asset);
             }

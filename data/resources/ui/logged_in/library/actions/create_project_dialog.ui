@@ -94,18 +94,21 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkInfoBar" id="warning_bar">
+                            <object class="GtkBox" id="warning_bar">
+                                <property name="orientation">vertical</property>
                                 <property name="visible">false</property>
-                                <property name="message-type">warning</property>
                                 <child>
-                                    <object class="GtkLabel" id="warning_label">
-                                        <property name="label" translatable="yes">Project already exists in the target directory</property>
-                                        <property name="wrap">true</property>
+                                    <object class="AdwBanner" id="warning_banner">
+                                        <property name="title" translatable="yes">Project already exists in the target directory</property>
+                                        <property name="revealed">true</property>
                                     </object>
                                 </child>
                                 <child>
                                     <object class="GtkCheckButton" id="overwrite_check">
                                         <property name="label" translatable="yes">Overwrite</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="margin-top">6</property>
+                                        <property name="margin-bottom">6</property>
                                     </object>
                                 </child>
                             </object>

@@ -383,37 +383,175 @@ impl EngineData {
     pub fn needs_update(&self) -> bool {
         self.property("needs-update")
     }
+}
 
-    // #[cfg(target_os = "linux")]
-    // fn git_callbacks() -> git2::RemoteCallbacks<'static> {
-    //     let git_config = git2::Config::open_default().unwrap();
-    //     let mut cb = git2::RemoteCallbacks::new();
-    //     cb.credentials(move |url, username, allowed| {
-    //         let mut cred_helper = git2::CredentialHelper::new(url);
-    //         cred_helper.config(&git_config);
-    //         if allowed.is_ssh_key() {
-    //             // TODO: Add configuration to specify the ssh key and password(if needed)
-    //             let mut key = glib::home_dir();
-    //             key.push(".ssh");
-    //             key.push("id_rsa");
-    //
-    //             let user = username
-    //                 .map(std::string::ToString::to_string)
-    //                 .or_else(|| cred_helper.username.clone())
-    //                 .unwrap_or_else(|| "git".to_string());
-    //             if key.exists() {
-    //                 git2::Cred::ssh_key(&user, None, key.as_path(), None)
-    //             } else {
-    //                 git2::Cred::ssh_key_from_agent(&user)
-    //             }
-    //         } else if allowed.is_user_pass_plaintext() {
-    //             git2::Cred::credential_helper(&git_config, url, username)
-    //         } else if allowed.is_default() {
-    //             git2::Cred::default()
-    //         } else {
-    //             Err(git2::Error::from_str("no authentication available"))
-    //         }
-    //     });
-    //     cb
-    // }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cmp::Ordering;
+
+    fn ver(major: i64, minor: i64, patch: i64) -> UnrealVersion {
+        UnrealVersion {
+            major_version: major,
+            minor_version: minor,
+            patch_version: patch,
+            ..Default::default()
+        }
+    }
+
+    fn invalid_ver() -> UnrealVersion {
+        UnrealVersion {
+            major_version: -1,
+            minor_version: -1,
+            patch_version: -1,
+            changelist: -1,
+            compatible_changelist: -1,
+            is_licensee_version: -1,
+            is_promoted_build: -1,
+            branch_name: String::new(),
+        }
+    }
+
+    #[test]
+    fn valid_default_version() {
+        let v = UnrealVersion::default();
+        assert!(v.valid(), "default (all zeros) should be valid");
+    }
+
+    #[test]
+    fn valid_normal_version() {
+        assert!(ver(5, 3, 0).valid());
+    }
+
+    #[test]
+    fn invalid_all_negative_one() {
+        assert!(!invalid_ver().valid());
+    }
+
+    #[test]
+    fn valid_partial_negative_one() {
+        let v = UnrealVersion {
+            major_version: 5,
+            minor_version: -1,
+            patch_version: -1,
+            changelist: -1,
+            compatible_changelist: -1,
+            is_licensee_version: -1,
+            is_promoted_build: -1,
+            branch_name: String::new(),
+        };
+        assert!(v.valid(), "not all fields are -1, so it should be valid");
+    }
+
+    #[test]
+    fn format_valid_version() {
+        assert_eq!(ver(5, 3, 2).format(), "5.3.2");
+    }
+
+    #[test]
+    fn format_zeroes() {
+        assert_eq!(ver(0, 0, 0).format(), "0.0.0");
+    }
+
+    #[test]
+    fn format_invalid_falls_back_to_branch() {
+        let mut v = invalid_ver();
+        v.branch_name = "++UE5+Release-5.3".to_string();
+        assert_eq!(v.format(), "++UE5+Release-5.3");
+    }
+
+    #[test]
+    fn format_invalid_empty_branch() {
+        let v = invalid_ver();
+        assert_eq!(v.format(), "");
+    }
+
+    #[test]
+    fn compare_equal() {
+        assert_eq!(ver(5, 3, 0).compare(&ver(5, 3, 0)), Ordering::Equal);
+    }
+
+    #[test]
+    fn compare_major_less() {
+        assert_eq!(ver(4, 27, 0).compare(&ver(5, 0, 0)), Ordering::Less);
+    }
+
+    #[test]
+    fn compare_major_greater() {
+        assert_eq!(ver(5, 0, 0).compare(&ver(4, 27, 0)), Ordering::Greater);
+    }
+
+    #[test]
+    fn compare_minor_less() {
+        assert_eq!(ver(5, 2, 0).compare(&ver(5, 3, 0)), Ordering::Less);
+    }
+
+    #[test]
+    fn compare_minor_greater() {
+        assert_eq!(ver(5, 3, 0).compare(&ver(5, 2, 0)), Ordering::Greater);
+    }
+
+    #[test]
+    fn compare_patch_less() {
+        assert_eq!(ver(5, 3, 1).compare(&ver(5, 3, 2)), Ordering::Less);
+    }
+
+    #[test]
+    fn compare_patch_greater() {
+        assert_eq!(ver(5, 3, 2).compare(&ver(5, 3, 1)), Ordering::Greater);
+    }
+
+    #[test]
+    fn compare_invalid_self_is_greater() {
+        assert_eq!(invalid_ver().compare(&ver(5, 0, 0)), Ordering::Greater);
+    }
+
+    #[test]
+    fn compare_invalid_other_is_less() {
+        assert_eq!(ver(5, 0, 0).compare(&invalid_ver()), Ordering::Less);
+    }
+
+    #[test]
+    fn compare_both_invalid() {
+        assert_eq!(invalid_ver().compare(&invalid_ver()), Ordering::Greater);
+    }
+
+    #[test]
+    fn deserialize_build_version_json() {
+        let json = r#"{
+            "MajorVersion": 5,
+            "MinorVersion": 3,
+            "PatchVersion": 2,
+            "Changelist": 123456,
+            "CompatibleChangelist": 123400,
+            "IsLicenseeVersion": 0,
+            "IsPromotedBuild": 1,
+            "BranchName": "++UE5+Release-5.3"
+        }"#;
+        let v: UnrealVersion = serde_json::from_str(json).unwrap();
+        assert_eq!(v.major_version, 5);
+        assert_eq!(v.minor_version, 3);
+        assert_eq!(v.patch_version, 2);
+        assert_eq!(v.changelist, 123456);
+        assert_eq!(v.branch_name, "++UE5+Release-5.3");
+        assert!(v.valid());
+        assert_eq!(v.format(), "5.3.2");
+    }
+
+    #[test]
+    fn deserialize_empty_json_defaults() {
+        let v: UnrealVersion = serde_json::from_str("{}").unwrap();
+        assert_eq!(v, UnrealVersion::default());
+        assert!(v.valid());
+    }
+
+    #[test]
+    fn deserialize_partial_json() {
+        let json = r#"{"MajorVersion": 4, "MinorVersion": 27}"#;
+        let v: UnrealVersion = serde_json::from_str(json).unwrap();
+        assert_eq!(v.major_version, 4);
+        assert_eq!(v.minor_version, 27);
+        assert_eq!(v.patch_version, 0);
+        assert_eq!(v.format(), "4.27.0");
+    }
 }

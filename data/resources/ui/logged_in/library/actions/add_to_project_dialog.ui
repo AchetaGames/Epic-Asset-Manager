@@ -69,15 +69,9 @@
                             </object>
                         </child>
                         <child>
-                            <object class="GtkInfoBar" id="no_projects_bar">
-                                <property name="visible">false</property>
-                                <property name="message-type">info</property>
-                                <child>
-                                    <object class="GtkLabel">
-                                        <property name="label" translatable="yes">No projects found. Add project directories in Settings or create a new project first.</property>
-                                        <property name="wrap">true</property>
-                                    </object>
-                                </child>
+                            <object class="AdwBanner" id="no_projects_bar">
+                                <property name="revealed">false</property>
+                                <property name="title" translatable="yes">No projects found. Add project directories in Settings or create a new project first.</property>
                             </object>
                         </child>
                     </object>

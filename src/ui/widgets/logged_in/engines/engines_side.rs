@@ -126,7 +126,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicEnginesSide(ObjectSubclass<imp::EpicEnginesSide>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicEnginesSide {
@@ -227,7 +228,9 @@ impl EpicEnginesSide {
 
     pub fn path(&self) -> Option<String> {
         let self_ = self.imp();
-        // TODO: Check if we are on install tab and return empty
+        if self_.stack.visible_child_name().as_deref() == Some("install") {
+            return None;
+        }
         self_.details.path()
     }
 

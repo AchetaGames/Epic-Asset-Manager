@@ -77,7 +77,7 @@ pub mod imp {
         fn snapshot(&self, snapshot: &gtk4::Snapshot) {
             let widget = self.obj();
             let size = widget.size() as f32;
-            let mut color = widget.style_context().color();
+            let mut color = widget.color();
             let fraction = if widget.clockwise() {
                 1.0 - widget.fraction()
             } else {
@@ -124,7 +124,8 @@ glib::wrapper! {
     ///
     /// **Implements**: [`ProgressIconExt`]
     pub struct ProgressIcon(ObjectSubclass<imp::ProgressIcon>)
-        @extends gtk4::Widget;
+        @extends gtk4::Widget,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
 impl Default for ProgressIcon {
@@ -147,6 +148,7 @@ impl ProgressIcon {
     }
 }
 
+#[allow(dead_code)]
 pub trait ProgressIconExt {
     /// Gets the child widget of `self`.
     ///

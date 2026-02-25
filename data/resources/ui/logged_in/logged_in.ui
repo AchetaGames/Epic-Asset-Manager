@@ -5,92 +5,54 @@
         <property name="vexpand">1</property>
         <property name="orientation">horizontal</property>
 
-        <!-- PAGE-LEVEL SIDEBAR (left side, outside scroll) -->
+        <!-- SIDEBAR (left side) -->
         <child>
             <object class="EpicSidebar" id="sidebar"/>
         </child>
 
-        <!-- MAIN CONTENT AREA with page stack -->
+        <!-- MAIN CONTENT AREA — one page per section -->
         <child>
             <object class="GtkStack" id="page_stack">
                 <property name="hexpand">true</property>
                 <property name="vexpand">true</property>
                 <property name="transition-type">crossfade</property>
 
-                <!-- UNREAL PAGE with collapsible sections -->
+                <!-- ENGINES PAGE -->
                 <child>
                     <object class="GtkStackPage">
-                        <property name="name">unreal</property>
+                        <property name="name">engines</property>
                         <property name="child">
-                            <object class="GtkBox" id="unreal_page">
-                                <property name="orientation">vertical</property>
-                                <property name="hexpand">true</property>
-                                <property name="vexpand">true</property>
+                            <object class="EpicEnginesBox" id="engines"/>
+                        </property>
+                    </object>
+                </child>
 
-                                <!-- ENGINES SECTION (collapsible) -->
-                                <child>
-                                    <object class="GtkExpander" id="engines_expander">
-                                        <property name="expanded">true</property>
-                                        <property name="margin-start">16</property>
-                                        <property name="margin-end">16</property>
-                                        <property name="margin-top">8</property>
-                                        <property name="css-classes">section</property>
-                                        <child type="label">
-                                            <object class="GtkLabel">
-                                                <property name="label">ENGINE VERSIONS</property>
-                                                <property name="css-classes">section-title</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicEnginesBox" id="engines"/>
-                                        </child>
-                                    </object>
-                                </child>
+                <!-- PROJECTS PAGE -->
+                <child>
+                    <object class="GtkStackPage">
+                        <property name="name">projects</property>
+                        <property name="child">
+                            <object class="EpicProjectsBox" id="projects"/>
+                        </property>
+                    </object>
+                </child>
 
-                                <!-- PROJECTS SECTION (collapsible) -->
-                                <child>
-                                    <object class="GtkExpander" id="projects_expander">
-                                        <property name="expanded">true</property>
-                                        <property name="margin-start">16</property>
-                                        <property name="margin-end">16</property>
-                                        <property name="margin-top">8</property>
-                                        <property name="css-classes">section</property>
-                                        <child type="label">
-                                            <object class="GtkLabel">
-                                                <property name="label">MY PROJECTS</property>
-                                                <property name="css-classes">section-title</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicProjectsBox" id="projects"/>
-                                        </child>
-                                    </object>
-                                </child>
+                <!-- ASSET LIBRARY PAGE -->
+                <child>
+                    <object class="GtkStackPage">
+                        <property name="name">library</property>
+                        <property name="child">
+                            <object class="EpicLibraryBox" id="library"/>
+                        </property>
+                    </object>
+                </child>
 
-                                <!-- LIBRARY SECTION (collapsible, fills remaining space) -->
-                                <child>
-                                    <object class="GtkExpander" id="library_expander">
-                                        <property name="expanded">true</property>
-                                        <property name="vexpand">true</property>
-                                        <property name="margin-start">16</property>
-                                        <property name="margin-end">16</property>
-                                        <property name="margin-top">8</property>
-                                        <property name="css-classes">section</property>
-                                        <child type="label">
-                                            <object class="GtkLabel">
-                                                <property name="label">ASSET LIBRARY</property>
-                                                <property name="css-classes">section-title</property>
-                                            </object>
-                                        </child>
-                                        <child>
-                                            <object class="EpicLibraryBox" id="library">
-                                                <property name="vexpand">true</property>
-                                            </object>
-                                        </child>
-                                    </object>
-                                </child>
-
-                            </object>
+                <!-- FAB LIBRARY PAGE -->
+                <child>
+                    <object class="GtkStackPage">
+                        <property name="name">fab</property>
+                        <property name="child">
+                            <object class="FabLibraryBox" id="fab"/>
                         </property>
                     </object>
                 </child>
@@ -108,7 +70,7 @@
             </object>
         </child>
 
-        <!-- ASSET DETAILS PANEL (right side, full height, hidden by default) -->
+        <!-- ASSET DETAILS PANEL (right side, hidden by default) -->
         <child>
             <object class="EpicAssetDetails" id="details">
                 <property name="visible">false</property>

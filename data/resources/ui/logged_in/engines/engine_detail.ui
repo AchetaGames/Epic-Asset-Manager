@@ -18,8 +18,7 @@
                                     <property name="halign">start</property>
                                     <property name="name">engine_launch_button</property>
                                     <property name="action-name">engine_details.launch</property>
-                                    <property name="css-classes">suggested-action
-</property>
+                                    <property name="css-classes">suggested-action</property>
                                     <child>
                                         <object class="AdwButtonContent">
                                             <property name="icon-name">media-playback-start-symbolic</property>
@@ -32,7 +31,7 @@
                         </child>
                         <child>
                             <object class="AdwPreferencesGroup">
-                                <property name="title">General</property>
+                                <property name="title" translatable="yes">General</property>
                                 <child>
                                     <object class="GtkListBox" id="details">
                                         <property name="selection-mode">GTK_SELECTION_NONE</property>
@@ -43,7 +42,7 @@
                         </child>
                         <child>
                             <object class="AdwPreferencesGroup">
-                                <property name="title">Details</property>
+                                <property name="title" translatable="yes">Details</property>
                                 <child>
                                   <object class="AdwExpanderRow" id="logs_row">
                                         <property name="title" translatable="yes">Logs</property>

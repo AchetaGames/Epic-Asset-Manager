@@ -43,7 +43,7 @@ pub mod imp {
         fn new() -> Self {
             let (sender, receiver) = async_channel::unbounded();
             Self {
-                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 5),
+                image_load_pool: ThreadPool::with_name("Image Load Pool".to_string(), 2),
                 stack: TemplateChild::default(),
                 revealer: TemplateChild::default(),
                 settings: gio::Settings::new(crate::config::APP_ID),
@@ -107,7 +107,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicImageOverlay(ObjectSubclass<imp::EpicImageOverlay>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicImageOverlay {
@@ -285,7 +286,6 @@ impl EpicImageOverlay {
             .extension()
             .and_then(OsStr::to_str);
         cache_path.push(format!("{}.{}", image.md5, name.unwrap_or("png")));
-        // TODO Have just one sender&receiver per the widget
         let sender = self_.sender.clone();
 
         let asset = self.asset();

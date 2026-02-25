@@ -70,7 +70,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct DirectoryRow(ObjectSubclass<imp::DirectoryRow>)
-        @extends gtk4::Widget, gtk4::ListBoxRow, adw::ActionRow, adw::PreferencesRow;
+        @extends gtk4::Widget, gtk4::ListBoxRow, adw::ActionRow, adw::PreferencesRow,
+        @implements gtk4::Accessible, gtk4::Actionable, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
 impl DirectoryRow {

@@ -48,8 +48,6 @@ pub mod imp {
             let app = self.obj();
             let self_ = app.imp();
             if let Some(window) = self_.window.get() {
-                window.show();
-
                 if let Ok(item) = self.item.borrow().to_value().get::<String>() {
                     window.set_property("item", item);
                 }
@@ -184,9 +182,7 @@ impl EpicAssetManager {
     pub fn setup_gactions(&self) {
         let self_ = self.imp();
         self.connect_shutdown(|_| {
-            if let Ok(mut w) = crate::RUNNING.write() {
-                *w = false;
-            }
+            crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
         });
 
         // Quit
@@ -255,9 +251,7 @@ impl EpicAssetManager {
     }
 
     fn exit(&self) {
-        if let Ok(mut w) = crate::RUNNING.write() {
-            *w = false;
-        }
+        crate::RUNNING.store(false, std::sync::atomic::Ordering::Relaxed);
         self.main_window().close();
         self.quit();
     }
@@ -279,22 +273,18 @@ impl EpicAssetManager {
         crate::ui::widgets::preferences::PreferencesWindow::apply_accent_color(&accent);
     }
 
-    // TODO: Switch to adw:AboutDialog
     fn show_about_dialog(&self) {
-        let dialog = gtk4::AboutDialog::builder()
-            .program_name("Epic Asset Manager")
-            .logo_icon_name(config::APP_ID)
+        let dialog = adw::AboutDialog::builder()
+            .application_name("Epic Asset Manager")
+            .application_icon(config::APP_ID)
             .license_type(gtk4::License::MitX11)
             .website("https://github.com/AchetaGames/Epic-Asset-Manager/wiki")
-            .website_label("Wiki")
             .version(config::VERSION)
-            .transient_for(self.main_window())
-            .modal(true)
-            .authors(vec!["Acheta Games".to_string()])
-            .documenters(vec!["Osayami".to_string()])
+            .developers(vec!["Acheta Games".to_string()])
             .build();
 
-        dialog.show();
+        let window = self.main_window();
+        adw::prelude::AdwDialogExt::present(&dialog, Some(window.upcast_ref::<gtk4::Widget>()));
     }
 
     pub fn run(&self) {

@@ -9,7 +9,6 @@ use gtk_macros::action;
 use log::{debug, info};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Read;
 use std::path::PathBuf;
 
 pub mod imp {
@@ -36,9 +35,7 @@ pub mod imp {
         #[template_child]
         pub engine_version_combo: TemplateChild<gtk4::DropDown>,
         #[template_child]
-        pub warning_bar: TemplateChild<gtk4::InfoBar>,
-        #[template_child]
-        pub warning_label: TemplateChild<gtk4::Label>,
+        pub warning_bar: TemplateChild<gtk4::Box>,
         #[template_child]
         pub overwrite_check: TemplateChild<gtk4::CheckButton>,
         #[template_child]
@@ -66,7 +63,6 @@ pub mod imp {
                 browse_location_button: TemplateChild::default(),
                 engine_version_combo: TemplateChild::default(),
                 warning_bar: TemplateChild::default(),
-                warning_label: TemplateChild::default(),
                 overwrite_check: TemplateChild::default(),
                 create_button: TemplateChild::default(),
             }
@@ -223,34 +219,25 @@ impl EpicCreateProjectDialog {
     }
 
     fn browse_for_location(&self) {
-        let file_dialog = gtk4::FileChooserDialog::new(
-            Some("Select Project Directory"),
+        let dialog = gtk4::FileDialog::builder()
+            .title("Select Project Directory")
+            .modal(true)
+            .build();
+        dialog.select_folder(
             Some(self),
-            gtk4::FileChooserAction::SelectFolder,
-            &[
-                ("Select", gtk4::ResponseType::Accept),
-                ("Cancel", gtk4::ResponseType::Cancel),
-            ],
-        );
-        file_dialog.set_modal(true);
-        file_dialog.set_transient_for(Some(self));
-
-        file_dialog.connect_response(clone!(
-            #[weak(rename_to=dialog)]
-            self,
-            move |d, response| {
-                if response == gtk4::ResponseType::Accept {
-                    if let Some(file) = d.file() {
+            None::<&gio::Cancellable>,
+            clone!(
+                #[weak(rename_to=dlg)]
+                self,
+                move |result| {
+                    if let Ok(file) = result {
                         if let Some(path) = file.path() {
-                            dialog.add_location(path.to_str().unwrap());
+                            dlg.add_location(path.to_str().unwrap());
                         }
                     }
                 }
-                d.destroy();
-            }
-        ));
-
-        file_dialog.show();
+            ),
+        );
     }
 
     fn add_location(&self, path: &str) {
@@ -275,7 +262,9 @@ impl EpicCreateProjectDialog {
             let mut current = self_.settings.strv("unreal-projects-directories");
             if !current.contains(&gtk4::glib::GString::from(path)) {
                 current.push(gtk4::glib::GString::from(path.to_string()));
-                let _ = self_.settings.set_strv("unreal-projects-directories", current);
+                let _ = self_
+                    .settings
+                    .set_strv("unreal-projects-directories", current);
             }
         }
         self.validate_target_directory();
@@ -305,7 +294,9 @@ impl EpicCreateProjectDialog {
 
         // 1. Read from Install.ini (Epic Games Launcher installations)
         for (_guid, path) in Self::read_engines_ini() {
-            if let Some(version) = crate::models::engine_data::EngineData::read_engine_version(&path) {
+            if let Some(version) =
+                crate::models::engine_data::EngineData::read_engine_version(&path)
+            {
                 let version_str = version.format();
                 if !version_str.is_empty() && !found_versions.contains(&version_str) {
                     found_versions.push(version_str);
@@ -342,7 +333,11 @@ impl EpicCreateProjectDialog {
             self_.create_button.set_sensitive(false);
         }
 
-        info!("Found {} engine versions: {:?}", found_versions.len(), found_versions);
+        info!(
+            "Found {} engine versions: {:?}",
+            found_versions.len(),
+            found_versions
+        );
 
         self_.engine_version_combo.set_model(Some(&model));
         self_.engines_model.replace(Some(model));
@@ -362,7 +357,10 @@ impl EpicCreateProjectDialog {
         dir.push("Install.ini");
 
         let mut result: HashMap<String, String> = HashMap::new();
-        if ini.load_from_file(&dir, gtk4::glib::KeyFileFlags::NONE).is_err() {
+        if ini
+            .load_from_file(&dir, gtk4::glib::KeyFileFlags::NONE)
+            .is_err()
+        {
             return result;
         }
 
@@ -405,9 +403,11 @@ impl EpicCreateProjectDialog {
             for entry in entries.flatten() {
                 let entry_path = entry.path();
                 if entry_path.is_dir() {
-                    if let Some(version) = crate::models::engine_data::EngineData::read_engine_version(
-                        entry_path.to_str().unwrap(),
-                    ) {
+                    if let Some(version) =
+                        crate::models::engine_data::EngineData::read_engine_version(
+                            entry_path.to_str().unwrap(),
+                        )
+                    {
                         let version_str = version.format();
                         if !version_str.is_empty() && !found_versions.contains(&version_str) {
                             found_versions.push(version_str);
@@ -438,7 +438,6 @@ impl EpicCreateProjectDialog {
 
                 if path.exists() {
                     self_.warning_bar.set_visible(true);
-                    self_.warning_label.set_label("Project already exists in the target directory");
                 } else {
                     self_.warning_bar.set_visible(false);
                 }
@@ -456,6 +455,7 @@ impl EpicCreateProjectDialog {
         }
     }
 
+    #[allow(dead_code)]
     fn get_selected_engine(&self) -> Option<String> {
         let self_ = self.imp();
         if let Some(model) = &*self_.engines_model.borrow() {
@@ -496,10 +496,15 @@ impl EpicCreateProjectDialog {
             if let Some(release_infos) = &asset_info.release_info {
                 for ri in release_infos {
                     if let Some(app_id) = &ri.app_id {
-                        let locations = crate::models::asset_data::AssetData::downloaded_locations(&vaults, app_id);
+                        let locations = crate::models::asset_data::AssetData::downloaded_locations(
+                            &vaults, app_id,
+                        );
                         if let Some(source_path) = locations.first() {
                             // Asset is already downloaded - copy directly
-                            info!("Asset already downloaded at {:?}, copying to {:?}", source_path, target_path);
+                            info!(
+                                "Asset already downloaded at {:?}, copying to {:?}",
+                                source_path, target_path
+                            );
 
                             let source = source_path.clone();
                             let target = target_path.clone();
@@ -526,7 +531,10 @@ impl EpicCreateProjectDialog {
             // Asset not downloaded - use download manager
             if let Some(dm) = self_.download_manager.get() {
                 if let Some(version) = &*self_.selected_version.borrow() {
-                    debug!("Asset not downloaded, adding to download queue with version: {}", version);
+                    debug!(
+                        "Asset not downloaded, adding to download queue with version: {}",
+                        version
+                    );
                     dm.add_asset_download(
                         version.clone(),
                         asset_info.clone(),
@@ -593,9 +601,8 @@ impl EpicCreateProjectDialog {
                         {
                             log::error!("Failed to launch project with gio: {:?}", e);
                             // Fallback to xdg-open
-                            if let Err(e2) = std::process::Command::new("xdg-open")
-                                .arg(&path)
-                                .spawn()
+                            if let Err(e2) =
+                                std::process::Command::new("xdg-open").arg(&path).spawn()
                             {
                                 log::error!("Failed to launch project with xdg-open: {:?}", e2);
                             }

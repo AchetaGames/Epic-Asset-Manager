@@ -39,7 +39,7 @@
                         </child>
                         <child>
                             <object class="GtkLabel" id="title_label">
-                                <property name="label">Epic Asset Manager</property>
+                                <property name="label" translatable="yes">Epic Asset Manager</property>
                                 <style>
                                     <class name="title"/>
                                 </style>
@@ -47,15 +47,6 @@
                         </child>
                     </object>
                 </property>
-                <!-- TODO: use this button instead of EpicSidebar's -->
-                <!-- <child type="start"> -->
-                <!--     <object class="GtkToggleButton" id="expand_button"> -->
-                <!--         <property name="name">category_button</property> -->
-                <!--         <property name="action-name">sidebar.expand</property> -->
-                <!--         <property name="tooltip-text" translatable="yes">Toggle Sidebar</property> -->
-                <!--         <property name="icon-name">sidebar-show-symbolic</property> --> --> -->
-                <!--     </object> -->
-                <!-- </child> -->
                 <child type="start">
                     <object class="GtkButton" id="refresh">
                         <property name="halign">center</property>
@@ -88,6 +79,7 @@
                         </child>
                         <child>
                             <object class="GtkMenuButton" id="progress_button">
+                                <property name="tooltip-text" translatable="yes">Downloads</property>
                                 <property name="always-show-arrow">false</property>
                                 <property name="direction">down</property>
                                 <property name="popover">

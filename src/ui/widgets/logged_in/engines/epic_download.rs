@@ -1,5 +1,5 @@
-use crate::tools::epic_web::EpicWeb;
 use crate::ui::widgets::download_manager::epic_file::EpicFile;
+use egs_api::api::types::engine_blob::EngineBlob;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -7,31 +7,14 @@ use gtk4::{glib, CompositeTemplate};
 use gtk_macros::{action, get_action};
 use log::error;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::thread;
-use tokio::runtime::Builder;
 use version_compare::Cmp;
 
 #[derive(Debug, Clone)]
 pub enum Msg {
     EULAValid(bool),
-    Versions(Vec<Blob>),
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VersionResponse {
-    pub blobs: Vec<Blob>,
-}
-
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Blob {
-    pub name: String,
-    pub created_at: String,
-    pub size: u64,
-    pub url: String,
+    Versions(Vec<EngineBlob>),
 }
 
 pub mod imp {
@@ -55,7 +38,7 @@ pub mod imp {
         #[template_child]
         pub eula_stack: TemplateChild<gtk4::Stack>,
         #[template_child]
-        pub version_selector: TemplateChild<gtk4::ComboBoxText>,
+        pub version_selector: TemplateChild<gtk4::DropDown>,
         #[template_child]
         pub versions_row: TemplateChild<gtk4::ListBoxRow>,
         #[template_child]
@@ -68,7 +51,7 @@ pub mod imp {
         pub actions: gio::SimpleActionGroup,
         pub sender: async_channel::Sender<Msg>,
         pub receiver: RefCell<Option<async_channel::Receiver<Msg>>>,
-        pub engine_versions: RefCell<Option<HashMap<String, Blob>>>,
+        pub engine_versions: RefCell<Option<HashMap<String, EngineBlob>>>,
     }
 
     #[glib::object_subclass]
@@ -125,7 +108,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicEngineDownload(ObjectSubclass<imp::EpicEngineDownload>)
-        @extends gtk4::Widget, gtk4::Box;
+        @extends gtk4::Widget, gtk4::Box,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Orientable;
 }
 
 impl Default for EpicEngineDownload {
@@ -210,7 +194,7 @@ impl EpicEngineDownload {
 
     pub fn setup_widgets(&self) {
         let self_ = self.imp();
-        self_.version_selector.connect_changed(clone!(
+        self_.version_selector.connect_selected_notify(clone!(
             #[weak(rename_to=detail)]
             self,
             move |_| {
@@ -221,7 +205,7 @@ impl EpicEngineDownload {
 
     pub fn version_selected(&self) {
         let self_ = self.imp();
-        if let Some(selected) = self_.version_selector.active_id() {
+        if let Some(selected) = self.selected_version() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
                     let byte = byte_unit::Byte::from_u64(version.size)
@@ -289,7 +273,7 @@ impl EpicEngineDownload {
 
     pub fn install_engine(&self) {
         let self_ = self.imp();
-        if let Some(selected) = self_.version_selector.active_id() {
+        if let Some(selected) = self.selected_version() {
             if let Some(versions) = &*self_.engine_versions.borrow() {
                 if let Some(version) = versions.get(selected.as_str()) {
                     if let Some(dm) = self_.download_manager.get() {
@@ -318,12 +302,7 @@ impl EpicEngineDownload {
             });
 
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     sender.send_blocking(token.code).unwrap();
                 }
             });
@@ -344,12 +323,7 @@ impl EpicEngineDownload {
             });
 
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
+                if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
                     sender.send_blocking(token.code).unwrap();
                 }
             });
@@ -384,8 +358,8 @@ impl EpicEngineDownload {
                 }
             }
             Msg::Versions(versions) => {
-                self_.version_selector.remove_all();
-                let mut result: HashMap<String, Blob> = HashMap::new();
+                let model = gtk4::StringList::new(&[] as &[&str]);
+                let mut result: HashMap<String, EngineBlob> = HashMap::new();
                 for version in versions {
                     let re =
                         Regex::new(r"Linux_Unreal_Engine_(\d\.\d+.\d+)_?(preview-\d+)?").unwrap();
@@ -420,15 +394,37 @@ impl EpicEngineDownload {
                     )
                 });
 
+                let has_items = !version.is_empty();
                 for ver in version {
-                    self_.version_selector.append(Some(ver), ver);
-                    if self_.version_selector.active_id().is_none() {
-                        self_.version_selector.set_active_id(Some(ver));
-                    }
+                    model.append(ver);
+                }
+                self_.version_selector.set_model(Some(&model));
+                if has_items && self_.version_selector.selected() == gtk4::INVALID_LIST_POSITION {
+                    self_.version_selector.set_selected(0);
                 }
                 get_action!(self_.actions, @install).set_enabled(true);
             }
         }
+    }
+
+    fn selected_version(&self) -> Option<String> {
+        let self_ = self.imp();
+        self_
+            .version_selector
+            .selected_item()
+            .and_downcast::<gtk4::StringObject>()
+            .map(|item| item.string().to_string())
+    }
+
+    fn setup_cosmos_session(eg: &mut egs_api::EpicGames) -> bool {
+        if let Some(token) = crate::RUNTIME.block_on(eg.game_token()) {
+            if let Err(e) = crate::RUNTIME.block_on(eg.cosmos_session_setup(&token.code)) {
+                error!("Failed to setup Cosmos session: {:?}", e);
+                return false;
+            }
+            return true;
+        }
+        false
     }
 
     fn validate_eula(&self) {
@@ -437,47 +433,53 @@ impl EpicEngineDownload {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             let sender = self_.sender.clone();
-            let Some(id) = eg.user_details().account_id else {
+            let Some(_) = eg.user_details().account_id else {
                 sender.send_blocking(Msg::EULAValid(false)).unwrap();
                 return;
             };
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
-                    let mut web = EpicWeb::new();
-                    web.start_session(token.code);
-                    sender
-                        .send_blocking(Msg::EULAValid(web.validate_eula(&id)))
-                        .unwrap();
+                let eula_accepted =
+                    crate::RUNTIME.block_on(eg.cosmos_eula_check("unreal_engine2", "en"));
+                let eula_accepted = match eula_accepted {
+                    Some(accepted) => accepted,
+                    None => {
+                        if !Self::setup_cosmos_session(&mut eg) {
+                            sender.send_blocking(Msg::EULAValid(false)).unwrap();
+                            return;
+                        }
+                        crate::RUNTIME
+                            .block_on(eg.cosmos_eula_check("unreal_engine2", "en"))
+                            .unwrap_or(false)
+                    }
                 };
+                sender.send_blocking(Msg::EULAValid(eula_accepted)).unwrap();
             });
         }
     }
 
-    pub fn get_versions(&self, sender: async_channel::Sender<Vec<Blob>>) {
+    pub fn get_versions(&self, sender: async_channel::Sender<Vec<EngineBlob>>) {
         let self_ = self.imp();
         if let Some(window) = self_.window.get() {
             let win_ = window.imp();
             let mut eg = win_.model.borrow().epic_games.borrow().clone();
             thread::spawn(move || {
-                if let Some(token) = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(eg.game_token())
-                {
-                    let mut web = EpicWeb::new();
-                    web.start_session(token.code);
-                    if let Ok(versions) = web.run_query::<VersionResponse>(
-                        "https://www.unrealengine.com/api/blobs/linux".to_string(),
-                    ) {
-                        sender.send_blocking(versions.blobs).unwrap();
-                    };
-                }
+                let result = crate::RUNTIME.block_on(eg.try_engine_versions("linux"));
+                let response = match result {
+                    Ok(response) => response,
+                    Err(_) => {
+                        if !Self::setup_cosmos_session(&mut eg) {
+                            return;
+                        }
+                        match crate::RUNTIME.block_on(eg.try_engine_versions("linux")) {
+                            Ok(response) => response,
+                            Err(e) => {
+                                error!("Failed to fetch engine versions: {:?}", e);
+                                return;
+                            }
+                        }
+                    }
+                };
+                sender.send_blocking(response.blobs).unwrap();
             });
         }
     }

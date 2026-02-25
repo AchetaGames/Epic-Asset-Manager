@@ -1,5 +1,5 @@
-use adw::subclass::prelude::AdwWindowImpl;
 use crate::ui::widgets::download_manager::asset::Asset;
+use adw::subclass::prelude::AdwWindowImpl;
 use gtk4::glib::clone;
 use gtk4::subclass::prelude::*;
 use gtk4::{self, gio, prelude::*};
@@ -27,7 +27,7 @@ pub mod imp {
         #[template_child]
         pub overwrite_check: TemplateChild<gtk4::CheckButton>,
         #[template_child]
-        pub no_projects_bar: TemplateChild<gtk4::InfoBar>,
+        pub no_projects_bar: TemplateChild<adw::Banner>,
         #[template_child]
         pub asset_name_label: TemplateChild<gtk4::Label>,
     }
@@ -87,7 +87,8 @@ pub mod imp {
 
 glib::wrapper! {
     pub struct EpicAddToProjectDialog(ObjectSubclass<imp::EpicAddToProjectDialog>)
-        @extends gtk4::Widget, gtk4::Window, adw::Window;
+        @extends gtk4::Widget, gtk4::Window, adw::Window,
+        @implements gtk4::Accessible, gtk4::Buildable, gtk4::ConstraintTarget, gtk4::Native, gtk4::Root, gtk4::ShortcutManager;
 }
 
 impl Default for EpicAddToProjectDialog {
@@ -102,7 +103,10 @@ impl EpicAddToProjectDialog {
     }
 
     pub fn set_transient_for(&self, parent: Option<&crate::window::EpicAssetManagerWindow>) {
-        gtk4::prelude::GtkWindowExt::set_transient_for(self, parent.map(|w| w.upcast_ref::<gtk4::Window>()));
+        gtk4::prelude::GtkWindowExt::set_transient_for(
+            self,
+            parent.map(|w| w.upcast_ref::<gtk4::Window>()),
+        );
     }
 
     pub fn set_download_manager(
@@ -127,7 +131,7 @@ impl EpicAddToProjectDialog {
         let factory = gtk4::SignalListItemFactory::new();
 
         factory.connect_setup(clone!(
-            #[weak(rename_to=dialog)]
+            #[weak(rename_to=_dialog)]
             self,
             move |_factory, item| {
                 let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
@@ -166,11 +170,14 @@ impl EpicAddToProjectDialog {
         ));
 
         factory.connect_bind(clone!(
-            #[weak(rename_to=dialog)]
+            #[weak(rename_to=_dialog)]
             self,
             move |_factory, item| {
                 let item = item.downcast_ref::<gtk4::ListItem>().unwrap();
-                if let Some(project_data) = item.item().and_downcast::<crate::models::project_data::ProjectData>() {
+                if let Some(project_data) = item
+                    .item()
+                    .and_downcast::<crate::models::project_data::ProjectData>()
+                {
                     if let Some(tile) = item.child().and_downcast::<gtk4::Box>() {
                         // Get the picture and label from the tile
                         let mut child = tile.first_child();
@@ -180,7 +187,8 @@ impl EpicAddToProjectDialog {
                                     picture.set_paintable(Some(&thumb));
                                 } else {
                                     // Set default icon
-                                    let icon_theme = gtk4::IconTheme::for_display(&picture.display());
+                                    let icon_theme =
+                                        gtk4::IconTheme::for_display(&picture.display());
                                     let icon = icon_theme.lookup_icon(
                                         "folder-symbolic",
                                         &[],
@@ -233,12 +241,16 @@ impl EpicAddToProjectDialog {
         let self_ = self.imp();
 
         if let Some(item) = model.selected_item() {
-            if let Some(project_data) = item.downcast_ref::<crate::models::project_data::ProjectData>() {
+            if let Some(project_data) =
+                item.downcast_ref::<crate::models::project_data::ProjectData>()
+            {
                 if let Some(path) = project_data.path() {
                     // Get the project directory (parent of .uproject file)
                     let project_path = std::path::Path::new(&path);
                     if let Some(parent) = project_path.parent() {
-                        self_.selected_project_path.replace(Some(parent.to_string_lossy().to_string()));
+                        self_
+                            .selected_project_path
+                            .replace(Some(parent.to_string_lossy().to_string()));
                         self_.add_button.set_sensitive(true);
                         return;
                     }
@@ -256,7 +268,9 @@ impl EpicAddToProjectDialog {
 
         // Update the label
         if let Some(title) = &asset.title {
-            self_.asset_name_label.set_label(&format!("Add \"{}\" to project:", title));
+            self_
+                .asset_name_label
+                .set_label(&format!("Add \"{}\" to project:", title));
         }
     }
 
@@ -275,12 +289,14 @@ impl EpicAddToProjectDialog {
             let n_items = projects_grid.n_items();
 
             if n_items == 0 {
-                self_.no_projects_bar.set_visible(true);
+                self_.no_projects_bar.set_revealed(true);
             } else {
-                self_.no_projects_bar.set_visible(false);
+                self_.no_projects_bar.set_revealed(false);
                 for i in 0..n_items {
                     if let Some(item) = projects_grid.item(i) {
-                        if let Some(project_data) = item.downcast_ref::<crate::models::project_data::ProjectData>() {
+                        if let Some(project_data) =
+                            item.downcast_ref::<crate::models::project_data::ProjectData>()
+                        {
                             self_.grid_model.append(project_data);
                         }
                     }
