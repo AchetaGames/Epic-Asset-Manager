@@ -5,7 +5,6 @@ use gtk4::gdk::Texture;
 use gtk4::prelude::ObjectExt;
 use gtk4::prelude::SettingsExtManual;
 use gtk4::{glib, subclass::prelude::*};
-use log::error;
 use std::path::PathBuf;
 
 // Implementation sub-module of the GObject
@@ -251,33 +250,7 @@ impl FabData {
     }
 
     pub fn check_category(&self, cat: &str) -> bool {
-        cat.split(&['|', '&']).next().map_or(false, |c| {
-            let result = if c.starts_with('!') {
-                let mut chars = c.chars();
-                chars.next();
-                !self.has_category(chars.as_str())
-            } else {
-                self.has_category(c)
-            };
-
-            cat.chars().nth(c.len()).map_or(result, |operator| {
-                let remainder: String = cat.chars().skip(c.len() + 1).collect();
-                match operator {
-                    '&' => {
-                        if result {
-                            self.check_category(&remainder)
-                        } else {
-                            result
-                        }
-                    }
-                    '|' => result || self.check_category(&remainder),
-                    _ => {
-                        error!("Unimplemented operator");
-                        false
-                    }
-                }
-            })
-        })
+        crate::tools::category_filter::eval_category_expr(cat, &|c| self.has_category(c))
     }
 
     pub fn check_downloaded(&self) {

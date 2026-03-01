@@ -48,46 +48,20 @@ impl EpicAssetManagerWindow {
 
     pub fn token_time(&self, key: &str) -> Option<DateTime<Utc>> {
         let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
-        chrono::DateTime::parse_from_rfc3339(self_.model.borrow().settings.string(key).as_str())
-            .map_or(None, |d| Some(d.with_timezone(&chrono::Utc)))
+        crate::tools::auth::parse_token_time(self_.model.borrow().settings.string(key).as_str())
     }
 
     pub fn can_relogin(&self) -> bool {
         let self_: &crate::window::imp::EpicAssetManagerWindow = self.imp();
         let now = chrono::Utc::now();
-        if let Some(te) = self.token_time("token-expiration") {
-            let td = te - now;
-            if td.num_seconds() > 600
-                && self_
-                    .model
-                    .borrow()
-                    .epic_games
-                    .borrow()
-                    .user_details()
-                    .access_token()
-                    .is_some()
-            {
-                debug!("Access token is valid and exists");
-                return true;
-            }
-        }
-        if let Some(rte) = self.token_time("refresh-token-expiration") {
-            let td = rte - now;
-            if td.num_seconds() > 600
-                && self_
-                    .model
-                    .borrow()
-                    .epic_games
-                    .borrow()
-                    .user_details()
-                    .refresh_token()
-                    .is_some()
-            {
-                debug!("Refresh token is valid and exists");
-                return true;
-            }
-        }
-        false
+        let user_details = self_.model.borrow().epic_games.borrow().user_details();
+        crate::tools::auth::can_relogin(
+            now,
+            self.token_time("token-expiration"),
+            user_details.access_token().is_some(),
+            self.token_time("refresh-token-expiration"),
+            user_details.refresh_token().is_some(),
+        )
     }
 
     pub fn relogin(&self) {
