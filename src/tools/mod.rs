@@ -1,6 +1,8 @@
 use log::error;
 
 pub mod asset_info;
+pub mod auth;
+pub mod category_filter;
 pub mod or;
 
 /// Open a directory using the XDG portal (Flatpak-safe) with `opener` fallback.
