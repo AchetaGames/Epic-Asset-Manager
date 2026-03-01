@@ -65,6 +65,18 @@
     <url type="vcs-browser">https://github.com/AchetaGames/Epic-Asset-Manager</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.9.3" date="2026-03-01">
+        <description>
+            <p>Release 3.9.3</p>
+            <ul>
+                    <li>fix: unset WAYLAND_DISPLAY when launching UE via flatpak-spawn</li>
+                    <li>docs: add AGENTS.md knowledge base files</li>
+                    <li>refactor: extract category filter expression parser into tools::category_filter</li>
+                    <li>refactor: extract auth token helpers into tools::auth</li>
+            </ul>
+        </description>
+    </release>
+
     <release version="3.9.2" date="2026-02-25">
         <description>
             <p>Fix Flathub linter issues</p>

@@ -216,7 +216,7 @@ impl UnrealProjectDetails {
                 let app = gio::AppInfo::create_from_commandline(
                     if crate::tools::is_sandboxed() {
                         format!(
-                            "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --host \"{}\" \"{}\"",
+                            "flatpak-spawn --env='GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2' --unset-env=WAYLAND_DISPLAY --host \"{}\" \"{}\"",
                             p.to_str().unwrap(),
                             path
                         )
