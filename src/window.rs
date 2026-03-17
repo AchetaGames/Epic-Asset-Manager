@@ -226,6 +226,18 @@ impl EpicAssetManagerWindow {
                 style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
             }
         }
+        self.refresh_palette_css_class();
+    }
+
+    pub fn refresh_palette_css_class(&self) {
+        let style_manager = adw::StyleManager::default();
+        if style_manager.is_dark() {
+            self.remove_css_class("eam-light");
+            self.add_css_class("eam-dark");
+        } else {
+            self.remove_css_class("eam-dark");
+            self.add_css_class("eam-light");
+        }
     }
 
     pub fn setup_receiver(&self) {

@@ -438,3 +438,65 @@ button.image-button:hover {
   margin: 4px;
   border-radius: 0;
 }
+
+/* ===========================================
+   LIGHT PALETTE OVERRIDES
+   Applied when main window has `eam-light`
+   =========================================== */
+
+window.eam-light,
+window.eam-light .view,
+window.eam-light .background {
+  background-color: #f6f6f6;
+}
+
+window.eam-light headerbar,
+window.eam-light .titlebar {
+  background-color: #f6f6f6;
+  border-bottom: 1px solid #d4d4d4;
+}
+
+window.eam-light headerbar button:hover,
+window.eam-light .titlebar button:hover,
+window.eam-light windowcontrols button:hover,
+window.eam-light .navigation-sidebar button:hover,
+window.eam-light .sidebar button:hover,
+window.eam-light stacksidebar button:hover,
+window.eam-light button.close:hover,
+window.eam-light button.circular:hover,
+window.eam-light row button:hover,
+window.eam-light listbox button:hover,
+window.eam-light list button:hover,
+window.eam-light button.flat:hover,
+window.eam-light button.image-button:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+window.eam-light headerbar button:active,
+window.eam-light .titlebar button:active {
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+window.eam-light gridview > child {
+  border: 1px solid #d4d4d4;
+}
+
+window.eam-light gridview > child:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: #c4c4c4;
+}
+
+window.eam-light gridview > child:selected {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+window.eam-light .content-image,
+window.eam-light gridview picture,
+window.eam-light gridview image {
+  border: 1px solid #d4d4d4;
+}
+
+window.eam-light expander.section,
+window.eam-light .section {
+  border-bottom: 1px solid #d4d4d4;
+}

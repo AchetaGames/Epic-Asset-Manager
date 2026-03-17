@@ -229,7 +229,10 @@ impl PreferencesWindow {
             .build();
         self_
             .settings
-            .connect_changed(Some("dark-mode"), |settings, _key| {
+            .connect_changed(Some("dark-mode"), clone!(
+                #[weak(rename_to=preferences)]
+                self,
+                move |settings, _key| {
                 let style_manager = adw::StyleManager::default();
                 if settings.boolean("dark-mode") {
                     style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
@@ -238,7 +241,10 @@ impl PreferencesWindow {
                 } else {
                     style_manager.set_color_scheme(adw::ColorScheme::Default);
                 };
-            });
+                if let Some(window) = preferences.imp().window.get() {
+                    window.refresh_palette_css_class();
+                }
+            }));
         self_
             .settings
             .bind("cache-directory", &*self_.cache_directory_row, "subtitle")

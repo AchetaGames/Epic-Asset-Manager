@@ -240,6 +240,7 @@ impl EpicAssetManager {
         } else {
             style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
         }
+        self.main_window().refresh_palette_css_class();
         let self_ = self.imp();
         let state = action.state().unwrap();
         let action_state: bool = state.get().unwrap();
