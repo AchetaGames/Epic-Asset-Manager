@@ -226,6 +226,27 @@ impl EpicAssetManagerWindow {
                 style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
             }
         }
+        self.refresh_palette_css_class();
+    }
+
+    pub fn refresh_palette_css_class(&self) {
+        let style_manager = adw::StyleManager::default();
+        let is_dark = style_manager.is_dark();
+        let toplevels = gtk4::Window::list_toplevels();
+
+        for widget in toplevels {
+            let Ok(window) = widget.downcast::<gtk4::Window>() else {
+                continue;
+            };
+
+            if is_dark {
+                window.remove_css_class("eam-light");
+                window.add_css_class("eam-dark");
+            } else {
+                window.remove_css_class("eam-dark");
+                window.add_css_class("eam-light");
+            }
+        }
     }
 
     pub fn setup_receiver(&self) {
