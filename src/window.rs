@@ -234,11 +234,8 @@ impl EpicAssetManagerWindow {
         let is_dark = style_manager.is_dark();
         let toplevels = gtk4::Window::list_toplevels();
 
-        for i in 0..toplevels.n_items() {
-            let Some(obj) = toplevels.item(i) else {
-                continue;
-            };
-            let Ok(window) = obj.downcast::<gtk4::Window>() else {
+        for widget in toplevels {
+            let Ok(window) = widget.downcast::<gtk4::Window>() else {
                 continue;
             };
 
