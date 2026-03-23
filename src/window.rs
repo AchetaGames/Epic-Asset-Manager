@@ -211,20 +211,11 @@ impl EpicAssetManagerWindow {
         }
         let style_manager = adw::StyleManager::default();
         let button = self_.color_scheme_btn.get();
-        if style_manager.system_supports_color_schemes() {
-            button.set_visible(false);
-            if settings.boolean("dark-mode") {
-                style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
-            } else {
-                style_manager.set_color_scheme(adw::ColorScheme::Default);
-            }
+        button.set_visible(!style_manager.system_supports_color_schemes());
+        if settings.boolean("dark-mode") {
+            style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
         } else {
-            button.set_visible(true);
-            if settings.boolean("dark-mode") {
-                style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
-            } else {
-                style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
-            }
+            style_manager.set_color_scheme(adw::ColorScheme::Default);
         }
     }
 

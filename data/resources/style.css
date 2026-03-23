@@ -1,57 +1,16 @@
 /* ===========================================
    EPIC ASSET MANAGER STYLES
-   Epic Games Launcher Dark Theme
    ALL CORNERS MUST BE SQUARE
    =========================================== */
 
-/* ----- Dark Theme Base ----- */
-window,
-.view,
-.background {
-  background-color: #121212;
-}
-
 /* ===========================================
-   HEADERBAR - BLACK TO FLOAT WITH BACKGROUND
+   HEADERBAR
    =========================================== */
 
 headerbar,
 .titlebar {
-  background-color: #121212;
   border-radius: 0;
-  border-bottom: 1px solid #2a2a2a;
   box-shadow: none;
-}
-
-/* Header bar buttons - flat style, no borders */
-headerbar button,
-.titlebar button {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-headerbar button:hover,
-.titlebar button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-headerbar button:active,
-.titlebar button:active {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-/* Window control buttons */
-windowcontrols button {
-  border-radius: 0;
-  background: transparent;
-  border: none;
-  min-width: 24px;
-  min-height: 24px;
-}
-
-windowcontrols button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ===========================================
@@ -87,18 +46,6 @@ spinbutton {
 gridview > child {
   border-radius: 0;
   margin: 4px;
-  background-color: transparent;
-  border: 1px solid #2a2a2a;
-}
-
-gridview > child:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: #3a3a3a;
-}
-
-gridview > child:selected {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: @accent_color;
 }
 
 /* ===========================================
@@ -108,19 +55,6 @@ gridview > child:selected {
 picture,
 image {
   border-radius: 0;
-}
-
-/* Only add borders to content images, not UI icons */
-.content-image,
-gridview picture,
-gridview image {
-  border: 1px solid #2a2a2a;
-}
-
-/* Header bar icon - no border */
-headerbar image,
-.titlebar image {
-  border: none;
 }
 
 /* ===========================================
@@ -180,8 +114,6 @@ progressbar progress {
   border-radius: 0;
 }
 
-/* Asset tile download progress bar - uses system theme colors */
-
 /* ===========================================
    SWITCHES AND TOGGLES
    =========================================== */
@@ -232,20 +164,17 @@ window.csd {
   border-radius: 0;
 }
 
-/* Force square corners on window decorations */
 window decoration,
 decoration,
 .csd decoration {
   border-radius: 0;
 }
 
-/* AdwWindow and subclasses */
 window.background.csd,
 window.solid-csd {
   border-radius: 0;
 }
 
-/* AdwPreferencesWindow specific */
 preferenceswindow,
 window.preferenceswindow {
   border-radius: 0;
@@ -311,9 +240,7 @@ expander title {
   border-radius: 0;
 }
 
-/* Section expanders */
 expander.section {
-  border-bottom: 1px solid #2a2a2a;
   padding-bottom: 8px;
 }
 
@@ -326,54 +253,13 @@ expander.section > title > .expander-icon {
 }
 
 /* ===========================================
-   FLAT BUTTONS - NO BORDERS
+   WINDOWCONTROLS
    =========================================== */
 
-/* Sidebar buttons - flat */
-.navigation-sidebar button,
-.sidebar button,
-stacksidebar button {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.navigation-sidebar button:hover,
-.sidebar button:hover,
-stacksidebar button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Close buttons throughout app */
-button.close,
-button.circular,
-row button,
-listbox button,
-list button {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-button.close:hover,
-button.circular:hover,
-row button:hover,
-listbox button:hover,
-list button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Favorites/star buttons */
-button.flat,
-button.image-button {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-button.flat:hover,
-button.image-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+windowcontrols button {
+  border-radius: 0;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 /* ===========================================
@@ -404,7 +290,6 @@ button.image-button:hover {
    =========================================== */
 
 .section {
-  border-bottom: 1px solid #2a2a2a;
   padding-bottom: 16px;
   margin-bottom: 8px;
 }
@@ -430,8 +315,6 @@ button.image-button:hover {
    =========================================== */
 
 .fab-badge {
-  background-color: #0078f2;
-  color: #ffffff;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;

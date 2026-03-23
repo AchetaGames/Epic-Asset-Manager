@@ -233,8 +233,6 @@ impl PreferencesWindow {
                 let style_manager = adw::StyleManager::default();
                 if settings.boolean("dark-mode") {
                     style_manager.set_color_scheme(adw::ColorScheme::ForceDark);
-                } else if !style_manager.system_supports_color_schemes() {
-                    style_manager.set_color_scheme(adw::ColorScheme::ForceLight);
                 } else {
                     style_manager.set_color_scheme(adw::ColorScheme::Default);
                 };
