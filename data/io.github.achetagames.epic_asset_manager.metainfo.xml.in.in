@@ -65,6 +65,15 @@
     <url type="vcs-browser">https://github.com/AchetaGames/Epic-Asset-Manager</url>
     <content_rating type="oars-1.0"/>
     <releases>
+    <release version="3.9.4" date="2026-03-23">
+        <description>
+            <p>Release 3.9.4</p>
+            <ul>
+                    <li>fix: remove custom CSS color overrides to fix light theme (#335)</li>
+            </ul>
+        </description>
+    </release>
+
     <release version="3.9.3" date="2026-03-01">
         <description>
             <p>Release 3.9.3</p>
